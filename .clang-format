@@ -1,0 +1,102 @@
+AccessModifierOffset: -4
+AlignAfterOpenBracket: true
+AlignConsecutiveAssignments: false
+AlignEscapedNewlinesLeft: false
+AlignOperands: true
+AlignTrailingComments: true
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AlwaysBreakAfterDefinitionReturnType: TopLevel
+AlwaysBreakBeforeMultilineStrings: true
+AlwaysBreakTemplateDeclarations: true
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBinaryOperators: None
+BreakBeforeBraces: Allman
+BreakBeforeTernaryOperators: false
+BreakConstructorInitializersBeforeComma: false
+ColumnLimit: 120
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
+Cpp11BracedListStyle: false
+DerivePointerBinding: false
+IndentCaseLabels: false
+IndentWidth: 4
+IndentWrappedFunctionNames: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+Language: Cpp
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: None
+PenaltyBreakComment: 60
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakString: 1000
+PenaltyExcessCharacter: 1000000
+PenaltyReturnTypeOnItsOwnLine: 60
+PointerAlignment: Left
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+Standard: Cpp11
+TabWidth: 4
+UseTab: Never
+
+IncludeBlocks: Regroup
+IncludeCategories:
+# first our config files:
+  - Regex: "(IBTK|IBAMR)_config.h"
+    Priority: -1
+# then the library:
+  - Regex: "clotting/.*\\.h.$"
+    Priority: 5
+  - Regex: "ibamr/.*\\.h.$"
+    Priority: 10
+  - Regex: "ibtk/.*\\.h.$"
+    Priority: 20
+# silo has a limited number of headers so just hard-code it:
+  - Regex: "[<\"](ioperf\\.h|lite_pdb\\.h|lite_score\\.h|pmpio\\.h|silo_exports\\.h|silo\\.h)[\">]"
+    Priority: 700
+# libMesh:
+  - Regex: "libmesh/"
+    Priority: 200
+# PETSc:
+  - Regex: "[<\"]petsc[a-z]*\\.h[>\"]$"
+    Priority: 300
+# other standardized headers:
+  - Regex: "<[A-Za-z_]*\\.h>"
+    Priority: 1000
+# boost:
+  - Regex: "boost/"
+    Priority: 400
+# eigen:
+  - Regex: "Eigen/"
+    Priority: 500
+# muParser:
+  - Regex: "muParser"
+    Priority: 600
+# standard library stuff
+  - Regex: "[\"<][a-z_]*[\">]"
+    Priority: 2000
+# LS stuff
+  - Regex: "[<\"].*LS.*\\.h[<\"]$"
+    Priority: 50
+# SAMRAI (which goes after IBAMR). This is last since we have headers that are
+# not in a folder starting with the library's name:
+  - Regex: "[<\"][A-Z].*\\.h[>\"]$"
+    Priority: 100
+  - Regex: "[<\"]tbox/[A-Z].*\\.h[>\"]$"
+    Priority: 110
+
+SortIncludes: true
+# don't place the header corresponding to the source file first
+IncludeIsMainRegex: "^$"
