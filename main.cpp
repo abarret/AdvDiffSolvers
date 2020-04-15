@@ -130,6 +130,12 @@ main(int argc, char* argv[])
             time_integrator->registerVisItDataWriter(visit_data_writer);
         }
 
+        // Register a drawing variable with the data writer
+        Pointer<CellVariable<NDIM, double>> u_draw_var = new CellVariable<NDIM, double>("U", NDIM);
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        const int u_draw_idx = var_db->registerVariableAndContext(u_draw_var, var_db->getContext("Draw"));
+        visit_data_writer->registerPlotQuantity("U", "VECTOR", u_draw_idx);
+
         // Initialize hierarchy configuration and data on all patches.
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
@@ -149,7 +155,10 @@ main(int argc, char* argv[])
         {
             pout << "\n\nWriting visualization files...\n\n";
             time_integrator->setupPlotData();
+            time_integrator->allocatePatchData(u_draw_idx, loop_time);
+            u_fcn->setDataOnPatchHierarchy(u_draw_idx, u_draw_var, patch_hierarchy, loop_time);
             visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
+            time_integrator->deallocatePatchData(u_draw_idx);
         }
 
         // Main time step loop.
@@ -182,7 +191,10 @@ main(int argc, char* argv[])
             {
                 pout << "\nWriting visualization files...\n\n";
                 time_integrator->setupPlotData();
+                time_integrator->allocatePatchData(u_draw_idx, loop_time);
+                u_fcn->setDataOnPatchHierarchy(u_draw_idx, u_draw_var, patch_hierarchy, loop_time);
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
+                time_integrator->deallocatePatchData(u_draw_idx);
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
             {
@@ -203,7 +215,6 @@ main(int argc, char* argv[])
 
         HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(
             patch_hierarchy, 0, patch_hierarchy->getFinestLevelNumber());
-        auto var_db = VariableDatabase<NDIM>::getDatabase();
         const int Q_idx = var_db->mapVariableAndContextToIndex(Q_var, time_integrator->getCurrentContext());
         const int Q_err_idx = var_db->registerVariableAndContext(Q_var, var_db->getContext("Error Context"));
 
@@ -235,7 +246,10 @@ main(int argc, char* argv[])
             if (uses_visit)
             {
                 time_integrator->setupPlotData();
+                time_integrator->allocatePatchData(u_draw_idx, loop_time);
+                u_fcn->setDataOnPatchHierarchy(u_draw_idx, u_draw_var, patch_hierarchy, loop_time);
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num + 1, loop_time);
+                time_integrator->deallocatePatchData(u_draw_idx);
             }
         }
 
