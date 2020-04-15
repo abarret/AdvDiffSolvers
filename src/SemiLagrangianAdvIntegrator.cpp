@@ -2,6 +2,10 @@
 
 #include "SemiLagrangianAdvIntegrator.h"
 
+#include "boost/math/tools/roots.hpp"
+
+#include <Eigen/Dense>
+
 namespace IBAMR
 {
 SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& object_name,
@@ -12,9 +16,9 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_path_idx = var_db->registerVariableAndContext(
-        d_path_var, var_db->getContext(d_object_name + "::PathContext"), IntVector<NDIM>(3));
+        d_path_var, var_db->getContext(d_object_name + "::PathContext"), IntVector<NDIM>(4));
     d_xstar_idx = var_db->registerVariableAndContext(
-        d_path_var, var_db->getContext(d_object_name + "::XStar"), IntVector<NDIM>(3));
+        d_path_var, var_db->getContext(d_object_name + "::XStar"), IntVector<NDIM>(4));
 }
 
 void
@@ -24,7 +28,7 @@ SemiLagrangianAdvIntegrator::registerTransportedQuantity(Pointer<CellVariable<ND
     // We need to register our own scratch variable since we need more ghost cells.
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_Q_scratch_idx = var_db->registerVariableAndContext(
-        Q_var, var_db->getContext(d_object_name + "::BiggerScratch"), IntVector<NDIM>(3));
+        Q_var, var_db->getContext(d_object_name + "::BiggerScratch"), IntVector<NDIM>(4));
     return;
 }
 
@@ -105,26 +109,27 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
     {
         Pointer<FaceVariable<NDIM, double>> u_var = d_Q_u_map[Q_var];
         const int u_cur_idx = var_db->mapVariableAndContextToIndex(u_var, getCurrentContext());
+        const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
+        const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
         // Integrate path
         integratePaths(d_path_idx, u_cur_idx, dt);
+
+        // fill ghost cells
+        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<ITC> ghost_cell_comps(2);
+        HierarchyGhostCellInterpolation hier_ghost_cells;
+        ghost_cell_comps[0] = ITC(d_path_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
+        ghost_cell_comps[1] =
+            ITC(d_Q_scratch_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
+        hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
+        hier_ghost_cells.fillData(current_time);
 
         // Invert mapping to find \XX^\star
         // Note that for the Z_0 z-spline, \XX^\star = \xx^{n+1}
         invertMapping(d_path_idx, d_xstar_idx);
 
         // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
-        const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
-        const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
-
-        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-        std::vector<ITC> ghost_cell_comps(1);
-        ghost_cell_comps[0] =
-            ITC(d_Q_scratch_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
-        HierarchyGhostCellInterpolation hier_ghost_cells;
-        hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
-        hier_ghost_cells.fillData(current_time);
-
-        evaluateMappingOnHierarchy(d_xstar_idx, d_Q_scratch_idx, Q_new_idx, /*order*/ 1);
+        evaluateMappingOnHierarchy(d_xstar_idx, d_Q_scratch_idx, Q_new_idx, /*order*/ 2);
     }
     AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
 }
@@ -197,11 +202,22 @@ SemiLagrangianAdvIntegrator::invertMapping(const int path_idx, const int xstar_i
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
-
+                MatrixNd grad_xi;
                 for (int d = 0; d < NDIM; ++d)
                 {
-                    (*xstar_data)(idx, d) = 2 * (idx(d) + 0.5) - (*path_data)(idx, d);
+                    IntVector<NDIM> dir(0);
+                    dir(d) = 1;
+                    for (int dd = 0; dd < NDIM; ++dd)
+                        grad_xi(d, dd) = 0.5 * ((*path_data)(idx + dir, dd) - (*path_data)(idx - dir, dd));
                 }
+                VectorNd XStar, xnp1, x;
+                for (int d = 0; d < NDIM; ++d)
+                {
+                    x(d) = static_cast<double>(idx(d)) + 0.5;
+                    xnp1(d) = (*path_data)(idx, d);
+                }
+                XStar = grad_xi.inverse() * (x - xnp1) + x;
+                for (int d = 0; d < NDIM; ++d) (*xstar_data)(idx, d) = XStar(d);
             }
         }
     }
