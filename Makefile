@@ -13,7 +13,7 @@ include $(IBAMR_BUILD_DIR)/config/make.inc
 ## main driver is in main.cpp
 ##
 ## PDIM = 2 implies two spatial dimensions
-OBJS = src/SemiLagrangianAdvIntegrator.o
+OBJS = src/SemiLagrangianAdvIntegrator.o src/SetLSValue.o src/LSFindCellVolume.o src/QInitial.o src/IntegrateFunction.o
 #main.o
 CPPFLAGS += -Iinclude/
 PDIM = 2

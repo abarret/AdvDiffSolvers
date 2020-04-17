@@ -4,6 +4,9 @@
 
 #include "ibamr/AdvDiffHierarchyIntegrator.h"
 
+#include "LSFindCellVolume.h"
+#include "SetLSValue.h"
+
 namespace IBAMR
 {
 class SemiLagrangianAdvIntegrator : public AdvDiffHierarchyIntegrator
@@ -25,6 +28,9 @@ public:
     void registerTransportedQuantity(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                      const bool Q_output = true) override;
 
+    void registerLevelSetFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
+                                  SAMRAI::tbox::Pointer<SetLSValue> ls_fcn);
+
     /*!
      * Initialize the variables, basic communications algorithms, solvers, and
      * other data structures used by this time integrator object.
@@ -37,6 +43,21 @@ public:
     void
     initializeHierarchyIntegrator(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                                   SAMRAI::tbox::Pointer<SAMRAI::mesh::GriddingAlgorithm<NDIM>> gridding_alg) override;
+
+    void initializeLevelDataSpecialized(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchHierarchy<NDIM>> hierarchy,
+                                        int level_number,
+                                        double init_data_time,
+                                        bool can_be_refined,
+                                        bool initial_time,
+                                        SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<NDIM>> old_level,
+                                        bool allocate_data) override;
+
+    void applyGradientDetectorSpecialized(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchHierarchy<NDIM>> hierarchy,
+                                          int ln,
+                                          double error_data_time,
+                                          int tag_index,
+                                          bool initial_time,
+                                          bool uses_richardson_extrapolation_too) override;
 
     /*!
      * Returns the number of cycles to perform for the present time step.
@@ -72,7 +93,11 @@ private:
 
     void invertMapping(int path_idx, int xstar_idx);
 
-    void evaluateMappingOnHierarchy(int xstar_idx, int Q_cur_idx, int Q_new_idx, int order);
+    void evaluateMappingOnHierarchy(int xstar_idx, int Q_cur_idx, int Q_new_idx, int vol_idx, int order);
+
+    void fillNormalCells(int Q_idx, int Q_scr_idx, int ls_idx);
+
+    void findLSNormal(int ls_idx, int ls_n_idx);
 
     double sumOverZSplines(const IBTK::VectorNd& x_loc,
                            const SAMRAI::pdat::CellIndex<NDIM>& idx,
@@ -134,6 +159,16 @@ private:
     int d_xstar_idx = IBTK::invalid_index;
 
     int d_Q_scratch_idx = IBTK::invalid_index;
+
+    // Level set information
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_ls_var;
+    int d_ls_cur_idx = IBTK::invalid_index, d_ls_new_idx = IBTK::invalid_index;
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_vol_var;
+    int d_vol_idx = IBTK::invalid_index;
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> d_ls_normal_var;
+    int d_ls_normal_idx = IBTK::invalid_index;
+    SAMRAI::tbox::Pointer<SetLSValue> d_ls_fcn;
+    SAMRAI::tbox::Pointer<LSFindCellVolume> d_vol_fcn;
 
 }; // Class SemiLagrangianAdvIntegrator
 } // Namespace IBAMR

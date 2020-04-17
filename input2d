@@ -1,28 +1,44 @@
 // physical parameters
 PI = 3.14159265359
-L = 1.0
+L = 3.0
 
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 2                            // refinement ratio between levels
-N = 128                                    // coarsest grid spacing
+N = 512                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
-CFL_MAX = 0.5
-DT_MAX = CFL_MAX * H / 5
+CFL_MAX = 0.75
+DT_MAX = CFL_MAX * H / 3
 END_TIME = 10
 REGRID_INTERVAL = 100000//int(1.0/CFL_MAX)
 
-U = "-2*PI*(X_1-0.5)"
-V = "2*PI*(X_0-0.5)"
 //U = "1.0"
 //V = "1.0"
+U = "-0.4*(X_1 - 1.5)*PI"
+V = "0.4*(X_0 - 1.5)*PI"
 
 //Q = "sin(2*PI*X_0)^4*sin(2*PI*X_1)^4"
 Q = "exp(-100*((X_0-0.3)^2+(X_1-0.5)^2))"
 
+XCOM = 1.5
+YCOM = 1.5
+R = 1.25
+R_I = 0.25
+
+SetLSValue {
+    interface_type = "ANNULUS"
+    R1 = R_I
+    R2 = R
+    Center = XCOM,YCOM
+}
+
 QInitial {
-   function = Q
+    init_type = "ANNULUS"
+    D = 0.01
+    R1 = R_I
+    R2 = R
+    Center = XCOM, YCOM
 }
 
 UFunction {

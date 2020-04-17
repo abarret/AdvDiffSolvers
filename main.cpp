@@ -23,6 +23,8 @@
 #include "ibtk/muParserRobinBcCoefs.h"
 #include <ibtk/AppInitializer.h>
 
+#include "QInitial.h"
+
 // Set up application namespace declarations
 #include <ibamr/app_namespaces.h>
 
@@ -96,8 +98,8 @@ main(int argc, char* argv[])
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_var = new CellVariable<NDIM, double>("Q");
-        Pointer<CartGridFunction> Q_init =
-            new muParserCartGridFunction("QInit", app_initializer->getComponentDatabase("QInitial"), grid_geometry);
+        Pointer<QInitial> Q_init =
+            new QInitial("QInit", grid_geometry, app_initializer->getComponentDatabase("QInitial"));
         const bool periodic_domain = grid_geometry->getPeriodicShift().min() > 0;
         std::vector<RobinBcCoefStrategy<NDIM>*> Q_bcs(1);
         if (!periodic_domain)
@@ -116,6 +118,12 @@ main(int argc, char* argv[])
         u_fcn = new muParserCartGridFunction(
             "UFunction", app_initializer->getComponentDatabase("UFunction"), grid_geometry);
         time_integrator->setAdvectionVelocityFunction(u_var, u_fcn);
+
+        // Setup the level set function
+        Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS");
+        Pointer<SetLSValue> ls_fcn =
+            new SetLSValue("SetLSValue", grid_geometry, app_initializer->getComponentDatabase("SetLSValue"));
+        time_integrator->registerLevelSetFunction(ls_var, ls_fcn);
 
         time_integrator->registerTransportedQuantity(Q_var);
         time_integrator->setAdvectionVelocity(Q_var, u_var);
@@ -145,6 +153,14 @@ main(int argc, char* argv[])
         // Print the input database contents to the log file.
         plog << "Input database:\n";
         input_db->printClassData(plog);
+
+        for (int iter = 0; iter < input_db->getInteger("MAX_LEVELS"); ++iter)
+        {
+            time_integrator->regridHierarchy();
+            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            const int Q_idx = var_db->mapVariableAndContextToIndex(Q_var, time_integrator->getCurrentContext());
+            Q_init->setDataOnPatchHierarchy(Q_idx, Q_var, patch_hierarchy, 0.0);
+        }
 
         double dt = time_integrator->getMaximumTimeStepSize();
 
@@ -218,15 +234,45 @@ main(int argc, char* argv[])
         const int Q_idx = var_db->mapVariableAndContextToIndex(Q_var, time_integrator->getCurrentContext());
         const int Q_err_idx = var_db->registerVariableAndContext(Q_var, var_db->getContext("Error Context"));
 
+        const int ls_idx = var_db->registerVariableAndContext(ls_var, var_db->getContext("LSErrCtx"));
+        Pointer<CellVariable<NDIM, double>> vol_var = new CellVariable<NDIM, double>("Err");
+        const int vol_idx = var_db->registerVariableAndContext(vol_var, var_db->getContext("VolErrCtx"));
+
         const int coarsest_ln = 0;
         const int finest_ln = patch_hierarchy->getFinestLevelNumber();
         for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
         {
-            patch_hierarchy->getPatchLevel(ln)->allocatePatchData(Q_err_idx, loop_time);
+            Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
+            level->allocatePatchData(Q_err_idx, loop_time);
+            level->allocatePatchData(ls_idx, loop_time);
+            level->allocatePatchData(vol_idx, loop_time);
         }
+
+        ls_fcn->setDataOnPatchHierarchy(ls_idx, ls_var, patch_hierarchy, loop_time);
+        Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume(" ", patch_hierarchy);
+        vol_fcn->updateVolumeAndArea(vol_idx, vol_var, -1, nullptr, ls_idx, ls_var);
+        Q_init->setLSIndex(ls_idx, vol_idx);
+
         Q_init->setDataOnPatchHierarchy(Q_err_idx, Q_var, patch_hierarchy, loop_time);
         Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", patch_hierarchy);
         const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
+
+        for (int ln = 0; ln <= finest_ln; ++ln)
+        {
+            Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
+            for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+            {
+                Pointer<Patch<NDIM>> patch = level->getPatch(p());
+
+                Pointer<CellData<NDIM, double>> wgt_data = patch->getPatchData(wgt_cc_idx);
+                Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+                for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    (*wgt_data)(idx) *= (*vol_data)(idx);
+                }
+            }
+        }
 
         pout << "Norms of exact solution at time " << loop_time << ":\n"
              << "  L1-norm:  " << std::setprecision(10) << hier_cc_data_ops.L1Norm(Q_err_idx, wgt_cc_idx) << "\n"
