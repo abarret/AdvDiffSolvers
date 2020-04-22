@@ -170,5 +170,7 @@ private:
     SAMRAI::tbox::Pointer<SetLSValue> d_ls_fcn;
     SAMRAI::tbox::Pointer<LSFindCellVolume> d_vol_fcn;
 
+    bool d_using_forward_integration = false;
+
 }; // Class SemiLagrangianAdvIntegrator
 } // Namespace IBAMR

@@ -21,6 +21,11 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
         d_path_var, var_db->getContext(d_object_name + "::PathContext"), IntVector<NDIM>(4));
     d_xstar_idx = var_db->registerVariableAndContext(
         d_path_var, var_db->getContext(d_object_name + "::XStar"), IntVector<NDIM>(4));
+
+    if (input_db)
+    {
+        d_using_forward_integration = input_db->getBool("using_forward_integration");
+    }
 }
 
 void
@@ -430,7 +435,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx, const int u_idx,
                 {
                     const double u =
                         0.5 * ((*u_data)(FaceIndex<NDIM>(idx, d, 0)) + (*u_data)(FaceIndex<NDIM>(idx, d, 1)));
-                    (*path_data)(idx, d) = (idx(d) + 0.5) + dt * u / dx[d];
+                    (*path_data)(idx, d) = (idx(d) + 0.5) + dt * u / dx[d] * (d_using_forward_integration ? 1.0 : -1.0);
                 }
             }
         }
@@ -452,25 +457,32 @@ SemiLagrangianAdvIntegrator::invertMapping(const int path_idx, const int xstar_i
             Pointer<CellData<NDIM, double>> path_data = patch->getPatchData(path_idx);
             Pointer<CellData<NDIM, double>> xstar_data = patch->getPatchData(xstar_idx);
 
-            for (CellIterator<NDIM> ci(box); ci; ci++)
+            if (!d_using_forward_integration)
             {
-                const CellIndex<NDIM>& idx = ci();
-                MatrixNd grad_xi;
-                for (int d = 0; d < NDIM; ++d)
+                xstar_data->copy(*path_data);
+            }
+            else
+            {
+                for (CellIterator<NDIM> ci(box); ci; ci++)
                 {
-                    IntVector<NDIM> dir(0);
-                    dir(d) = 1;
-                    for (int dd = 0; dd < NDIM; ++dd)
-                        grad_xi(d, dd) = 0.5 * ((*path_data)(idx + dir, dd) - (*path_data)(idx - dir, dd));
+                    const CellIndex<NDIM>& idx = ci();
+                    MatrixNd grad_xi;
+                    for (int d = 0; d < NDIM; ++d)
+                    {
+                        IntVector<NDIM> dir(0);
+                        dir(d) = 1;
+                        for (int dd = 0; dd < NDIM; ++dd)
+                            grad_xi(d, dd) = 0.5 * ((*path_data)(idx + dir, dd) - (*path_data)(idx - dir, dd));
+                    }
+                    VectorNd XStar, xnp1, x;
+                    for (int d = 0; d < NDIM; ++d)
+                    {
+                        x(d) = static_cast<double>(idx(d)) + 0.5;
+                        xnp1(d) = (*path_data)(idx, d);
+                    }
+                    XStar = grad_xi.inverse() * (x - xnp1) + x;
+                    for (int d = 0; d < NDIM; ++d) (*xstar_data)(idx, d) = XStar(d);
                 }
-                VectorNd XStar, xnp1, x;
-                for (int d = 0; d < NDIM; ++d)
-                {
-                    x(d) = static_cast<double>(idx(d)) + 0.5;
-                    xnp1(d) = (*path_data)(idx, d);
-                }
-                XStar = grad_xi.inverse() * (x - xnp1) + x;
-                for (int d = 0; d < NDIM; ++d) (*xstar_data)(idx, d) = XStar(d);
             }
         }
     }
