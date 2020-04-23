@@ -14,6 +14,7 @@ END_TIME = 10
 REGRID_INTERVAL = 100000//int(1.0/CFL_MAX)
 
 USING_FORWARD_INTEGRATION = TRUE
+MAX_ITERATIONS = 25
 
 //U = "1.0"
 //V = "1.0"
@@ -138,6 +139,7 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     enable_logging       = TRUE
     regrid_interval      = REGRID_INTERVAL
     using_forward_integration = USING_FORWARD_INTEGRATION
+    max_iterations       = MAX_ITERATIONS
     
     convective_op_type                 = "PPM"//"WAVE_PROP"
     convective_difference_form         = "ADVECTIVE"//CONSERVATIVE"

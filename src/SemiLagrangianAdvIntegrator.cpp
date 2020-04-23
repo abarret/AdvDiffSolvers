@@ -1,6 +1,8 @@
+#include "ibamr/AdvDiffWavePropConvectiveOperator.h"
 #include "ibamr/app_namespaces.h"
 
 #include "QInitial.h"
+#include "SAMRAIVectorReal.h"
 #include "SemiLagrangianAdvIntegrator.h"
 #include "utility_functions.h"
 
@@ -24,6 +26,7 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
 
     if (input_db)
     {
+        d_max_iterations = input_db->getInteger("max_iterations");
         d_using_forward_integration = input_db->getBool("using_forward_integration");
     }
 }
@@ -36,6 +39,12 @@ SemiLagrangianAdvIntegrator::registerTransportedQuantity(Pointer<CellVariable<ND
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_Q_scratch_idx = var_db->registerVariableAndContext(
         Q_var, var_db->getContext(d_object_name + "::BiggerScratch"), IntVector<NDIM>(4));
+    d_Q_convec_oper = new AdvDiffWavePropConvectiveOperator(d_object_name + "::ConvectiveOp",
+                                                            Q_var,
+                                                            nullptr,
+                                                            string_to_enum<ConvectiveDifferencingType>("ADVECTIVE"),
+                                                            { nullptr });
+    d_Q_R_idx = var_db->registerVariableAndContext(Q_var, var_db->getContext(d_object_name + "::ADV_SCR"));
 }
 
 void
@@ -169,7 +178,16 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         level->allocatePatchData(d_scratch_data, current_time);
         level->allocatePatchData(d_new_data, new_time);
         if (!level->checkAllocated(d_Q_scratch_idx)) level->allocatePatchData(d_Q_scratch_idx, current_time);
+        if (!level->checkAllocated(d_Q_R_idx)) level->allocatePatchData(d_Q_R_idx, current_time);
     }
+
+    // set up convective operator
+    SAMRAIVectorReal<NDIM, double> in(d_object_name + "::in", d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+    SAMRAIVectorReal<NDIM, double> out(d_object_name + "::out", d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+    in.addComponent(d_Q_var[0], d_Q_scratch_idx);
+    out.addComponent(d_Q_var[0], d_Q_scratch_idx);
+    d_Q_convec_oper->initializeOperatorState(in, out);
+    d_Q_convec_oper->setSolutionTime(current_time);
 
     // Set level set
     d_ls_fcn->setDataOnPatchHierarchy(d_ls_cur_idx, d_ls_var, d_hierarchy, current_time, false);
@@ -193,6 +211,41 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
 void
 SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
 {
+    for (const auto& Q_var : d_Q_var)
+    {
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
+        const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
+        const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+        advectionUpdate(Q_var, Q_cur_idx, Q_new_idx, current_time, new_time);
+    }
+    AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
+}
+
+void
+SemiLagrangianAdvIntegrator::postprocessIntegrateHierarchy(const double current_time,
+                                                           const double new_time,
+                                                           const bool skip_synchronize_new_state_data,
+                                                           const int num_cycles)
+{
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        //        level->deallocatePatchData(d_Q_scratch_idx);
+    }
+    AdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(
+        current_time, new_time, skip_synchronize_new_state_data, num_cycles);
+}
+
+/////////////////////// PRIVATE ///////////////////////////////
+
+void
+SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
+                                             const int Q_cur_idx,
+                                             const int Q_new_idx,
+                                             const double current_time,
+                                             const double new_time)
+{
     const double dt = new_time - current_time;
     int finest_ln = d_hierarchy->getFinestLevelNumber();
     int coarsest_ln = 0;
@@ -202,8 +255,6 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
     {
         Pointer<FaceVariable<NDIM, double>> u_var = d_Q_u_map[Q_var];
         const int u_cur_idx = var_db->mapVariableAndContextToIndex(u_var, getCurrentContext());
-        const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
-        const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
         // Integrate path
         integratePaths(d_path_idx, u_cur_idx, dt);
 
@@ -228,25 +279,7 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
         d_vol_fcn->updateVolumeAndArea(d_vol_idx, d_vol_var, -1, nullptr, d_ls_new_idx, d_ls_var);
         evaluateMappingOnHierarchy(d_xstar_idx, d_Q_scratch_idx, Q_new_idx, d_vol_idx, /*order*/ 2);
     }
-    AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
 }
-
-void
-SemiLagrangianAdvIntegrator::postprocessIntegrateHierarchy(const double current_time,
-                                                           const double new_time,
-                                                           const bool skip_synchronize_new_state_data,
-                                                           const int num_cycles)
-{
-    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        //        level->deallocatePatchData(d_Q_scratch_idx);
-    }
-    AdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(
-        current_time, new_time, skip_synchronize_new_state_data, num_cycles);
-}
-
-/////////////////////// PRIVATE ///////////////////////////////
 
 void
 SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_idx, const int ls_idx)
@@ -259,6 +292,8 @@ SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_id
 
     // Find normal
     findLSNormal(ls_idx, d_ls_normal_idx);
+    d_Q_convec_oper->setAdvectionVelocity(d_ls_normal_idx);
+    double min_dx = std::numeric_limits<double>::max();
 
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
@@ -266,6 +301,8 @@ SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_id
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+            const double* const dx = pgeom->getDx();
             Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_scr_idx);
             Pointer<CellData<NDIM, double>> Q_src_data = patch->getPatchData(Q_idx);
             Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
@@ -275,14 +312,16 @@ SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_id
             {
                 const CellIndex<NDIM>& idx = ci();
                 if ((*vol_data)(idx) > 0.0) (*Q_data)(idx) = (*Q_src_data)(idx);
+                for (int d = 0; d < NDIM; ++d) min_dx = std::min(min_dx, dx[d]);
             }
         }
     }
     int iter = 0;
-    double dt = 0.5;
-    double max_ls_length_frac = 5.0;
-    while (iter++ < 50)
+    double dt = 0.3 * min_dx; // CFL times dx
+    double max_ls_length_frac = 10.0;
+    while (iter++ < d_max_iterations)
     {
+        d_Q_convec_oper->applyConvectiveOperator(Q_scr_idx, d_Q_R_idx);
         for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
         {
             Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -294,57 +333,14 @@ SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_id
                 const double* const dx = pgeom->getDx();
                 Pointer<CellData<NDIM, double>> Q_src_data = patch->getPatchData(Q_idx);
                 Pointer<CellData<NDIM, double>> Q_norm_data = patch->getPatchData(Q_scr_idx);
-                Pointer<FaceData<NDIM, double>> ls_N_data = patch->getPatchData(d_ls_normal_idx);
                 Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
                 Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
-                FaceData<NDIM, double> flux_data(box, 1, 0);
-                flux_data.fillAll(0.0);
-                // Compute fluxes
-                for (int axis = 0; axis < NDIM; ++axis)
+                Pointer<CellData<NDIM, double>> Q_R_data = patch->getPatchData(d_Q_R_idx);
+                for (CellIterator<NDIM> ci(box); ci; ci++)
                 {
-                    const int trans_axis = axis == 0 ? 1 : 0;
-                    for (FaceIterator<NDIM> fi(box, axis); fi; fi++)
-                    {
-                        const FaceIndex<NDIM>& idx = fi();
-                        double ls_low = (*ls_data)(NodeIndex<NDIM>(
-                            idx.toCell(0), idx.getAxis() == 0 ? IntVector<NDIM>(1, 0) : IntVector<NDIM>(0, 1)));
-                        double ls_up = (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(1, 1)));
-                        if (std::abs(0.5 * (ls_low + ls_up)) > max_ls_length_frac * dx[axis]) continue;
-                        // We just use constant reconstructions since the source is constant
-                        double U = -(*ls_N_data)(idx);
-                        const CellIndex<NDIM>& c_idx = U > 0 ? idx.toCell(1) : idx.toCell(0);
-                        double Q_ij = std::numeric_limits<double>::quiet_NaN(),
-                               L = std::numeric_limits<double>::quiet_NaN();
-                        if ((*vol_data)(c_idx) > 0.0)
-                        {
-                            Q_ij = (*Q_src_data)(c_idx);
-                            if (idx.getAxis() == 0)
-                                L = 1.0 -
-                                    length_fraction(1.0,
-                                                    (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(1, 0))),
-                                                    (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(1, 1))));
-                            else
-                                L = 1.0 -
-                                    length_fraction(1.0,
-                                                    (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(0, 1))),
-                                                    (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(1, 1))));
-                        }
-                        else
-                        {
-                            Q_ij = (*Q_norm_data)(c_idx);
-                            if (idx.getAxis() == 0)
-                                L = 1.0 -
-                                    length_fraction(1.0,
-                                                    (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(1, 0))),
-                                                    (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(1, 1))));
-                            else
-                                L = 1.0 -
-                                    length_fraction(1.0,
-                                                    (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(0, 1))),
-                                                    (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(1, 1))));
-                        }
-                        flux_data(idx) = Q_ij * L * U;
-                    }
+                    const CellIndex<NDIM>& idx = ci();
+                    double ls = node_to_cell(idx, *ls_data);
+                    if (ls > (max_ls_length_frac * dx[0])) (*Q_R_data)(idx) = 0.0;
                 }
 
                 // Compute flux differencing
@@ -355,10 +351,7 @@ SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_id
                     if (vol > 0.0)
                     {
                         // We are in a cut cell or external cell, we need to do a flux differencing
-                        (*Q_norm_data)(idx) =
-                            (*Q_norm_data)(idx) +
-                            dt * (flux_data(FaceIndex<NDIM>(idx, 0, 1)) - flux_data(FaceIndex<NDIM>(idx, 0, 0)) +
-                                  flux_data(FaceIndex<NDIM>(idx, 1, 1)) - flux_data(FaceIndex<NDIM>(idx, 1, 0)));
+                        (*Q_norm_data)(idx) -= dt * (*Q_R_data)(idx);
                     }
                 }
 

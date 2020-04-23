@@ -5,15 +5,16 @@ L = 6.0
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 256                                    // coarsest grid spacing
+N = 128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
-CFL_MAX = 0.75
+CFL_MAX = 2.0
 DT_MAX = CFL_MAX * H / 3
 END_TIME = 1
 REGRID_INTERVAL = 1//int(1.0/CFL_MAX)
 
 USING_FORWARD_INTEGRATION = FALSE
+MAX_ITERATIONS = 40
 
 U = "1.0"
 V = "1.0"
@@ -136,6 +137,7 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     enable_logging       = TRUE
     regrid_interval      = REGRID_INTERVAL
     using_forward_integration = USING_FORWARD_INTEGRATION
+    max_iterations       = MAX_ITERATIONS
     
     convective_op_type                 = "PPM"//"WAVE_PROP"
     convective_difference_form         = "ADVECTIVE"//CONSERVATIVE"

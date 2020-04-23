@@ -89,6 +89,12 @@ protected:
     void setupPlotDataSpecialized() override;
 
 private:
+    void advectionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+                         int Q_cur_idx,
+                         int Q_new_idx,
+                         double current_time,
+                         double new_time);
+
     void integratePaths(int path_idx, int u_idx, double dt);
 
     void invertMapping(int path_idx, int xstar_idx);
@@ -171,6 +177,11 @@ private:
     SAMRAI::tbox::Pointer<LSFindCellVolume> d_vol_fcn;
 
     bool d_using_forward_integration = false;
+
+    // Information for filling ghost cells
+    SAMRAI::tbox::Pointer<ConvectiveOperator> d_Q_convec_oper;
+    int d_Q_R_idx = IBTK::invalid_index;
+    int d_max_iterations = 50;
 
 }; // Class SemiLagrangianAdvIntegrator
 } // Namespace IBAMR
