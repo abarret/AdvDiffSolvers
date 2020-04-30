@@ -13,8 +13,9 @@ DT_MAX = CFL_MAX * H / 3
 END_TIME = 10
 REGRID_INTERVAL = 100000//int(1.0/CFL_MAX)
 
-USING_FORWARD_INTEGRATION = TRUE
+USING_FORWARD_INTEGRATION = FALSE
 MAX_ITERATIONS = 25
+OUTPUT_BDRY_INFO = FALSE
 
 //U = "1.0"
 //V = "1.0"
@@ -28,6 +29,14 @@ XCOM = 1.5
 YCOM = 1.5
 R = 1.25
 R_I = 0.25
+D_coef = 1.0
+
+LSCutCellOperator {
+  implicit_advection = FALSE
+}
+
+PoissonSolver {
+}
 
 SetLSValue {
     interface_type = "ANNULUS"

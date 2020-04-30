@@ -4,6 +4,10 @@
 
 #include "ibamr/AdvDiffHierarchyIntegrator.h"
 
+#include "ibtk/PETScKrylovPoissonSolver.h"
+#include "ibtk/PoissonSolver.h"
+
+#include "LSCutCellLaplaceOperator.h"
 #include "LSFindCellVolume.h"
 #include "SetLSValue.h"
 
@@ -88,10 +92,14 @@ protected:
 
     void setupPlotDataSpecialized() override;
 
+    void initializeCompositeHierarchyDataSpecialized(double current_time, bool initial_time) override;
+
 private:
     void advectionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
-                         int Q_cur_idx,
-                         int Q_new_idx,
+                         double current_time,
+                         double new_time);
+
+    void diffusionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                          double current_time,
                          double new_time);
 
@@ -163,20 +171,18 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_path_var;
     int d_path_idx = IBTK::invalid_index;
     int d_xstar_idx = IBTK::invalid_index;
-
     int d_Q_scratch_idx = IBTK::invalid_index;
+    bool d_using_forward_integration = false;
 
     // Level set information
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_ls_var;
     int d_ls_cur_idx = IBTK::invalid_index, d_ls_new_idx = IBTK::invalid_index;
-    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_vol_var;
-    int d_vol_idx = IBTK::invalid_index;
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_vol_var, d_area_var;
+    int d_vol_idx = IBTK::invalid_index, d_area_idx = IBTK::invalid_index;
     SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> d_ls_normal_var;
     int d_ls_normal_idx = IBTK::invalid_index;
     SAMRAI::tbox::Pointer<SetLSValue> d_ls_fcn;
     SAMRAI::tbox::Pointer<LSFindCellVolume> d_vol_fcn;
-
-    bool d_using_forward_integration = false;
 
     // Information for filling ghost cells
     SAMRAI::tbox::Pointer<ConvectiveOperator> d_Q_convec_oper;
