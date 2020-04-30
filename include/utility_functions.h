@@ -9,7 +9,6 @@
 
 namespace IBAMR
 {
-static int Q_cloned_idx = IBTK::invalid_index;
 inline double
 length_fraction(const double dx, const double phi_l, const double phi_u)
 {
@@ -80,57 +79,6 @@ find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_
     }
 
     return center;
-}
-
-struct SetLSAndVolume
-{
-    SetLSAndVolume(int ls_idx,
-                   int vol_idx,
-                   int area_idx,
-                   SAMRAI::tbox::Pointer<SetLSValue> set_ls_val,
-                   SAMRAI::tbox::Pointer<LSFindCellVolume> find_vol)
-        : d_ls_idx(ls_idx), d_vol_idx(vol_idx), d_area_idx(area_idx), d_set_ls_val(set_ls_val), d_find_vol(find_vol)
-    {
-        auto var_db = VariableDatabase<NDIM>::getDatabase();
-        var_db->mapIndexToVariable(d_ls_idx, d_ls_var);
-        var_db->mapIndexToVariable(d_vol_idx, d_vol_var);
-        var_db->mapIndexToVariable(d_area_idx, d_area_var);
-    }
-
-    void updateLSAndVol(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchHierarchy<NDIM>> hierarchy,
-                        double data_time,
-                        bool initial_time)
-    {
-        d_set_ls_val->setDataOnPatchHierarchyWithGhosts(d_ls_idx, d_ls_var, hierarchy, data_time, initial_time);
-        d_find_vol->updateVolumeAndArea(d_vol_idx, d_vol_var, d_area_idx, d_area_var, d_ls_idx, d_ls_var, true);
-    }
-
-private:
-    Pointer<SAMRAI::hier::Variable<NDIM>> d_ls_var, d_vol_var, d_area_var;
-    int d_ls_idx = IBTK::invalid_index, d_vol_idx = IBTK::invalid_index, d_area_idx = IBTK::invalid_index;
-    SAMRAI::tbox::Pointer<SetLSValue> d_set_ls_val;
-    SAMRAI::tbox::Pointer<LSFindCellVolume> d_find_vol;
-};
-
-inline void
-regridHierarchyCallback(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchHierarchy<NDIM>> hierarchy,
-                        const double data_time,
-                        const bool initial_time,
-                        void* ctx)
-{
-    auto setLSAndVol = static_cast<SetLSAndVolume*>(ctx);
-    setLSAndVol->updateLSAndVol(hierarchy, data_time, initial_time);
-}
-
-inline bool
-compare(double a, double b, double eps = SAMRAI::tbox::MathUtilities<double>::getEpsilon())
-{
-    double diff = std::fabs(a - b);
-    a = std::fabs(a);
-    b = std::fabs(b);
-    const double larger = a > b ? a : b;
-    if (diff <= (larger * eps)) return true;
-    return false;
 }
 
 inline double

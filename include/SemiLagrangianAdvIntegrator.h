@@ -9,7 +9,6 @@
 
 #include "LSCutCellLaplaceOperator.h"
 #include "LSFindCellVolume.h"
-#include "SetLSValue.h"
 
 namespace IBAMR
 {
@@ -33,7 +32,7 @@ public:
                                      const bool Q_output = true) override;
 
     void registerLevelSetFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
-                                  SAMRAI::tbox::Pointer<SetLSValue> ls_fcn);
+                                  SAMRAI::tbox::Pointer<IBTK::CartGridFunction> ls_fcn);
 
     /*!
      * Initialize the variables, basic communications algorithms, solvers, and
@@ -184,7 +183,7 @@ private:
     int d_vol_idx = IBTK::invalid_index, d_area_idx = IBTK::invalid_index;
     SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> d_ls_normal_var;
     int d_ls_normal_idx = IBTK::invalid_index;
-    SAMRAI::tbox::Pointer<SetLSValue> d_ls_fcn;
+    SAMRAI::tbox::Pointer<IBTK::CartGridFunction> d_ls_fcn;
     SAMRAI::tbox::Pointer<LSFindCellVolume> d_vol_fcn;
 
     SAMRAI::hier::ComponentSelector d_ls_data;

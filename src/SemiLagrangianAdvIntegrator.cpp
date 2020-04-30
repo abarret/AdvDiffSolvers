@@ -55,7 +55,7 @@ SemiLagrangianAdvIntegrator::registerTransportedQuantity(Pointer<CellVariable<ND
 
 void
 SemiLagrangianAdvIntegrator::registerLevelSetFunction(Pointer<NodeVariable<NDIM, double>> ls_var,
-                                                      Pointer<SetLSValue> ls_fcn)
+                                                      Pointer<CartGridFunction> ls_fcn)
 {
     d_ls_var = ls_var;
     d_ls_fcn = ls_fcn;

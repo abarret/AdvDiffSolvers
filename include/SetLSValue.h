@@ -52,19 +52,6 @@ public:
         return true;
     }
 
-    void setDataOnPatchHierarchyWithGhosts(int data_idx,
-                                           SAMRAI::tbox::Pointer<SAMRAI::hier::Variable<NDIM>> var,
-                                           SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
-                                           double data_time,
-                                           bool initial_time = false,
-                                           int coarsest_ln = -1,
-                                           int finest_ln = -1)
-    {
-        d_extended_box = true;
-        setDataOnPatchHierarchy(data_idx, var, hierarchy, data_time, initial_time, coarsest_ln, finest_ln);
-        d_extended_box = false;
-    }
-
     /*!
      * Set the data on the patch interior to the exact answer.
      */
