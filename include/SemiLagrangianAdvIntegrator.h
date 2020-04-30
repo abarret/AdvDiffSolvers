@@ -88,10 +88,6 @@ public:
                                        int num_cycles = 1) override;
 
 protected:
-    void regridHierarchyEndSpecialized() override;
-
-    void setupPlotDataSpecialized() override;
-
     void initializeCompositeHierarchyDataSpecialized(double current_time, bool initial_time) override;
 
 private:
@@ -174,6 +170,13 @@ private:
     int d_Q_scratch_idx = IBTK::invalid_index;
     bool d_using_forward_integration = false;
 
+    SAMRAI::hier::ComponentSelector d_adv_data;
+
+    // Information for filling ghost cells
+    SAMRAI::tbox::Pointer<ConvectiveOperator> d_Q_convec_oper;
+    int d_Q_R_idx = IBTK::invalid_index;
+    int d_max_iterations = 50;
+
     // Level set information
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_ls_var;
     int d_ls_cur_idx = IBTK::invalid_index, d_ls_new_idx = IBTK::invalid_index;
@@ -184,10 +187,7 @@ private:
     SAMRAI::tbox::Pointer<SetLSValue> d_ls_fcn;
     SAMRAI::tbox::Pointer<LSFindCellVolume> d_vol_fcn;
 
-    // Information for filling ghost cells
-    SAMRAI::tbox::Pointer<ConvectiveOperator> d_Q_convec_oper;
-    int d_Q_R_idx = IBTK::invalid_index;
-    int d_max_iterations = 50;
+    SAMRAI::hier::ComponentSelector d_ls_data;
 
 }; // Class SemiLagrangianAdvIntegrator
 } // Namespace IBAMR

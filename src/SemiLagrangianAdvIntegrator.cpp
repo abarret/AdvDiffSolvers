@@ -24,6 +24,8 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
         d_path_var, var_db->getContext(d_object_name + "::PathContext"), IntVector<NDIM>(4));
     d_xstar_idx = var_db->registerVariableAndContext(
         d_path_var, var_db->getContext(d_object_name + "::XStar"), IntVector<NDIM>(4));
+    d_adv_data.setFlag(d_path_idx);
+    d_adv_data.setFlag(d_xstar_idx);
 
     if (input_db)
     {
@@ -46,6 +48,9 @@ SemiLagrangianAdvIntegrator::registerTransportedQuantity(Pointer<CellVariable<ND
                                                             string_to_enum<ConvectiveDifferencingType>("ADVECTIVE"),
                                                             { nullptr });
     d_Q_R_idx = var_db->registerVariableAndContext(Q_var, var_db->getContext(d_object_name + "::ADV_SCR"));
+
+    d_adv_data.setFlag(d_Q_scratch_idx);
+    d_adv_data.setFlag(d_Q_R_idx);
 }
 
 void
@@ -60,6 +65,12 @@ SemiLagrangianAdvIntegrator::registerLevelSetFunction(Pointer<NodeVariable<NDIM,
     d_vol_idx = var_db->registerVariableAndContext(d_vol_var, getCurrentContext(), IntVector<NDIM>(1));
     d_area_idx = var_db->registerVariableAndContext(d_area_var, getCurrentContext(), IntVector<NDIM>(1));
     d_ls_normal_idx = var_db->registerVariableAndContext(d_ls_normal_var, getCurrentContext());
+
+    d_ls_data.setFlag(d_ls_cur_idx);
+    d_ls_data.setFlag(d_ls_new_idx);
+    d_ls_data.setFlag(d_vol_idx);
+    d_ls_data.setFlag(d_area_idx);
+    d_adv_data.setFlag(d_ls_normal_idx);
 }
 
 void
@@ -74,6 +85,11 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
     AdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(hierarchy, gridding_alg);
 
     d_visit_writer->registerPlotQuantity("Volume", "SCALAR", d_vol_idx);
+    d_visit_writer->registerPlotQuantity("Path", "VECTOR", d_path_idx);
+    d_visit_writer->registerPlotQuantity("XStar", "VECTOR", d_path_idx);
+    d_visit_writer->registerPlotQuantity("LS current", "SCALAR", d_ls_cur_idx);
+    d_visit_writer->registerPlotQuantity("LS new", "SCALAR", d_ls_new_idx);
+    d_visit_writer->registerPlotQuantity("Q_scratch", "SCALAR", d_Q_scratch_idx);
 
     d_integrator_is_initialized = true;
 }
@@ -91,13 +107,10 @@ SemiLagrangianAdvIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHie
         hierarchy, ln, data_time, can_be_refined, initial_time, old_level, allocate_data);
     // Initialize level set
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-    if (!level->checkAllocated(d_ls_cur_idx)) level->allocatePatchData(d_ls_cur_idx);
-    if (!level->checkAllocated(d_ls_new_idx)) level->allocatePatchData(d_ls_new_idx);
-    if (!level->checkAllocated(d_vol_idx)) level->allocatePatchData(d_vol_idx);
-    if (!level->checkAllocated(d_ls_normal_idx)) level->allocatePatchData(d_ls_normal_idx);
+    if (allocate_data) level->allocatePatchData(d_ls_data, data_time);
 
     d_ls_fcn->setDataOnPatchLevel(d_ls_cur_idx, d_ls_var, level, data_time, initial_time);
-    d_ls_fcn->setDataOnPatchLevel(d_ls_new_idx, d_ls_var, level, data_time, initial_time);
+    if (initial_time) d_ls_fcn->setDataOnPatchLevel(d_ls_new_idx, d_ls_var, level, data_time, initial_time);
 }
 
 void
@@ -135,45 +148,20 @@ SemiLagrangianAdvIntegrator::getNumberOfCycles() const
 }
 
 void
-SemiLagrangianAdvIntegrator::regridHierarchyEndSpecialized()
-{
-    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        if (!level->checkAllocated(d_path_idx)) level->allocatePatchData(d_path_idx);
-        if (!level->checkAllocated(d_xstar_idx)) level->allocatePatchData(d_xstar_idx);
-        if (!level->checkAllocated(d_ls_cur_idx)) level->allocatePatchData(d_ls_cur_idx);
-        if (!level->checkAllocated(d_ls_new_idx)) level->allocatePatchData(d_ls_new_idx);
-        if (!level->checkAllocated(d_vol_idx)) level->allocatePatchData(d_vol_idx);
-        if (!level->checkAllocated(d_ls_normal_idx)) level->allocatePatchData(d_ls_normal_idx);
-    }
-}
-
-void
-SemiLagrangianAdvIntegrator::setupPlotDataSpecialized()
-{
-    IBTK_DO_ONCE(d_visit_writer->registerPlotQuantity("Path", "VECTOR", d_path_idx);
-                 d_visit_writer->registerPlotQuantity("XStar", "VECTOR", d_path_idx);
-                 d_visit_writer->registerPlotQuantity("LS current", "SCALAR", d_ls_cur_idx);
-                 d_visit_writer->registerPlotQuantity("LS new", "SCALAR", d_ls_new_idx);
-                 d_visit_writer->registerPlotQuantity("Q_scratch", "SCALAR", d_Q_scratch_idx););
-}
-
-void
 SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_time,
                                                           const double new_time,
                                                           const int num_cycles)
 {
     AdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(current_time, new_time, num_cycles);
     const double dt = new_time - current_time;
-    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    const int coarsest_ln = 0;
+    const int finest_ln = d_hierarchy->getFinestLevelNumber();
+    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         level->allocatePatchData(d_scratch_data, current_time);
         level->allocatePatchData(d_new_data, new_time);
-        if (!level->checkAllocated(d_Q_scratch_idx)) level->allocatePatchData(d_Q_scratch_idx, current_time);
-        if (!level->checkAllocated(d_Q_R_idx)) level->allocatePatchData(d_Q_R_idx, current_time);
-        if (!level->checkAllocated(d_area_idx)) level->allocatePatchData(d_area_idx, current_time);
+        level->allocatePatchData(d_adv_data, current_time);
     }
 
     // set up convective operator
@@ -184,9 +172,16 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
     d_Q_convec_oper->initializeOperatorState(in, out);
     d_Q_convec_oper->setSolutionTime(current_time);
 
-    // Set level set
-    d_ls_fcn->setDataOnPatchHierarchyWithGhosts(d_ls_cur_idx, d_ls_var, d_hierarchy, current_time, false);
-    d_ls_fcn->setDataOnPatchHierarchyWithGhosts(d_ls_new_idx, d_ls_var, d_hierarchy, new_time, false);
+    // Update level set
+    d_ls_fcn->setDataOnPatchHierarchy(d_ls_cur_idx, d_ls_var, d_hierarchy, current_time, false);
+    d_ls_fcn->setDataOnPatchHierarchy(d_ls_new_idx, d_ls_var, d_hierarchy, new_time, false);
+    using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+    std::vector<ITC> ghost_cell_comps(2);
+    ghost_cell_comps[0] = ITC(d_ls_cur_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+    ghost_cell_comps[1] = ITC(d_ls_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+    HierarchyGhostCellInterpolation hier_ghost_cells;
+    hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
+    hier_ghost_cells.fillData(current_time);
 
     // Set velocities
     auto var_db = VariableDatabase<NDIM>::getDatabase();
@@ -195,9 +190,8 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         const int u_cur_idx = var_db->mapVariableAndContextToIndex(u_var, getCurrentContext());
         const int u_new_idx = var_db->mapVariableAndContextToIndex(u_var, getNewContext());
         d_u_fcn[u_var]->setDataOnPatchHierarchy(
-            u_cur_idx, u_var, d_hierarchy, current_time, false, 0, d_hierarchy->getFinestLevelNumber());
-        d_u_fcn[u_var]->setDataOnPatchHierarchy(
-            u_new_idx, u_var, d_hierarchy, new_time, false, 0, d_hierarchy->getFinestLevelNumber());
+            u_cur_idx, u_var, d_hierarchy, current_time, false, coarsest_ln, finest_ln);
+        d_u_fcn[u_var]->setDataOnPatchHierarchy(u_new_idx, u_var, d_hierarchy, new_time, false, coarsest_ln, finest_ln);
     }
 
     // Prepare diffusion
@@ -297,7 +291,6 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
         diffusionUpdate(Q_var, current_time, new_time);
         // synchronize hierarchy
 
-        plog << d_object_name << " finished diffusion update for variable " << l << "\n";
 
         // Reset for next iteration
         // Copy new data to current and scratch.
@@ -316,11 +309,7 @@ SemiLagrangianAdvIntegrator::postprocessIntegrateHierarchy(const double current_
                                                            const int num_cycles)
 {
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        //        level->deallocatePatchData(d_Q_scratch_idx);
-        //        level->deallocatePatchData(d_area_idx);
-    }
+        d_hierarchy->getPatchLevel(ln)->deallocatePatchData(d_adv_data);
 
     AdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(
         current_time, new_time, skip_synchronize_new_state_data, num_cycles);
