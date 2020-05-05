@@ -1,3 +1,5 @@
+#include "ibamr/AdvDiffCUIConvectiveOperator.h"
+#include "ibamr/AdvDiffPPMConvectiveOperator.h"
 #include "ibamr/AdvDiffWavePropConvectiveOperator.h"
 #include "ibamr/app_namespaces.h"
 
@@ -45,11 +47,11 @@ SemiLagrangianAdvIntegrator::registerTransportedQuantity(Pointer<CellVariable<ND
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_Q_scratch_idx = var_db->registerVariableAndContext(
         Q_var, var_db->getContext(d_object_name + "::BiggerScratch"), IntVector<NDIM>(GHOST_CELL_WIDTH));
-    d_Q_convec_oper = new AdvDiffWavePropConvectiveOperator(d_object_name + "::ConvectiveOp",
-                                                            Q_var,
-                                                            nullptr,
-                                                            string_to_enum<ConvectiveDifferencingType>("ADVECTIVE"),
-                                                            { nullptr });
+    d_Q_convec_oper = new AdvDiffCUIConvectiveOperator(d_object_name + "::ConvectiveOp",
+                                                       Q_var,
+                                                       nullptr,
+                                                       string_to_enum<ConvectiveDifferencingType>("ADVECTIVE"),
+                                                       { nullptr });
     d_Q_R_idx = var_db->registerVariableAndContext(Q_var, var_db->getContext(d_object_name + "::ADV_SCR"));
 
     d_current_data.setFlag(d_Q_scratch_idx);
@@ -552,7 +554,7 @@ SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_id
     findLSNormal(ls_idx, d_ls_normal_idx);
     d_Q_convec_oper->setAdvectionVelocity(d_ls_normal_idx);
     d_Q_convec_oper->setSolutionTime(d_integrator_time);
-    std::vector<double> dt(finest_ln);
+    std::vector<double> dt(finest_ln + 1);
 
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
@@ -569,7 +571,7 @@ SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_id
             // Find dt
             double dx_min = std::numeric_limits<double>::max();
             for (int d = 0; d < NDIM; ++d) dx_min = std::min(dx_min, dx[d]);
-            dt[ln] = 0.3 * dx_min;
+            dt.at(ln) = 0.3 * dx_min;
             // Fill cut cell with same cell average
             Q_data->fill(0.0);
             for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
@@ -613,7 +615,7 @@ SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_id
                     if (vol > 0.0)
                     {
                         // We are in a cut cell or external cell, we need to do a flux differencing
-                        (*Q_norm_data)(idx) -= dt[ln] * (*Q_R_data)(idx);
+                        (*Q_norm_data)(idx) -= dt.at(ln) * (*Q_R_data)(idx);
                     }
                 }
 
