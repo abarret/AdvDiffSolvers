@@ -1,0 +1,1 @@
+${HOME}/sfw/openmpi/3.1.4/bin/mpirun -n 1 ./main2d input2d.radial -poisson_solve_ksp_rtol 1.0e-8 -poisson_solve_ksp_type gmres -poisson_solve_ksp_converged_reason -poisson_solve_ksp_initial_guess_nonzero false
