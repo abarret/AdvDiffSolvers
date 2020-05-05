@@ -393,8 +393,6 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
         ghost_cell_comps[0] = ITC(d_ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
         hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
         hier_ghost_cell->fillData(current_time);
-        d_vol_fcn->updateVolumeAndArea(
-            d_vol_idx, d_vol_var, d_area_idx, d_area_var, d_ls_node_new_idx, d_ls_node_var, true);
     }
 
     // Now do advective update for each variable
@@ -498,6 +496,8 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
     invertMapping(d_path_idx, d_xstar_idx);
 
     // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
+    d_vol_fcn->updateVolumeAndArea(
+        d_vol_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_new_idx, d_ls_node_var);
     evaluateMappingOnHierarchy(d_xstar_idx, d_Q_scratch_idx, Q_new_idx, d_vol_idx, /*order*/ 2);
 }
 
@@ -571,7 +571,7 @@ SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_id
             // Find dt
             double dx_min = std::numeric_limits<double>::max();
             for (int d = 0; d < NDIM; ++d) dx_min = std::min(dx_min, dx[d]);
-            dt.at(ln) = 0.3 * dx_min;
+            dt[ln] = 0.3 * dx_min;
             // Fill cut cell with same cell average
             Q_data->fill(0.0);
             for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
@@ -615,7 +615,7 @@ SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_id
                     if (vol > 0.0)
                     {
                         // We are in a cut cell or external cell, we need to do a flux differencing
-                        (*Q_norm_data)(idx) -= dt.at(ln) * (*Q_R_data)(idx);
+                        (*Q_norm_data)(idx) -= dt[ln] * (*Q_R_data)(idx);
                     }
                 }
 
