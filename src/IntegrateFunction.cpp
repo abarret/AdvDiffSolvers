@@ -286,7 +286,9 @@ IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_
     double integral = 0.0;
     double J = std::abs((X_pts[1](0) - X_pts[0](0)) * (X_pts[2](1) - X_pts[0](1)) -
                         (X_pts[2](0) - X_pts[0](0)) * (X_pts[1](1) - X_pts[0](1)));
+#ifndef NDEBUG
     TBOX_ASSERT(J > 0.0);
+#endif
     for (size_t i = 0; i < s_weights.size(); ++i)
     {
         // Convert reference coords to physical coords
