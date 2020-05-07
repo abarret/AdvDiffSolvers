@@ -108,7 +108,7 @@ IntegrateFunction::integrateOverIndex(const double* const dx,
         {
             X(1) = XLow(1) + dx[1] * y;
             NodeIndex<NDIM> n_idx(idx, IntVector<NDIM>(x, y));
-            phi = ls_data(n_idx);
+            phi = ls_data(n_idx) + 1.0e-12;
             indices[x][y] = std::make_pair(X, phi);
             if (phi > 0) ++num_p;
         }
