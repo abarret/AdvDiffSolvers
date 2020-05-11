@@ -100,6 +100,7 @@ public:
 protected:
     void initializeCompositeHierarchyDataSpecialized(double current_time, bool initial_time) override;
     void regridHierarchyEndSpecialized() override;
+    void resetTimeDependentHierarchyDataSpecialized(double new_time) override;
 
 private:
     void advectionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
@@ -192,7 +193,8 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_ls_node_var;
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_ls_cell_var;
     int d_ls_node_cur_idx = IBTK::invalid_index, d_ls_node_new_idx = IBTK::invalid_index;
-    int d_ls_cell_cur_idx = IBTK::invalid_index, d_ls_cell_new_idx = IBTK::invalid_index;
+    int d_ls_cell_cur_idx = IBTK::invalid_index, d_ls_cell_new_idx = IBTK::invalid_index,
+        d_ls_cell_scr_idx = IBTK::invalid_index;
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_vol_var, d_area_var;
     int d_vol_idx = IBTK::invalid_index, d_area_idx = IBTK::invalid_index;
     SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> d_ls_normal_var;

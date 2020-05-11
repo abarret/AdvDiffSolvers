@@ -24,10 +24,8 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
       d_ls_normal_var(new FaceVariable<NDIM, double>(d_object_name + "::NormalVar"))
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_path_idx = var_db->registerVariableAndContext(
-        d_path_var, var_db->getContext(d_object_name + "::PathContext"), IntVector<NDIM>(GHOST_CELL_WIDTH));
-    d_xstar_idx = var_db->registerVariableAndContext(
-        d_path_var, var_db->getContext(d_object_name + "::XStar"), IntVector<NDIM>(GHOST_CELL_WIDTH));
+    d_path_idx = var_db->registerVariableAndContext(d_path_var, var_db->getContext(d_object_name + "::PathContext"));
+    d_xstar_idx = var_db->registerVariableAndContext(d_path_var, var_db->getContext(d_object_name + "::XStar"));
     d_adv_data.setFlag(d_path_idx);
     d_adv_data.setFlag(d_xstar_idx);
 
@@ -63,23 +61,6 @@ SemiLagrangianAdvIntegrator::registerLevelSetVariable(Pointer<CellVariable<NDIM,
 {
     d_ls_cell_var = ls_var;
     d_ls_node_var = new NodeVariable<NDIM, double>(d_object_name + "::LSNodeVar");
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_ls_node_cur_idx =
-        var_db->registerVariableAndContext(d_ls_node_var, getCurrentContext(), IntVector<NDIM>(GHOST_CELL_WIDTH));
-    d_ls_node_new_idx = var_db->registerVariableAndContext(d_ls_node_var, getNewContext(), IntVector<NDIM>(1));
-    d_ls_cell_cur_idx = var_db->registerVariableAndContext(d_ls_cell_var, getCurrentContext(), GHOST_CELL_WIDTH);
-    d_ls_cell_new_idx = var_db->registerVariableAndContext(d_ls_cell_var, getNewContext(), IntVector<NDIM>(1));
-    d_vol_idx = var_db->registerVariableAndContext(d_vol_var, getCurrentContext(), GHOST_CELL_WIDTH);
-    d_area_idx = var_db->registerVariableAndContext(d_area_var, getCurrentContext(), GHOST_CELL_WIDTH);
-    d_ls_normal_idx = var_db->registerVariableAndContext(d_ls_normal_var, getCurrentContext());
-
-    d_current_data.setFlag(d_ls_cell_cur_idx);
-    d_new_data.setFlag(d_ls_cell_new_idx);
-    d_ls_data.setFlag(d_ls_node_cur_idx);
-    d_ls_data.setFlag(d_ls_node_new_idx);
-    d_ls_data.setFlag(d_vol_idx);
-    d_ls_data.setFlag(d_area_idx);
-    d_adv_data.setFlag(d_ls_normal_idx);
 }
 
 void
@@ -109,8 +90,31 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
     if (d_integrator_is_initialized) return;
     d_hierarchy = hierarchy;
     d_gridding_alg = gridding_alg;
+    Pointer<CartesianGridGeometry<NDIM>> grid_geom = d_hierarchy->getGridGeometry();
 
     AdvDiffHierarchyIntegrator::registerVariables();
+    registerVariable(d_ls_cell_cur_idx,
+                     d_ls_cell_new_idx,
+                     d_ls_cell_scr_idx,
+                     d_ls_cell_var,
+                     IntVector<NDIM>(GHOST_CELL_WIDTH),
+                     "CONSERVATIVE_COARSEN",
+                     "CONSERVATIVE_LINEAR_REFINE");
+
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    d_ls_node_cur_idx =
+        var_db->registerVariableAndContext(d_ls_node_var, getCurrentContext(), IntVector<NDIM>(GHOST_CELL_WIDTH));
+    d_ls_node_new_idx = var_db->registerVariableAndContext(d_ls_node_var, getNewContext(), IntVector<NDIM>(1));
+    d_vol_idx = var_db->registerVariableAndContext(d_vol_var, getCurrentContext(), GHOST_CELL_WIDTH);
+    d_area_idx = var_db->registerVariableAndContext(d_area_var, getCurrentContext(), GHOST_CELL_WIDTH);
+    d_ls_normal_idx = var_db->registerVariableAndContext(d_ls_normal_var, getCurrentContext());
+
+    d_ls_data.setFlag(d_ls_node_cur_idx);
+    d_ls_data.setFlag(d_ls_node_new_idx);
+    d_ls_data.setFlag(d_vol_idx);
+    d_ls_data.setFlag(d_area_idx);
+    d_adv_data.setFlag(d_ls_normal_idx);
+
     AdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(hierarchy, gridding_alg);
 
     d_visit_writer->registerPlotQuantity("Volume", "SCALAR", d_vol_idx);
@@ -120,11 +124,6 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
     d_visit_writer->registerPlotQuantity("LS new", "SCALAR", d_ls_node_new_idx);
     d_visit_writer->registerPlotQuantity("Q_scratch", "SCALAR", d_Q_scratch_idx);
     d_visit_writer->registerPlotQuantity("LS Cell", "SCALAR", d_ls_cell_cur_idx);
-
-    Pointer<CartesianGridGeometry<NDIM>> grid_geom = d_hierarchy->getGridGeometry();
-    Pointer<RefineOperator<NDIM>> refine_op =
-        grid_geom->lookupRefineOperator(d_ls_cell_var, "CONSERVATIVE_LINEAR_REFINE");
-    d_fill_after_regrid_prolong_alg.registerRefine(d_ls_cell_cur_idx, d_ls_cell_cur_idx, d_ls_cell_cur_idx, refine_op);
 
     d_integrator_is_initialized = true;
 }
@@ -233,11 +232,18 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         // interpolate cell data to node data
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
         std::vector<ITC> ghost_cell_comps(1);
-        ghost_cell_comps[0] = ITC(d_ls_cell_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR");
+        ghost_cell_comps[0] = ITC(d_ls_cell_scr_idx,
+                                  d_ls_cell_cur_idx,
+                                  "CONSERVATIVE_LINEAR_REFINE",
+                                  false,
+                                  "CONSERVATIVE_COARSEN",
+                                  "LINEAR",
+                                  false,
+                                  nullptr);
         Pointer<HierarchyGhostCellInterpolation> hier_ghost_cell = new HierarchyGhostCellInterpolation();
         hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
         d_hier_math_ops->interp(
-            d_ls_node_cur_idx, d_ls_node_var, false, d_ls_cell_cur_idx, d_ls_cell_var, hier_ghost_cell, current_time);
+            d_ls_node_cur_idx, d_ls_node_var, false, d_ls_cell_scr_idx, d_ls_cell_var, hier_ghost_cell, current_time);
         hier_ghost_cell->deallocateOperatorState();
         ghost_cell_comps[0] = ITC(d_ls_node_cur_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
         hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
@@ -378,17 +384,24 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
         invertMapping(d_path_idx, d_xstar_idx);
 
         // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
-        evaluateMappingOnHierarchy(d_xstar_idx, d_ls_cell_cur_idx, d_ls_cell_new_idx, IBTK::invalid_index, /*order*/ 2);
+        evaluateMappingOnHierarchy(d_xstar_idx, d_ls_cell_scr_idx, d_ls_cell_new_idx, IBTK::invalid_index, /*order*/ 2);
 
         // Synchronize hierarchy and interpolate to cell nodes
         // TODO: Should we synchronize hierarchy?
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
         std::vector<ITC> ghost_cell_comps(1);
-        ghost_cell_comps[0] = ITC(d_ls_cell_new_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR");
+        ghost_cell_comps[0] = ITC(d_ls_cell_scr_idx,
+                                  d_ls_cell_new_idx,
+                                  "CONSERVATIVE_LINEAR_REFINE",
+                                  false,
+                                  "CONSERVATIVE_COARSEN",
+                                  "LINEAR",
+                                  false,
+                                  nullptr);
         Pointer<HierarchyGhostCellInterpolation> hier_ghost_cell = new HierarchyGhostCellInterpolation();
         hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
         d_hier_math_ops->interp(
-            d_ls_node_new_idx, d_ls_node_var, false, d_ls_cell_new_idx, d_ls_cell_var, hier_ghost_cell, current_time);
+            d_ls_node_new_idx, d_ls_node_var, false, d_ls_cell_scr_idx, d_ls_cell_var, hier_ghost_cell, current_time);
         hier_ghost_cell->deallocateOperatorState();
         ghost_cell_comps[0] = ITC(d_ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
         hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
@@ -422,9 +435,6 @@ SemiLagrangianAdvIntegrator::postprocessIntegrateHierarchy(const double current_
 {
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
         d_hierarchy->getPatchLevel(ln)->deallocatePatchData(d_adv_data);
-
-    // Copy new level set to current level set
-    d_hier_cc_data_ops->copyData(d_ls_cell_cur_idx, d_ls_cell_new_idx);
 
     AdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(
         current_time, new_time, skip_synchronize_new_state_data, num_cycles);
@@ -461,6 +471,15 @@ SemiLagrangianAdvIntegrator::regridHierarchyEndSpecialized()
     if (!d_prescribe_ls) d_ls_strategy->setReinitializeLSData(true);
 }
 
+void
+SemiLagrangianAdvIntegrator::resetTimeDependentHierarchyDataSpecialized(const double new_time)
+{
+    // Copy level set info
+    d_hier_cc_data_ops->copyData(d_ls_cell_cur_idx, d_ls_cell_new_idx);
+
+    AdvDiffHierarchyIntegrator::resetTimeDependentHierarchyDataSpecialized(new_time);
+}
+
 /////////////////////// PRIVATE ///////////////////////////////
 
 void
@@ -484,10 +503,9 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
 
     // fill ghost cells
     using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-    std::vector<ITC> ghost_cell_comps(2);
+    std::vector<ITC> ghost_cell_comps(1);
     HierarchyGhostCellInterpolation hier_ghost_cells;
-    ghost_cell_comps[0] = ITC(d_path_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR", true, nullptr);
-    ghost_cell_comps[1] = ITC(d_Q_scratch_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
+    ghost_cell_comps[0] = ITC(d_Q_scratch_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
     hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
     hier_ghost_cells.fillData(current_time);
 
