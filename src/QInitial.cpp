@@ -130,7 +130,6 @@ QInitial::setDataOnPatchHierarchy(const int data_idx,
             auto w = [](double r, double D, double t) -> double {
                 return 10.0 * std::exp(-r * r / (4.0 * D * (t + 0.5))) / (4.0 * D * (t + 0.5));
             };
-            double theta = std::atan2(static_cast<double>(X(1)), static_cast<double>(X(0)));
             MatrixNd Q;
             Q(0, 0) = Q(1, 1) = std::cos(d_v * t);
             Q(0, 1) = std::sin(d_v * t);
@@ -168,7 +167,7 @@ void
 QInitial::setDataOnPatch(const int data_idx,
                          Pointer<Variable<NDIM>> /*var*/,
                          Pointer<Patch<NDIM>> patch,
-                         const double data_time,
+                         const double /*data_time*/,
                          const bool /*initial_time*/,
                          Pointer<PatchLevel<NDIM>> /*level*/)
 {
@@ -176,15 +175,6 @@ QInitial::setDataOnPatch(const int data_idx,
 #if !defined(NDEBUG)
     TBOX_ASSERT(Q_data);
 #endif
-    const Box<NDIM>& patch_box = patch->getBox();
-    const hier::Index<NDIM>& patch_lower = patch_box.lower();
-    Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-
-    const double* const x_lower = pgeom->getXLower();
-    const double* const dx = pgeom->getDx();
-
-    VectorNd X;
-    const double t = data_time;
 
     Q_data->fillAll(0.0);
     return;

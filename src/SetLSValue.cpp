@@ -182,7 +182,6 @@ SetLSValue::setDataOnPatch(const int data_idx,
                 {
                     X[d] = x_lower[d] + dx[d] * static_cast<double>(i(d) - patch_lower(d));
                 }
-                double theta = std::atan2(static_cast<double>(X(1)), static_cast<double>(X(0)));
                 MatrixNd Q;
                 Q(0, 0) = Q(1, 1) = std::cos(d_v * data_time);
                 Q(0, 1) = std::sin(d_v * data_time);

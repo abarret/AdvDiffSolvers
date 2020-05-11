@@ -282,9 +282,6 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
             (D_var ? var_db->mapVariableAndContextToIndex(D_var, getScratchContext()) : IBTK::invalid_index);
         const int D_rhs_scr_idx =
             (D_rhs_var ? var_db->mapVariableAndContextToIndex(D_rhs_var, getScratchContext()) : IBTK::invalid_index);
-        const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
-        const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
-        const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
 
         double K =
             0.5; // This should be changed for different time stepping for diffusion. Right now set at trapezoidal rule.
@@ -352,12 +349,12 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
     {
         const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
         const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
-        const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
 
         // Copy current data to scratch
         d_hier_cc_data_ops->copyData(Q_scr_idx, Q_cur_idx);
 
         // First do a diffusion update.
+        // Note diffusion update fills in "New" context
         diffusionUpdate(Q_var, current_time, new_time);
 
         plog << d_object_name + "::integrateHierarchy() finished diffusion update for variable: " << Q_var->getName()
@@ -525,7 +522,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
                                              const double new_time)
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
-    const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
+    // We assume scratch context is already filled correctly.
     const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
     const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
     const size_t l = distance(d_Q_var.begin(), std::find(d_Q_var.begin(), d_Q_var.end(), Q_var));
@@ -641,7 +638,6 @@ SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_id
                 for (CellIterator<NDIM> ci(box); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
-                    const double vol = 1.0 - (*vol_data)(idx);
                     if ((*vol_data)(idx) > 0.0 && (*vol_data)(idx) < 1.0) (*Q_norm_data)(idx) = (*Q_src_data)(idx);
                 }
             }

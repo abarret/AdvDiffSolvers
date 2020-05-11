@@ -516,11 +516,11 @@ output_to_file(const int Q_idx,
         // Root processor now has all the data. Sort it and print it
         std::map<double, double> theta_val_data;
         // Start with root processor
-        for (int i = 0; i < theta_data.size(); ++i) theta_val_data[theta_data[i]] = val_data[i];
+        for (size_t i = 0; i < theta_data.size(); ++i) theta_val_data[theta_data[i]] = val_data[i];
         // Now loop through remaining processors
         for (int i = 1; i < num_procs; ++i)
         {
-            for (int j = 0; j < theta_per_proc[i - 1].size(); ++j)
+            for (size_t j = 0; j < theta_per_proc[i - 1].size(); ++j)
             {
                 theta_val_data[theta_per_proc[i - 1][j]] = val_per_proc[i - 1][j];
             }
