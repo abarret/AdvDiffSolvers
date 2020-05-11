@@ -34,6 +34,8 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
         d_max_iterations = input_db->getInteger("max_iterations");
         d_using_forward_integration = input_db->getBool("using_forward_integration");
         d_prescribe_ls = input_db->getBool("prescribe_level_set");
+        d_min_ls_refine_factor = input_db->getDouble("min_ls_refine_factor");
+        d_max_ls_refine_factor = input_db->getDouble("max_ls_refine_factor");
     }
 }
 
@@ -184,7 +186,7 @@ SemiLagrangianAdvIntegrator::applyGradientDetectorSpecialized(Pointer<BasePatchH
         {
             const CellIndex<NDIM>& idx = ci();
             const double ls = node_to_cell(idx, *ls_data);
-            if (ls < 5.0 * dx[0]) (*tag_data)(idx) = 1;
+            if (ls < d_max_ls_refine_factor * dx[0] && ls > d_min_ls_refine_factor * dx[0]) (*tag_data)(idx) = 1;
         }
     }
 }

@@ -14,18 +14,20 @@ DT_MAX = H * CFL_MAX / 4
 DT_MIN = DT_MAX
 END_TIME = 10
 REGRID_INTERVAL = 1
-TAG_BUFFER = 10
+TAG_BUFFER = 1
 
 USING_FORWARD_INTEGRATION = FALSE
 MAX_ITERATIONS = 40
 OUTPUT_BDRY_INFO = FALSE
 USING_LS_FCN = FALSE
 DRAW_EXACT = FALSE
+MIN_REFINE_FACTOR = -4.0
+MAX_REFINE_FACTOR = 5.0
 
-XCOM = 1.75
-YCOM = 1.75
+XCOM = 1.5
+YCOM = 1.5
 R = 1.0
-R_2 = 3.25
+R_2 = 3.75
 R_1 = 0.25
 OMEGA_2 = 1.0
 OMEGA_1 = -10.0
@@ -79,8 +81,8 @@ PoissonSolver {
 UFunction {
    a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_2)
    b = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
-   xcom = 0.5
-   ycom = 0.5
+   xcom = 0.0
+   ycom = 0.0
    r1 = R_1
    r2 = R_2
    function_0 = "sqrt((X_0-xcom)^2+(X_1-ycom)^2) > r2 ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < r1 ? 0.0 : -(a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_1-ycom)/((X_0-xcom)^2+(X_1-ycom)^2 + 1.0e-12))"
@@ -143,8 +145,8 @@ GriddingAlgorithm {
    smallest_patch_size {
       level_0 =   4,  4  // all finer levels will use same values as level_0
    }
-   efficiency_tolerance = 0.5e0  // min % of tag cells in new patch level
-   combine_efficiency   = 0.5e0  // chop box if sum of volumes of smaller boxes < efficiency * vol of large box
+   efficiency_tolerance = 0.9e0  // min % of tag cells in new patch level
+   combine_efficiency   = 0.9e0  // chop box if sum of volumes of smaller boxes < efficiency * vol of large box
 }
 
 StandardTagAndInitialize {
@@ -180,6 +182,8 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     using_forward_integration = USING_FORWARD_INTEGRATION
     max_iterations       = MAX_ITERATIONS
     prescribe_level_set  = USING_LS_FCN
+    min_ls_refine_factor = MIN_REFINE_FACTOR
+    max_ls_refine_factor = MAX_REFINE_FACTOR
 
     tag_buffer = TAG_BUFFER
     

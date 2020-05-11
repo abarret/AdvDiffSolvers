@@ -212,5 +212,8 @@ private:
 
     static int GHOST_CELL_WIDTH;
 
+    double d_min_ls_refine_factor = std::numeric_limits<double>::quiet_NaN();
+    double d_max_ls_refine_factor = std::numeric_limits<double>::quiet_NaN();
+
 }; // Class SemiLagrangianAdvIntegrator
 } // Namespace IBAMR
