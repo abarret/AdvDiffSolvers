@@ -65,6 +65,8 @@ private:
 
     std::string d_object_name;
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
+
+    static const double s_eps;
 };
 } // namespace IBAMR
 

@@ -238,6 +238,7 @@ main(int argc, char* argv[])
         Pointer<CellVariable<NDIM, double>> area_var = new CellVariable<NDIM, double>("area");
         const int vol_idx = var_db->registerVariableAndContext(vol_var, var_db->getContext("SCRATCH"));
         const int area_idx = var_db->registerVariableAndContext(area_var, var_db->getContext("SCRATCH"));
+        Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume(" ", patch_hierarchy);
 
         // Set up visualization plot file writer.
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
@@ -253,6 +254,7 @@ main(int argc, char* argv[])
         const int Q_exact_idx = var_db->registerVariableAndContext(Q_var, var_db->getContext("Draw"));
         bool draw_exact = input_db->getBool("DRAW_EXACT");
         if (draw_exact) visit_data_writer->registerPlotQuantity("Exact", "SCALAR", Q_exact_idx);
+        if (draw_exact) visit_data_writer->registerPlotQuantity("Exact LS", "SCALAR", ls_n_idx);
 
         // Initialize hierarchy configuration and data on all patches.
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
@@ -326,12 +328,25 @@ main(int argc, char* argv[])
                 pout << "\nWriting visualization files...\n\n";
                 time_integrator->setupPlotData();
                 time_integrator->allocatePatchData(u_draw_idx, loop_time);
-                if (draw_exact) time_integrator->allocatePatchData(Q_exact_idx, loop_time);
-                if (draw_exact) Q_init->setDataOnPatchHierarchy(Q_exact_idx, Q_var, patch_hierarchy, loop_time);
+                if (draw_exact)
+                {
+                    time_integrator->allocatePatchData(Q_exact_idx, loop_time);
+                    time_integrator->allocatePatchData(ls_n_idx, loop_time);
+                    time_integrator->allocatePatchData(vol_idx, loop_time);
+                    ls_fcn->setDataOnPatchHierarchy(ls_n_idx, ls_n_var, patch_hierarchy, loop_time);
+                    vol_fcn->updateVolumeAndArea(vol_idx, vol_var, -1, nullptr, ls_n_idx, ls_n_var);
+                    Q_init->setLSIndex(ls_n_idx, vol_idx);
+                    Q_init->setDataOnPatchHierarchy(Q_exact_idx, Q_var, patch_hierarchy, loop_time);
+                }
                 u_fcn->setDataOnPatchHierarchy(u_draw_idx, u_draw_var, patch_hierarchy, loop_time);
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
                 time_integrator->deallocatePatchData(u_draw_idx);
-                if (draw_exact) time_integrator->deallocatePatchData(Q_exact_idx);
+                if (draw_exact)
+                {
+                    time_integrator->deallocatePatchData(Q_exact_idx);
+                    time_integrator->deallocatePatchData(ls_n_idx);
+                    time_integrator->deallocatePatchData(vol_idx);
+                }
                 if (output_bdry_info)
                     outputBdryInfo(Q_idx,
                                    ls_n_var,
@@ -377,11 +392,11 @@ main(int argc, char* argv[])
         }
 
         ls_fcn->setDataOnPatchHierarchy(ls_n_idx, ls_n_var, patch_hierarchy, loop_time);
-        Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume(" ", patch_hierarchy);
         vol_fcn->updateVolumeAndArea(vol_idx, vol_var, -1, nullptr, ls_n_idx, ls_n_var);
         Q_init->setLSIndex(ls_n_idx, vol_idx);
 
         Q_init->setDataOnPatchHierarchy(Q_err_idx, Q_var, patch_hierarchy, loop_time);
+
         Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", patch_hierarchy);
         const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
 
@@ -397,7 +412,7 @@ main(int argc, char* argv[])
                 for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
-                    (*wgt_data)(idx) *= ((*vol_data)(idx) < 1.0 ? 0.0 : 1.0);
+                    (*wgt_data)(idx) *= ((*vol_data)(idx) < 1.0 ? 0.0 : (*vol_data)(idx));
                 }
             }
         }

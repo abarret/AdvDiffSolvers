@@ -69,6 +69,8 @@ private:
      */
     static const std::array<double, 9> s_weights;
     static const std::array<IBTK::VectorNd, 9> s_quad_pts;
+
+    static const double s_eps;
 }; // class IntegrateFunction
 
 } // namespace IBAMR

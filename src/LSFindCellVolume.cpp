@@ -6,6 +6,8 @@
 
 namespace IBAMR
 {
+const double LSFindCellVolume::s_eps = 1.0e-16;
+
 LSFindCellVolume::LSFindCellVolume(std::string object_name, Pointer<PatchHierarchy<NDIM>> hierarchy)
     : d_object_name(std::move(object_name)), d_hierarchy(hierarchy)
 {
@@ -88,6 +90,7 @@ LSFindCellVolume::findVolumeAndArea(const double* const xlow,
             X(1) = xlow[1] + dx[1] * (idx(1) - patch_lower(1) + y);
             NodeIndex<NDIM> n_idx(idx, IntVector<NDIM>(x, y));
             phi = (*phi_data)(n_idx);
+            if (std::abs(phi) < s_eps) phi = phi < 0.0 ? -s_eps : s_eps;
             indices[x][y] = std::make_pair(X, phi);
             if (phi > 0)
             {

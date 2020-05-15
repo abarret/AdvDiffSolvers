@@ -25,6 +25,8 @@ const std::array<IBTK::VectorNd, 9> IntegrateFunction::s_quad_pts = { IBTK::Vect
                                                                       IBTK::VectorNd(0.1270166538e-1, 0.8872983346),
                                                                       IBTK::VectorNd(0.1, 0.1127016654) };
 
+const double IntegrateFunction::s_eps = 1.0e-16;
+
 IntegrateFunction*
 IntegrateFunction::getIntegrator()
 {
@@ -108,7 +110,8 @@ IntegrateFunction::integrateOverIndex(const double* const dx,
         {
             X(1) = XLow(1) + dx[1] * y;
             NodeIndex<NDIM> n_idx(idx, IntVector<NDIM>(x, y));
-            phi = ls_data(n_idx) + 1.0e-12;
+            phi = ls_data(n_idx);
+            if (std::abs(phi) < s_eps) phi = phi < 0.0 ? -s_eps : s_eps;
             indices[x][y] = std::make_pair(X, phi);
             if (phi > 0) ++num_p;
         }
