@@ -4,7 +4,7 @@ L = 12.0
 BASE_NAME = "test1"
 
 // grid spacing parameters
-MAX_LEVELS = 4                            // maximum number of levels in locally refined grid
+MAX_LEVELS = 3                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
 N = 8                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
@@ -15,11 +15,12 @@ END_TIME = 10
 REGRID_INTERVAL = 1
 
 OUTPUT_BDRY_INFO = FALSE
-USING_LS_FCN = TRUE
+USING_LS_FCN = FALSE
 DRAW_EXACT = TRUE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 2.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
+USE_STRANG_SPLITTING = TRUE
 
 
 USING_CIRCLE = TRUE
@@ -179,9 +180,10 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     enable_logging       = TRUE
 
     prescribe_level_set  = USING_LS_FCN
-       min_ls_refine_factor = MIN_REFINE_FACTOR
+    min_ls_refine_factor = MIN_REFINE_FACTOR
     max_ls_refine_factor = MAX_REFINE_FACTOR
     least_squares_order = LEAST_SQUARES_ORDER
+    use_strang_splitting = USE_STRANG_SPLITTING
  
     convective_op_type                 = "PPM"//WAVE_PROP"
     convective_difference_form         = "CONSERVATIVE"

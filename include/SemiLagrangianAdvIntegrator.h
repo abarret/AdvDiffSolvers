@@ -108,6 +108,8 @@ private:
                          double new_time);
 
     void diffusionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+                         int ls_idx,
+                         int vol_idx,
                          double current_time,
                          double new_time);
 
@@ -226,6 +228,7 @@ private:
     double d_min_ls_refine_factor = std::numeric_limits<double>::quiet_NaN();
     double d_max_ls_refine_factor = std::numeric_limits<double>::quiet_NaN();
     LeastSquaresOrder d_least_squares_reconstruction_order = UNKNOWN_ORDER;
+    bool d_use_strang_splitting = false;
 
 }; // Class SemiLagrangianAdvIntegrator
 } // Namespace IBAMR

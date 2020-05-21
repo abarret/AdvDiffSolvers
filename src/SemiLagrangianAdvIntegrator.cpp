@@ -34,6 +34,7 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
         d_max_ls_refine_factor = input_db->getDouble("max_ls_refine_factor");
         d_least_squares_reconstruction_order =
             string_to_enum<LeastSquaresOrder>(input_db->getString("least_squares_order"));
+        d_use_strang_splitting = input_db->getBool("use_strang_splitting");
     }
 }
 
@@ -272,8 +273,9 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         PoissonSpecifications rhs_spec(d_object_name + "::rhs_spec" + Q_var->getName());
         PoissonSpecifications solv_spec(d_object_name + "::solv_spec" + Q_var->getName());
 
-        solv_spec.setCConstant(1.0 / dt + K * lambda);
-        rhs_spec.setCConstant(1.0 / dt - (1.0 - K) * lambda);
+        const double dt_scale = d_use_strang_splitting ? 2.0 : 1.0;
+        solv_spec.setCConstant(dt_scale / dt + K * lambda);
+        rhs_spec.setCConstant(dt_scale / dt - (1.0 - K) * lambda);
 
         if (isDiffusionCoefficientVariable(Q_var))
         {
@@ -327,6 +329,7 @@ void
 SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
 {
     AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
+    const double half_time = current_time + 0.5 * (new_time - current_time);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     for (const auto& Q_var : d_Q_var)
     {
@@ -338,7 +341,8 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
 
         // First do a diffusion update.
         // Note diffusion update fills in "New" context
-        diffusionUpdate(Q_var, current_time, new_time);
+        diffusionUpdate(
+            Q_var, d_ls_node_cur_idx, d_vol_cur_idx, current_time, d_use_strang_splitting ? half_time : new_time);
 
         plog << d_object_name + "::integrateHierarchy() finished diffusion update for variable: " << Q_var->getName()
              << "\n";
@@ -402,6 +406,32 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
 
         plog << d_object_name + "::integrateHierarchy() finished advection update for variable: " << Q_var->getName()
              << "\n";
+    }
+
+    if (d_use_strang_splitting)
+    {
+        for (const auto& Q_var : d_Q_var)
+        {
+            const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
+            const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
+            const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+
+            // Copy current data to scratch
+            d_hier_cc_data_ops->copyData(Q_cur_idx, Q_new_idx);
+            d_hier_cc_data_ops->copyData(Q_scr_idx, Q_new_idx);
+
+            d_vol_fcn->updateVolumeAndArea(
+                d_vol_new_idx, d_vol_var, d_area_idx, d_area_var, d_ls_node_new_idx, d_ls_node_var, true);
+
+            // First do a diffusion update.
+            // Note diffusion update fills in "New" context
+            diffusionUpdate(Q_var, d_ls_node_new_idx, d_vol_new_idx, half_time, new_time);
+
+            plog << d_object_name + "::integrateHierarchy() finished diffusion update for variable: "
+                 << Q_var->getName() << "\n";
+
+            // TODO: Should we synchronize hierarchy?
+        }
     }
 }
 
@@ -504,6 +534,8 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
 
 void
 SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
+                                             const int ls_idx,
+                                             const int vol_idx,
                                              const double current_time,
                                              const double new_time)
 {
@@ -517,7 +549,8 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
 #if !defined(NDEBUG)
     TBOX_ASSERT(rhs_oper);
 #endif
-    rhs_oper->setLSIndices(d_ls_node_cur_idx, d_ls_node_var, d_vol_cur_idx, d_vol_var, d_area_idx, d_area_var);
+    rhs_oper->setLSIndices(ls_idx, d_ls_node_var, vol_idx, d_vol_var, d_area_idx, d_area_var);
+    rhs_oper->setSolutionTime(current_time);
     rhs_oper->apply(*d_sol_vecs[l], *d_rhs_vecs[l]);
 
     Pointer<PETScKrylovPoissonSolver> Q_helmholtz_solver = d_helmholtz_solvers[l];
@@ -528,7 +561,8 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
 #if !defined(NDEBUG)
     TBOX_ASSERT(solv_oper);
 #endif
-    solv_oper->setLSIndices(d_ls_node_cur_idx, d_ls_node_var, d_vol_cur_idx, d_vol_var, d_area_idx, d_area_var);
+    solv_oper->setLSIndices(ls_idx, d_ls_node_var, vol_idx, d_vol_var, d_area_idx, d_area_var);
+    solv_oper->setSolutionTime(current_time);
     Q_helmholtz_solver->solveSystem(*d_sol_vecs[l], *d_rhs_vecs[l]);
     d_hier_cc_data_ops->copyData(Q_new_idx, Q_scr_idx);
     if (d_enable_logging)
