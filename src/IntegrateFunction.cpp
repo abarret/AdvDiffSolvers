@@ -25,7 +25,7 @@ const std::array<IBTK::VectorNd, 9> IntegrateFunction::s_quad_pts = { IBTK::Vect
                                                                       IBTK::VectorNd(0.1270166538e-1, 0.8872983346),
                                                                       IBTK::VectorNd(0.1, 0.1127016654) };
 
-const double IntegrateFunction::s_eps = 1.0e-16;
+const double IntegrateFunction::s_eps = 1.0e-12;
 
 IntegrateFunction*
 IntegrateFunction::getIntegrator()
@@ -163,7 +163,7 @@ IntegrateFunction::integrate(const std::vector<Simplex>& simplices)
         {
             const std::pair<VectorNd, double>& pt_pair = simplex[k];
             double phi = pt_pair.second;
-            if (phi < 0)
+            if (phi < 0.0)
                 n_phi.push_back(k);
             else
                 p_phi.push_back(k);
@@ -290,7 +290,13 @@ IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_
     double J = std::abs((X_pts[1](0) - X_pts[0](0)) * (X_pts[2](1) - X_pts[0](1)) -
                         (X_pts[2](0) - X_pts[0](0)) * (X_pts[1](1) - X_pts[0](1)));
 #ifndef NDEBUG
-    TBOX_ASSERT(J > 0.0);
+    if (J <= 0.0)
+    {
+        pout << "pt 0: \n" << X_pts[0] << "\n";
+        pout << "pt 1: \n" << X_pts[1] << "\n";
+        pout << "pt 2: \n" << X_pts[2] << "\n";
+        TBOX_ERROR("Found zero or negative J: " << J << "\n");
+    }
 #endif
     for (size_t i = 0; i < s_weights.size(); ++i)
     {

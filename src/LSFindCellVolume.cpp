@@ -6,7 +6,7 @@
 
 namespace IBAMR
 {
-const double LSFindCellVolume::s_eps = 1.0e-16;
+const double LSFindCellVolume::s_eps = 1.0e-12;
 
 LSFindCellVolume::LSFindCellVolume(std::string object_name, Pointer<PatchHierarchy<NDIM>> hierarchy)
     : d_object_name(std::move(object_name)), d_hierarchy(hierarchy)
