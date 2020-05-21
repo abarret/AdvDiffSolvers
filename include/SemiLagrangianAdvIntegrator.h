@@ -1,5 +1,3 @@
-
-
 #include "IBAMR_config.h"
 
 #include "ibamr/AdvDiffHierarchyIntegrator.h"
@@ -10,6 +8,8 @@
 
 #include "LSCutCellLaplaceOperator.h"
 #include "LSFindCellVolume.h"
+
+#include "utility_functions.h"
 
 namespace IBAMR
 {
@@ -112,19 +112,34 @@ private:
                          double new_time);
 
     void integratePaths(int path_idx, int u_idx, double dt);
+    void integratePaths(int path_idx, int u_idx, int vol_idx, int ls_idx, double dt);
 
-    void invertMapping(int path_idx, int xstar_idx);
+    void evaluateMappingOnHierarchy(int xstar_idx,
+                                    int Q_cur_idx,
+                                    int vol_cur_idx,
+                                    int Q_new_idx,
+                                    int vol_new_idx,
+                                    int ls_idx,
+                                    int order);
 
-    void evaluateMappingOnHierarchy(int xstar_idx, int Q_cur_idx, int Q_new_idx, int vol_idx, int order);
-
-    void fillNormalCells(int Q_idx, int Q_scr_idx, int ls_idx);
-
-    void findLSNormal(int ls_idx, int ls_n_idx);
+    void evaluateMappingOnHierarchy(int xstar_idx, int Q_cur_idx, int Q_new_idx, int order);
 
     double sumOverZSplines(const IBTK::VectorNd& x_loc,
                            const SAMRAI::pdat::CellIndex<NDIM>& idx,
                            const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
                            const int order);
+
+    bool indexWithinWidth(int stencil_width,
+                          const CellIndex<NDIM>& idx,
+                          const SAMRAI::pdat::CellData<NDIM, double>& vol_data);
+
+    double leastSquaresReconstruction(IBTK::VectorNd x_loc,
+                                      const CellIndex<NDIM>& idx,
+                                      const CellData<NDIM, double>& Q_data,
+                                      const CellData<NDIM, double>& vol_data,
+                                      const NodeData<NDIM, double>& ls_data,
+                                      const Pointer<Patch<NDIM>>& patch);
+
     inline double evaluateZSpline(const IBTK::VectorNd x, const int order)
     {
         double val = 1.0;
@@ -175,19 +190,17 @@ private:
         }
     }
 
+    inline double weight(const double r)
+    {
+        return std::exp(-r * r);
+    }
+
     // patch data for particle trajectories
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_path_var;
     int d_path_idx = IBTK::invalid_index;
-    int d_xstar_idx = IBTK::invalid_index;
     int d_Q_scratch_idx = IBTK::invalid_index;
-    bool d_using_forward_integration = false;
 
     SAMRAI::hier::ComponentSelector d_adv_data;
-
-    // Information for filling ghost cells
-    SAMRAI::tbox::Pointer<ConvectiveOperator> d_Q_convec_oper;
-    int d_Q_R_idx = IBTK::invalid_index;
-    int d_max_iterations = 50;
 
     // Level set information
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_ls_node_var;
@@ -196,9 +209,7 @@ private:
     int d_ls_cell_cur_idx = IBTK::invalid_index, d_ls_cell_new_idx = IBTK::invalid_index,
         d_ls_cell_scr_idx = IBTK::invalid_index;
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_vol_var, d_area_var;
-    int d_vol_idx = IBTK::invalid_index, d_area_idx = IBTK::invalid_index;
-    SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> d_ls_normal_var;
-    int d_ls_normal_idx = IBTK::invalid_index;
+    int d_vol_cur_idx = IBTK::invalid_index, d_vol_new_idx = IBTK::invalid_index, d_area_idx = IBTK::invalid_index;
     SAMRAI::tbox::Pointer<IBTK::CartGridFunction> d_ls_fcn;
     SAMRAI::tbox::Pointer<LSFindCellVolume> d_vol_fcn;
 
@@ -214,6 +225,7 @@ private:
 
     double d_min_ls_refine_factor = std::numeric_limits<double>::quiet_NaN();
     double d_max_ls_refine_factor = std::numeric_limits<double>::quiet_NaN();
+    LeastSquaresOrder d_least_squares_reconstruction_order = UNKNOWN_ORDER;
 
 }; // Class SemiLagrangianAdvIntegrator
 } // Namespace IBAMR

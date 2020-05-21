@@ -10,19 +10,19 @@ N = 16                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.3
-DT_MAX = H * CFL_MAX / 4
+DT_MAX = H * CFL_MAX / 4.0
 DT_MIN = DT_MAX
 END_TIME = 10
 REGRID_INTERVAL = 1
 TAG_BUFFER = 1
 
-USING_FORWARD_INTEGRATION = FALSE
-MAX_ITERATIONS = 40
 OUTPUT_BDRY_INFO = FALSE
 USING_LS_FCN = FALSE
 DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
-MAX_REFINE_FACTOR = 5.0
+MAX_REFINE_FACTOR = 4.0
+LEAST_SQUARES_ORDER = "LINEAR"
+
 
 XCOM = 1.5
 YCOM = 1.5
@@ -179,11 +179,12 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     dt_max               = DT_MAX
     dt_min               = DT_MIN
     enable_logging       = TRUE
-    using_forward_integration = USING_FORWARD_INTEGRATION
-    max_iterations       = MAX_ITERATIONS
+
     prescribe_level_set  = USING_LS_FCN
     min_ls_refine_factor = MIN_REFINE_FACTOR
     max_ls_refine_factor = MAX_REFINE_FACTOR
+    least_squares_order = LEAST_SQUARES_ORDER
+
 
     tag_buffer = TAG_BUFFER
     

@@ -8,6 +8,7 @@
 #include "SemiLagrangianAdvIntegrator.h"
 #include "utility_functions.h"
 
+#include <Eigen/Core>
 #include <Eigen/Dense>
 
 namespace IBAMR
@@ -20,22 +21,19 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
     : AdvDiffHierarchyIntegrator(object_name, input_db, register_for_restart),
       d_path_var(new CellVariable<NDIM, double>(d_object_name + "::PathVar", NDIM)),
       d_vol_var(new CellVariable<NDIM, double>(d_object_name + "::VolVar")),
-      d_area_var(new CellVariable<NDIM, double>(d_object_name + "::AreaVar")),
-      d_ls_normal_var(new FaceVariable<NDIM, double>(d_object_name + "::NormalVar"))
+      d_area_var(new CellVariable<NDIM, double>(d_object_name + "::AreaVar"))
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_path_idx = var_db->registerVariableAndContext(d_path_var, var_db->getContext(d_object_name + "::PathContext"));
-    d_xstar_idx = var_db->registerVariableAndContext(d_path_var, var_db->getContext(d_object_name + "::XStar"));
     d_adv_data.setFlag(d_path_idx);
-    d_adv_data.setFlag(d_xstar_idx);
 
     if (input_db)
     {
-        d_max_iterations = input_db->getInteger("max_iterations");
-        d_using_forward_integration = input_db->getBool("using_forward_integration");
         d_prescribe_ls = input_db->getBool("prescribe_level_set");
         d_min_ls_refine_factor = input_db->getDouble("min_ls_refine_factor");
         d_max_ls_refine_factor = input_db->getDouble("max_ls_refine_factor");
+        d_least_squares_reconstruction_order =
+            string_to_enum<LeastSquaresOrder>(input_db->getString("least_squares_order"));
     }
 }
 
@@ -47,15 +45,7 @@ SemiLagrangianAdvIntegrator::registerTransportedQuantity(Pointer<CellVariable<ND
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_Q_scratch_idx = var_db->registerVariableAndContext(
         Q_var, var_db->getContext(d_object_name + "::BiggerScratch"), IntVector<NDIM>(GHOST_CELL_WIDTH));
-    d_Q_convec_oper = new AdvDiffCUIConvectiveOperator(d_object_name + "::ConvectiveOp",
-                                                       Q_var,
-                                                       nullptr,
-                                                       string_to_enum<ConvectiveDifferencingType>("ADVECTIVE"),
-                                                       { nullptr });
-    d_Q_R_idx = var_db->registerVariableAndContext(Q_var, var_db->getContext(d_object_name + "::ADV_SCR"));
-
     d_current_data.setFlag(d_Q_scratch_idx);
-    d_adv_data.setFlag(d_Q_R_idx);
 }
 
 void
@@ -104,22 +94,21 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
                      "CONSERVATIVE_LINEAR_REFINE");
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_ls_node_cur_idx =
-        var_db->registerVariableAndContext(d_ls_node_var, getCurrentContext(), IntVector<NDIM>(GHOST_CELL_WIDTH));
-    d_ls_node_new_idx = var_db->registerVariableAndContext(d_ls_node_var, getNewContext(), IntVector<NDIM>(1));
-    d_vol_idx = var_db->registerVariableAndContext(d_vol_var, getCurrentContext(), GHOST_CELL_WIDTH);
+    d_ls_node_cur_idx = var_db->registerVariableAndContext(d_ls_node_var, getCurrentContext(), GHOST_CELL_WIDTH);
+    d_ls_node_new_idx = var_db->registerVariableAndContext(d_ls_node_var, getNewContext(), GHOST_CELL_WIDTH);
+    d_vol_cur_idx = var_db->registerVariableAndContext(d_vol_var, getCurrentContext(), GHOST_CELL_WIDTH);
+    d_vol_new_idx = var_db->registerVariableAndContext(d_vol_var, getNewContext(), GHOST_CELL_WIDTH);
     d_area_idx = var_db->registerVariableAndContext(d_area_var, getCurrentContext(), GHOST_CELL_WIDTH);
-    d_ls_normal_idx = var_db->registerVariableAndContext(d_ls_normal_var, getCurrentContext());
 
     d_ls_data.setFlag(d_ls_node_cur_idx);
     d_ls_data.setFlag(d_ls_node_new_idx);
-    d_ls_data.setFlag(d_vol_idx);
+    d_ls_data.setFlag(d_vol_cur_idx);
+    d_ls_data.setFlag(d_vol_new_idx);
     d_ls_data.setFlag(d_area_idx);
-    d_adv_data.setFlag(d_ls_normal_idx);
 
     AdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(hierarchy, gridding_alg);
 
-    d_visit_writer->registerPlotQuantity("Volume", "SCALAR", d_vol_idx);
+    d_visit_writer->registerPlotQuantity("Volume", "SCALAR", d_vol_new_idx);
     d_visit_writer->registerPlotQuantity("Path", "VECTOR", d_path_idx);
     d_visit_writer->registerPlotQuantity("XStar", "VECTOR", d_path_idx);
     d_visit_writer->registerPlotQuantity("LS current", "SCALAR", d_ls_node_cur_idx);
@@ -214,14 +203,6 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         level->allocatePatchData(d_adv_data, current_time);
     }
 
-    // set up convective operator
-    SAMRAIVectorReal<NDIM, double> in(d_object_name + "::in", d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
-    SAMRAIVectorReal<NDIM, double> out(d_object_name + "::out", d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
-    in.addComponent(d_Q_var[0], d_Q_scratch_idx);
-    out.addComponent(d_Q_var[0], d_Q_scratch_idx);
-    d_Q_convec_oper->initializeOperatorState(in, out);
-    d_Q_convec_oper->setSolutionTime(current_time);
-
     // Update level set at current time
     if (d_prescribe_ls)
     {
@@ -254,7 +235,7 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
 
     // ensure volume and area indices are set to current values.
     d_vol_fcn->updateVolumeAndArea(
-        d_vol_idx, d_vol_var, d_area_idx, d_area_var, d_ls_node_cur_idx, d_ls_node_var, true);
+        d_vol_cur_idx, d_vol_var, d_area_idx, d_area_var, d_ls_node_cur_idx, d_ls_node_var, true);
 
     // Set velocities
     auto var_db = VariableDatabase<NDIM>::getDatabase();
@@ -380,10 +361,8 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
         const int u_cur_idx = var_db->mapVariableAndContextToIndex(d_ls_u_pair.second, getCurrentContext());
         integratePaths(d_path_idx, u_cur_idx, new_time - current_time);
 
-        invertMapping(d_path_idx, d_xstar_idx);
-
         // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
-        evaluateMappingOnHierarchy(d_xstar_idx, d_ls_cell_scr_idx, d_ls_cell_new_idx, IBTK::invalid_index, /*order*/ 2);
+        evaluateMappingOnHierarchy(d_path_idx, d_ls_cell_scr_idx, d_ls_cell_new_idx, /*order*/ 2);
 
         // Synchronize hierarchy and interpolate to cell nodes
         // TODO: Should we synchronize hierarchy?
@@ -450,14 +429,14 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
         d_ls_fcn->setDataOnPatchHierarchy(d_ls_node_cur_idx, d_ls_node_var, d_hierarchy, 0.0);
         d_vol_fcn = new LSFindCellVolume(d_object_name + "::FindCellVolume", d_hierarchy);
         d_vol_fcn->updateVolumeAndArea(
-            d_vol_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_cur_idx, d_ls_node_var, false);
+            d_vol_cur_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_cur_idx, d_ls_node_var, false);
 
         for (const auto& Q_var : d_Q_var)
         {
             auto var_db = VariableDatabase<NDIM>::getDatabase();
             const int Q_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
             Pointer<QInitial> Q_init = d_Q_init[Q_var];
-            Q_init->setLSIndex(d_ls_node_cur_idx, d_vol_idx);
+            Q_init->setLSIndex(d_ls_node_cur_idx, d_vol_cur_idx);
             Q_init->setDataOnPatchHierarchy(Q_idx, Q_var, d_hierarchy, 0.0);
         }
     }
@@ -480,7 +459,6 @@ SemiLagrangianAdvIntegrator::resetTimeDependentHierarchyDataSpecialized(const do
 }
 
 /////////////////////// PRIVATE ///////////////////////////////
-
 void
 SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
                                              const double current_time,
@@ -494,28 +472,34 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
     const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
     Pointer<FaceVariable<NDIM, double>> u_var = d_Q_u_map[Q_var];
     const int u_cur_idx = var_db->mapVariableAndContextToIndex(u_var, getCurrentContext());
-    // Integrate path
-    integratePaths(d_path_idx, u_cur_idx, dt);
-
-    // Fill in normal ghost cells for d_Q_scratch_idx
-    fillNormalCells(Q_cur_idx, d_Q_scratch_idx, d_ls_node_cur_idx);
 
     // fill ghost cells
     using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-    std::vector<ITC> ghost_cell_comps(1);
+    std::vector<ITC> ghost_cell_comps(2);
     HierarchyGhostCellInterpolation hier_ghost_cells;
-    ghost_cell_comps[0] = ITC(d_Q_scratch_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
+    ghost_cell_comps[0] =
+        ITC(d_Q_scratch_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
+    ghost_cell_comps[1] = ITC(d_ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
     hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
     hier_ghost_cells.fillData(current_time);
+    hier_ghost_cells.deallocateOperatorState();
+    d_vol_fcn->updateVolumeAndArea(
+        d_vol_new_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_new_idx, d_ls_node_var, true);
+    // Integrate path
+    integratePaths(d_path_idx, u_cur_idx, d_vol_new_idx, d_ls_node_new_idx, dt);
 
-    // Invert mapping to find \XX^\star
-    // Note that for the Z_0 z-spline, \XX^\star = \xx^{n+1}
-    invertMapping(d_path_idx, d_xstar_idx);
+    ghost_cell_comps[0] =
+        ITC(d_Q_scratch_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
+    ghost_cell_comps[1] = ITC(d_ls_node_cur_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+    hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
+    hier_ghost_cells.fillData(current_time);
+    hier_ghost_cells.deallocateOperatorState();
+    d_vol_fcn->updateVolumeAndArea(
+        d_vol_cur_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_cur_idx, d_ls_node_var, true);
 
     // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
-    d_vol_fcn->updateVolumeAndArea(
-        d_vol_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_new_idx, d_ls_node_var);
-    evaluateMappingOnHierarchy(d_xstar_idx, d_Q_scratch_idx, Q_new_idx, d_vol_idx, /*order*/ 2);
+    evaluateMappingOnHierarchy(
+        d_path_idx, d_Q_scratch_idx, d_vol_cur_idx, Q_new_idx, d_vol_new_idx, d_ls_node_cur_idx, /*order*/ 2);
 }
 
 void
@@ -533,7 +517,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
 #if !defined(NDEBUG)
     TBOX_ASSERT(rhs_oper);
 #endif
-    rhs_oper->setLSIndices(d_ls_node_cur_idx, d_ls_node_var, d_vol_idx, d_vol_var, d_area_idx, d_area_var);
+    rhs_oper->setLSIndices(d_ls_node_cur_idx, d_ls_node_var, d_vol_cur_idx, d_vol_var, d_area_idx, d_area_var);
     rhs_oper->apply(*d_sol_vecs[l], *d_rhs_vecs[l]);
 
     Pointer<PETScKrylovPoissonSolver> Q_helmholtz_solver = d_helmholtz_solvers[l];
@@ -544,7 +528,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
 #if !defined(NDEBUG)
     TBOX_ASSERT(solv_oper);
 #endif
-    solv_oper->setLSIndices(d_ls_node_cur_idx, d_ls_node_var, d_vol_idx, d_vol_var, d_area_idx, d_area_var);
+    solv_oper->setLSIndices(d_ls_node_cur_idx, d_ls_node_var, d_vol_cur_idx, d_vol_var, d_area_idx, d_area_var);
     Q_helmholtz_solver->solveSystem(*d_sol_vecs[l], *d_rhs_vecs[l]);
     d_hier_cc_data_ops->copyData(Q_new_idx, Q_scr_idx);
     if (d_enable_logging)
@@ -553,150 +537,6 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
              << Q_helmholtz_solver->getNumIterations() << "\n";
         plog << d_object_name << "::integrateHierarchy(): diffusion solve residual norm        = "
              << Q_helmholtz_solver->getResidualNorm() << "\n";
-    }
-}
-
-void
-SemiLagrangianAdvIntegrator::fillNormalCells(const int Q_idx, const int Q_scr_idx, const int ls_idx)
-{
-    // Here we fill in d_Q_norm_idx by solving
-    // dQ/dt - N * grad(Q) = 0
-    const int coarsest_ln = 0;
-    const int finest_ln = d_hierarchy->getFinestLevelNumber();
-
-    // First fill in volume data
-    d_vol_fcn->updateVolumeAndArea(d_vol_idx, d_vol_var, IBTK::invalid_index, nullptr, ls_idx, d_ls_node_var, false);
-
-    // Find normal
-    findLSNormal(ls_idx, d_ls_normal_idx);
-    d_Q_convec_oper->setAdvectionVelocity(d_ls_normal_idx);
-    d_Q_convec_oper->setSolutionTime(d_integrator_time);
-    std::vector<double> dt(finest_ln + 1);
-
-    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-        {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-            Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_scr_idx);
-            Pointer<CellData<NDIM, double>> Q_src_data = patch->getPatchData(Q_idx);
-            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
-
-            // Find dt
-            double dx_min = std::numeric_limits<double>::max();
-            for (int d = 0; d < NDIM; ++d) dx_min = std::min(dx_min, dx[d]);
-            dt[ln] = 0.3 * dx_min;
-            // Fill cut cell with same cell average
-            Q_data->fill(0.0);
-            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
-            {
-                const CellIndex<NDIM>& idx = ci();
-                if ((*vol_data)(idx) > 0.0) (*Q_data)(idx) = (*Q_src_data)(idx);
-            }
-        }
-    }
-    int iter = 0;
-    double max_ls_length_frac = 10.0;
-    while (iter++ < d_max_iterations)
-    {
-        d_Q_convec_oper->applyConvectiveOperator(Q_scr_idx, d_Q_R_idx);
-        for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
-        {
-            Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-            for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-            {
-                Pointer<Patch<NDIM>> patch = level->getPatch(p());
-                const Box<NDIM>& box = patch->getBox();
-                Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-                const double* const dx = pgeom->getDx();
-                Pointer<CellData<NDIM, double>> Q_src_data = patch->getPatchData(Q_idx);
-                Pointer<CellData<NDIM, double>> Q_norm_data = patch->getPatchData(Q_scr_idx);
-                Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
-                Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
-                Pointer<CellData<NDIM, double>> Q_R_data = patch->getPatchData(d_Q_R_idx);
-                for (CellIterator<NDIM> ci(box); ci; ci++)
-                {
-                    const CellIndex<NDIM>& idx = ci();
-                    double ls = node_to_cell(idx, *ls_data);
-                    if (ls > (max_ls_length_frac * dx[0])) (*Q_R_data)(idx) = 0.0;
-                }
-
-                // Compute flux differencing
-                for (CellIterator<NDIM> ci(box); ci; ci++)
-                {
-                    const CellIndex<NDIM>& idx = ci();
-                    const double vol = 1.0 - (*vol_data)(idx);
-                    if (vol > 0.0)
-                    {
-                        // We are in a cut cell or external cell, we need to do a flux differencing
-                        (*Q_norm_data)(idx) -= dt[ln] * (*Q_R_data)(idx);
-                    }
-                }
-
-                // Now we set cut cells to be the same as interior average
-                for (CellIterator<NDIM> ci(box); ci; ci++)
-                {
-                    const CellIndex<NDIM>& idx = ci();
-                    if ((*vol_data)(idx) > 0.0 && (*vol_data)(idx) < 1.0) (*Q_norm_data)(idx) = (*Q_src_data)(idx);
-                }
-            }
-        }
-    }
-    // fill in ghost cells
-    using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-    std::vector<ITC> ghost_cell_comp(1);
-    ghost_cell_comp[0] = ITC(Q_scr_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "CONSTANT");
-    HierarchyGhostCellInterpolation hier_ghost_cell;
-    hier_ghost_cell.initializeOperatorState(ghost_cell_comp, d_hierarchy, coarsest_ln, finest_ln);
-    hier_ghost_cell.fillData(d_integrator_time);
-}
-
-void
-SemiLagrangianAdvIntegrator::findLSNormal(const int ls_idx, const int ls_n_idx)
-{
-    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-        {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-            Pointer<FaceData<NDIM, double>> N_data = patch->getPatchData(ls_n_idx);
-            //            Pointer<CellData<NDIM, double>> ls_data = patch->getPatchData(d_ls_cell_cur_idx);
-            //            for (int axis = 0; axis < NDIM; ++axis)
-            //            {
-            //            	for (FaceIterator<NDIM> fi(patch->getBox(), axis); fi; fi++)
-            //            	{
-            //            		const FaceIndex<NDIM>& idx = fi();
-            //            		double ls_up = (*ls_data)(idx.toCell(1));
-            //            		double ls_low = (*ls_data)(idx.toCell(0));
-            //            		(*N_data)(idx) = (ls_up - ls_low)/(dx[axis]);
-            //            	}
-            //            }
-            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
-            for (FaceIterator<NDIM> fi(patch->getBox(), 0); fi; fi++)
-            {
-                const FaceIndex<NDIM>& idx = fi();
-                double ls_top_right = (*ls_data)(NodeIndex<NDIM>(idx.toCell(1), IntVector<NDIM>(1, 1)));
-                double ls_bottom_right = (*ls_data)(NodeIndex<NDIM>(idx.toCell(1), IntVector<NDIM>(1, 0)));
-                double ls_top_left = (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(0, 1)));
-                double ls_bottom_left = (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(0, 0)));
-                (*N_data)(idx) = (ls_top_right + ls_bottom_right - ls_top_left - ls_bottom_left) / (4.0 * dx[0]);
-            }
-            for (FaceIterator<NDIM> fi(patch->getBox(), 1); fi; fi++)
-            {
-                const FaceIndex<NDIM>& idx = fi();
-                double ls_top_right = (*ls_data)(NodeIndex<NDIM>(idx.toCell(1), IntVector<NDIM>(1, 1)));
-                double ls_bottom_right = (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(1, 0)));
-                double ls_top_left = (*ls_data)(NodeIndex<NDIM>(idx.toCell(1), IntVector<NDIM>(0, 1)));
-                double ls_bottom_left = (*ls_data)(NodeIndex<NDIM>(idx.toCell(0), IntVector<NDIM>(0, 0)));
-                (*N_data)(idx) = (ls_top_right + ls_top_left - ls_bottom_right - ls_bottom_left) / (4.0 * dx[1]);
-            }
-        }
     }
 }
 
@@ -726,7 +566,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx, const int u_idx,
                 {
                     const double u =
                         0.5 * ((*u_data)(FaceIndex<NDIM>(idx, d, 0)) + (*u_data)(FaceIndex<NDIM>(idx, d, 1)));
-                    (*path_data)(idx, d) = (idx(d) + 0.5) + dt * u / dx[d] * (d_using_forward_integration ? 1.0 : -1.0);
+                    (*path_data)(idx, d) = (idx(d) + 0.5) - dt * u / dx[d];
                 }
             }
         }
@@ -734,8 +574,13 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx, const int u_idx,
 }
 
 void
-SemiLagrangianAdvIntegrator::invertMapping(const int path_idx, const int xstar_idx)
+SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
+                                            const int u_idx,
+                                            const int vol_idx,
+                                            const int ls_idx,
+                                            const double dt)
 {
+    // Integrate path to find \xx^{n+1}
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -746,33 +591,35 @@ SemiLagrangianAdvIntegrator::invertMapping(const int path_idx, const int xstar_i
             const Box<NDIM>& box = patch->getBox();
 
             Pointer<CellData<NDIM, double>> path_data = patch->getPatchData(path_idx);
-            Pointer<CellData<NDIM, double>> xstar_data = patch->getPatchData(xstar_idx);
+            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+            Pointer<FaceData<NDIM, double>> u_data = patch->getPatchData(u_idx);
+            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+            const double* const dx = pgeom->getDx();
 
-            if (!d_using_forward_integration)
+            for (CellIterator<NDIM> ci(box); ci; ci++)
             {
-                xstar_data->copy(*path_data);
-            }
-            else
-            {
-                for (CellIterator<NDIM> ci(box); ci; ci++)
+                const CellIndex<NDIM>& idx = ci();
+                const double& vol = (*vol_data)(idx);
+                if (vol < 1.0)
                 {
-                    const CellIndex<NDIM>& idx = ci();
-                    MatrixNd grad_xi;
+                    // We need to advect center of mass.
+                    VectorNd com = find_cell_centroid(idx, *ls_data);
                     for (int d = 0; d < NDIM; ++d)
                     {
-                        IntVector<NDIM> dir(0);
-                        dir(d) = 1;
-                        for (int dd = 0; dd < NDIM; ++dd)
-                            grad_xi(d, dd) = 0.5 * ((*path_data)(idx + dir, dd) - (*path_data)(idx - dir, dd));
+                        const double u =
+                            0.5 * ((*u_data)(FaceIndex<NDIM>(idx, d, 0)) + (*u_data)(FaceIndex<NDIM>(idx, d, 1)));
+                        (*path_data)(idx, d) = com(d) - dt * u / dx[d];
                     }
-                    VectorNd XStar, xnp1, x;
+                }
+                else
+                {
                     for (int d = 0; d < NDIM; ++d)
                     {
-                        x(d) = static_cast<double>(idx(d)) + 0.5;
-                        xnp1(d) = (*path_data)(idx, d);
+                        const double u =
+                            0.5 * ((*u_data)(FaceIndex<NDIM>(idx, d, 0)) + (*u_data)(FaceIndex<NDIM>(idx, d, 1)));
+                        (*path_data)(idx, d) = (idx(d) + 0.5) - dt * u / dx[d];
                     }
-                    XStar = grad_xi.inverse() * (x - xnp1) + x;
-                    for (int d = 0; d < NDIM; ++d) (*xstar_data)(idx, d) = XStar(d);
                 }
             }
         }
@@ -783,7 +630,6 @@ void
 SemiLagrangianAdvIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
                                                         const int Q_cur_idx,
                                                         const int Q_new_idx,
-                                                        const int vol_idx,
                                                         const int order)
 {
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
@@ -798,19 +644,66 @@ SemiLagrangianAdvIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
             Pointer<CellData<NDIM, double>> xstar_data = patch->getPatchData(xstar_idx);
             Pointer<CellData<NDIM, double>> Q_cur_data = patch->getPatchData(Q_cur_idx);
             Pointer<CellData<NDIM, double>> Q_new_data = patch->getPatchData(Q_new_idx);
-            Pointer<CellData<NDIM, double>> vol_data =
-                vol_idx != IBTK::invalid_index ? patch->getPatchData(vol_idx) : nullptr;
 
             Q_new_data->fillAll(0.0);
 
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
-                if (!vol_data || (vol_data && (*vol_data)(idx) > 0.0))
+                IBTK::VectorNd x_loc;
+                for (int d = 0; d < NDIM; ++d) x_loc(d) = (*xstar_data)(idx, d);
+                (*Q_new_data)(idx) = sumOverZSplines(x_loc, idx, *Q_cur_data, order);
+            }
+        }
+    }
+}
+
+void
+SemiLagrangianAdvIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
+                                                        const int Q_cur_idx,
+                                                        const int vol_cur_idx,
+                                                        const int Q_new_idx,
+                                                        const int vol_new_idx,
+                                                        const int ls_idx,
+                                                        const int order)
+{
+#ifndef NDEBUG
+    TBOX_ASSERT(vol_cur_idx > 0);
+    TBOX_ASSERT(vol_new_idx > 0);
+#endif
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+
+            const Box<NDIM>& box = patch->getBox();
+
+            Pointer<CellData<NDIM, double>> xstar_data = patch->getPatchData(xstar_idx);
+            Pointer<CellData<NDIM, double>> Q_cur_data = patch->getPatchData(Q_cur_idx);
+            Pointer<CellData<NDIM, double>> vol_cur_data = patch->getPatchData(vol_cur_idx);
+            Pointer<CellData<NDIM, double>> Q_new_data = patch->getPatchData(Q_new_idx);
+            Pointer<CellData<NDIM, double>> vol_new_data = patch->getPatchData(vol_new_idx);
+            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+
+            Q_new_data->fillAll(0.0);
+
+            const int stencil_width = getSplineWidth(order);
+
+            for (CellIterator<NDIM> ci(box); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                if ((*vol_new_data)(idx) > 0.0)
                 {
                     IBTK::VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d) x_loc(d) = (*xstar_data)(idx, d);
-                    (*Q_new_data)(idx) = sumOverZSplines(x_loc, idx, *Q_cur_data, order);
+                    // Check if we can use z-spline
+                    if (indexWithinWidth(stencil_width, idx, *vol_cur_data))
+                        (*Q_new_data)(idx) = sumOverZSplines(x_loc, idx, *Q_cur_data, order);
+                    else
+                        (*Q_new_data)(idx) =
+                            leastSquaresReconstruction(x_loc, idx, *Q_cur_data, *vol_cur_data, *ls_data, patch);
                 }
                 else
                 {
@@ -840,5 +733,119 @@ SemiLagrangianAdvIntegrator::sumOverZSplines(const IBTK::VectorNd& x_loc,
         val += Q_data(idx_c) * evaluateZSpline(x_loc - xx, order);
     }
     return val;
+}
+
+bool
+SemiLagrangianAdvIntegrator::indexWithinWidth(const int stencil_width,
+                                              const CellIndex<NDIM>& idx,
+                                              const CellData<NDIM, double>& vol_data)
+{
+    bool withinWidth = true;
+    Box<NDIM> check_box(idx, idx);
+    check_box.grow(stencil_width);
+    for (CellIterator<NDIM> i(check_box); i; i++)
+    {
+        const CellIndex<NDIM>& idx_c = i();
+        if (vol_data(idx_c) < 1.0) withinWidth = false;
+    }
+    return withinWidth;
+}
+
+double
+SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
+                                                        const CellIndex<NDIM>& idx,
+                                                        const CellData<NDIM, double>& Q_data,
+                                                        const CellData<NDIM, double>& vol_data,
+                                                        const NodeData<NDIM, double>& ls_data,
+                                                        const Pointer<Patch<NDIM>>& patch)
+{
+    int size = 0;
+    int box_size = 0;
+    switch (d_least_squares_reconstruction_order)
+    {
+    case CONSTANT:
+        size = 1;
+        box_size = 1;
+        break;
+    case LINEAR:
+        size = 1 + NDIM;
+        box_size = 2;
+        break;
+    case QUADRATIC:
+        size = 3 * NDIM;
+        box_size = 3;
+        break;
+    case CUBIC:
+        size = 10;
+        box_size = 4;
+        break;
+    case UNKNOWN_ORDER:
+        TBOX_ERROR("Unknown order.");
+        break;
+    }
+    Box<NDIM> box(idx, idx);
+    box.grow(box_size);
+#ifndef NDEBUG
+    TBOX_ASSERT(ls_data.getGhostBox().contains(box));
+    TBOX_ASSERT(Q_data.getGhostBox().contains(box));
+    TBOX_ASSERT(vol_data.getGhostBox().contains(box));
+#endif
+
+    const VectorNd& idx_centroid = find_cell_centroid(idx, ls_data);
+    const CellIndex<NDIM>& idx_low = patch->getBox().lower();
+
+    std::vector<double> Q_vals;
+    std::vector<VectorNd> X_vals;
+
+    for (CellIterator<NDIM> ci(box); ci; ci++)
+    {
+        const CellIndex<NDIM>& idx_c = ci();
+        if (vol_data(idx_c) > 0.0)
+        {
+            // Use this point to calculate least squares reconstruction.
+            // Find cell center
+            VectorNd x_cent_c = find_cell_centroid(idx_c, ls_data);
+            Q_vals.push_back(Q_data(idx_c));
+            X_vals.push_back(x_cent_c);
+        }
+    }
+    const int m = Q_vals.size();
+    MatrixXd A(MatrixXd::Zero(m, size)), Lambda(MatrixXd::Zero(m, m));
+    VectorXd U(VectorXd::Zero(m));
+    for (size_t i = 0; i < Q_vals.size(); ++i)
+    {
+        U(i) = Q_vals[i];
+        const VectorNd X = X_vals[i] - x_loc;
+        Lambda(i, i) = weight((X_vals[i] - idx_centroid).norm());
+        switch (d_least_squares_reconstruction_order)
+        {
+        case CUBIC:
+            A(i, 9) = X[1] * X[1] * X[1];
+            A(i, 8) = X[1] * X[1] * X[0];
+            A(i, 7) = X[1] * X[0] * X[0];
+            A(i, 6) = X[0] * X[0] * X[0];
+            /* FALLTHROUGH */
+        case QUADRATIC:
+            A(i, 5) = X[1] * X[1];
+            A(i, 4) = X[0] * X[1];
+            A(i, 3) = X[0] * X[0];
+            /* FALLTHROUGH */
+        case LINEAR:
+            A(i, 2) = X[1];
+            A(i, 1) = X[0];
+            /* FALLTHROUGH */
+        case CONSTANT:
+            A(i, 0) = 1.0;
+            break;
+        case UNKNOWN_ORDER:
+            TBOX_ERROR("Unknown order.");
+            break;
+        }
+    }
+
+    MatrixXd mat = A.transpose() * Lambda * A;
+    VectorXd rhs = A.transpose() * Lambda * U;
+    VectorXd x = mat.ldlt().solve(rhs);
+    return x(0);
 }
 } // namespace IBAMR

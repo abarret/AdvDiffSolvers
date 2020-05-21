@@ -48,24 +48,20 @@ find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_
         (phi_ll > 0.0 && phi_lr > 0.0 && phi_ur > 0.0 && phi_lr > 0.0))
     {
         // Not a cut cell. Center is idx
-        center(0) = idx(0);
-        center(1) = idx(1);
+        center(0) = idx(0) + 0.5;
+        center(1) = idx(1) + 0.5;
     }
     else
     {
         // Loop over nodes and edges and find points
-        if (phi_ll < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) - 0.5, idx(1) - 0.5));
-        if (phi_ll * phi_ul < 0.0)
-            X_pts.push_back(IBTK::VectorNd(idx(0) - 0.5, idx(1) - 0.5 - phi_ll / (phi_ul - phi_ll)));
-        if (phi_ul < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) - 0.5, idx(1) + 0.5));
-        if (phi_ul * phi_ur < 0.0)
-            X_pts.push_back(IBTK::VectorNd(idx(0) - 0.5 - phi_ul / (phi_ur - phi_ul), idx(1) + 0.5));
-        if (phi_ur < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 0.5, idx(1) + 0.5));
-        if (phi_ur * phi_lr < 0.0)
-            X_pts.push_back(IBTK::VectorNd(idx(0) + 0.5, idx(1) - 0.5 - phi_lr / (phi_ur - phi_lr)));
-        if (phi_lr < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 0.5, idx(1) - 0.5));
-        if (phi_lr * phi_ll < 0.0)
-            X_pts.push_back(IBTK::VectorNd(idx(0) - 0.5 - phi_ll / (phi_lr - phi_ll), idx(1) - 0.5));
+        if (phi_ll < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1)));
+        if (phi_ll * phi_ul < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1) - phi_ll / (phi_ul - phi_ll)));
+        if (phi_ul < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1) + 1.5));
+        if (phi_ul * phi_ur < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) - phi_ul / (phi_ur - phi_ul), idx(1) + 1.0));
+        if (phi_ur < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 1.0, idx(1) + 1.0));
+        if (phi_ur * phi_lr < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 1.0, idx(1) - phi_lr / (phi_ur - phi_lr)));
+        if (phi_lr < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 1.0, idx(1)));
+        if (phi_lr * phi_ll < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) - phi_ll / (phi_lr - phi_ll), idx(1)));
 
         double signed_area = 0.0;
         for (size_t i = 0; i < X_pts.size(); ++i)
@@ -92,6 +88,37 @@ node_to_cell(const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data)
     double ls_ul = ls_data(idx_ul), ls_uu = ls_data(idx_uu);
     return 0.25 * (ls_ll + ls_lu + ls_ul + ls_uu);
 }
+
+enum LeastSquaresOrder
+{
+    CONSTANT,
+    LINEAR,
+    QUADRATIC,
+    CUBIC,
+    UNKNOWN_ORDER = -1
+};
+
+template <>
+inline LeastSquaresOrder
+string_to_enum<LeastSquaresOrder>(const std::string& val)
+{
+    if (strcasecmp(val.c_str(), "CONSTANT") == 0) return CONSTANT;
+    if (strcasecmp(val.c_str(), "LINEAR") == 0) return LINEAR;
+    if (strcasecmp(val.c_str(), "QUADRATIC") == 0) return QUADRATIC;
+    if (strcasecmp(val.c_str(), "CUBIC") == 0) return CUBIC;
+    return UNKNOWN_ORDER;
+};
+
+template <>
+inline std::string
+enum_to_string<LeastSquaresOrder>(LeastSquaresOrder val)
+{
+    if (val == CONSTANT) return "CONSTANT";
+    if (val == LINEAR) return "LINEAR";
+    if (val == QUADRATIC) return "QUADRATIC";
+    if (val == CUBIC) return "CUBIC";
+    return "UNKNOWN_ORDER";
+};
 
 } // namespace IBAMR
 #endif
