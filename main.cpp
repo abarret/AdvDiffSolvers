@@ -400,6 +400,23 @@ main(int argc, char* argv[])
         Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", patch_hierarchy);
         const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
 
+        Pointer<CellVariable<NDIM, double>> ls_c_var = time_integrator->getLevelSetVariable();
+        const int ls_c_idx = var_db->mapVariableAndContextToIndex(ls_c_var, time_integrator->getCurrentContext());
+        const int ls_cloned_idx = var_db->registerClonedPatchDataIndex(ls_c_var, ls_c_idx);
+        for (int ln = 0; ln <= finest_ln; ++ln)
+        {
+            Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
+            level->allocatePatchData(ls_cloned_idx);
+        }
+        ls_fcn->setDataOnPatchHierarchy(ls_cloned_idx, ls_c_var, patch_hierarchy, loop_time, false, 0, finest_ln);
+
+        hier_cc_data_ops.subtract(ls_cloned_idx, ls_cloned_idx, ls_c_idx);
+        pout << "Error in " << ls_c_var->getName() << " at time " << loop_time << ":\n"
+             << "  L1-norm:  " << std::setprecision(10) << hier_cc_data_ops.L1Norm(ls_cloned_idx, wgt_cc_idx) << "\n"
+             << "  L2-norm:  " << hier_cc_data_ops.L2Norm(ls_cloned_idx, wgt_cc_idx) << "\n"
+             << "  max-norm: " << hier_cc_data_ops.maxNorm(ls_cloned_idx, wgt_cc_idx) << "\n"
+             << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+
         for (int ln = 0; ln <= finest_ln; ++ln)
         {
             Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
@@ -449,6 +466,7 @@ main(int argc, char* argv[])
         {
             Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
             level->deallocatePatchData(Q_err_idx);
+            level->deallocatePatchData(ls_cloned_idx);
         }
 
         if (!periodic_domain) delete Q_bcs[0];
