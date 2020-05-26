@@ -877,9 +877,7 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
         }
     }
 
-    MatrixXd mat = A.transpose() * Lambda * A;
-    VectorXd rhs = A.transpose() * Lambda * U;
-    VectorXd x = mat.ldlt().solve(rhs);
+    VectorXd x = (Lambda * A).colPivHouseholderQr().solve(Lambda * U);
     return x(0);
 }
 } // namespace IBAMR
