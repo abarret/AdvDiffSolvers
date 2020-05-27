@@ -40,12 +40,12 @@ find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_
     IBTK::VectorNd center;
     center.setZero();
     std::vector<IBTK::VectorNd> X_pts;
-    double phi_ll = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 0))) + 1.0e-10;
-    double phi_lr = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 0))) + 1.0e-10;
-    double phi_ur = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 1))) + 1.0e-10;
-    double phi_ul = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 1))) + 1.0e-10;
-    if ((phi_ll < 0.0 && phi_lr < 0.0 && phi_ur < 0.0 && phi_lr < 0.0) ||
-        (phi_ll > 0.0 && phi_lr > 0.0 && phi_ur > 0.0 && phi_lr > 0.0))
+    double phi_ll = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 0))) + 1.0e-12;
+    double phi_lr = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 0))) + 1.0e-12;
+    double phi_ur = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 1))) + 1.0e-12;
+    double phi_ul = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 1))) + 1.0e-12;
+    if ((phi_ll < 0.0 && phi_lr < 0.0 && phi_ur < 0.0 && phi_ul < 0.0) ||
+        (phi_ll > 0.0 && phi_lr > 0.0 && phi_ur > 0.0 && phi_ul > 0.0))
     {
         // Not a cut cell. Center is idx
         center(0) = idx(0) + 0.5;
@@ -56,7 +56,7 @@ find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_
         // Loop over nodes and edges and find points
         if (phi_ll < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1)));
         if (phi_ll * phi_ul < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1) - phi_ll / (phi_ul - phi_ll)));
-        if (phi_ul < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1) + 1.5));
+        if (phi_ul < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1) + 1.0));
         if (phi_ul * phi_ur < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) - phi_ul / (phi_ur - phi_ul), idx(1) + 1.0));
         if (phi_ur < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 1.0, idx(1) + 1.0));
         if (phi_ur * phi_lr < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 1.0, idx(1) - phi_lr / (phi_ur - phi_lr)));

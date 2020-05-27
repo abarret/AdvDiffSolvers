@@ -110,8 +110,6 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
     AdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(hierarchy, gridding_alg);
 
     d_visit_writer->registerPlotQuantity("Volume", "SCALAR", d_vol_new_idx);
-    d_visit_writer->registerPlotQuantity("Path", "VECTOR", d_path_idx);
-    d_visit_writer->registerPlotQuantity("XStar", "VECTOR", d_path_idx);
     d_visit_writer->registerPlotQuantity("LS current", "SCALAR", d_ls_node_cur_idx);
     d_visit_writer->registerPlotQuantity("LS new", "SCALAR", d_ls_node_new_idx);
     d_visit_writer->registerPlotQuantity("Q_scratch", "SCALAR", d_Q_scratch_idx);
@@ -335,6 +333,7 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
     {
         const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
         const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
+        const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
 
         // Copy current data to scratch
         d_hier_cc_data_ops->copyData(Q_scr_idx, Q_cur_idx);
@@ -634,26 +633,12 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
-                const double& vol = (*vol_data)(idx);
-                if (vol < 1.0)
+                VectorNd com = find_cell_centroid(idx, *ls_data);
+                for (int d = 0; d < NDIM; ++d)
                 {
-                    // We need to advect center of mass.
-                    VectorNd com = find_cell_centroid(idx, *ls_data);
-                    for (int d = 0; d < NDIM; ++d)
-                    {
-                        const double u =
-                            0.5 * ((*u_data)(FaceIndex<NDIM>(idx, d, 0)) + (*u_data)(FaceIndex<NDIM>(idx, d, 1)));
-                        (*path_data)(idx, d) = com(d) - dt * u / dx[d];
-                    }
-                }
-                else
-                {
-                    for (int d = 0; d < NDIM; ++d)
-                    {
-                        const double u =
-                            0.5 * ((*u_data)(FaceIndex<NDIM>(idx, d, 0)) + (*u_data)(FaceIndex<NDIM>(idx, d, 1)));
-                        (*path_data)(idx, d) = (idx(d) + 0.5) - dt * u / dx[d];
-                    }
+                    const double u =
+                        0.5 * ((*u_data)(FaceIndex<NDIM>(idx, d, 0)) + (*u_data)(FaceIndex<NDIM>(idx, d, 1)));
+                    (*path_data)(idx, d) = com(d) - dt * u / dx[d];
                 }
             }
         }
@@ -850,7 +835,7 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
     {
         U(i) = Q_vals[i];
         const VectorNd X = X_vals[i] - x_loc;
-        Lambda(i, i) = weight((X_vals[i] - idx_centroid).norm());
+        Lambda(i, i) = std::sqrt(weight((X_vals[i] - x_loc).norm()));
         switch (d_least_squares_reconstruction_order)
         {
         case CUBIC:
@@ -877,7 +862,7 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
         }
     }
 
-    VectorXd x = (Lambda * A).colPivHouseholderQr().solve(Lambda * U);
+    VectorXd x = (Lambda * A).fullPivHouseholderQr().solve(Lambda * U);
     return x(0);
 }
 } // namespace IBAMR
