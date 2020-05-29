@@ -265,8 +265,8 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         const int D_rhs_scr_idx =
             (D_rhs_var ? var_db->mapVariableAndContextToIndex(D_rhs_var, getScratchContext()) : IBTK::invalid_index);
 
-        double K =
-            0.5; // This should be changed for different time stepping for diffusion. Right now set at trapezoidal rule.
+        // This should be changed for different time stepping for diffusion. Right now set at trapezoidal rule.
+        double K = 0.5;
 
         PoissonSpecifications rhs_spec(d_object_name + "::rhs_spec" + Q_var->getName());
         PoissonSpecifications solv_spec(d_object_name + "::solv_spec" + Q_var->getName());
@@ -309,7 +309,7 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         helmholtz_solver->setPoissonSpecifications(solv_spec);
         helmholtz_solver->setPhysicalBcCoefs(Q_bc_coef);
         helmholtz_solver->setHomogeneousBc(false);
-        helmholtz_solver->setSolutionTime(current_time);
+        helmholtz_solver->setSolutionTime(new_time);
         helmholtz_solver->setTimeInterval(current_time, new_time);
         if (d_helmholtz_solvers_need_init[l])
         {
@@ -561,7 +561,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     TBOX_ASSERT(solv_oper);
 #endif
     solv_oper->setLSIndices(ls_idx, d_ls_node_var, vol_idx, d_vol_var, d_area_idx, d_area_var);
-    solv_oper->setSolutionTime(current_time);
+    solv_oper->setSolutionTime(new_time);
     Q_helmholtz_solver->solveSystem(*d_sol_vecs[l], *d_rhs_vecs[l]);
     d_hier_cc_data_ops->copyData(Q_new_idx, Q_scr_idx);
     if (d_enable_logging)

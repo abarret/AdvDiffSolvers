@@ -31,6 +31,7 @@ LSFindCellVolume::updateVolumeAndArea(int vol_idx,
 
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
+        double tot_area = 0.0;
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
@@ -53,10 +54,16 @@ LSFindCellVolume::updateVolumeAndArea(int vol_idx,
                 const CellIndex<NDIM>& idx = ci();
                 double volume, area;
                 findVolumeAndArea(xlow, dx, patch_lower, phi_data, idx, volume, area);
-                if (area_idx != IBTK::invalid_index) (*area_data)(idx) = area;
+                if (area_idx != IBTK::invalid_index)
+                {
+                    (*area_data)(idx) = area;
+                    if (patch->getBox().contains(idx)) tot_area += area;
+                }
                 if (vol_idx != IBTK::invalid_index) (*vol_data)(idx) = volume / cell_volume;
             }
         }
+        tot_area = SAMRAI_MPI::sumReduction(tot_area);
+        pout << "Total area found on level: " << ln << " is: " << std::setprecision(12) << tot_area << "\n";
     }
 }
 

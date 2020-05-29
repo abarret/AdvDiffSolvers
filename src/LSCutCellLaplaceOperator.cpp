@@ -329,16 +329,16 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
                 double a = 1.0;
                 double R = 1.0;
                 double D_val = 0.1;
-                double g = 5.0 * (a + 2.0 * a * d_current_time - R * R) /
-                           (D_val * std::exp(R * R / (4.0 * D_val * (d_current_time + 0.5))) *
-                            (1.0 + 2.0 * d_current_time) * (1.0 + 2.0 * d_current_time));
-
+                double g = 5.0 * (a - R + 2.0 * a * d_solution_time) /
+                           (D_val * std::exp(R * R / (2.0 * D_val + 4.0 * D_val * d_solution_time)) *
+                            (1.0 + 2.0 * d_solution_time) * (1.0 + 2.0 * d_solution_time));
+                const double sgn = D / std::abs(D);
                 if (area > 0.0)
                 {
                     for (unsigned int l = 0; l < d_bc_coefs.size(); ++l)
                     {
-                        if (!d_homogeneous_bc) R_data(idx, l) += 0.5 * D / std::abs(D) * g * area / cell_volume;
-                        R_data(idx, l) -= 0.5 * D / std::abs(D) * a * Q_data(idx, l) * area / cell_volume;
+                        if (!d_homogeneous_bc) R_data(idx, l) += 0.5 * sgn * g * area / cell_volume;
+                        R_data(idx, l) -= 0.5 * sgn * a * Q_data(idx, l) * area / cell_volume;
                     }
                 }
             }
