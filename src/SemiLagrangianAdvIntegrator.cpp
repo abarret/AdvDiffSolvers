@@ -333,7 +333,6 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
     {
         const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
         const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
-        const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
 
         // Copy current data to scratch
         d_hier_cc_data_ops->copyData(Q_scr_idx, Q_cur_idx);
@@ -810,7 +809,6 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
     TBOX_ASSERT(vol_data.getGhostBox().contains(box));
 #endif
 
-    const VectorNd& idx_centroid = find_cell_centroid(idx, ls_data);
     const CellIndex<NDIM>& idx_low = patch->getBox().lower();
 
     std::vector<double> Q_vals;

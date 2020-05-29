@@ -107,7 +107,7 @@ string_to_enum<LeastSquaresOrder>(const std::string& val)
     if (strcasecmp(val.c_str(), "QUADRATIC") == 0) return QUADRATIC;
     if (strcasecmp(val.c_str(), "CUBIC") == 0) return CUBIC;
     return UNKNOWN_ORDER;
-};
+}
 
 template <>
 inline std::string
@@ -118,7 +118,7 @@ enum_to_string<LeastSquaresOrder>(LeastSquaresOrder val)
     if (val == QUADRATIC) return "QUADRATIC";
     if (val == CUBIC) return "CUBIC";
     return "UNKNOWN_ORDER";
-};
+}
 
 } // namespace IBAMR
 #endif
