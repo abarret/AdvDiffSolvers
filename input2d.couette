@@ -22,7 +22,7 @@ DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 4.0
 LEAST_SQUARES_ORDER = "LINEAR"
-
+USE_STRANG_SPLITTING = FALSE
 
 XCOM = 1.5
 YCOM = 1.5
@@ -30,7 +30,7 @@ R = 1.0
 R_2 = 3.75
 R_1 = 0.25
 OMEGA_2 = 1.0
-OMEGA_1 = -10.0
+OMEGA_1 = 10.0
 
 D_coef = 0.1
 
@@ -184,7 +184,7 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     min_ls_refine_factor = MIN_REFINE_FACTOR
     max_ls_refine_factor = MAX_REFINE_FACTOR
     least_squares_order = LEAST_SQUARES_ORDER
-
+    use_strang_splitting = USE_STRANG_SPLITTING
 
     tag_buffer = TAG_BUFFER
     

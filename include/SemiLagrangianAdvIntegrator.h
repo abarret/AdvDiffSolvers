@@ -142,6 +142,9 @@ private:
                                       const NodeData<NDIM, double>& ls_data,
                                       const Pointer<Patch<NDIM>>& patch);
 
+    VectorNd
+    findVelocity(const CellIndex<NDIM>& idx, const SAMRAI::pdat::SideData<NDIM, double>& u_data, const VectorNd& x_pt);
+
     inline double evaluateZSpline(const IBTK::VectorNd x, const int order)
     {
         double val = 1.0;
@@ -219,6 +222,7 @@ private:
     std::pair<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>,
               SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>>>
         d_ls_u_pair;
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_s_var;
 
     SAMRAI::hier::ComponentSelector d_ls_data;
     bool d_prescribe_ls = false;

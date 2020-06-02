@@ -62,6 +62,9 @@ SemiLagrangianAdvIntegrator::registerLevelSetVelocity(Pointer<FaceVariable<NDIM,
     TBOX_ASSERT(std::find(d_u_var.begin(), d_u_var.end(), u_var) != d_u_var.end());
     d_ls_u_pair.first = d_ls_cell_var;
     d_ls_u_pair.second = u_var;
+    d_u_s_var = new SideVariable<NDIM, double>(d_object_name + "::USide");
+    int u_s_idx;
+    registerVariable(u_s_idx, d_u_s_var, IntVector<NDIM>(1), getScratchContext());
 }
 
 void
@@ -361,15 +364,24 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
         plog << d_object_name + "::integrateHierarchy() updating level set at time: " << new_time << "\n";
         // Now we integrate paths and update level set
         const int u_cur_idx = var_db->mapVariableAndContextToIndex(d_ls_u_pair.second, getCurrentContext());
-        integratePaths(d_path_idx, u_cur_idx, new_time - current_time);
+        const int u_s_scr_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getScratchContext());
+        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<ITC> ghost_cell_comps(1);
+        // Copy face data to side data
+        copy_face_to_side(u_s_scr_idx, u_cur_idx, d_hierarchy);
+        ghost_cell_comps[0] =
+            ITC(u_s_scr_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR", false, { nullptr });
+        Pointer<HierarchyGhostCellInterpolation> hier_ghost_cell = new HierarchyGhostCellInterpolation();
+        hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+        hier_ghost_cell->fillData(current_time);
+        hier_ghost_cell->deallocateOperatorState();
+        integratePaths(d_path_idx, u_s_scr_idx, new_time - current_time);
 
         // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
         evaluateMappingOnHierarchy(d_path_idx, d_ls_cell_scr_idx, d_ls_cell_new_idx, /*order*/ 2);
 
         // Synchronize hierarchy and interpolate to cell nodes
         // TODO: Should we synchronize hierarchy?
-        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-        std::vector<ITC> ghost_cell_comps(1);
         ghost_cell_comps[0] = ITC(d_ls_cell_scr_idx,
                                   d_ls_cell_new_idx,
                                   "CONSERVATIVE_LINEAR_REFINE",
@@ -378,7 +390,7 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
                                   "LINEAR",
                                   false,
                                   nullptr);
-        Pointer<HierarchyGhostCellInterpolation> hier_ghost_cell = new HierarchyGhostCellInterpolation();
+
         hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
         d_hier_math_ops->interp(
             d_ls_node_new_idx, d_ls_node_var, false, d_ls_cell_scr_idx, d_ls_cell_var, hier_ghost_cell, current_time);
@@ -500,21 +512,24 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
     const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
     Pointer<FaceVariable<NDIM, double>> u_var = d_Q_u_map[Q_var];
     const int u_cur_idx = var_db->mapVariableAndContextToIndex(u_var, getCurrentContext());
+    const int u_s_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getScratchContext());
+    copy_face_to_side(u_s_idx, u_cur_idx, d_hierarchy);
 
     // fill ghost cells
     using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-    std::vector<ITC> ghost_cell_comps(2);
+    std::vector<ITC> ghost_cell_comps(3);
     HierarchyGhostCellInterpolation hier_ghost_cells;
     ghost_cell_comps[0] =
         ITC(d_Q_scratch_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
     ghost_cell_comps[1] = ITC(d_ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+    ghost_cell_comps[2] = ITC(u_s_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR");
     hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
     hier_ghost_cells.fillData(current_time);
     hier_ghost_cells.deallocateOperatorState();
     d_vol_fcn->updateVolumeAndArea(
         d_vol_new_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_new_idx, d_ls_node_var, true);
     // Integrate path
-    integratePaths(d_path_idx, u_cur_idx, d_vol_new_idx, d_ls_node_new_idx, dt);
+    integratePaths(d_path_idx, u_s_idx, d_vol_new_idx, d_ls_node_new_idx, dt);
 
     ghost_cell_comps[0] =
         ITC(d_Q_scratch_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
@@ -586,19 +601,19 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx, const int u_idx,
             const Box<NDIM>& box = patch->getBox();
 
             Pointer<CellData<NDIM, double>> path_data = patch->getPatchData(path_idx);
-            Pointer<FaceData<NDIM, double>> u_data = patch->getPatchData(u_idx);
+            Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(u_idx);
+            TBOX_ASSERT(u_data);
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
 
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
-
+                VectorNd com = { idx(0) + 0.5, idx(1) + 0.5 };
+                const VectorNd& u = findVelocity(idx, *u_data, com);
                 for (int d = 0; d < NDIM; ++d)
                 {
-                    const double u =
-                        0.5 * ((*u_data)(FaceIndex<NDIM>(idx, d, 0)) + (*u_data)(FaceIndex<NDIM>(idx, d, 1)));
-                    (*path_data)(idx, d) = (idx(d) + 0.5) - dt * u / dx[d];
+                    (*path_data)(idx, d) = (idx(d) + 0.5) - dt * u(d) / dx[d];
                 }
             }
         }
@@ -625,7 +640,8 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             Pointer<CellData<NDIM, double>> path_data = patch->getPatchData(path_idx);
             Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
             Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
-            Pointer<FaceData<NDIM, double>> u_data = patch->getPatchData(u_idx);
+            Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(u_idx);
+            TBOX_ASSERT(u_data);
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
 
@@ -633,12 +649,8 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             {
                 const CellIndex<NDIM>& idx = ci();
                 VectorNd com = find_cell_centroid(idx, *ls_data);
-                for (int d = 0; d < NDIM; ++d)
-                {
-                    const double u =
-                        0.5 * ((*u_data)(FaceIndex<NDIM>(idx, d, 0)) + (*u_data)(FaceIndex<NDIM>(idx, d, 1)));
-                    (*path_data)(idx, d) = com(d) - dt * u / dx[d];
-                }
+                const VectorNd& u = findVelocity(idx, *u_data, com);
+                for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com(d) - dt * u(d) / dx[d];
             }
         }
     }
@@ -862,5 +874,71 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
 
     VectorXd x = (Lambda * A).fullPivHouseholderQr().solve(Lambda * U);
     return x(0);
+}
+
+VectorNd
+SemiLagrangianAdvIntegrator::findVelocity(const CellIndex<NDIM>& idx,
+                                          const SideData<NDIM, double>& u_data,
+                                          const VectorNd& x_pt)
+{
+    VectorNd u;
+    // First x-axis:
+    // Determine if we should use the "lower" or "upper" values.
+    {
+        VectorNd x_low;
+        SideIndex<NDIM> idx_ll, idx_ul, idx_lu, idx_uu;
+        if (x_pt(1) > (idx(1) + 0.5))
+        {
+            // Use "upper" points
+            for (int d = 0; d < NDIM; ++d) x_low(d) = static_cast<double>(idx(d)) + (d == 1 ? 0.5 : 0.0);
+            idx_ll = SideIndex<NDIM>(idx, 0, 0);
+            idx_ul = SideIndex<NDIM>(idx, 0, 1);
+            idx_lu = SideIndex<NDIM>(idx + IntVector<NDIM>(0, 1), 0, 0);
+            idx_uu = SideIndex<NDIM>(idx + IntVector<NDIM>(0, 1), 0, 1);
+        }
+        else
+        {
+            // Use "lower" points
+            for (int d = 0; d < NDIM; ++d) x_low(d) = static_cast<double>(idx(d)) - (d == 1 ? 0.5 : 0.0);
+            idx_lu = SideIndex<NDIM>(idx, 0, 0);
+            idx_uu = SideIndex<NDIM>(idx, 0, 1);
+            idx_ll = SideIndex<NDIM>(idx - IntVector<NDIM>(0, 1), 0, 0);
+            idx_ul = SideIndex<NDIM>(idx - IntVector<NDIM>(0, 1), 0, 1);
+        }
+        u(0) = u_data(idx_ll) + (u_data(idx_ul) - u_data(idx_ll)) * (x_pt(0) - x_low(0)) +
+               (u_data(idx_lu) - u_data(idx_ll)) * (x_pt(1) - x_low(1)) +
+               (u_data(idx_uu) - u_data(idx_lu) - u_data(idx_ul) + u_data(idx_ll)) * (x_pt(0) - x_low(0)) *
+                   (x_pt(1) - x_low(1));
+    }
+
+    // Second y-axis
+    {
+        VectorNd x_low;
+        SideIndex<NDIM> idx_ll, idx_ul, idx_lu, idx_uu;
+        if (x_pt(0) > (idx(0) + 0.5))
+        {
+            // Use "upper" points
+            for (int d = 0; d < NDIM; ++d) x_low(d) = static_cast<double>(idx(d)) + (d == 0 ? 0.5 : 0.0);
+            idx_ll = SideIndex<NDIM>(idx, 1, 0);
+            idx_lu = SideIndex<NDIM>(idx, 1, 1);
+            idx_ul = SideIndex<NDIM>(idx + IntVector<NDIM>(1, 0), 1, 0);
+            idx_uu = SideIndex<NDIM>(idx + IntVector<NDIM>(1, 0), 1, 1);
+        }
+        else
+        {
+            // Use "lower" points
+            for (int d = 0; d < NDIM; ++d) x_low(d) = static_cast<double>(idx(d)) - (d == 0 ? 0.5 : 0.0);
+            idx_lu = SideIndex<NDIM>(idx, 1, 0);
+            idx_lu = SideIndex<NDIM>(idx, 1, 1);
+            idx_ul = SideIndex<NDIM>(idx - IntVector<NDIM>(1, 0), 1, 0);
+            idx_uu = SideIndex<NDIM>(idx - IntVector<NDIM>(1, 0), 1, 1);
+        }
+        u(1) = u_data(idx_ll) + (u_data(idx_ul) - u_data(idx_ll)) * (x_pt(0) - x_low(0)) +
+               (u_data(idx_lu) - u_data(idx_ll)) * (x_pt(1) - x_low(1)) +
+               (u_data(idx_uu) - u_data(idx_lu) - u_data(idx_ul) + u_data(idx_ll)) * (x_pt(0) - x_low(0)) *
+                   (x_pt(1) - x_low(1));
+    }
+
+    return u;
 }
 } // namespace IBAMR

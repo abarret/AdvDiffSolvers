@@ -120,5 +120,29 @@ enum_to_string<LeastSquaresOrder>(LeastSquaresOrder val)
     return "UNKNOWN_ORDER";
 }
 
+inline void
+copy_face_to_side(const int u_s_idx, const int u_f_idx, Pointer<PatchHierarchy<NDIM>> hierarchy)
+{
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            Pointer<SideData<NDIM, double>> s_data = patch->getPatchData(u_s_idx);
+            Pointer<FaceData<NDIM, double>> f_data = patch->getPatchData(u_f_idx);
+            for (int axis = 0; axis < NDIM; ++axis)
+            {
+                for (SideIterator<NDIM> si(patch->getBox(), axis); si; si++)
+                {
+                    const SideIndex<NDIM>& s_idx = si();
+                    FaceIndex<NDIM> f_idx(s_idx.toCell(0), axis, 1);
+                    (*s_data)(s_idx) = (*f_data)(f_idx);
+                }
+            }
+        }
+    }
+}
+
 } // namespace IBAMR
 #endif
