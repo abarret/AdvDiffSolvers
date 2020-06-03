@@ -1,3 +1,6 @@
+#ifndef included_SemiLagrangianAdvIntegrator
+#define included_SemiLagrangianAdvIntegrator
+
 #include "IBAMR_config.h"
 
 #include "ibamr/AdvDiffHierarchyIntegrator.h"
@@ -145,60 +148,12 @@ private:
     VectorNd
     findVelocity(const CellIndex<NDIM>& idx, const SAMRAI::pdat::SideData<NDIM, double>& u_data, const VectorNd& x_pt);
 
-    inline double evaluateZSpline(const IBTK::VectorNd x, const int order)
-    {
-        double val = 1.0;
-        for (int d = 0; d < NDIM; ++d)
-        {
-            val *= ZSpline(x(d), order);
-        }
-        return val;
-    }
+    double evaluateZSpline(const IBTK::VectorNd x, const int order);
 
-    inline int getSplineWidth(const int order)
-    {
-        return order + 1;
-    }
+    int getSplineWidth(int order);
+    double ZSpline(double x, int order);
 
-    inline double ZSpline(double x, const int order)
-    {
-        x = abs(x);
-        switch (order)
-        {
-        case 0:
-            if (x < 1.0)
-                return 1.0 - x;
-            else
-                return 0.0;
-        case 1:
-            if (x < 1.0)
-                return 1.0 - 2.5 * x * x + 1.5 * x * x * x;
-            else if (x < 2.0)
-                return 0.5 * (2.0 - x) * (2.0 - x) * (1.0 - x);
-            else
-                return 0.0;
-        case 2:
-            if (x < 1.0)
-                return 1.0 - 15.0 / 12.0 * x * x - 35.0 / 12.0 * x * x * x + 63.0 / 12.0 * x * x * x * x -
-                       25.0 / 12.0 * x * x * x * x * x;
-            else if (x < 2.0)
-                return -4.0 + 75.0 / 4.0 * x - 245.0 / 8.0 * x * x + 545.0 / 24.0 * x * x * x -
-                       63.0 / 8.0 * x * x * x * x + 25.0 / 24.0 * x * x * x * x * x;
-            else if (x < 3.0)
-                return 18.0 - 153.0 / 4.0 * x + 255.0 / 8.0 * x * x - 313.0 / 24.0 * x * x * x +
-                       21.0 / 8.0 * x * x * x * x - 5.0 / 24.0 * x * x * x * x * x;
-            else
-                return 0.0;
-        default:
-            TBOX_ERROR("Unavailable order: " << order << "\n");
-            return 0.0;
-        }
-    }
-
-    inline double weight(const double r)
-    {
-        return std::exp(-r * r);
-    }
+    double weight(double r);
 
     // patch data for particle trajectories
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_path_var;
@@ -236,3 +191,7 @@ private:
 
 }; // Class SemiLagrangianAdvIntegrator
 } // Namespace IBAMR
+
+#include "private/SemiLagrangianAdvIntegrator_inc.h"
+
+#endif
