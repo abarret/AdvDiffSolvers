@@ -4,15 +4,15 @@ L = 4.0
 BASE_NAME = "test1"
 
 // grid spacing parameters
-MAX_LEVELS = 3                            // maximum number of levels in locally refined grid
+MAX_LEVELS = 4                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 16                                    // coarsest grid spacing
+N = 8                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
-CFL_MAX = 0.3
-DT_MAX = H * CFL_MAX / 4.0
-DT_MIN = DT_MAX
-END_TIME = 10
+CFL_MAX = 0.5
+DT_MAX = H * CFL_MAX / 1.0
+DT_MIN = DT_MAX / 4.0
+END_TIME = 15
 REGRID_INTERVAL = 1
 TAG_BUFFER = 1
 
@@ -20,8 +20,8 @@ OUTPUT_BDRY_INFO = FALSE
 USING_LS_FCN = FALSE
 DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
-MAX_REFINE_FACTOR = 4.0
-LEAST_SQUARES_ORDER = "LINEAR"
+MAX_REFINE_FACTOR = 2.0
+LEAST_SQUARES_ORDER = "QUADRATIC"
 USE_STRANG_SPLITTING = FALSE
 
 XCOM = 1.5
@@ -32,7 +32,7 @@ R_1 = 0.25
 OMEGA_2 = 1.0
 OMEGA_1 = 10.0
 
-D_coef = 0.1
+D_coef = 0.05
 
 Q = "exp(-50*((X_0-0.8)^2 + X_1^2))*10"
 
@@ -85,8 +85,8 @@ UFunction {
    ycom = 0.0
    r1 = R_1
    r2 = R_2
-   function_0 = "sqrt((X_0-xcom)^2+(X_1-ycom)^2) > r2 ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < r1 ? 0.0 : -(a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_1-ycom)/((X_0-xcom)^2+(X_1-ycom)^2 + 1.0e-12))"
-   function_1 = "sqrt((X_0-xcom)^2+(X_1-ycom)^2) > r2 ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < r1 ? 0.0 : (a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_0-xcom)/((X_0-xcom)^2+(X_1-ycom)^2 + 1.0e-12))"
+   function_0 = "(sqrt((X_0-xcom)^2+(X_1-ycom)^2) > r2 ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < r1 ? 0.0 : -(a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_1-ycom)/((X_0-xcom)^2+(X_1-ycom)^2 + 1.0e-12)))*sin(2*PI*t / 7.5)"
+   function_1 = "(sqrt((X_0-xcom)^2+(X_1-ycom)^2) > r2 ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < r1 ? 0.0 : (a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_0-xcom)/((X_0-xcom)^2+(X_1-ycom)^2 + 1.0e-12)))*sin(2*PI*t / 7.5)"
 }
 
 Q_bcs {
