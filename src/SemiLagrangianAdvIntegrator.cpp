@@ -511,32 +511,31 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
     const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
     const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
     Pointer<FaceVariable<NDIM, double>> u_var = d_Q_u_map[Q_var];
-    const int u_cur_idx = var_db->mapVariableAndContextToIndex(u_var, getCurrentContext());
+    const int u_new_idx = var_db->mapVariableAndContextToIndex(u_var, getNewContext());
     const int u_s_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getScratchContext());
-    copy_face_to_side(u_s_idx, u_cur_idx, d_hierarchy);
 
-    // fill ghost cells
+    {
+        copy_face_to_side(u_s_idx, u_new_idx, d_hierarchy);
+        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<ITC> ghost_cell_comps(2);
+        HierarchyGhostCellInterpolation hier_ghost_cells;
+        ghost_cell_comps[0] = ITC(d_ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+        ghost_cell_comps[1] = ITC(u_s_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR");
+        hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
+        hier_ghost_cells.fillData(current_time);
+        d_vol_fcn->updateVolumeAndArea(
+            d_vol_new_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_new_idx, d_ls_node_var, true);
+        // Integrate path
+        integratePaths(d_path_idx, u_s_idx, d_vol_new_idx, d_ls_node_new_idx, dt);
+    }
     using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-    std::vector<ITC> ghost_cell_comps(3);
-    HierarchyGhostCellInterpolation hier_ghost_cells;
-    ghost_cell_comps[0] =
-        ITC(d_Q_scratch_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
-    ghost_cell_comps[1] = ITC(d_ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
-    ghost_cell_comps[2] = ITC(u_s_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR");
-    hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
-    hier_ghost_cells.fillData(current_time);
-    hier_ghost_cells.deallocateOperatorState();
-    d_vol_fcn->updateVolumeAndArea(
-        d_vol_new_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_new_idx, d_ls_node_var, true);
-    // Integrate path
-    integratePaths(d_path_idx, u_s_idx, d_vol_new_idx, d_ls_node_new_idx, dt);
-
+    std::vector<ITC> ghost_cell_comps(2);
     ghost_cell_comps[0] =
         ITC(d_Q_scratch_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
     ghost_cell_comps[1] = ITC(d_ls_node_cur_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+    HierarchyGhostCellInterpolation hier_ghost_cells;
     hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
     hier_ghost_cells.fillData(current_time);
-    hier_ghost_cells.deallocateOperatorState();
     d_vol_fcn->updateVolumeAndArea(
         d_vol_cur_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_cur_idx, d_ls_node_var, true);
 
