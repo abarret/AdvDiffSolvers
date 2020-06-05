@@ -76,6 +76,41 @@ outputBdryInfo(const int Q_idx,
     }
 }
 
+struct LocateInterface
+{
+public:
+    LocateInterface(Pointer<CellVariable<NDIM, double>> ls_var,
+                    Pointer<AdvDiffHierarchyIntegrator> integrator,
+                    Pointer<CartGridFunction> ls_fcn)
+        : d_ls_var(ls_var), d_integrator(integrator), d_ls_fcn(ls_fcn)
+    {
+        pout << "d_ls_var::name: " << d_ls_var->getName() << "\n";
+        pout << "Creating object.\n";
+        // intentionally blank
+    }
+    void resetData(const int D_idx, Pointer<HierarchyMathOps> hier_math_ops, const double time, const bool initial_time)
+    {
+        Pointer<PatchHierarchy<NDIM>> hierarchy = hier_math_ops->getPatchHierarchy();
+        pout << "d_ls_var::name: " << d_ls_var->getName() << "\n";
+        if (initial_time)
+        {
+            d_ls_fcn->setDataOnPatchHierarchy(D_idx, d_ls_var, hierarchy, time, initial_time);
+        }
+        else
+        {
+            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            const int ls_cur_idx = var_db->mapVariableAndContextToIndex(d_ls_var, d_integrator->getCurrentContext());
+            HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
+            hier_cc_data_ops.copyData(D_idx, ls_cur_idx);
+        }
+    }
+
+private:
+    Pointer<CellVariable<NDIM, double>> d_ls_var;
+    Pointer<AdvDiffHierarchyIntegrator> d_integrator;
+    Pointer<CartGridFunction> d_ls_fcn;
+};
+
 void
 locateInterface(const int D_idx,
                 SAMRAI::tbox::Pointer<IBTK::HierarchyMathOps> hier_math_ops,
@@ -83,25 +118,8 @@ locateInterface(const int D_idx,
                 const bool initial_time,
                 void* ctx)
 {
-    const auto& ls_fcn_hierarchy_pair =
-        *(static_cast<std::pair<Pointer<CartGridFunction>, Pointer<SemiLagrangianAdvIntegrator>>*>(ctx));
-    Pointer<PatchHierarchy<NDIM>> hierarchy = hier_math_ops->getPatchHierarchy();
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
-    Pointer<hier::Variable<NDIM>> D_var;
-    var_db->mapIndexToVariable(D_idx, D_var);
-    if (initial_time)
-    {
-        ls_fcn_hierarchy_pair.first->setDataOnPatchHierarchy(D_idx, D_var, hierarchy, time, initial_time);
-    }
-    else
-    {
-        Pointer<CellVariable<NDIM, double>> ls_var = ls_fcn_hierarchy_pair.second->getLevelSetVariable();
-        const int ls_cur_idx =
-            var_db->mapVariableAndContextToIndex(ls_var, ls_fcn_hierarchy_pair.second->getCurrentContext());
-        HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
-
-        hier_cc_data_ops.copyData(D_idx, ls_cur_idx);
-    }
+    auto interface = (static_cast<LocateInterface*>(ctx));
+    interface->resetData(D_idx, hier_math_ops, time, initial_time);
 }
 
 /*******************************************************************************
@@ -197,20 +215,19 @@ main(int argc, char* argv[])
         Pointer<CellVariable<NDIM, double>> ls_var = new CellVariable<NDIM, double>("LS");
         Pointer<NodeVariable<NDIM, double>> ls_n_var = new NodeVariable<NDIM, double>("LS_NODE");
         time_integrator->registerLevelSetVariable(ls_var);
-        time_integrator->registerLevelSetVelocity(u_var);
+        time_integrator->registerLevelSetVelocity(ls_var, u_var);
         bool use_ls_fcn = input_db->getBool("USING_LS_FCN");
         Pointer<SetLSValue> ls_fcn =
             new SetLSValue("SetLSValue", grid_geometry, app_initializer->getComponentDatabase("SetLSValue"));
-        time_integrator->registerLevelSetFunction(ls_fcn);
+        time_integrator->registerLevelSetFunction(ls_var, ls_fcn);
+        time_integrator->useLevelSetFunction(ls_var, use_ls_fcn);
+        LocateInterface interface(ls_var, time_integrator, ls_fcn);
         if (!use_ls_fcn)
         {
             Pointer<RelaxationLSMethod> ls_ops = new RelaxationLSMethod(
                 "RelaxationLSMethod", app_initializer->getComponentDatabase("RelaxationLSMethod"));
-            std::pair<Pointer<SetLSValue>, Pointer<SemiLagrangianAdvIntegrator>> ls_fcn_hierarchy_pair(ls_fcn,
-                                                                                                       time_integrator);
-            ls_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface,
-                                                             static_cast<void*>(&ls_fcn_hierarchy_pair));
-            time_integrator->registerLevelSetResetFunction(ls_ops);
+            ls_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface, static_cast<void*>(&interface));
+            time_integrator->registerLevelSetResetFunction(ls_var, ls_ops);
         }
 
         time_integrator->registerTransportedQuantity(Q_var);
@@ -218,6 +235,7 @@ main(int argc, char* argv[])
         time_integrator->setInitialConditions(Q_var, Q_init);
         time_integrator->setPhysicalBcCoef(Q_var, Q_bcs[0]);
         time_integrator->setDiffusionCoefficient(Q_var, input_db->getDoubleWithDefault("D_coef", 0.0));
+        time_integrator->restrictToLevelSet(Q_var, ls_var);
 
         // Set up diffusion operators
         Pointer<LSCutCellLaplaceOperator> rhs_oper = new LSCutCellLaplaceOperator(
@@ -238,7 +256,7 @@ main(int argc, char* argv[])
         Pointer<CellVariable<NDIM, double>> area_var = new CellVariable<NDIM, double>("area");
         const int vol_idx = var_db->registerVariableAndContext(vol_var, var_db->getContext("SCRATCH"));
         const int area_idx = var_db->registerVariableAndContext(area_var, var_db->getContext("SCRATCH"));
-        Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume(" ", patch_hierarchy);
+        Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume("VolFcn", patch_hierarchy);
 
         // Set up visualization plot file writer.
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
@@ -400,18 +418,17 @@ main(int argc, char* argv[])
         Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", patch_hierarchy);
         const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
 
-        Pointer<CellVariable<NDIM, double>> ls_c_var = time_integrator->getLevelSetVariable();
-        const int ls_c_idx = var_db->mapVariableAndContextToIndex(ls_c_var, time_integrator->getCurrentContext());
-        const int ls_cloned_idx = var_db->registerClonedPatchDataIndex(ls_c_var, ls_c_idx);
+        const int ls_c_idx = var_db->mapVariableAndContextToIndex(ls_var, time_integrator->getCurrentContext());
+        const int ls_cloned_idx = var_db->registerClonedPatchDataIndex(ls_var, ls_c_idx);
         for (int ln = 0; ln <= finest_ln; ++ln)
         {
             Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
             level->allocatePatchData(ls_cloned_idx);
         }
-        ls_fcn->setDataOnPatchHierarchy(ls_cloned_idx, ls_c_var, patch_hierarchy, loop_time, false, 0, finest_ln);
+        ls_fcn->setDataOnPatchHierarchy(ls_cloned_idx, ls_var, patch_hierarchy, loop_time, false, 0, finest_ln);
 
         hier_cc_data_ops.subtract(ls_cloned_idx, ls_cloned_idx, ls_c_idx);
-        pout << "Error in " << ls_c_var->getName() << " at time " << loop_time << ":\n"
+        pout << "Error in " << ls_var->getName() << " at time " << loop_time << ":\n"
              << "  L1-norm:  " << std::setprecision(10) << hier_cc_data_ops.L1Norm(ls_cloned_idx, wgt_cc_idx) << "\n"
              << "  L2-norm:  " << hier_cc_data_ops.L2Norm(ls_cloned_idx, wgt_cc_idx) << "\n"
              << "  max-norm: " << hier_cc_data_ops.maxNorm(ls_cloned_idx, wgt_cc_idx) << "\n"

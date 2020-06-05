@@ -19,9 +19,7 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
                                                          Pointer<Database> input_db,
                                                          bool register_for_restart)
     : AdvDiffHierarchyIntegrator(object_name, input_db, register_for_restart),
-      d_path_var(new CellVariable<NDIM, double>(d_object_name + "::PathVar", NDIM)),
-      d_vol_var(new CellVariable<NDIM, double>(d_object_name + "::VolVar")),
-      d_area_var(new CellVariable<NDIM, double>(d_object_name + "::AreaVar"))
+      d_path_var(new CellVariable<NDIM, double>(d_object_name + "::PathVar", NDIM))
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_path_idx = var_db->registerVariableAndContext(d_path_var, var_db->getContext(d_object_name + "::PathContext"));
@@ -29,7 +27,6 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
 
     if (input_db)
     {
-        d_prescribe_ls = input_db->getBool("prescribe_level_set");
         d_min_ls_refine_factor = input_db->getDouble("min_ls_refine_factor");
         d_max_ls_refine_factor = input_db->getDouble("max_ls_refine_factor");
         d_least_squares_reconstruction_order =
@@ -52,31 +49,55 @@ SemiLagrangianAdvIntegrator::registerTransportedQuantity(Pointer<CellVariable<ND
 void
 SemiLagrangianAdvIntegrator::registerLevelSetVariable(Pointer<CellVariable<NDIM, double>> ls_var)
 {
-    d_ls_cell_var = ls_var;
-    d_ls_node_var = new NodeVariable<NDIM, double>(d_object_name + "::LSNodeVar");
+    d_ls_cell_vars.push_back(ls_var);
+    d_ls_node_vars.push_back(new NodeVariable<NDIM, double>(ls_var->getName() + "::NodeVar"));
+    d_vol_vars.push_back(new CellVariable<NDIM, double>(ls_var->getName() + "::VolVar"));
+    d_area_vars.push_back(new CellVariable<NDIM, double>(ls_var->getName() + "::AreaVar"));
+    d_ls_fcn_map[ls_var] = nullptr;
+    d_ls_strategy_map[ls_var] = nullptr;
+    d_ls_use_fcn[ls_var] = false;
+    d_ls_u_map[ls_var] = nullptr;
 }
 
 void
-SemiLagrangianAdvIntegrator::registerLevelSetVelocity(Pointer<FaceVariable<NDIM, double>> u_var)
+SemiLagrangianAdvIntegrator::registerLevelSetVelocity(Pointer<CellVariable<NDIM, double>> ls_var,
+                                                      Pointer<FaceVariable<NDIM, double>> u_var)
 {
+    TBOX_ASSERT(std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_var) != d_ls_cell_vars.end());
     TBOX_ASSERT(std::find(d_u_var.begin(), d_u_var.end(), u_var) != d_u_var.end());
-    d_ls_u_pair.first = d_ls_cell_var;
-    d_ls_u_pair.second = u_var;
-    d_u_s_var = new SideVariable<NDIM, double>(d_object_name + "::USide");
-    int u_s_idx;
-    registerVariable(u_s_idx, d_u_s_var, IntVector<NDIM>(1), getScratchContext());
+    d_ls_u_map[ls_var] = u_var;
 }
 
 void
-SemiLagrangianAdvIntegrator::registerLevelSetResetFunction(Pointer<LSInitStrategy> ls_strategy)
+SemiLagrangianAdvIntegrator::registerLevelSetResetFunction(Pointer<CellVariable<NDIM, double>> ls_var,
+                                                           Pointer<LSInitStrategy> ls_strategy)
 {
-    d_ls_strategy = ls_strategy;
+    TBOX_ASSERT(std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_var) != d_ls_cell_vars.end());
+    d_ls_strategy_map[ls_var] = ls_strategy;
 }
 
 void
-SemiLagrangianAdvIntegrator::registerLevelSetFunction(Pointer<CartGridFunction> ls_fcn)
+SemiLagrangianAdvIntegrator::registerLevelSetFunction(Pointer<CellVariable<NDIM, double>> ls_var,
+                                                      Pointer<CartGridFunction> ls_fcn)
 {
-    d_ls_fcn = ls_fcn;
+    TBOX_ASSERT(std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_var) != d_ls_cell_vars.end());
+    d_ls_fcn_map[ls_var] = ls_fcn;
+}
+
+void
+SemiLagrangianAdvIntegrator::restrictToLevelSet(Pointer<CellVariable<NDIM, double>> Q_var,
+                                                Pointer<CellVariable<NDIM, double>> ls_var)
+{
+    TBOX_ASSERT(std::find(d_Q_var.begin(), d_Q_var.end(), Q_var) != d_Q_var.end());
+    TBOX_ASSERT(std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_var) != d_ls_cell_vars.end());
+    d_Q_ls_map[Q_var] = ls_var;
+}
+
+void
+SemiLagrangianAdvIntegrator::useLevelSetFunction(Pointer<CellVariable<NDIM, double>> ls_var, const bool use_ls_function)
+{
+    TBOX_ASSERT(std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_var) != d_ls_cell_vars.end());
+    d_ls_use_fcn[ls_var] = use_ls_function;
 }
 
 void
@@ -89,34 +110,53 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
     Pointer<CartesianGridGeometry<NDIM>> grid_geom = d_hierarchy->getGridGeometry();
 
     AdvDiffHierarchyIntegrator::registerVariables();
-    registerVariable(d_ls_cell_cur_idx,
-                     d_ls_cell_new_idx,
-                     d_ls_cell_scr_idx,
-                     d_ls_cell_var,
-                     IntVector<NDIM>(GHOST_CELL_WIDTH),
-                     "CONSERVATIVE_COARSEN",
-                     "CONSERVATIVE_LINEAR_REFINE");
+    for (size_t l = 0; l < d_ls_cell_vars.size(); ++l)
+    {
+        const Pointer<CellVariable<NDIM, double>>& ls_cell_var = d_ls_cell_vars[l];
+        const Pointer<NodeVariable<NDIM, double>>& ls_node_var = d_ls_node_vars[l];
+        const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
+        const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
 
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_ls_node_cur_idx = var_db->registerVariableAndContext(d_ls_node_var, getCurrentContext(), GHOST_CELL_WIDTH);
-    d_ls_node_new_idx = var_db->registerVariableAndContext(d_ls_node_var, getNewContext(), GHOST_CELL_WIDTH);
-    d_vol_cur_idx = var_db->registerVariableAndContext(d_vol_var, getCurrentContext(), GHOST_CELL_WIDTH);
-    d_vol_new_idx = var_db->registerVariableAndContext(d_vol_var, getNewContext(), GHOST_CELL_WIDTH);
-    d_area_idx = var_db->registerVariableAndContext(d_area_var, getCurrentContext(), GHOST_CELL_WIDTH);
+        int ls_cell_cur_idx, ls_cell_new_idx, ls_cell_scr_idx;
+        int ls_node_cur_idx, ls_node_new_idx;
+        registerVariable(ls_cell_cur_idx,
+                         ls_cell_new_idx,
+                         ls_cell_scr_idx,
+                         ls_cell_var,
+                         IntVector<NDIM>(GHOST_CELL_WIDTH),
+                         "CONSERVATIVE_COARSEN",
+                         "CONSERVATIVE_LINEAR_REFINE");
 
-    d_ls_data.setFlag(d_ls_node_cur_idx);
-    d_ls_data.setFlag(d_ls_node_new_idx);
-    d_ls_data.setFlag(d_vol_cur_idx);
-    d_ls_data.setFlag(d_vol_new_idx);
-    d_ls_data.setFlag(d_area_idx);
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        ls_node_cur_idx = var_db->registerVariableAndContext(ls_node_var, getCurrentContext(), GHOST_CELL_WIDTH);
+        ls_node_new_idx = var_db->registerVariableAndContext(ls_node_var, getNewContext(), GHOST_CELL_WIDTH);
+        int vol_cur_idx = var_db->registerVariableAndContext(vol_var, getCurrentContext(), GHOST_CELL_WIDTH);
+        int vol_new_idx = var_db->registerVariableAndContext(vol_var, getNewContext(), GHOST_CELL_WIDTH);
+        int area_cur_idx = var_db->registerVariableAndContext(area_var, getCurrentContext(), GHOST_CELL_WIDTH);
+        int area_new_idx = var_db->registerVariableAndContext(area_var, getNewContext(), GHOST_CELL_WIDTH);
+
+        d_ls_data.setFlag(ls_node_cur_idx);
+        d_ls_data.setFlag(ls_node_new_idx);
+        d_ls_data.setFlag(vol_cur_idx);
+        d_ls_data.setFlag(vol_new_idx);
+        d_ls_data.setFlag(area_cur_idx);
+        d_ls_data.setFlag(area_new_idx);
+
+        const std::string& ls_name = ls_cell_var->getName();
+        d_visit_writer->registerPlotQuantity(ls_name + "::Volume", "SCALAR", vol_new_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "::LS current", "SCALAR", ls_node_cur_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "::LS new", "SCALAR", ls_node_new_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "::Q_scratch", "SCALAR", d_Q_scratch_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "::LS Cell", "SCALAR", ls_cell_cur_idx);
+    }
+
+    d_u_s_var = new SideVariable<NDIM, double>(d_object_name + "::USide");
+    int u_s_idx;
+    registerVariable(u_s_idx, d_u_s_var, IntVector<NDIM>(1), getScratchContext());
+
+    d_vol_fcn = new LSFindCellVolume(d_object_name + "::VolumeFunction", hierarchy);
 
     AdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(hierarchy, gridding_alg);
-
-    d_visit_writer->registerPlotQuantity("Volume", "SCALAR", d_vol_new_idx);
-    d_visit_writer->registerPlotQuantity("LS current", "SCALAR", d_ls_node_cur_idx);
-    d_visit_writer->registerPlotQuantity("LS new", "SCALAR", d_ls_node_new_idx);
-    d_visit_writer->registerPlotQuantity("Q_scratch", "SCALAR", d_Q_scratch_idx);
-    d_visit_writer->registerPlotQuantity("LS Cell", "SCALAR", d_ls_cell_cur_idx);
 
     d_integrator_is_initialized = true;
 }
@@ -139,18 +179,18 @@ SemiLagrangianAdvIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHie
     if (initial_time)
     {
         pout << "Setting level set at initial time: " << initial_time << "\n";
-        d_ls_fcn->setDataOnPatchLevel(d_ls_cell_cur_idx, d_ls_cell_var, level, data_time, initial_time);
-        d_ls_fcn->setDataOnPatchLevel(d_ls_node_cur_idx, d_ls_node_var, level, data_time, initial_time);
-        if (d_prescribe_ls)
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        for (size_t l = 0; l < d_ls_cell_vars.size(); ++l)
         {
-            d_ls_fcn->setDataOnPatchLevel(d_ls_node_new_idx, d_ls_node_var, level, data_time, initial_time);
-            d_ls_fcn->setDataOnPatchLevel(d_ls_node_cur_idx, d_ls_node_var, level, data_time, initial_time);
+            const Pointer<CellVariable<NDIM, double>>& ls_cell_var = d_ls_cell_vars[l];
+            const Pointer<NodeVariable<NDIM, double>>& ls_node_var = d_ls_node_vars[l];
+            const Pointer<CartGridFunction>& ls_fcn = d_ls_fcn_map[ls_cell_var];
+            TBOX_ASSERT(ls_fcn);
+            const int ls_cell_cur_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getCurrentContext());
+            const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
+            ls_fcn->setDataOnPatchLevel(ls_cell_cur_idx, ls_cell_var, level, data_time, initial_time);
+            ls_fcn->setDataOnPatchLevel(ls_node_cur_idx, ls_node_var, level, data_time, initial_time);
         }
-    }
-    else if (d_prescribe_ls)
-    {
-        d_ls_fcn->setDataOnPatchLevel(d_ls_node_cur_idx, d_ls_node_var, level, data_time, initial_time);
-        d_ls_fcn->setDataOnPatchLevel(d_ls_cell_cur_idx, d_ls_cell_var, level, data_time, initial_time);
     }
 }
 
@@ -165,19 +205,24 @@ SemiLagrangianAdvIntegrator::applyGradientDetectorSpecialized(Pointer<BasePatchH
     AdvDiffHierarchyIntegrator::applyGradientDetectorSpecialized(
         hierarchy, ln, data_time, tag_index, initial_time, uses_richardson_extrapolation_too);
     Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
     for (PatchLevel<NDIM>::Iterator p(level); p; p++)
     {
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
         Pointer<CellData<NDIM, int>> tag_data = patch->getPatchData(tag_index);
-        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_ls_node_cur_idx);
         Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         const double* const dx = pgeom->getDx();
-
-        for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+        for (const auto& ls_node_var : d_ls_node_vars)
         {
-            const CellIndex<NDIM>& idx = ci();
-            const double ls = node_to_cell(idx, *ls_data);
-            if (ls < d_max_ls_refine_factor * dx[0] && ls > d_min_ls_refine_factor * dx[0]) (*tag_data)(idx) = 1;
+            const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
+            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_node_cur_idx);
+
+            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                const double ls = node_to_cell(idx, *ls_data);
+                if (ls < d_max_ls_refine_factor * dx[0] && ls > d_min_ls_refine_factor * dx[0]) (*tag_data)(idx) = 1;
+            }
         }
     }
 }
@@ -206,41 +251,54 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
     }
 
     // Update level set at current time
-    if (d_prescribe_ls)
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    for (size_t l = 0; l < d_ls_cell_vars.size(); ++l)
     {
-        d_ls_fcn->setDataOnPatchHierarchy(d_ls_cell_cur_idx, d_ls_cell_var, d_hierarchy, current_time, false);
-        d_ls_fcn->setDataOnPatchHierarchy(d_ls_node_cur_idx, d_ls_node_var, d_hierarchy, current_time, false);
-    }
-    else
-    {
-        d_ls_strategy->initializeLSData(d_ls_cell_cur_idx, d_hier_math_ops, d_integrator_step, current_time, false);
-        // interpolate cell data to node data
-        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-        std::vector<ITC> ghost_cell_comps(1);
-        ghost_cell_comps[0] = ITC(d_ls_cell_scr_idx,
-                                  d_ls_cell_cur_idx,
-                                  "CONSERVATIVE_LINEAR_REFINE",
-                                  false,
-                                  "CONSERVATIVE_COARSEN",
-                                  "LINEAR",
-                                  false,
-                                  nullptr);
-        Pointer<HierarchyGhostCellInterpolation> hier_ghost_cell = new HierarchyGhostCellInterpolation();
-        hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
-        d_hier_math_ops->interp(
-            d_ls_node_cur_idx, d_ls_node_var, false, d_ls_cell_scr_idx, d_ls_cell_var, hier_ghost_cell, current_time);
-        hier_ghost_cell->deallocateOperatorState();
-        ghost_cell_comps[0] = ITC(d_ls_node_cur_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
-        hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
-        hier_ghost_cell->fillData(current_time);
-    }
+        const Pointer<CellVariable<NDIM, double>>& ls_cell_var = d_ls_cell_vars[l];
+        const Pointer<NodeVariable<NDIM, double>>& ls_node_var = d_ls_node_vars[l];
+        const int ls_cell_cur_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getCurrentContext());
+        const int ls_cell_scr_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getScratchContext());
+        const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
+        if (d_ls_use_fcn[ls_cell_var])
+        {
+            const Pointer<CartGridFunction>& ls_fcn = d_ls_fcn_map[ls_cell_var];
+            ls_fcn->setDataOnPatchHierarchy(ls_cell_cur_idx, ls_cell_var, d_hierarchy, current_time, false);
+            ls_fcn->setDataOnPatchHierarchy(ls_node_cur_idx, ls_node_var, d_hierarchy, current_time, false);
+        }
+        else
+        {
+            const Pointer<LSInitStrategy>& ls_strategy = d_ls_strategy_map[ls_cell_var];
+            ls_strategy->initializeLSData(ls_cell_cur_idx, d_hier_math_ops, d_integrator_step, current_time, false);
+            // interpolate cell data to node data
+            using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+            std::vector<ITC> ghost_cell_comps(1);
+            ghost_cell_comps[0] = ITC(ls_cell_scr_idx,
+                                      ls_cell_cur_idx,
+                                      "CONSERVATIVE_LINEAR_REFINE",
+                                      false,
+                                      "CONSERVATIVE_COARSEN",
+                                      "LINEAR",
+                                      false,
+                                      nullptr);
+            Pointer<HierarchyGhostCellInterpolation> hier_ghost_cell = new HierarchyGhostCellInterpolation();
+            hier_ghost_cell->initializeOperatorState(
+                ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+            d_hier_math_ops->interp(
+                ls_node_cur_idx, ls_node_var, false, ls_cell_scr_idx, ls_cell_var, hier_ghost_cell, current_time);
+            hier_ghost_cell->deallocateOperatorState();
+            ghost_cell_comps[0] = ITC(ls_node_cur_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+            hier_ghost_cell->initializeOperatorState(
+                ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+            hier_ghost_cell->fillData(current_time);
+        }
 
-    // ensure volume and area indices are set to current values.
-    d_vol_fcn->updateVolumeAndArea(
-        d_vol_cur_idx, d_vol_var, d_area_idx, d_area_var, d_ls_node_cur_idx, d_ls_node_var, true);
+        const int vol_cur_idx = var_db->mapVariableAndContextToIndex(d_vol_vars[l], getCurrentContext());
+        const int area_cur_idx = var_db->mapVariableAndContextToIndex(d_area_vars[l], getCurrentContext());
+        d_vol_fcn->updateVolumeAndArea(
+            vol_cur_idx, d_vol_vars[l], area_cur_idx, d_area_vars[l], ls_node_cur_idx, ls_node_var, true);
+    }
 
     // Set velocities
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
     for (const auto& u_var : d_u_var)
     {
         const int u_cur_idx = var_db->mapVariableAndContextToIndex(u_var, getCurrentContext());
@@ -337,13 +395,30 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
         const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
         const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
 
+        const Pointer<CellVariable<NDIM, double>>& ls_cell_var = d_Q_ls_map[Q_var];
+        const size_t l =
+            distance(d_ls_cell_vars.begin(), std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_cell_var));
+        const Pointer<NodeVariable<NDIM, double>>& ls_node_var = d_ls_node_vars[l];
+        const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+        const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
+        const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
+        const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
+        const int area_cur_idx = var_db->mapVariableAndContextToIndex(area_var, getCurrentContext());
+
         // Copy current data to scratch
         d_hier_cc_data_ops->copyData(Q_scr_idx, Q_cur_idx);
 
         // First do a diffusion update.
         // Note diffusion update fills in "New" context
-        diffusionUpdate(
-            Q_var, d_ls_node_cur_idx, d_vol_cur_idx, current_time, d_use_strang_splitting ? half_time : new_time);
+        diffusionUpdate(Q_var,
+                        ls_node_cur_idx,
+                        ls_node_var,
+                        vol_cur_idx,
+                        vol_var,
+                        area_cur_idx,
+                        area_var,
+                        current_time,
+                        d_use_strang_splitting ? half_time : new_time);
 
         plog << d_object_name + "::integrateHierarchy() finished diffusion update for variable: " << Q_var->getName()
              << "\n";
@@ -351,54 +426,87 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
         // TODO: Should we synchronize hierarchy?
     }
 
-    if (d_prescribe_ls)
+    // Update Level sets
+    for (size_t l = 0; l < d_ls_cell_vars.size(); ++l)
     {
-        plog << d_object_name + "::integrateHierarchy() prescribing level set at time: " << new_time << "\n";
-        d_ls_fcn->setDataOnPatchHierarchy(
-            d_ls_cell_new_idx, d_ls_cell_var, d_hierarchy, new_time, false, 0, d_hierarchy->getFinestLevelNumber());
-        d_ls_fcn->setDataOnPatchHierarchy(
-            d_ls_node_new_idx, d_ls_node_var, d_hierarchy, new_time, false, 0, d_hierarchy->getFinestLevelNumber());
+        const Pointer<CellVariable<NDIM, double>>& ls_cell_var = d_ls_cell_vars[l];
+        const Pointer<NodeVariable<NDIM, double>>& ls_node_var = d_ls_node_vars[l];
+        const int ls_cell_new_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getNewContext());
+        const int ls_node_new_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getNewContext());
+        if (d_ls_use_fcn[ls_cell_var])
+        {
+            plog << d_object_name + "::integrateHierarchy() prescribing level set " << ls_cell_var->getName()
+                 << " at time " << new_time << "\n";
+            const Pointer<CartGridFunction>& ls_fcn = d_ls_fcn_map[ls_cell_var];
+            ls_fcn->setDataOnPatchHierarchy(
+                ls_cell_new_idx, ls_cell_var, d_hierarchy, new_time, false, 0, d_hierarchy->getFinestLevelNumber());
+            ls_fcn->setDataOnPatchHierarchy(
+                ls_node_new_idx, ls_node_var, d_hierarchy, new_time, false, 0, d_hierarchy->getFinestLevelNumber());
+        }
+        else
+        {
+            const int ls_cell_cur_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getCurrentContext());
+            const int ls_cell_scr_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getScratchContext());
+            plog << d_object_name + "::integrateHierarchy() evolving level set " << ls_cell_var->getName()
+                 << " at time " << new_time << "\n";
+            const int u_cur_idx = var_db->mapVariableAndContextToIndex(d_ls_u_map[ls_cell_var], getCurrentContext());
+            const int u_s_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getScratchContext());
+            using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+            std::vector<ITC> ghost_cell_comps(2);
+            // Copy face data to side data
+            copy_face_to_side(u_s_idx, u_cur_idx, d_hierarchy);
+            ghost_cell_comps[0] =
+                ITC(u_s_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR", false, nullptr);
+            ghost_cell_comps[1] = ITC(ls_cell_scr_idx,
+                                      ls_cell_cur_idx,
+                                      "CONSERVATIVE_LINEAR_REFINE",
+                                      false,
+                                      "NONE",
+                                      "LINEAR",
+                                      false,
+                                      nullptr);
+            Pointer<HierarchyGhostCellInterpolation> hier_ghost_cell = new HierarchyGhostCellInterpolation();
+            hier_ghost_cell->initializeOperatorState(
+                ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+            hier_ghost_cell->fillData(current_time);
+            hier_ghost_cell->deallocateOperatorState();
+            integratePaths(d_path_idx, u_s_idx, new_time - current_time);
+
+            // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next
+            // iteration
+            evaluateMappingOnHierarchy(d_path_idx, ls_cell_scr_idx, ls_cell_new_idx, /*order*/ 2);
+
+            // Synchronize hierarchy and interpolate to cell nodes
+            // TODO: Should we synchronize hierarchy?
+            ghost_cell_comps.resize(1);
+            ghost_cell_comps[0] = ITC(ls_cell_scr_idx,
+                                      ls_cell_new_idx,
+                                      "CONSERVATIVE_LINEAR_REFINE",
+                                      false,
+                                      "CONSERVATIVE_COARSEN",
+                                      "LINEAR",
+                                      false,
+                                      nullptr);
+
+            hier_ghost_cell->initializeOperatorState(
+                ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+            d_hier_math_ops->interp(
+                ls_node_new_idx, ls_node_var, false, ls_cell_scr_idx, ls_cell_var, hier_ghost_cell, new_time);
+            hier_ghost_cell->deallocateOperatorState();
+            ghost_cell_comps[0] = ITC(ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+            hier_ghost_cell->initializeOperatorState(
+                ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+            hier_ghost_cell->fillData(current_time);
+        }
+        // Now update volume and area for new context
+        const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+        const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
+        const int vol_new_idx = var_db->mapVariableAndContextToIndex(vol_var, getNewContext());
+        const int area_new_idx = var_db->mapVariableAndContextToIndex(area_var, getNewContext());
+        d_vol_fcn->updateVolumeAndArea(
+            vol_new_idx, vol_var, area_new_idx, area_var, ls_node_new_idx, ls_node_var, true);
     }
-    else
-    {
-        plog << d_object_name + "::integrateHierarchy() updating level set at time: " << new_time << "\n";
-        // Now we integrate paths and update level set
-        const int u_cur_idx = var_db->mapVariableAndContextToIndex(d_ls_u_pair.second, getCurrentContext());
-        const int u_s_scr_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getScratchContext());
-        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-        std::vector<ITC> ghost_cell_comps(1);
-        // Copy face data to side data
-        copy_face_to_side(u_s_scr_idx, u_cur_idx, d_hierarchy);
-        ghost_cell_comps[0] =
-            ITC(u_s_scr_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR", false, { nullptr });
-        Pointer<HierarchyGhostCellInterpolation> hier_ghost_cell = new HierarchyGhostCellInterpolation();
-        hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
-        hier_ghost_cell->fillData(current_time);
-        hier_ghost_cell->deallocateOperatorState();
-        integratePaths(d_path_idx, u_s_scr_idx, new_time - current_time);
 
-        // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
-        evaluateMappingOnHierarchy(d_path_idx, d_ls_cell_scr_idx, d_ls_cell_new_idx, /*order*/ 2);
-
-        // Synchronize hierarchy and interpolate to cell nodes
-        // TODO: Should we synchronize hierarchy?
-        ghost_cell_comps[0] = ITC(d_ls_cell_scr_idx,
-                                  d_ls_cell_new_idx,
-                                  "CONSERVATIVE_LINEAR_REFINE",
-                                  false,
-                                  "CONSERVATIVE_COARSEN",
-                                  "LINEAR",
-                                  false,
-                                  nullptr);
-
-        hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
-        d_hier_math_ops->interp(
-            d_ls_node_new_idx, d_ls_node_var, false, d_ls_cell_scr_idx, d_ls_cell_var, hier_ghost_cell, current_time);
-        hier_ghost_cell->deallocateOperatorState();
-        ghost_cell_comps[0] = ITC(d_ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
-        hier_ghost_cell->initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
-        hier_ghost_cell->fillData(current_time);
-    }
 
     // Now do advective update for each variable
     for (const auto& Q_var : d_Q_var)
@@ -426,16 +534,24 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
             const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
             const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
 
+            const Pointer<CellVariable<NDIM, double>>& ls_cell_var = d_Q_ls_map[Q_var];
+            const size_t l =
+                distance(d_ls_cell_vars.begin(), std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_cell_var));
+            const Pointer<NodeVariable<NDIM, double>>& ls_node_var = d_ls_node_vars[l];
+            const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+            const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
+            const int ls_node_new_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getNewContext());
+            const int area_new_idx = var_db->mapVariableAndContextToIndex(area_var, getNewContext());
+            const int vol_new_idx = var_db->mapVariableAndContextToIndex(vol_var, getNewContext());
+
             // Copy current data to scratch
             d_hier_cc_data_ops->copyData(Q_cur_idx, Q_new_idx);
             d_hier_cc_data_ops->copyData(Q_scr_idx, Q_new_idx);
 
-            d_vol_fcn->updateVolumeAndArea(
-                d_vol_new_idx, d_vol_var, d_area_idx, d_area_var, d_ls_node_new_idx, d_ls_node_var, true);
-
             // First do a diffusion update.
             // Note diffusion update fills in "New" context
-            diffusionUpdate(Q_var, d_ls_node_new_idx, d_vol_new_idx, half_time, new_time);
+            diffusionUpdate(
+                Q_var, ls_node_new_idx, ls_node_var, vol_new_idx, vol_var, area_new_idx, area_var, half_time, new_time);
 
             plog << d_object_name + "::integrateHierarchy() finished diffusion update for variable: "
                  << Q_var->getName() << "\n";
@@ -466,17 +582,40 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
 
     if (initial_time)
     {
-        d_ls_fcn->setDataOnPatchHierarchy(d_ls_node_cur_idx, d_ls_node_var, d_hierarchy, 0.0);
-        d_vol_fcn = new LSFindCellVolume(d_object_name + "::FindCellVolume", d_hierarchy);
-        d_vol_fcn->updateVolumeAndArea(
-            d_vol_cur_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_cur_idx, d_ls_node_var, false);
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        // Set initial level set data
+        for (size_t l = 0; l < d_ls_cell_vars.size(); ++l)
+        {
+            const Pointer<CellVariable<NDIM, double>>& ls_cell_var = d_ls_cell_vars[l];
+            const Pointer<NodeVariable<NDIM, double>>& ls_node_var = d_ls_node_vars[l];
+            const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
 
+            const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
+            const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
+
+            d_ls_fcn_map[ls_cell_var]->setDataOnPatchHierarchy(ls_node_cur_idx,
+                                                               ls_node_var,
+                                                               d_hierarchy,
+                                                               current_time,
+                                                               initial_time,
+                                                               0,
+                                                               d_hierarchy->getFinestLevelNumber());
+            d_vol_fcn->updateVolumeAndArea(
+                vol_cur_idx, vol_var, IBTK::invalid_index, nullptr, ls_node_cur_idx, ls_node_var, false);
+        }
         for (const auto& Q_var : d_Q_var)
         {
-            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            const Pointer<CellVariable<NDIM, double>>& ls_cell_var = d_Q_ls_map[Q_var];
+            const size_t l =
+                distance(d_ls_cell_vars.begin(), std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_cell_var));
+            const Pointer<NodeVariable<NDIM, double>>& ls_node_var = d_ls_node_vars[l];
+            const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+            const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
+            const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
             const int Q_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
             Pointer<QInitial> Q_init = d_Q_init[Q_var];
-            Q_init->setLSIndex(d_ls_node_cur_idx, d_vol_cur_idx);
+            TBOX_ASSERT(Q_init);
+            Q_init->setLSIndex(ls_node_cur_idx, vol_cur_idx);
             Q_init->setDataOnPatchHierarchy(Q_idx, Q_var, d_hierarchy, 0.0);
         }
     }
@@ -486,14 +625,23 @@ void
 SemiLagrangianAdvIntegrator::regridHierarchyEndSpecialized()
 {
     // Force reinitialization of level set after regrid.
-    if (!d_prescribe_ls) d_ls_strategy->setReinitializeLSData(true);
+    for (const auto& ls_cell_var : d_ls_cell_vars)
+    {
+        if (!d_ls_use_fcn[ls_cell_var]) d_ls_strategy_map[ls_cell_var]->setReinitializeLSData(true);
+    }
 }
 
 void
 SemiLagrangianAdvIntegrator::resetTimeDependentHierarchyDataSpecialized(const double new_time)
 {
     // Copy level set info
-    d_hier_cc_data_ops->copyData(d_ls_cell_cur_idx, d_ls_cell_new_idx);
+    for (const auto& ls_cell_var : d_ls_cell_vars)
+    {
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        const int ls_cell_cur_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getCurrentContext());
+        const int ls_cell_new_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getNewContext());
+        d_hier_cc_data_ops->copyData(ls_cell_cur_idx, ls_cell_new_idx);
+    }
 
     AdvDiffHierarchyIntegrator::resetTimeDependentHierarchyDataSpecialized(new_time);
 }
@@ -510,44 +658,57 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
     const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
-    Pointer<FaceVariable<NDIM, double>> u_var = d_Q_u_map[Q_var];
+    const Pointer<FaceVariable<NDIM, double>>& u_var = d_Q_u_map[Q_var];
     const int u_new_idx = var_db->mapVariableAndContextToIndex(u_var, getNewContext());
     const int u_s_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getScratchContext());
+
+    const Pointer<CellVariable<NDIM, double>>& ls_cell_var = d_Q_ls_map[Q_var];
+    const size_t l =
+        distance(d_ls_cell_vars.begin(), std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_cell_var));
+    const Pointer<NodeVariable<NDIM, double>>& ls_node_var = d_ls_node_vars[l];
+    const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+    const int ls_node_new_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getNewContext());
+    const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
+    const int vol_new_idx = var_db->mapVariableAndContextToIndex(vol_var, getNewContext());
+    const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
 
     {
         copy_face_to_side(u_s_idx, u_new_idx, d_hierarchy);
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
         std::vector<ITC> ghost_cell_comps(2);
         HierarchyGhostCellInterpolation hier_ghost_cells;
-        ghost_cell_comps[0] = ITC(d_ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+        ghost_cell_comps[0] = ITC(ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
         ghost_cell_comps[1] = ITC(u_s_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR");
         hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
         hier_ghost_cells.fillData(current_time);
-        d_vol_fcn->updateVolumeAndArea(
-            d_vol_new_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_new_idx, d_ls_node_var, true);
         // Integrate path
-        integratePaths(d_path_idx, u_s_idx, d_vol_new_idx, d_ls_node_new_idx, dt);
+        integratePaths(d_path_idx, u_s_idx, vol_new_idx, ls_node_new_idx, dt);
     }
-    using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-    std::vector<ITC> ghost_cell_comps(2);
-    ghost_cell_comps[0] =
-        ITC(d_Q_scratch_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
-    ghost_cell_comps[1] = ITC(d_ls_node_cur_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
-    HierarchyGhostCellInterpolation hier_ghost_cells;
-    hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
-    hier_ghost_cells.fillData(current_time);
-    d_vol_fcn->updateVolumeAndArea(
-        d_vol_cur_idx, d_vol_var, IBTK::invalid_index, nullptr, d_ls_node_cur_idx, d_ls_node_var, true);
 
-    // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
-    evaluateMappingOnHierarchy(
-        d_path_idx, d_Q_scratch_idx, d_vol_cur_idx, Q_new_idx, d_vol_new_idx, d_ls_node_cur_idx, /*order*/ 2);
+    {
+        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<ITC> ghost_cell_comps(2);
+        ghost_cell_comps[0] =
+            ITC(d_Q_scratch_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
+        ghost_cell_comps[1] = ITC(ls_node_cur_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+        HierarchyGhostCellInterpolation hier_ghost_cells;
+        hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
+        hier_ghost_cells.fillData(current_time);
+
+        // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
+        evaluateMappingOnHierarchy(
+            d_path_idx, d_Q_scratch_idx, vol_cur_idx, Q_new_idx, vol_new_idx, ls_node_cur_idx, /*order*/ 2);
+    }
 }
 
 void
 SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
                                              const int ls_idx,
+                                             Pointer<NodeVariable<NDIM, double>> ls_var,
                                              const int vol_idx,
+                                             Pointer<CellVariable<NDIM, double>> vol_var,
+                                             const int area_idx,
+                                             Pointer<CellVariable<NDIM, double>> area_var,
                                              const double current_time,
                                              const double new_time)
 {
@@ -561,7 +722,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
 #if !defined(NDEBUG)
     TBOX_ASSERT(rhs_oper);
 #endif
-    rhs_oper->setLSIndices(ls_idx, d_ls_node_var, vol_idx, d_vol_var, d_area_idx, d_area_var);
+    rhs_oper->setLSIndices(ls_idx, ls_var, vol_idx, vol_var, area_idx, area_var);
     rhs_oper->setSolutionTime(current_time);
     rhs_oper->apply(*d_sol_vecs[l], *d_rhs_vecs[l]);
 
@@ -573,7 +734,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
 #if !defined(NDEBUG)
     TBOX_ASSERT(solv_oper);
 #endif
-    solv_oper->setLSIndices(ls_idx, d_ls_node_var, vol_idx, d_vol_var, d_area_idx, d_area_var);
+    solv_oper->setLSIndices(ls_idx, ls_var, vol_idx, vol_var, area_idx, area_var);
     solv_oper->setSolutionTime(new_time);
     Q_helmholtz_solver->solveSystem(*d_sol_vecs[l], *d_rhs_vecs[l]);
     d_hier_cc_data_ops->copyData(Q_new_idx, Q_scr_idx);
@@ -844,7 +1005,7 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
     {
         U(i) = Q_vals[i];
         const VectorNd X = X_vals[i] - x_loc;
-        Lambda(i, i) = std::sqrt(weight((X_vals[i] - x_loc).norm()));
+        Lambda(i, i) = std::sqrt(weight(static_cast<double>((X_vals[i] - x_loc).norm())));
         switch (d_least_squares_reconstruction_order)
         {
         case CUBIC:
