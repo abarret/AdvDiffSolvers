@@ -507,7 +507,6 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
             vol_new_idx, vol_var, area_new_idx, area_var, ls_node_new_idx, ls_node_var, true);
     }
 
-
     // Now do advective update for each variable
     for (const auto& Q_var : d_Q_var)
     {
