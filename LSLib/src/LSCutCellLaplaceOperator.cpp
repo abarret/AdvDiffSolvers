@@ -139,6 +139,14 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
                 computeHelmholtzAction(*x_data, *y_data, *patch);
             }
         }
+
+        if (d_robin_bdry)
+        {
+            TBOX_ASSERT(d_bdry_conds);
+            d_bdry_conds->setLSData(d_ls_var, d_ls_idx, d_vol_var, d_vol_idx, d_area_var, d_area_idx);
+            d_bdry_conds->setHomogeneousBdry(d_homogeneous_bc);
+            d_bdry_conds->applyBoundaryCondition(x_cc_var, x_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
+        }
     }
     return;
 } // apply
@@ -308,39 +316,6 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
 #endif
             // Add C constant
             R_data(idx, l) += C * Q_data(idx, l);
-        }
-    }
-    // Fix up for boundary conditions
-    if (d_robin_bdry)
-    {
-        for (CellIterator<NDIM> ci(box); ci; ci++)
-        {
-            const CellIndex<NDIM>& idx = ci();
-            const double area = (*area_data)(idx);
-            double cell_volume = (*vol_data)(idx)*dx[0] * dx[1];
-            if (MathUtilities<double>::equalEps(cell_volume, 0.0))
-            {
-                cell_volume = dx[0] * dx[1];
-            }
-            if (!MathUtilities<double>::equalEps(D, 0.0))
-            {
-                // set g and a
-                double a = 1.0;
-                double R = 1.0;
-                double D_val = 0.1;
-                double g = 5.0 * (a - R + 2.0 * a * d_solution_time) /
-                           (D_val * std::exp(R * R / (2.0 * D_val + 4.0 * D_val * d_solution_time)) *
-                            (1.0 + 2.0 * d_solution_time) * (1.0 + 2.0 * d_solution_time));
-                const double sgn = D / std::abs(D);
-                if (area > 0.0)
-                {
-                    for (unsigned int l = 0; l < d_bc_coefs.size(); ++l)
-                    {
-                        if (!d_homogeneous_bc) R_data(idx, l) += 0.5 * sgn * g * area / cell_volume;
-                        R_data(idx, l) -= 0.5 * sgn * a * Q_data(idx, l) * area / cell_volume;
-                    }
-                }
-            }
         }
     }
     return;

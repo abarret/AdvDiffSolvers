@@ -33,7 +33,7 @@ class LSCutCellBoundaryConditions
 public:
     LSCutCellBoundaryConditions(const std::string& object_name);
 
-    ~LSCutCellBoundaryConditions() = default;
+    virtual ~LSCutCellBoundaryConditions() = default;
 
     /*!
      * \brief Deleted default constructor.
@@ -50,10 +50,12 @@ public:
      */
     LSCutCellBoundaryConditions& operator=(const LSCutCellBoundaryConditions& that) = delete;
 
-    void applyBoundaryCondition(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
-                                int Q_idx,
-                                SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> R_var,
-                                int R_idx) = 0;
+    virtual void applyBoundaryCondition(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+                                        int Q_idx,
+                                        SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> R_var,
+                                        int R_idx,
+                                        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                                        double time) = 0;
 
     void setLSData(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                    int ls_idx,
@@ -62,11 +64,17 @@ public:
                    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> area_var,
                    int area_idx);
 
+    void setHomogeneousBdry(const bool homogeneous_bdry);
+
 private:
+    std::string d_object_name;
+
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_ls_var;
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_vol_var, d_area_var;
 
     int d_ls_idx = IBTK::invalid_index, d_vol_idx = IBTK::invalid_index, d_area_idx = IBTK::invalid_index;
+
+    bool d_homogeneous_bdry = false;
 };
 
 } // namespace LS

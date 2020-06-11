@@ -7,6 +7,7 @@
 #include "ibtk/LaplaceOperator.h"
 #include "ibtk/ibtk_utilities.h"
 
+#include "LS/LSCutCellBoundaryConditions.h"
 #include "LS/LSFindCellVolume.h"
 #include "LS/SetLSValue.h"
 
@@ -124,6 +125,11 @@ public:
         d_area_var = area_var;
     }
 
+    inline void registerBoundaryConditions(SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> bdry_conds)
+    {
+        d_bdry_conds = bdry_conds;
+    }
+
     //\}
 
 private:
@@ -182,6 +188,8 @@ private:
 
     SAMRAI::tbox::Pointer<SAMRAI::hier::Variable<NDIM>> d_ls_var;
     int d_ls_idx = IBTK::invalid_index;
+
+    SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> d_bdry_conds;
 
     bool d_robin_bdry = false;
 };
