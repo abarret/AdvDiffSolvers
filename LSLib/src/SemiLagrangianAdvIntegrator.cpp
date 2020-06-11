@@ -50,12 +50,13 @@ void
 SemiLagrangianAdvIntegrator::registerLevelSetVariable(Pointer<CellVariable<NDIM, double>> ls_var)
 {
     d_ls_cell_vars.push_back(ls_var);
-    d_ls_node_vars.push_back(new NodeVariable<NDIM, double>(ls_var->getName() + "::NodeVar"));
-    d_vol_vars.push_back(new CellVariable<NDIM, double>(ls_var->getName() + "::VolVar"));
-    d_area_vars.push_back(new CellVariable<NDIM, double>(ls_var->getName() + "::AreaVar"));
+    d_ls_node_vars.push_back(new NodeVariable<NDIM, double>(ls_var->getName() + "_NodeVar"));
+    d_vol_vars.push_back(new CellVariable<NDIM, double>(ls_var->getName() + "_VolVar"));
+    d_area_vars.push_back(new CellVariable<NDIM, double>(ls_var->getName() + "_AreaVar"));
     d_ls_fcn_map[ls_var] = nullptr;
     d_ls_strategy_map[ls_var] = nullptr;
     d_ls_use_fcn[ls_var] = false;
+    d_ls_use_ls_for_tagging[ls_var] = true;
     d_ls_u_map[ls_var] = nullptr;
 }
 
@@ -101,6 +102,22 @@ SemiLagrangianAdvIntegrator::useLevelSetFunction(Pointer<CellVariable<NDIM, doub
 }
 
 void
+SemiLagrangianAdvIntegrator::useLevelSetForTagging(Pointer<CellVariable<NDIM, double>> ls_var,
+                                                   const bool use_ls_for_tagging)
+{
+    TBOX_ASSERT(std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_var) != d_ls_cell_vars.end());
+    d_ls_use_ls_for_tagging[ls_var] = use_ls_for_tagging;
+}
+
+Pointer<NodeVariable<NDIM, double>>
+SemiLagrangianAdvIntegrator::getLevelSetNodeVariable(Pointer<CellVariable<NDIM, double>> ls_c_var)
+{
+    const size_t l =
+        distance(d_ls_cell_vars.begin(), std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_c_var));
+    return d_ls_node_vars[l];
+}
+
+void
 SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<NDIM>> hierarchy,
                                                            Pointer<GriddingAlgorithm<NDIM>> gridding_alg)
 {
@@ -143,11 +160,10 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
         d_ls_data.setFlag(area_new_idx);
 
         const std::string& ls_name = ls_cell_var->getName();
-        d_visit_writer->registerPlotQuantity(ls_name + "::Volume", "SCALAR", vol_new_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "::LS current", "SCALAR", ls_node_cur_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "::LS new", "SCALAR", ls_node_new_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "::Q_scratch", "SCALAR", d_Q_scratch_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "::LS Cell", "SCALAR", ls_cell_cur_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_Volume", "SCALAR", vol_new_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_LS_current", "SCALAR", ls_node_cur_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_LS_new", "SCALAR", ls_node_new_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_LS_Cell", "SCALAR", ls_cell_cur_idx);
     }
 
     d_u_s_var = new SideVariable<NDIM, double>(d_object_name + "::USide");
@@ -212,15 +228,16 @@ SemiLagrangianAdvIntegrator::applyGradientDetectorSpecialized(Pointer<BasePatchH
         Pointer<CellData<NDIM, int>> tag_data = patch->getPatchData(tag_index);
         Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         const double* const dx = pgeom->getDx();
-        for (const auto& ls_node_var : d_ls_node_vars)
+        for (const auto& ls_cell_var : d_ls_cell_vars)
         {
-            const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
-            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_node_cur_idx);
+            if (!d_ls_use_ls_for_tagging[ls_cell_var]) continue;
+            const int ls_cell_cur_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getCurrentContext());
+            Pointer<CellData<NDIM, double>> ls_data = patch->getPatchData(ls_cell_cur_idx);
 
             for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
-                const double ls = node_to_cell(idx, *ls_data);
+                const double ls = (*ls_data)(idx);
                 if (ls < d_max_ls_refine_factor * dx[0] && ls > d_min_ls_refine_factor * dx[0]) (*tag_data)(idx) = 1;
             }
         }
@@ -498,6 +515,13 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
                 ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
             hier_ghost_cell->fillData(current_time);
         }
+        // Fill ghost cells and update volume
+        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<ITC> ghost_cell_comps(1);
+        ghost_cell_comps[0] = ITC(ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+        HierarchyGhostCellInterpolation hier_ghost_cell;
+        hier_ghost_cell.initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+        hier_ghost_cell.fillData(new_time);
         // Now update volume and area for new context
         const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
         const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
@@ -693,6 +717,8 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
         HierarchyGhostCellInterpolation hier_ghost_cells;
         hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
         hier_ghost_cells.fillData(current_time);
+
+        d_vol_fcn->updateVolumeAndArea(vol_cur_idx, vol_var, -1, nullptr, ls_node_cur_idx, ls_node_var, true);
 
         // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
         evaluateMappingOnHierarchy(

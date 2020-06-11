@@ -52,6 +52,12 @@ public:
     void useLevelSetFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_var,
                              bool use_ls_function);
 
+    void useLevelSetForTagging(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_var,
+                               bool use_ls_for_tagging);
+
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>
+    getLevelSetNodeVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_c_var);
+
     /*!
      * Initialize the variables, basic communications algorithms, solvers, and
      * other data structures used by this time integrator object.
@@ -179,6 +185,7 @@ private:
         d_ls_fcn_map;
     SAMRAI::tbox::Pointer<LSFindCellVolume> d_vol_fcn;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, bool> d_ls_use_fcn;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, bool> d_ls_use_ls_for_tagging;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>,
              SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>
         d_Q_ls_map;

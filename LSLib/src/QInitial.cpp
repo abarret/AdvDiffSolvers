@@ -141,6 +141,13 @@ QInitial::setDataOnPatchHierarchy(const int data_idx,
         };
         integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
     }
+    else if (d_init_type == "CONSTANT")
+    {
+        auto fcn = [](VectorNd X, double t) -> double {
+            return 10.0 * std::exp(-std::sqrt(std::pow(X(0) + 1.5, 2.0) + std::pow(X(1), 2.0)));
+        };
+        integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
+    }
     for (int ln = coarsest_ln; ln <= finest_ln; ln++)
     {
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
@@ -256,6 +263,10 @@ QInitial::getFromInput(Pointer<Database> db)
             if (db->keyExists("Center")) db->getDoubleArray("Center", d_center.data(), NDIM);
             d_v = db->getDouble("v");
             d_D = db->getDoubleWithDefault("D", d_D);
+        }
+        else if (d_init_type == "CONSTANT")
+        {
+            // intentionally blank.
         }
         else
         {
