@@ -1,5 +1,5 @@
-#ifndef included_SemiLagrangianAdvIntegrator
-#define included_SemiLagrangianAdvIntegrator
+#ifndef included_LS_SemiLagrangianAdvIntegrator
+#define included_LS_SemiLagrangianAdvIntegrator
 
 #include "IBAMR_config.h"
 
@@ -9,14 +9,13 @@
 #include "ibtk/PETScKrylovPoissonSolver.h"
 #include "ibtk/PoissonSolver.h"
 
-#include "LSCutCellLaplaceOperator.h"
-#include "LSFindCellVolume.h"
+#include "LS/LSCutCellLaplaceOperator.h"
+#include "LS/LSFindCellVolume.h"
+#include "LS/utility_functions.h"
 
-#include "utility_functions.h"
-
-namespace IBAMR
+namespace LS
 {
-class SemiLagrangianAdvIntegrator : public AdvDiffHierarchyIntegrator
+class SemiLagrangianAdvIntegrator : public IBAMR::AdvDiffHierarchyIntegrator
 {
 public:
     SemiLagrangianAdvIntegrator(const std::string& object_name,
@@ -207,8 +206,8 @@ private:
     bool d_use_strang_splitting = false;
 
 }; // Class SemiLagrangianAdvIntegrator
-} // Namespace IBAMR
+} // Namespace LS
 
-#include "private/SemiLagrangianAdvIntegrator_inc.h"
+#include "LS/private/SemiLagrangianAdvIntegrator_inc.h"
 
 #endif

@@ -11,8 +11,8 @@
 //
 // ---------------------------------------------------------------------
 
-#ifndef included_SetLSValue
-#define included_SetLSValue
+#ifndef included_LS_SetLSValue
+#define included_LS_SetLSValue
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -26,12 +26,14 @@
 // C++ namespace delcarations
 #include <ibamr/app_namespaces.h>
 
+namespace LS
+{
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
 /*!
  * \brief Method to initialize the value of the advected scalar Q.
  */
-class SetLSValue : public CartGridFunction
+class SetLSValue : public IBTK::CartGridFunction
 {
 public:
     /*!
@@ -135,11 +137,6 @@ private:
 
     bool d_extended_box = false;
 };
+} // namespace LS
 
-/////////////////////////////// INLINE ///////////////////////////////////////
-
-//#include "SetLSValue.I"
-
-//////////////////////////////////////////////////////////////////////////////
-
-#endif //#ifndef included_SetLSValue
+#endif //#ifndef included_LS_SetLSValue

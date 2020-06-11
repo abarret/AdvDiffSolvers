@@ -1,5 +1,5 @@
-#ifndef included_IntegrateFunction
-#define included_IntegrateFunction
+#ifndef included_LS_IntegrateFunction
+#define included_LS_IntegrateFunction
 
 #include "ibtk/ibtk_enums.h"
 #include "ibtk/ibtk_utilities.h"
@@ -10,7 +10,7 @@
 #include "NodeData.h"
 #include "PatchHierarchy.h"
 
-namespace IBAMR
+namespace LS
 {
 class IntegrateFunction
 {
@@ -73,5 +73,5 @@ private:
     static const double s_eps;
 }; // class IntegrateFunction
 
-} // namespace IBAMR
+} // namespace LS
 #endif

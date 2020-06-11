@@ -1,12 +1,13 @@
 #include "ibamr/namespaces.h"
 
-#include "IntegrateFunction.h"
+#include "LS/IntegrateFunction.h"
+#include "LS/utility_functions.h"
+
 #include "tbox/ShutdownRegistry.h"
-#include "utility_functions.h"
 
 #include "boost/multi_array.hpp"
 
-namespace IBAMR
+namespace LS
 {
 /////////////////// STATIC /////////////////////////////
 

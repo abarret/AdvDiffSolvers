@@ -11,8 +11,8 @@
 //
 // ---------------------------------------------------------------------
 
-#ifndef included_QInitial
-#define included_QInitial
+#ifndef included_LS_QInitial
+#define included_LS_QInitial
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -27,14 +27,16 @@
 #include <ibamr/AdvDiffHierarchyIntegrator.h>
 #include <ibamr/app_namespaces.h>
 
-#include "IntegrateFunction.h"
+#include "LS/IntegrateFunction.h"
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
 /*!
  * \brief Method to initialize the value of the advected scalar Q.
  */
-class QInitial : public CartGridFunction
+namespace LS
+{
+class QInitial : public IBTK::CartGridFunction
 {
 public:
     /*!
@@ -161,10 +163,6 @@ private:
     int d_vol_idx = IBTK::invalid_index;
 };
 
-/////////////////////////////// INLINE ///////////////////////////////////////
+} // namespace LS
 
-//#include "QInitial.I"
-
-//////////////////////////////////////////////////////////////////////////////
-
-#endif //#ifndef included_QInitial
+#endif //#ifndef included_LS_QInitial

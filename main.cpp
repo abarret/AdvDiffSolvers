@@ -27,14 +27,15 @@
 #include "ibtk/muParserRobinBcCoefs.h"
 #include <ibtk/AppInitializer.h>
 
-#include "LSCutCellLaplaceOperator.h"
-
-#include "QInitial.h"
+#include "LS/LSCutCellLaplaceOperator.h"
+#include "LS/QInitial.h"
 
 // Set up application namespace declarations
 #include <ibamr/app_namespaces.h>
 
-#include "SemiLagrangianAdvIntegrator.h"
+#include "LS/SemiLagrangianAdvIntegrator.h"
+
+using namespace LS;
 
 void output_to_file(const int Q_idx,
                     const int area_idx,

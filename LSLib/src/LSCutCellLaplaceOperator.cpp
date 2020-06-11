@@ -8,7 +8,8 @@
 #include "ibtk/ibtk_utilities.h"
 #include "ibtk/namespaces.h" // IWYU pragma: keep
 
-#include "LSCutCellLaplaceOperator.h"
+#include "LS/LSCutCellLaplaceOperator.h"
+#include "LS/utility_functions.h"
 
 #include "CellDataFactory.h"
 #include "CellVariable.h"
@@ -20,7 +21,6 @@
 #include "VariableFillPattern.h"
 #include "tbox/Pointer.h"
 #include "tbox/Utilities.h"
-#include "utility_functions.h"
 
 #include <ostream>
 #include <string>
@@ -28,7 +28,7 @@
 
 /////////////////////////////// NAMESPACE ////////////////////////////////////
 
-namespace IBAMR
+namespace LS
 {
 /////////////////////////////// STATIC ///////////////////////////////////////
 
@@ -40,7 +40,6 @@ static const int CELLG = 1;
 // Types of refining and coarsening to perform prior to setting coarse-fine
 // boundary and physical boundary ghost cell values.
 static const std::string DATA_REFINE_TYPE = "CONSERVATIVE_LINEAR_REFINE";
-static const bool USE_CF_INTERPOLATION = true;
 static const std::string DATA_COARSEN_TYPE = "CUBIC_COARSEN";
 
 // Type of extrapolation to use at physical boundaries.
@@ -349,6 +348,6 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
 
 //////////////////////////////////////////////////////////////////////////////
 
-} // namespace IBAMR
+} // namespace LS
 
 //////////////////////////////////////////////////////////////////////////////

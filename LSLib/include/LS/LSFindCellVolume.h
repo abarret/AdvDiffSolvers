@@ -1,5 +1,5 @@
-#ifndef included_LSFindCellVolume
-#define included_LSFindCellVolume
+#ifndef included_LS_LSFindCellVolume
+#define included_LS_LSFindCellVolume
 
 #include "ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h"
 #include "ibamr/ConvectiveOperator.h"
@@ -31,7 +31,7 @@
 #include "libmesh/fe_base.h"
 #include "libmesh/mesh.h"
 
-namespace IBAMR
+namespace LS
 {
 class LSFindCellVolume
 {
@@ -68,6 +68,6 @@ private:
 
     static const double s_eps;
 };
-} // namespace IBAMR
+} // namespace LS
 
 #endif

@@ -11,7 +11,7 @@
 //
 // ---------------------------------------------------------------------
 
-#include "QInitial.h"
+#include "LS/QInitial.h"
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -21,8 +21,8 @@
 
 #include <array>
 
-/////////////////////////////// STATIC ///////////////////////////////////////
-
+namespace LS
+{
 /////////////////////////////// PUBLIC ///////////////////////////////////////
 
 QInitial::QInitial(const string& object_name, Pointer<GridGeometry<NDIM>> grid_geom, Pointer<Database> input_db)
@@ -277,4 +277,4 @@ QInitial::getFromInput(Pointer<Database> db)
     return;
 } // getFromInput
 
-//////////////////////////////////////////////////////////////////////////////
+} // namespace LS

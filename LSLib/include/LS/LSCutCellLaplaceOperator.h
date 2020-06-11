@@ -1,5 +1,5 @@
-#ifndef included_IBTK_LSCutCellLaplaceOperator
-#define included_IBTK_LSCutCellLaplaceOperator
+#ifndef included_LS_LSCutCellLaplaceOperator
+#define included_LS_LSCutCellLaplaceOperator
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -7,8 +7,8 @@
 #include "ibtk/LaplaceOperator.h"
 #include "ibtk/ibtk_utilities.h"
 
-#include "LSFindCellVolume.h"
-#include "SetLSValue.h"
+#include "LS/LSFindCellVolume.h"
+#include "LS/SetLSValue.h"
 
 #include "CellVariable.h"
 #include "IntVector.h"
@@ -26,7 +26,7 @@
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace IBAMR
+namespace LS
 {
 /*!
  * \brief Class LSCutCellLaplaceOperator is a concrete LaplaceOperator which implements
@@ -185,8 +185,8 @@ private:
 
     bool d_robin_bdry = false;
 };
-} // namespace IBAMR
+} // namespace LS
 
 //////////////////////////////////////////////////////////////////////////////
 
-#endif //#ifndef included_IBTK_LSCutCellLaplaceOperator
+#endif //#ifndef included_LS_LSCutCellLaplaceOperator

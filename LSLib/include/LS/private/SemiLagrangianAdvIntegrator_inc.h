@@ -1,9 +1,9 @@
-#ifndef included_SemiLagrangianAdvIntegrator_inc
-#define included_SemiLagrangianAdvIntegrator_inc
+#ifndef included_LS_SemiLagrangianAdvIntegrator_inc
+#define included_LS_SemiLagrangianAdvIntegrator_inc
 
-#include "SemiLagrangianAdvIntegrator.h"
+#include "LS/SemiLagrangianAdvIntegrator.h"
 
-namespace IBAMR
+namespace LS
 {
 inline double
 SemiLagrangianAdvIntegrator::evaluateZSpline(const IBTK::VectorNd x, const int order)
@@ -63,5 +63,5 @@ SemiLagrangianAdvIntegrator::weight(const double r)
 {
     return std::exp(-r * r);
 }
-} // namespace IBAMR
+} // namespace LS
 #endif

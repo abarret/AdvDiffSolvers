@@ -1,10 +1,9 @@
 #include "ibtk/DebuggingUtilities.h"
 
-#include "LSFindCellVolume.h"
+#include "LS/LSFindCellVolume.h"
+#include "LS/utility_functions.h"
 
-#include "utility_functions.h"
-
-namespace IBAMR
+namespace LS
 {
 const double LSFindCellVolume::s_eps = 1.0e-12;
 

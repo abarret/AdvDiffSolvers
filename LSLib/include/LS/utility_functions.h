@@ -1,13 +1,13 @@
-#ifndef included_utility_functions
-#define included_utility_functions
+#ifndef included_LS_utility_functions
+#define included_LS_utility_functions
 
-#include "LSFindCellVolume.h"
-#include "SetLSValue.h"
+#include "LS/LSFindCellVolume.h"
+#include "LS/SetLSValue.h"
 
 #include "Variable.h"
 #include "tbox/MathUtilities.h"
 
-namespace IBAMR
+namespace LS
 {
 inline double
 length_fraction(const double dx, const double phi_l, const double phi_u)
@@ -89,6 +89,27 @@ node_to_cell(const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data)
     return 0.25 * (ls_ll + ls_lu + ls_ul + ls_uu);
 }
 
+/*!
+ * \brief Routine for converting strings to enums.
+ */
+template <typename T>
+inline T
+string_to_enum(const std::string& /*val*/)
+{
+    TBOX_ERROR("UNSUPPORTED ENUM TYPE\n");
+    return -1;
+}
+
+/*!
+ * \brief Routine for converting enums to strings.
+ */
+template <typename T>
+inline std::string enum_to_string(T /*val*/)
+{
+    TBOX_ERROR("UNSUPPORTED ENUM TYPE\n");
+    return "UNKNOWN";
+}
+
 enum LeastSquaresOrder
 {
     CONSTANT,
@@ -144,5 +165,5 @@ copy_face_to_side(const int u_s_idx, const int u_f_idx, Pointer<PatchHierarchy<N
     }
 }
 
-} // namespace IBAMR
+} // namespace LS
 #endif

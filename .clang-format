@@ -88,7 +88,7 @@ IncludeCategories:
   - Regex: "[\"<][a-z_]*[\">]"
     Priority: 2000
 # LS stuff
-  - Regex: "[<\"].*LS.*\\.h[<\"]$"
+  - Regex: "[<\"]LS/.*\\.h[<\"]$"
     Priority: 50
 # SAMRAI (which goes after IBAMR). This is last since we have headers that are
 # not in a folder starting with the library's name:

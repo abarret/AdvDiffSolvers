@@ -108,11 +108,4 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_in_ls_node_var;
     double d_R1 = std::numeric_limits<double>::quiet_NaN(), d_R2 = std::numeric_limits<double>::quiet_NaN();
 };
-
-/////////////////////////////// INLINE ///////////////////////////////////////
-
-//#include "OutsideLSFcn.I"
-
-//////////////////////////////////////////////////////////////////////////////
-
 #endif //#ifndef included_OutsideLSFcn

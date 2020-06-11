@@ -11,9 +11,8 @@
 //
 // ---------------------------------------------------------------------
 
-#include "SetLSValue.h"
-
-#include "utility_functions.h"
+#include "LS/SetLSValue.h"
+#include "LS/utility_functions.h"
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
 #include <IBAMR_config.h>
@@ -22,8 +21,8 @@
 
 #include <array>
 
-/////////////////////////////// STATIC ///////////////////////////////////////
-
+namespace LS
+{
 /////////////////////////////// PUBLIC ///////////////////////////////////////
 
 SetLSValue::SetLSValue(const string& object_name, Pointer<GridGeometry<NDIM>> grid_geom, Pointer<Database> input_db)
@@ -296,5 +295,4 @@ SetLSValue::getFromInput(Pointer<Database> db)
     }
     return;
 } // getFromInput
-
-//////////////////////////////////////////////////////////////////////////////
+} // namespace LS

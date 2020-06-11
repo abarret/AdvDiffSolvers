@@ -3,15 +3,16 @@
 #include "ibamr/AdvDiffWavePropConvectiveOperator.h"
 #include "ibamr/app_namespaces.h"
 
-#include "QInitial.h"
+#include "LS/QInitial.h"
+#include "LS/SemiLagrangianAdvIntegrator.h"
+#include "LS/utility_functions.h"
+
 #include "SAMRAIVectorReal.h"
-#include "SemiLagrangianAdvIntegrator.h"
-#include "utility_functions.h"
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-namespace IBAMR
+namespace LS
 {
 int SemiLagrangianAdvIntegrator::GHOST_CELL_WIDTH = 4;
 
