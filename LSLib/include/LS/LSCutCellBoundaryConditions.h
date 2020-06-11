@@ -66,7 +66,7 @@ public:
 
     void setHomogeneousBdry(const bool homogeneous_bdry);
 
-private:
+protected:
     std::string d_object_name;
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_ls_var;
