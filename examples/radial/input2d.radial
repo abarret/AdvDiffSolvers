@@ -62,6 +62,12 @@ LSCutCellOperator {
   robin_boundary = TRUE
 }
 
+BdryOperator {
+    a_coef = 1.0
+    D = D_coef
+    R = R
+}
+
 SetLSValue {
     interface_type = "DISK"
     R1 = R
