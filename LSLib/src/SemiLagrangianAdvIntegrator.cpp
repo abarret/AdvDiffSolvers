@@ -1127,4 +1127,4 @@ SemiLagrangianAdvIntegrator::findVelocity(const CellIndex<NDIM>& idx,
 
     return u;
 }
-} // namespace IBAMR
+} // namespace LS

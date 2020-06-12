@@ -456,4 +456,4 @@ LSFindCellVolume::findArea(const std::vector<Simplex>& simplices)
     return area;
 }
 
-} // namespace IBAMR
+} // namespace LS

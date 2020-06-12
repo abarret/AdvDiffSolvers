@@ -28,7 +28,7 @@
 
 namespace LS
 {
-class LSCutCellBoundaryConditions
+class LSCutCellBoundaryConditions : public virtual SAMRAI::tbox::DescribedClass
 {
 public:
     LSCutCellBoundaryConditions(const std::string& object_name);
@@ -64,7 +64,9 @@ public:
                    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> area_var,
                    int area_idx);
 
-    void setHomogeneousBdry(const bool homogeneous_bdry);
+    void setHomogeneousBdry(bool homogeneous_bdry);
+
+    void setDiffusionCoefficient(double D);
 
 protected:
     std::string d_object_name;
@@ -75,6 +77,8 @@ protected:
     int d_ls_idx = IBTK::invalid_index, d_vol_idx = IBTK::invalid_index, d_area_idx = IBTK::invalid_index;
 
     bool d_homogeneous_bdry = false;
+
+    double d_D = std::numeric_limits<double>::quiet_NaN();
 };
 
 } // namespace LS

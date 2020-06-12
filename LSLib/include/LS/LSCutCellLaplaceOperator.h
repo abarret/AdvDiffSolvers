@@ -125,7 +125,7 @@ public:
         d_area_var = area_var;
     }
 
-    inline void registerBoundaryConditions(SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> bdry_conds)
+    inline void setBoundaryConditionOperator(SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> bdry_conds)
     {
         d_bdry_conds = bdry_conds;
     }

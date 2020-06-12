@@ -28,4 +28,10 @@ LSCutCellBoundaryConditions::setHomogeneousBdry(const bool homogeneous_bdry)
 {
     d_homogeneous_bdry = homogeneous_bdry;
 }
+
+void
+LSCutCellBoundaryConditions::setDiffusionCoefficient(const double D)
+{
+    d_D = D;
 }
+} // namespace LS

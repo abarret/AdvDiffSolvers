@@ -145,6 +145,7 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
             TBOX_ASSERT(d_bdry_conds);
             d_bdry_conds->setLSData(d_ls_var, d_ls_idx, d_vol_var, d_vol_idx, d_area_var, d_area_idx);
             d_bdry_conds->setHomogeneousBdry(d_homogeneous_bc);
+            d_bdry_conds->setDiffusionCoefficient(d_poisson_spec.getDConstant());
             d_bdry_conds->applyBoundaryCondition(x_cc_var, x_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
         }
     }

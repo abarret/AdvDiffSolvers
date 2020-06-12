@@ -310,4 +310,4 @@ IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_
     }
     return integral * J;
 }
-} // namespace IBAMR
+} // namespace LS
