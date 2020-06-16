@@ -723,7 +723,7 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
 
         // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
         evaluateMappingOnHierarchy(
-            d_path_idx, d_Q_scratch_idx, vol_cur_idx, Q_new_idx, vol_new_idx, ls_node_cur_idx, /*order*/ 2);
+            d_path_idx, d_Q_scratch_idx, vol_cur_idx, Q_new_idx, vol_new_idx, ls_node_cur_idx, /*order*/ 1);
     }
 }
 
@@ -1114,10 +1114,10 @@ SemiLagrangianAdvIntegrator::findVelocity(const CellIndex<NDIM>& idx,
         {
             // Use "lower" points
             for (int d = 0; d < NDIM; ++d) x_low(d) = static_cast<double>(idx(d)) - (d == 0 ? 0.5 : 0.0);
-            idx_lu = SideIndex<NDIM>(idx, 1, 0);
-            idx_lu = SideIndex<NDIM>(idx, 1, 1);
-            idx_ul = SideIndex<NDIM>(idx - IntVector<NDIM>(1, 0), 1, 0);
-            idx_uu = SideIndex<NDIM>(idx - IntVector<NDIM>(1, 0), 1, 1);
+            idx_ul = SideIndex<NDIM>(idx, 1, 0);
+            idx_uu = SideIndex<NDIM>(idx, 1, 1);
+            idx_ll = SideIndex<NDIM>(idx - IntVector<NDIM>(1, 0), 1, 0);
+            idx_lu = SideIndex<NDIM>(idx - IntVector<NDIM>(1, 0), 1, 1);
         }
         u(1) = u_data(idx_ll) + (u_data(idx_ul) - u_data(idx_ll)) * (x_pt(0) - x_low(0)) +
                (u_data(idx_lu) - u_data(idx_ll)) * (x_pt(1) - x_low(1)) +
