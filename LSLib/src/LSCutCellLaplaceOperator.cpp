@@ -55,12 +55,15 @@ static const bool CONSISTENT_TYPE_2_BDRY = false;
 LSCutCellLaplaceOperator::LSCutCellLaplaceOperator(const std::string& object_name,
                                                    Pointer<Database> input_db,
                                                    const bool homogeneous_bc)
-    : LaplaceOperator(object_name, homogeneous_bc)
+    : LaplaceOperator(object_name, homogeneous_bc), d_Q_var(new CellVariable<NDIM, double>(d_object_name + "::ScrVar"))
 {
     // Setup the operator to use default scalar-valued boundary conditions.
     setPhysicalBcCoef(nullptr);
 
     d_robin_bdry = input_db->getBoolWithDefault("robin_boundary", d_robin_bdry);
+
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_var, var_db->getContext(d_object_name + "::SCRATCH"), 1);
     return;
 } // LSCutCellLaplaceOperator()
 
@@ -100,12 +103,13 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
     }
 #endif
 
-    // Simultaneously fill ghost cell values for all components.
-    using InterpolationTransactionComponent = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-    std::vector<InterpolationTransactionComponent> transaction_comps;
+    // Loop over comp data
     for (int comp = 0; comp < d_ncomp; ++comp)
     {
-        InterpolationTransactionComponent x_component(x.getComponentDescriptorIndex(comp),
+        extrapolateToCellCenters(x.getComponentDescriptorIndex(comp), d_Q_scr_idx);
+        using InterpolationTransactionComponent = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<InterpolationTransactionComponent> transaction_comps;
+        InterpolationTransactionComponent x_component(d_Q_scr_idx,
                                                       DATA_REFINE_TYPE,
                                                       true,
                                                       DATA_COARSEN_TYPE,
@@ -114,39 +118,38 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
                                                       d_bc_coefs,
                                                       d_fill_pattern);
         transaction_comps.push_back(x_component);
-    }
 
-    d_hier_bdry_fill->resetTransactionComponents(transaction_comps);
-    d_hier_bdry_fill->setHomogeneousBc(d_homogeneous_bc);
-    d_hier_bdry_fill->fillData(d_solution_time);
-    d_hier_bdry_fill->resetTransactionComponents(d_transaction_comps);
+        d_hier_bdry_fill->resetTransactionComponents(transaction_comps);
+        d_hier_bdry_fill->setHomogeneousBc(d_homogeneous_bc);
+        d_hier_bdry_fill->fillData(d_solution_time);
+        d_hier_bdry_fill->resetTransactionComponents(d_transaction_comps);
 
-    // Compute the action of the operator.
-    for (int comp = 0; comp < d_ncomp; ++comp)
-    {
-        Pointer<CellVariable<NDIM, double>> x_cc_var = x.getComponentVariable(comp);
-        Pointer<CellVariable<NDIM, double>> y_cc_var = y.getComponentVariable(comp);
-        const int x_idx = x.getComponentDescriptorIndex(comp);
-        const int y_idx = y.getComponentDescriptorIndex(comp);
-        for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+        // Compute the action of the operator.
+        for (int comp = 0; comp < d_ncomp; ++comp)
         {
-            Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-            for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+            Pointer<CellVariable<NDIM, double>> y_cc_var = y.getComponentVariable(comp);
+            const int y_idx = y.getComponentDescriptorIndex(comp);
+            for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
             {
-                Pointer<Patch<NDIM>> patch = level->getPatch(p());
-                Pointer<CellData<NDIM, double>> x_data = patch->getPatchData(x_idx);
-                Pointer<CellData<NDIM, double>> y_data = patch->getPatchData(y_idx);
-                computeHelmholtzAction(*x_data, *y_data, *patch);
+                Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+                for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+                {
+                    Pointer<Patch<NDIM>> patch = level->getPatch(p());
+                    Pointer<CellData<NDIM, double>> x_data = patch->getPatchData(d_Q_scr_idx);
+                    Pointer<CellData<NDIM, double>> y_data = patch->getPatchData(y_idx);
+                    computeHelmholtzAction(*x_data, *y_data, *patch);
+                }
             }
-        }
 
-        if (d_robin_bdry)
-        {
-            TBOX_ASSERT(d_bdry_conds);
-            d_bdry_conds->setLSData(d_ls_var, d_ls_idx, d_vol_var, d_vol_idx, d_area_var, d_area_idx);
-            d_bdry_conds->setHomogeneousBdry(d_homogeneous_bc);
-            d_bdry_conds->setDiffusionCoefficient(d_poisson_spec.getDConstant());
-            d_bdry_conds->applyBoundaryCondition(x_cc_var, x_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
+            if (d_robin_bdry)
+            {
+                TBOX_ASSERT(d_bdry_conds);
+                d_bdry_conds->setLSData(d_ls_var, d_ls_idx, d_vol_var, d_vol_idx, d_area_var, d_area_idx);
+                d_bdry_conds->setHomogeneousBdry(d_homogeneous_bc);
+                d_bdry_conds->setDiffusionCoefficient(d_poisson_spec.getDConstant());
+                d_bdry_conds->applyBoundaryCondition(
+                    d_Q_var, d_Q_scr_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
+            }
         }
     }
     return;
@@ -197,17 +200,20 @@ LSCutCellLaplaceOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, d
     }
     using InterpolationTransactionComponent = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
     d_transaction_comps.clear();
-    for (int comp = 0; comp < d_ncomp; ++comp)
+    InterpolationTransactionComponent component(d_Q_scr_idx,
+                                                DATA_REFINE_TYPE,
+                                                false,
+                                                DATA_COARSEN_TYPE,
+                                                BDRY_EXTRAP_TYPE,
+                                                CONSISTENT_TYPE_2_BDRY,
+                                                d_bc_coefs,
+                                                d_fill_pattern);
+    d_transaction_comps.push_back(component);
+
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
-        InterpolationTransactionComponent component(d_x->getComponentDescriptorIndex(comp),
-                                                    DATA_REFINE_TYPE,
-                                                    false,
-                                                    DATA_COARSEN_TYPE,
-                                                    BDRY_EXTRAP_TYPE,
-                                                    CONSISTENT_TYPE_2_BDRY,
-                                                    d_bc_coefs,
-                                                    d_fill_pattern);
-        d_transaction_comps.push_back(component);
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        if (!level->checkAllocated(d_Q_scr_idx)) level->allocatePatchData(d_Q_scr_idx);
     }
 
     // Initialize the interpolation operators.
@@ -223,6 +229,12 @@ void
 LSCutCellLaplaceOperator::deallocateOperatorState()
 {
     if (!d_is_initialized) return;
+
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        if (level->checkAllocated(d_Q_scr_idx)) level->deallocatePatchData(d_Q_scr_idx);
+    }
 
     // Deallocate the interpolation operators.
     d_hier_bdry_fill->deallocateOperatorState();
@@ -240,10 +252,101 @@ LSCutCellLaplaceOperator::deallocateOperatorState()
     d_b->freeVectorComponents();
     d_b.setNull();
 
+    // Free any preallocated matrices
+    for (std::vector<FullPivHouseholderQR<MatrixXd>*>& qr_matrix_vec : d_qr_matrix_vec)
+    {
+        for (FullPivHouseholderQR<MatrixXd>* matrix : qr_matrix_vec)
+        {
+            delete matrix;
+        }
+        qr_matrix_vec.clear();
+    }
+    d_update_weights = true;
+
     // Indicate that the operator is NOT initialized.
     d_is_initialized = false;
     return;
 } // deallocateOperatorState
+
+void
+LSCutCellLaplaceOperator::cacheLeastSquaresData()
+{
+    const int coarsest_ln = 0;
+    const int finest_ln = d_hierarchy->getFinestLevelNumber();
+    // Free any preallocated matrices
+    for (std::vector<FullPivHouseholderQR<MatrixXd>*>& qr_matrix_vec : d_qr_matrix_vec)
+    {
+        for (FullPivHouseholderQR<MatrixXd>* matrix : qr_matrix_vec)
+        {
+            delete matrix;
+        }
+        qr_matrix_vec.clear();
+    }
+
+    // allocate matrix data
+    d_qr_matrix_vec.resize(finest_ln + 1);
+
+    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+    {
+        std::vector<FullPivHouseholderQR<MatrixXd>*>& qr_vec = d_qr_matrix_vec[ln];
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            const int patch_num = patch->getPatchNumber();
+
+            const Box<NDIM>& box = patch->getBox();
+            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_ls_idx);
+            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
+
+            for (CellIterator<NDIM> ci(box); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
+                {
+                    // We are on a cut cell. We need to interpolate to cell center
+                    VectorNd x_loc;
+                    for (int d = 0; d < NDIM; ++d) x_loc(d) = static_cast<double>(idx(d)) + 0.5;
+                    int size = 1 + NDIM;
+                    int box_size = 1;
+                    Box<NDIM> box(idx, idx);
+                    box.grow(box_size);
+#ifndef NDEBUG
+                    TBOX_ASSERT(ls_data->getGhostBox().contains(box));
+                    TBOX_ASSERT(vol_data->getGhostBox().contains(box));
+#endif
+
+                    const CellIndex<NDIM>& idx_low = patch->getBox().lower();
+                    std::vector<VectorNd> X_vals;
+
+                    for (CellIterator<NDIM> ci(box); ci; ci++)
+                    {
+                        const CellIndex<NDIM>& idx_c = ci();
+                        if ((*vol_data)(idx_c) > 0.0)
+                        {
+                            // Use this point to calculate least squares reconstruction.
+                            // Find cell center
+                            VectorNd x_cent_c = find_cell_centroid(idx_c, *ls_data);
+                            X_vals.push_back(x_cent_c);
+                        }
+                    }
+                    const int m = X_vals.size();
+                    MatrixXd A(MatrixXd::Zero(m, size)), Lambda(MatrixXd::Zero(m, m));
+                    for (size_t i = 0; i < X_vals.size(); ++i)
+                    {
+                        const VectorNd X = X_vals[i] - x_loc;
+                        Lambda(i, i) = std::sqrt(weight(static_cast<double>((X_vals[i] - x_loc).norm())));
+                        A(i, 2) = X[1];
+                        A(i, 1) = X[0];
+                        A(i, 0) = 1.0;
+                    }
+                    qr_vec.push_back(new FullPivHouseholderQR<MatrixXd>(Lambda * A));
+                }
+            }
+        }
+    }
+    d_update_weights = false;
+}
 
 /////////////////////////////// PRIVATE //////////////////////////////////////
 
@@ -320,6 +423,81 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
         }
     }
     return;
+}
+
+void
+LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_idx)
+{
+    if (d_update_weights) cacheLeastSquaresData();
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        std::vector<FullPivHouseholderQR<MatrixXd>*>& qr_matrix_vec = d_qr_matrix_vec[ln];
+        int l = 0;
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            const int patch_num = patch->getPatchNumber();
+            const Box<NDIM>& box = patch->getBox();
+
+            Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+            Pointer<CellData<NDIM, double>> R_data = patch->getPatchData(R_idx);
+            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_ls_idx);
+            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
+
+            R_data->copy(*Q_data);
+
+            for (CellIterator<NDIM> ci(box); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
+                {
+                    // We are on a cut cell. We need to interpolate to cell center
+                    VectorNd x_loc;
+                    for (int d = 0; d < NDIM; ++d) x_loc(d) = static_cast<double>(idx(d)) + 0.5;
+                    int size = 1 + NDIM;
+                    int box_size = 1;
+                    Box<NDIM> box(idx, idx);
+                    box.grow(box_size);
+#ifndef NDEBUG
+                    TBOX_ASSERT(ls_data->getGhostBox().contains(box));
+                    TBOX_ASSERT(Q_data->getGhostBox().contains(box));
+                    TBOX_ASSERT(vol_data->getGhostBox().contains(box));
+#endif
+
+                    const CellIndex<NDIM>& idx_low = patch->getBox().lower();
+
+                    std::vector<double> Q_vals;
+                    std::vector<VectorNd> X_vals;
+
+                    for (CellIterator<NDIM> ci(box); ci; ci++)
+                    {
+                        const CellIndex<NDIM>& idx_c = ci();
+                        if ((*vol_data)(idx_c) > 0.0)
+                        {
+                            // Use this point to calculate least squares reconstruction.
+                            // Find cell center
+                            VectorNd x_cent_c = find_cell_centroid(idx_c, *ls_data);
+                            Q_vals.push_back((*Q_data)(idx_c));
+                            X_vals.push_back(x_cent_c);
+                        }
+                    }
+                    const int m = Q_vals.size();
+                    MatrixXd Lambda(MatrixXd::Zero(m, m));
+                    VectorXd U(VectorXd::Zero(m));
+                    for (size_t i = 0; i < Q_vals.size(); ++i)
+                    {
+                        U(i) = Q_vals[i];
+                        Lambda(i, i) = std::sqrt(weight(static_cast<double>((X_vals[i] - x_loc).norm())));
+                    }
+
+                    VectorXd x = qr_matrix_vec[l]->solve(Lambda * U);
+                    l++;
+                    (*R_data)(idx) = x(0);
+                }
+            }
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////

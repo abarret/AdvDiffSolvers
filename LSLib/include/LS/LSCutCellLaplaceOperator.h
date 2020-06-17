@@ -110,6 +110,8 @@ public:
      */
     void deallocateOperatorState() override;
 
+    void cacheLeastSquaresData();
+
     inline void setLSIndices(int ls_idx,
                              Pointer<NodeVariable<NDIM, double>> ls_var,
                              int vol_idx,
@@ -123,10 +125,12 @@ public:
         d_vol_var = vol_var;
         d_area_idx = area_idx;
         d_area_var = area_var;
+        d_update_weights = true;
     }
 
     inline void setBoundaryConditionOperator(SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> bdry_conds)
     {
+        d_update_weights = true;
         d_bdry_conds = bdry_conds;
     }
 
@@ -167,6 +171,13 @@ private:
                                 CellData<NDIM, double>& R_data,
                                 const Patch<NDIM>& patch);
 
+    void extrapolateToCellCenters(int Q_idx, int R_idx);
+
+    inline double weight(const double r)
+    {
+        return std::exp(-r * r);
+    }
+
     // Operator parameters.
     int d_ncomp = 0;
 
@@ -192,6 +203,12 @@ private:
     SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> d_bdry_conds;
 
     bool d_robin_bdry = false;
+
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_var;
+    int d_Q_scr_idx = IBTK::invalid_index;
+
+    std::vector<std::vector<Eigen::FullPivHouseholderQR<MatrixXd>*>> d_qr_matrix_vec;
+    bool d_update_weights = true;
 };
 } // namespace LS
 
