@@ -234,9 +234,9 @@ main(int argc, char* argv[])
 
         // Set up diffusion operators
         Pointer<LSCutCellLaplaceOperator> rhs_in_oper = new LSCutCellLaplaceOperator(
-            "LSCutCellRHSOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
+            "LSCutCellRHSInOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         Pointer<LSCutCellLaplaceOperator> sol_in_oper = new LSCutCellLaplaceOperator(
-            "LSCutCellOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
+            "LSCutCellInOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         time_integrator->setHelmholtzRHSOperator(Q_in_var, rhs_in_oper);
         Pointer<PETScKrylovPoissonSolver> Q_in_helmholtz_solver = new PETScKrylovPoissonSolver(
             "PoissonSolver", app_initializer->getComponentDatabase("PoissonSolver"), "poisson_solve_");
@@ -248,9 +248,9 @@ main(int argc, char* argv[])
         sol_in_oper->setBoundaryConditionOperator(in_bdry_oper);
 
         Pointer<LSCutCellLaplaceOperator> rhs_out_oper = new LSCutCellLaplaceOperator(
-            "LSCutCellRHSOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
+            "LSCutCellRHSOutOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         Pointer<LSCutCellLaplaceOperator> sol_out_oper = new LSCutCellLaplaceOperator(
-            "LSCutCellOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
+            "LSCutCellOutOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         time_integrator->setHelmholtzRHSOperator(Q_out_var, rhs_out_oper);
         Pointer<PETScKrylovPoissonSolver> Q_out_helmholtz_solver = new PETScKrylovPoissonSolver(
             "PoissonSolver", app_initializer->getComponentDatabase("PoissonSolver"), "poisson_solve_");
