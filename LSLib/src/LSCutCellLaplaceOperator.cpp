@@ -63,7 +63,7 @@ LSCutCellLaplaceOperator::LSCutCellLaplaceOperator(const std::string& object_nam
     d_robin_bdry = input_db->getBoolWithDefault("robin_boundary", d_robin_bdry);
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_var, var_db->getContext(d_object_name + "::SCRATCH"), 1);
+    d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_var, var_db->getContext(d_object_name + "::SCRATCH"), CELLG);
     return;
 } // LSCutCellLaplaceOperator()
 
@@ -106,23 +106,22 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
     // Loop over comp data
     for (int comp = 0; comp < d_ncomp; ++comp)
     {
-        extrapolateToCellCenters(x.getComponentDescriptorIndex(comp), d_Q_scr_idx);
         using InterpolationTransactionComponent = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
         std::vector<InterpolationTransactionComponent> transaction_comps;
-        InterpolationTransactionComponent x_component(d_Q_scr_idx,
+        InterpolationTransactionComponent x_component(x.getComponentDescriptorIndex(comp),
                                                       DATA_REFINE_TYPE,
                                                       true,
                                                       DATA_COARSEN_TYPE,
                                                       BDRY_EXTRAP_TYPE,
                                                       CONSISTENT_TYPE_2_BDRY,
-                                                      d_bc_coefs,
-                                                      d_fill_pattern);
+                                                      d_bc_coefs);
         transaction_comps.push_back(x_component);
-
         d_hier_bdry_fill->resetTransactionComponents(transaction_comps);
         d_hier_bdry_fill->setHomogeneousBc(d_homogeneous_bc);
         d_hier_bdry_fill->fillData(d_solution_time);
         d_hier_bdry_fill->resetTransactionComponents(d_transaction_comps);
+        extrapolateToCellCenters(x.getComponentDescriptorIndex(comp), d_Q_scr_idx);
+        d_hier_bdry_fill->fillData(d_solution_time);
 
         // Compute the action of the operator.
         for (int comp = 0; comp < d_ncomp; ++comp)
@@ -193,21 +192,10 @@ LSCutCellLaplaceOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, d
     }
 
     // Setup the interpolation transaction information.
-    d_fill_pattern = nullptr;
-    if (d_poisson_spec.dIsConstant())
-    {
-        d_fill_pattern = new CellNoCornersFillPattern(CELLG, false, false, true);
-    }
     using InterpolationTransactionComponent = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
     d_transaction_comps.clear();
-    InterpolationTransactionComponent component(d_Q_scr_idx,
-                                                DATA_REFINE_TYPE,
-                                                false,
-                                                DATA_COARSEN_TYPE,
-                                                BDRY_EXTRAP_TYPE,
-                                                CONSISTENT_TYPE_2_BDRY,
-                                                d_bc_coefs,
-                                                d_fill_pattern);
+    InterpolationTransactionComponent component(
+        d_Q_scr_idx, DATA_REFINE_TYPE, false, DATA_COARSEN_TYPE, BDRY_EXTRAP_TYPE, CONSISTENT_TYPE_2_BDRY, d_bc_coefs);
     d_transaction_comps.push_back(component);
 
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
@@ -219,6 +207,7 @@ LSCutCellLaplaceOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, d
     // Initialize the interpolation operators.
     d_hier_bdry_fill = new HierarchyGhostCellInterpolation();
     d_hier_bdry_fill->initializeOperatorState(d_transaction_comps, d_hierarchy, d_coarsest_ln, d_finest_ln);
+    d_update_weights = true;
 
     // Indicate the operator is initialized.
     d_is_initialized = true;
@@ -240,7 +229,6 @@ LSCutCellLaplaceOperator::deallocateOperatorState()
     d_hier_bdry_fill->deallocateOperatorState();
     d_hier_bdry_fill.setNull();
     d_transaction_comps.clear();
-    d_fill_pattern.setNull();
 
     // Deallocate hierarchy math operations object.
     if (!d_hier_math_ops_external) d_hier_math_ops.setNull();
@@ -293,7 +281,6 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            const int patch_num = patch->getPatchNumber();
 
             const Box<NDIM>& box = patch->getBox();
             Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_ls_idx);
@@ -437,7 +424,6 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            const int patch_num = patch->getPatchNumber();
             const Box<NDIM>& box = patch->getBox();
 
             Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
@@ -455,7 +441,6 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
                     // We are on a cut cell. We need to interpolate to cell center
                     VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d) x_loc(d) = static_cast<double>(idx(d)) + 0.5;
-                    int size = 1 + NDIM;
                     int box_size = 1;
                     Box<NDIM> box(idx, idx);
                     box.grow(box_size);

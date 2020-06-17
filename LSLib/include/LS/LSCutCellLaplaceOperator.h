@@ -182,9 +182,8 @@ private:
     int d_ncomp = 0;
 
     // Cached communications operators.
-    SAMRAI::tbox::Pointer<SAMRAI::xfer::VariableFillPattern<NDIM>> d_fill_pattern;
     std::vector<HierarchyGhostCellInterpolation::InterpolationTransactionComponent> d_transaction_comps;
-    SAMRAI::tbox::Pointer<HierarchyGhostCellInterpolation> d_hier_bdry_fill, d_no_fill;
+    SAMRAI::tbox::Pointer<HierarchyGhostCellInterpolation> d_hier_bdry_fill;
 
     // Scratch data.
     SAMRAI::tbox::Pointer<SAMRAI::solv::SAMRAIVectorReal<NDIM, double>> d_x, d_b;
