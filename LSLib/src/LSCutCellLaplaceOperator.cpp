@@ -110,7 +110,7 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
         std::vector<InterpolationTransactionComponent> transaction_comps;
         InterpolationTransactionComponent x_component(x.getComponentDescriptorIndex(comp),
                                                       DATA_REFINE_TYPE,
-                                                      true,
+                                                      false,
                                                       DATA_COARSEN_TYPE,
                                                       BDRY_EXTRAP_TYPE,
                                                       CONSISTENT_TYPE_2_BDRY,
@@ -241,13 +241,13 @@ LSCutCellLaplaceOperator::deallocateOperatorState()
     d_b.setNull();
 
     // Free any preallocated matrices
-    for (std::vector<FullPivHouseholderQR<MatrixXd>*>& qr_matrix_vec : d_qr_matrix_vec)
+    for (std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& qr_matrix_map : d_qr_matrix_vec)
     {
-        for (FullPivHouseholderQR<MatrixXd>* matrix : qr_matrix_vec)
+        for (std::pair<const PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& matrix_pair : qr_matrix_map)
         {
-            delete matrix;
+            delete matrix_pair.second;
         }
-        qr_matrix_vec.clear();
+        qr_matrix_map.clear();
     }
     d_update_weights = true;
 
@@ -262,13 +262,13 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
     const int coarsest_ln = 0;
     const int finest_ln = d_hierarchy->getFinestLevelNumber();
     // Free any preallocated matrices
-    for (std::vector<FullPivHouseholderQR<MatrixXd>*>& qr_matrix_vec : d_qr_matrix_vec)
+    for (std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& qr_matrix_map : d_qr_matrix_vec)
     {
-        for (FullPivHouseholderQR<MatrixXd>* matrix : qr_matrix_vec)
+        for (std::pair<const PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& matrix_pair : qr_matrix_map)
         {
-            delete matrix;
+            delete matrix_pair.second;
         }
-        qr_matrix_vec.clear();
+        qr_matrix_map.clear();
     }
 
     // allocate matrix data
@@ -276,7 +276,7 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
 
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
-        std::vector<FullPivHouseholderQR<MatrixXd>*>& qr_vec = d_qr_matrix_vec[ln];
+        std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& qr_map = d_qr_matrix_vec[ln];
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
@@ -327,7 +327,7 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
                         A(i, 1) = X[0];
                         A(i, 0) = 1.0;
                     }
-                    qr_vec.push_back(new FullPivHouseholderQR<MatrixXd>(Lambda * A));
+                    qr_map[PatchIndexPair(patch, idx)] = new FullPivHouseholderQR<MatrixXd>(Lambda * A);
                 }
             }
         }
@@ -419,7 +419,7 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        std::vector<FullPivHouseholderQR<MatrixXd>*>& qr_matrix_vec = d_qr_matrix_vec[ln];
+        std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& qr_matrix_map = d_qr_matrix_vec[ln];
         int l = 0;
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
@@ -476,7 +476,7 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
                         Lambda(i, i) = std::sqrt(weight(static_cast<double>((X_vals[i] - x_loc).norm())));
                     }
 
-                    VectorXd x = qr_matrix_vec[l]->solve(Lambda * U);
+                    VectorXd x = qr_matrix_map[PatchIndexPair(patch, idx)]->solve(Lambda * U);
                     l++;
                     (*R_data)(idx) = x(0);
                 }

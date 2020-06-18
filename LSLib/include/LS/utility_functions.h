@@ -165,5 +165,43 @@ copy_face_to_side(const int u_s_idx, const int u_f_idx, Pointer<PatchHierarchy<N
     }
 }
 
+struct PatchIndexPair
+{
+public:
+    PatchIndexPair(const Pointer<Patch<NDIM>>& patch, const CellIndex<NDIM>& idx) : d_idx(idx)
+    {
+        d_patch_num = patch->getPatchNumber();
+        const Box<NDIM>& box = patch->getBox();
+        const hier::Index<NDIM>& idx_low = box.lower();
+        const hier::Index<NDIM>& idx_up = box.upper();
+        int num_x = idx_up(0) - idx_low(0);
+        d_global_idx = idx(0) + num_x * (idx(1) - idx_low(1));
+#if (NDIM == 3)
+        int num_y = idx_up(1) - idx_low(0);
+        d_global_idx += num_x * num_y * (idx(2) - idx_low(2));
+#endif
+    }
+
+    bool operator<(const PatchIndexPair& b) const
+    {
+        bool less_than_b = false;
+        if (d_patch_num < b.d_patch_num)
+        {
+            // We're on a smaller patch
+            less_than_b = true;
+        }
+        else if (d_patch_num == b.d_patch_num && d_global_idx < b.d_global_idx)
+        {
+            // Our global index is smaller than b but on the same patch
+            less_than_b = true;
+        }
+        return less_than_b;
+    }
+
+    CellIndex<NDIM> d_idx;
+    int d_patch_num = -1;
+    int d_global_idx = -1;
+};
+
 } // namespace LS
 #endif

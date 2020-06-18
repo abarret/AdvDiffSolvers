@@ -10,6 +10,7 @@
 #include "LS/LSCutCellBoundaryConditions.h"
 #include "LS/LSFindCellVolume.h"
 #include "LS/SetLSValue.h"
+#include "LS/utility_functions.h"
 
 #include "CellVariable.h"
 #include "IntVector.h"
@@ -206,7 +207,7 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_var;
     int d_Q_scr_idx = IBTK::invalid_index;
 
-    std::vector<std::vector<Eigen::FullPivHouseholderQR<MatrixXd>*>> d_qr_matrix_vec;
+    std::vector<std::map<PatchIndexPair, Eigen::FullPivHouseholderQR<MatrixXd>*>> d_qr_matrix_vec;
     bool d_update_weights = true;
 };
 } // namespace LS
