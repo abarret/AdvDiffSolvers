@@ -247,14 +247,8 @@ LSCutCellLaplaceOperator::deallocateOperatorState()
     d_b.setNull();
 
     // Free any preallocated matrices
-    for (std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& qr_matrix_map : d_qr_matrix_vec)
-    {
-        for (std::pair<const PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& matrix_pair : qr_matrix_map)
-        {
-            delete matrix_pair.second;
-        }
+    for (std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>>& qr_matrix_map : d_qr_matrix_vec)
         qr_matrix_map.clear();
-    }
     d_update_weights = true;
 
     // Indicate that the operator is NOT initialized.
@@ -268,21 +262,15 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
     const int coarsest_ln = 0;
     const int finest_ln = d_hierarchy->getFinestLevelNumber();
     // Free any preallocated matrices
-    for (std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& qr_matrix_map : d_qr_matrix_vec)
-    {
-        for (std::pair<const PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& matrix_pair : qr_matrix_map)
-        {
-            delete matrix_pair.second;
-        }
+    for (std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>>& qr_matrix_map : d_qr_matrix_vec)
         qr_matrix_map.clear();
-    }
 
     // allocate matrix data
     d_qr_matrix_vec.resize(finest_ln + 1);
 
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
-        std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& qr_map = d_qr_matrix_vec[ln];
+        std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>>& qr_map = d_qr_matrix_vec[ln];
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
@@ -324,16 +312,25 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
                         }
                     }
                     const int m = X_vals.size();
-                    MatrixXd A(MatrixXd::Zero(m, size)), Lambda(MatrixXd::Zero(m, m));
+                    MatrixXd A(MatrixXd::Zero(m, size));
                     for (size_t i = 0; i < X_vals.size(); ++i)
                     {
                         const VectorNd X = X_vals[i] - x_loc;
-                        Lambda(i, i) = std::sqrt(weight(static_cast<double>(X.norm())));
-                        A(i, 2) = X[1];
-                        A(i, 1) = X[0];
-                        A(i, 0) = 1.0;
+                        double w = std::sqrt(weight(static_cast<double>(X.norm())));
+                        A(i, 2) = w * X[1];
+                        A(i, 1) = w * X[0];
+                        A(i, 0) = w * 1.0;
                     }
-                    qr_map[PatchIndexPair(patch, idx)] = new FullPivHouseholderQR<MatrixXd>(Lambda * A);
+                    PatchIndexPair p_idx = PatchIndexPair(patch, idx);
+
+#ifdef NDEBUG
+                    if (qr_map.find(p_idx) == qr_map.end())
+                        qr_map[p_idx] = FullPivHouseholderQR<MatrixXd>(A);
+                    else
+                        TBOX_WARNING("Already had a QR decomposition in place");
+#else
+                    qr_map[p_idx] = FullPivHouseholderQR<MatrixXd>(A);
+#endif
                 }
             }
         }
@@ -425,7 +422,7 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& qr_matrix_map = d_qr_matrix_vec[ln];
+        std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>>& qr_matrix_map = d_qr_matrix_vec[ln];
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
@@ -480,7 +477,7 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
                         U(i) = Q_vals[i] * std::sqrt(weight(static_cast<double>(X.norm())));
                     }
 
-                    VectorNd x1 = qr_matrix_map[PatchIndexPair(patch, idx)]->solve(U);
+                    VectorXd x1 = qr_matrix_map[PatchIndexPair(patch, idx)].solve(U);
                     (*R_data)(idx) = x1(0);
                 }
             }

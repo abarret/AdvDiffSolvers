@@ -423,6 +423,17 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
         const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
         const int area_cur_idx = var_db->mapVariableAndContextToIndex(area_var, getCurrentContext());
 
+        // Fill ghost cells for ls_node_cur
+        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<ITC> ghost_cell_comps(1);
+        ghost_cell_comps[0] = ITC(ls_node_cur_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
+        HierarchyGhostCellInterpolation hier_ghost_cell;
+        hier_ghost_cell.initializeOperatorState(ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+        hier_ghost_cell.fillData(current_time);
+
+        d_vol_fcn->updateVolumeAndArea(
+            vol_cur_idx, vol_var, area_cur_idx, area_var, ls_node_cur_idx, ls_node_var, true);
+
         // Copy current data to scratch
         d_hier_cc_data_ops->copyData(Q_scr_idx, Q_cur_idx);
 

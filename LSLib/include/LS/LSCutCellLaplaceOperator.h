@@ -207,7 +207,7 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_var;
     int d_Q_scr_idx = IBTK::invalid_index;
 
-    std::vector<std::map<PatchIndexPair, Eigen::FullPivHouseholderQR<MatrixXd>*>> d_qr_matrix_vec;
+    std::vector<std::map<PatchIndexPair, Eigen::FullPivHouseholderQR<MatrixXd>>> d_qr_matrix_vec;
     bool d_update_weights = true;
     bool d_cache_bdry;
 };

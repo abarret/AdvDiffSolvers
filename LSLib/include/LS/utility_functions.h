@@ -174,10 +174,10 @@ public:
         const Box<NDIM>& box = patch->getBox();
         const hier::Index<NDIM>& idx_low = box.lower();
         const hier::Index<NDIM>& idx_up = box.upper();
-        int num_x = idx_up(0) - idx_low(0);
-        d_global_idx = idx(0) + num_x * (idx(1) - idx_low(1));
+        int num_x = idx_up(0) - idx_low(0) + 1;
+        d_global_idx = idx(0) - idx_low(0) + num_x * (idx(1) - idx_low(1) + 1);
 #if (NDIM == 3)
-        int num_y = idx_up(1) - idx_low(0);
+        int num_y = idx_up(1) - idx_low(0) + 1;
         d_global_idx += num_x * num_y * (idx(2) - idx_low(2));
 #endif
     }
