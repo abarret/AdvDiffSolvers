@@ -2,7 +2,7 @@
 ## Here specify the location of the IBAMR source and the location
 ## where IBAMR has been built.
 IBAMR_SRC_DIR   = ${HOME}/sfw/ibamr/IBAMR
-IBAMR_BUILD_DIR = ${HOME}/sfw/ibamr/ibamr-objs-dbg
+IBAMR_BUILD_DIR = ${HOME}/sfw/ibamr/ibamr-objs-opt
 export IBAMR_SRC_DIR
 export IBAMR_BUILD_DIR
 ######################################################################

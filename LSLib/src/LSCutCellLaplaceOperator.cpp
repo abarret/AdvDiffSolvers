@@ -35,7 +35,7 @@ namespace LS
 namespace
 {
 // Number of ghosts cells used for each variable quantity.
-static const int CELLG = 1;
+static const int CELLG = 2;
 
 // Types of refining and coarsening to perform prior to setting coarse-fine
 // boundary and physical boundary ghost cell values.
@@ -61,6 +61,7 @@ LSCutCellLaplaceOperator::LSCutCellLaplaceOperator(const std::string& object_nam
     setPhysicalBcCoef(nullptr);
 
     d_robin_bdry = input_db->getBoolWithDefault("robin_boundary", d_robin_bdry);
+    d_cache_bdry = input_db->getBool("cache_boundary");
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_var, var_db->getContext(d_object_name + "::SCRATCH"), CELLG);
@@ -106,21 +107,26 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
     // Loop over comp data
     for (int comp = 0; comp < d_ncomp; ++comp)
     {
-        using InterpolationTransactionComponent = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-        std::vector<InterpolationTransactionComponent> transaction_comps;
-        InterpolationTransactionComponent x_component(x.getComponentDescriptorIndex(comp),
-                                                      DATA_REFINE_TYPE,
-                                                      false,
-                                                      DATA_COARSEN_TYPE,
-                                                      BDRY_EXTRAP_TYPE,
-                                                      CONSISTENT_TYPE_2_BDRY,
-                                                      d_bc_coefs);
-        transaction_comps.push_back(x_component);
-        d_hier_bdry_fill->resetTransactionComponents(transaction_comps);
-        d_hier_bdry_fill->setHomogeneousBc(d_homogeneous_bc);
-        d_hier_bdry_fill->fillData(d_solution_time);
-        d_hier_bdry_fill->resetTransactionComponents(d_transaction_comps);
+        {
+            using InterpolationTransactionComponent =
+                HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+            std::vector<InterpolationTransactionComponent> transaction_comps;
+            InterpolationTransactionComponent x_component(x.getComponentDescriptorIndex(comp),
+                                                          DATA_REFINE_TYPE,
+                                                          false,
+                                                          DATA_COARSEN_TYPE,
+                                                          BDRY_EXTRAP_TYPE,
+                                                          CONSISTENT_TYPE_2_BDRY,
+                                                          d_bc_coefs);
+            transaction_comps.push_back(x_component);
+            HierarchyGhostCellInterpolation hier_ghost_cell;
+            hier_ghost_cell.initializeOperatorState(transaction_comps, d_hierarchy);
+            hier_ghost_cell.setHomogeneousBc(d_homogeneous_bc);
+            hier_ghost_cell.fillData(d_solution_time);
+        }
+
         extrapolateToCellCenters(x.getComponentDescriptorIndex(comp), d_Q_scr_idx);
+        d_hier_bdry_fill->setHomogeneousBc(d_homogeneous_bc);
         d_hier_bdry_fill->fillData(d_solution_time);
 
         // Compute the action of the operator.
@@ -322,7 +328,7 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
                     for (size_t i = 0; i < X_vals.size(); ++i)
                     {
                         const VectorNd X = X_vals[i] - x_loc;
-                        Lambda(i, i) = std::sqrt(weight(static_cast<double>((X_vals[i] - x_loc).norm())));
+                        Lambda(i, i) = std::sqrt(weight(static_cast<double>(X.norm())));
                         A(i, 2) = X[1];
                         A(i, 1) = X[0];
                         A(i, 0) = 1.0;
@@ -420,7 +426,6 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>*>& qr_matrix_map = d_qr_matrix_vec[ln];
-        int l = 0;
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
@@ -468,17 +473,15 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
                         }
                     }
                     const int m = Q_vals.size();
-                    MatrixXd Lambda(MatrixXd::Zero(m, m));
                     VectorXd U(VectorXd::Zero(m));
                     for (size_t i = 0; i < Q_vals.size(); ++i)
                     {
-                        U(i) = Q_vals[i];
-                        Lambda(i, i) = std::sqrt(weight(static_cast<double>((X_vals[i] - x_loc).norm())));
+                        VectorNd X = X_vals[i] - x_loc;
+                        U(i) = Q_vals[i] * std::sqrt(weight(static_cast<double>(X.norm())));
                     }
 
-                    VectorXd x = qr_matrix_map[PatchIndexPair(patch, idx)]->solve(Lambda * U);
-                    l++;
-                    (*R_data)(idx) = x(0);
+                    VectorNd x1 = qr_matrix_map[PatchIndexPair(patch, idx)]->solve(U);
+                    (*R_data)(idx) = x1(0);
                 }
             }
         }

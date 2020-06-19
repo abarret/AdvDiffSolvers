@@ -209,6 +209,7 @@ private:
 
     std::vector<std::map<PatchIndexPair, Eigen::FullPivHouseholderQR<MatrixXd>*>> d_qr_matrix_vec;
     bool d_update_weights = true;
+    bool d_cache_bdry;
 };
 } // namespace LS
 

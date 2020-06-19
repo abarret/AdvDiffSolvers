@@ -4,9 +4,9 @@ L = 4.0
 BASE_NAME = "test1"
 
 // grid spacing parameters
-MAX_LEVELS = 2                            // maximum number of levels in locally refined grid
+MAX_LEVELS = 4                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 32                                    // coarsest grid spacing
+N = 8                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.1
@@ -20,9 +20,10 @@ OUTPUT_BDRY_INFO = FALSE
 USING_LS_FCN = FALSE
 DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
-MAX_REFINE_FACTOR = 2.0
+MAX_REFINE_FACTOR = 4.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
 USE_STRANG_SPLITTING = FALSE
+USE_OUT_LS_FOR_TAGGING = FALSE
 
 XCOM = 1.5
 YCOM = 1.5

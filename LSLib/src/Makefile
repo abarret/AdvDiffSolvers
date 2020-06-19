@@ -19,3 +19,4 @@ clean:
 	$(RM) stamp-{opt,debug}
 	$(RM) *.o *.lo *.objs *.ii *.int.c fortran/*.o *.a
 	$(RM) -r .libs
+	$(RM) LSLib2D.a LSLib3D.a

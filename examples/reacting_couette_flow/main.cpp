@@ -192,6 +192,7 @@ main(int argc, char* argv[])
             "RelaxationLSMethod_in", app_initializer->getComponentDatabase("RelaxationLSMethod"));
         ls_out_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface, static_cast<void*>(&interface_out));
         time_integrator->registerLevelSetResetFunction(ls_out_cell_var, ls_out_ops);
+        time_integrator->useLevelSetForTagging(ls_out_cell_var, input_db->getBool("USE_OUT_LS_FOR_TAGGING"));
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_in_var = new CellVariable<NDIM, double>("Q_in");
