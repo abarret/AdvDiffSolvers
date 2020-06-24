@@ -35,7 +35,7 @@ namespace LS
 namespace
 {
 // Number of ghosts cells used for each variable quantity.
-static const int CELLG = 2;
+static const int CELLG = 1;
 
 // Types of refining and coarsening to perform prior to setting coarse-fine
 // boundary and physical boundary ghost cell values.
@@ -306,7 +306,6 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
                         if ((*vol_data)(idx_c) > 0.0)
                         {
                             // Use this point to calculate least squares reconstruction.
-                            // Find cell center
                             VectorNd x_cent_c = find_cell_centroid(idx_c, *ls_data);
                             X_vals.push_back(x_cent_c);
                         }
@@ -366,7 +365,7 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
     for (CellIterator<NDIM> ci(box); ci; ci++)
     {
         const CellIndex<NDIM>& idx = ci();
-        double cell_volume = (*vol_data)(idx)*dx[0] * dx[1];
+        double cell_volume = (*vol_data)(idx) * dx[0] * dx[1];
         if (MathUtilities<double>::equalEps(cell_volume, 0.0))
         {
             for (unsigned int l = 0; l < d_bc_coefs.size(); ++l) R_data(idx, l) = 0.0;

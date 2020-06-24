@@ -161,9 +161,10 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
         d_ls_data.setFlag(area_new_idx);
 
         const std::string& ls_name = ls_cell_var->getName();
-        d_visit_writer->registerPlotQuantity(ls_name + "_Volume", "SCALAR", vol_new_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "_LS_current", "SCALAR", ls_node_cur_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "_LS_new", "SCALAR", ls_node_new_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_Volume_previous", "SCALAR", vol_new_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_LS_previous", "SCALAR", ls_node_cur_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_LS_currrent", "SCALAR", ls_node_new_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_Volume_current", "SCALAR", vol_cur_idx);
         d_visit_writer->registerPlotQuantity(ls_name + "_LS_Cell", "SCALAR", ls_cell_cur_idx);
     }
 
@@ -422,7 +423,6 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
         const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
         const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
         const int area_cur_idx = var_db->mapVariableAndContextToIndex(area_var, getCurrentContext());
-
         // Fill ghost cells for ls_node_cur
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
         std::vector<ITC> ghost_cell_comps(1);

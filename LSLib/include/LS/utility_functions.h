@@ -72,6 +72,16 @@ find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_
             signed_area += 0.5 * (X(0) * X_n(1) - X_n(0) * X(1));
         }
         center /= 6.0 * signed_area;
+        if (std::abs(signed_area) < 1.0e-8)
+        {
+            // Degenerate polygon. Switch to average of vertices.
+            center.setZero();
+            for (const auto& X : X_pts)
+            {
+                center += X;
+            }
+            center /= static_cast<double>(X_pts.size());
+        }
     }
 
     return center;
