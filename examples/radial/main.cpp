@@ -41,11 +41,14 @@ using namespace LS;
 
 void output_to_file(const int Q_idx,
                     const int area_idx,
+                    const int vol_idx,
+                    const int ls_idx,
                     const std::string& file_name,
                     const double loop_time,
                     Pointer<PatchHierarchy<NDIM>> hierarchy);
 void
 outputBdryInfo(const int Q_idx,
+               const int Q_scr_idx,
                Pointer<NodeVariable<NDIM, double>> ls_var,
                const int ls_idx,
                Pointer<CellVariable<NDIM, double>> vol_var,
@@ -55,27 +58,39 @@ outputBdryInfo(const int Q_idx,
                const double current_time,
                const int iteration_num,
                Pointer<PatchHierarchy<NDIM>> hierarchy,
-               Pointer<SetLSValue> set_ls_val)
+               Pointer<SetLSValue> set_ls_val,
+               bool allocate_ls_data)
 {
     Pointer<LSFindCellVolume> find_cell_vol = new LSFindCellVolume("vol", hierarchy);
     for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        if (!level->checkAllocated(ls_idx)) level->allocatePatchData(ls_idx);
+        if (allocate_ls_data && !level->checkAllocated(ls_idx)) level->allocatePatchData(ls_idx);
         if (!level->checkAllocated(vol_idx)) level->allocatePatchData(vol_idx);
         if (!level->checkAllocated(area_idx)) level->allocatePatchData(area_idx);
+        if (!level->checkAllocated(Q_scr_idx)) level->allocatePatchData(Q_scr_idx);
     }
 
-    set_ls_val->setDataOnPatchHierarchy(ls_idx, ls_var, hierarchy, current_time);
-    find_cell_vol->updateVolumeAndArea(vol_idx, vol_var, area_idx, area_var, ls_idx, ls_var);
-    output_to_file(Q_idx, area_idx, "bdry_info" + std::to_string(iteration_num), current_time, hierarchy);
+    using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+    std::vector<ITC> ghost_cell_comps(2);
+    ghost_cell_comps[0] = ITC(Q_scr_idx, Q_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR", false, nullptr);
+    ghost_cell_comps[1] = ITC(ls_idx, "LINEAR_REFINE", false, "NONE", "LINEAR", false, nullptr);
+    HierarchyGhostCellInterpolation hier_ghost_cells;
+    hier_ghost_cells.initializeOperatorState(ghost_cell_comps, hierarchy, 0, hierarchy->getFinestLevelNumber());
+    hier_ghost_cells.fillData(current_time);
+
+    if (set_ls_val) set_ls_val->setDataOnPatchHierarchy(ls_idx, ls_var, hierarchy, current_time);
+    find_cell_vol->updateVolumeAndArea(vol_idx, vol_var, area_idx, area_var, ls_idx, ls_var, true);
+    output_to_file(
+        Q_scr_idx, area_idx, vol_idx, ls_idx, "bdry_info" + std::to_string(iteration_num), current_time, hierarchy);
 
     for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        level->deallocatePatchData(ls_idx);
+        if (allocate_ls_data) level->deallocatePatchData(ls_idx);
         level->deallocatePatchData(vol_idx);
         level->deallocatePatchData(area_idx);
+        level->deallocatePatchData(Q_scr_idx);
     }
 }
 
@@ -258,11 +273,14 @@ main(int argc, char* argv[])
         // Create a scratch volume, area, and level set
         bool output_bdry_info = input_db->getBool("OUTPUT_BDRY_INFO");
         auto var_db = VariableDatabase<NDIM>::getDatabase();
-        const int ls_n_idx = var_db->registerVariableAndContext(ls_n_var, var_db->getContext("SCRATCH"));
+        const int ls_n_idx =
+            var_db->registerVariableAndContext(ls_n_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
         Pointer<CellVariable<NDIM, double>> vol_var = new CellVariable<NDIM, double>("vol");
         Pointer<CellVariable<NDIM, double>> area_var = new CellVariable<NDIM, double>("area");
-        const int vol_idx = var_db->registerVariableAndContext(vol_var, var_db->getContext("SCRATCH"));
-        const int area_idx = var_db->registerVariableAndContext(area_var, var_db->getContext("SCRATCH"));
+        const int vol_idx =
+            var_db->registerVariableAndContext(vol_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
+        const int area_idx =
+            var_db->registerVariableAndContext(area_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
         Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume("VolFcn", patch_hierarchy);
 
         // Set up visualization plot file writer.
@@ -284,6 +302,8 @@ main(int argc, char* argv[])
         // Initialize hierarchy configuration and data on all patches.
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
         const int Q_idx = var_db->mapVariableAndContextToIndex(Q_var, time_integrator->getCurrentContext());
+        const int Q_scr_idx =
+            var_db->registerVariableAndContext(Q_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(1));
 
         // Close the restart manager.
         RestartManager::getManager()->closeRestartFile();
@@ -309,17 +329,42 @@ main(int argc, char* argv[])
             time_integrator->deallocatePatchData(u_draw_idx);
             if (draw_exact) time_integrator->deallocatePatchData(Q_exact_idx);
             if (output_bdry_info)
-                outputBdryInfo(Q_idx,
-                               ls_n_var,
-                               ls_n_idx,
-                               vol_var,
-                               vol_idx,
-                               area_var,
-                               area_idx,
-                               loop_time,
-                               iteration_num,
-                               patch_hierarchy,
-                               ls_fcn);
+            {
+                if (use_ls_fcn)
+                {
+                    outputBdryInfo(Q_idx,
+                                   Q_scr_idx,
+                                   ls_n_var,
+                                   ls_n_idx,
+                                   vol_var,
+                                   vol_idx,
+                                   area_var,
+                                   area_idx,
+                                   loop_time,
+                                   iteration_num,
+                                   patch_hierarchy,
+                                   ls_fcn,
+                                   true);
+                }
+                else
+                {
+                    outputBdryInfo(
+                        Q_idx,
+                        Q_scr_idx,
+                        time_integrator->getLevelSetNodeVariable(ls_var),
+                        var_db->mapVariableAndContextToIndex(time_integrator->getLevelSetNodeVariable(ls_var),
+                                                             time_integrator->getCurrentContext()),
+                        vol_var,
+                        vol_idx,
+                        area_var,
+                        area_idx,
+                        loop_time,
+                        iteration_num,
+                        patch_hierarchy,
+                        nullptr,
+                        false);
+                }
+            }
         }
 
         // Main time step loop.
@@ -373,17 +418,42 @@ main(int argc, char* argv[])
                     time_integrator->deallocatePatchData(vol_idx);
                 }
                 if (output_bdry_info)
-                    outputBdryInfo(Q_idx,
-                                   ls_n_var,
-                                   ls_n_idx,
-                                   vol_var,
-                                   vol_idx,
-                                   area_var,
-                                   area_idx,
-                                   loop_time,
-                                   iteration_num,
-                                   patch_hierarchy,
-                                   ls_fcn);
+                {
+                    if (use_ls_fcn)
+                    {
+                        outputBdryInfo(Q_idx,
+                                       Q_scr_idx,
+                                       ls_n_var,
+                                       ls_n_idx,
+                                       vol_var,
+                                       vol_idx,
+                                       area_var,
+                                       area_idx,
+                                       loop_time,
+                                       iteration_num,
+                                       patch_hierarchy,
+                                       ls_fcn,
+                                       true);
+                    }
+                    else
+                    {
+                        outputBdryInfo(
+                            Q_idx,
+                            Q_scr_idx,
+                            time_integrator->getLevelSetNodeVariable(ls_var),
+                            var_db->mapVariableAndContextToIndex(time_integrator->getLevelSetNodeVariable(ls_var),
+                                                                 time_integrator->getNewContext()),
+                            vol_var,
+                            vol_idx,
+                            area_var,
+                            area_idx,
+                            loop_time,
+                            iteration_num,
+                            patch_hierarchy,
+                            nullptr,
+                            false);
+                    }
+                }
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
             {
@@ -504,6 +574,8 @@ main(int argc, char* argv[])
 void
 output_to_file(const int Q_idx,
                const int area_idx,
+               const int vol_idx,
+               const int ls_idx,
                const std::string& file_name,
                const double loop_time,
                Pointer<PatchHierarchy<NDIM>> hierarchy)
@@ -519,6 +591,8 @@ output_to_file(const int Q_idx,
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
         Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
         Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(area_idx);
+        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
         Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         const double* const dx = pgeom->getDx();
         const double* const x_low = pgeom->getXLower();
@@ -530,24 +604,74 @@ output_to_file(const int Q_idx,
             const double area = (*area_data)(idx);
             if (area > 0.0)
             {
-                VectorNd X;
-                for (int d = 0; d < NDIM; ++d)
-                    X[d] = x_low[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
-                //				double theta = std::atan2(static_cast<double>(X(1)), static_cast<double>(X(0)));
-                //				MatrixNd Q;
-                //				Q(0,0) = Q(1,1) = std::cos(loop_time);
-                //				Q(0,1) = std::sin(loop_time);
-                //				Q(1,0) = -Q(0,1);
-                //				VectorNd R_cent = {2.0, 0.0};
-                //				R_cent = Q.transpose()*R_cent;
-                //				X = X - R_cent;
-                // Compute theta
-                //				theta = std::atan2(X[1], X[0]);
-                X[0] -= 1.509 + cos(M_PI / 4.0) * loop_time;
-                X[1] -= 1.521 + sin(M_PI / 4.0) * loop_time;
-                double theta = std::atan2(X[1], X[0]);
+                std::array<VectorNd, 2> X_bounds;
+                int l = 0;
+                const NodeIndex<NDIM> idx_ll(idx, IntVector<NDIM>(0, 0)), idx_uu(idx, IntVector<NDIM>(1, 1)),
+                    idx_lu(idx, IntVector<NDIM>(0, 1)), idx_ul(idx, IntVector<NDIM>(1, 0));
+                const double phi_ll = (*ls_data)(idx_ll), phi_uu = (*ls_data)(idx_uu), phi_lu = (*ls_data)(idx_lu),
+                             phi_ul = (*ls_data)(idx_ul);
+                VectorNd X_ll(idx(0), idx(1)), X_uu(idx(0) + 1.0, idx(1) + 1.0), X_lu(idx(0), idx(1) + 1.0),
+                    X_ul(idx(0) + 1.0, idx(1));
+                if (phi_ll * phi_lu < 0.0)
+                {
+                    X_bounds[l] = midpoint_value(X_ll, phi_ll, X_lu, phi_lu);
+                    l++;
+                }
+                if (phi_lu * phi_uu < 0.0)
+                {
+                    X_bounds[l] = midpoint_value(X_lu, phi_lu, X_uu, phi_uu);
+                    l++;
+                }
+                if (phi_uu * phi_ul < 0.0)
+                {
+                    X_bounds[l] = midpoint_value(X_uu, phi_uu, X_ul, phi_ul);
+                    l++;
+                }
+                if (phi_ul * phi_ll < 0.0)
+                {
+                    X_bounds[l] = midpoint_value(X_ul, phi_ul, X_ll, phi_ll);
+                    l++;
+                }
+                TBOX_ASSERT(l == 2);
+                VectorNd X = 0.5 * (X_bounds[0] + X_bounds[1]);
+                VectorNd X_phys;
+                for (int d = 0; d < NDIM; ++d) X_phys[d] = x_low[d] + dx[d] * (X(d) - static_cast<double>(idx_low(d)));
+                X_phys[0] -= 1.509 + cos(M_PI / 4.0) * loop_time;
+                X_phys[1] -= 1.521 + sin(M_PI / 4.0) * loop_time;
+                double theta = std::atan2(X_phys[1], X_phys[0]);
                 theta_data.push_back(theta);
-                val_data.push_back((*Q_data)(idx));
+
+                // Do least squares linear approximation to find Q_val
+                Box<NDIM> box_ls(idx, idx);
+                box_ls.grow(1);
+                std::vector<double> Q_vals;
+                std::vector<VectorNd> X_vals;
+                for (CellIterator<NDIM> ci(box_ls); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx_c = ci();
+                    if ((*vol_data)(idx_c) > 0.0)
+                    {
+                        // Use this point
+                        Q_vals.push_back((*Q_data)(idx_c));
+                        X_vals.push_back(find_cell_centroid(idx_c, *ls_data));
+                    }
+                }
+                const int m = Q_vals.size();
+                MatrixXd A(MatrixXd::Zero(m, NDIM + 1)), Lambda(MatrixXd::Zero(m, m));
+                VectorXd U(VectorXd::Zero(m));
+                for (size_t i = 0; i < Q_vals.size(); ++i)
+                {
+                    const VectorNd disp = X_vals[i] - X;
+                    double w = std::sqrt(std::exp(-disp.norm() * disp.norm()));
+                    Lambda(i, i) = w;
+                    A(i, 2) = disp[1];
+                    A(i, 1) = disp[0];
+                    A(i, 0) = 1.0;
+                    U(i) = Q_vals[i];
+                }
+
+                VectorXd soln = (Lambda * A).fullPivHouseholderQr().solve(Lambda * U);
+                val_data.push_back(soln(0));
             }
         }
     }
