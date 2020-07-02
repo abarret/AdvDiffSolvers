@@ -118,6 +118,22 @@ SemiLagrangianAdvIntegrator::getLevelSetNodeVariable(Pointer<CellVariable<NDIM, 
     return d_ls_node_vars[l];
 }
 
+Pointer<CellVariable<NDIM, double>>
+SemiLagrangianAdvIntegrator::getAreaVariable(Pointer<CellVariable<NDIM, double>> ls_c_var)
+{
+    const size_t l =
+        distance(d_ls_cell_vars.begin(), std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_c_var));
+    return d_area_vars[l];
+}
+
+Pointer<CellVariable<NDIM, double>>
+SemiLagrangianAdvIntegrator::getVolumeVariable(Pointer<CellVariable<NDIM, double>> ls_c_var)
+{
+    const size_t l =
+        distance(d_ls_cell_vars.begin(), std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_c_var));
+    return d_vol_vars[l];
+}
+
 void
 SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<NDIM>> hierarchy,
                                                            Pointer<GriddingAlgorithm<NDIM>> gridding_alg)
@@ -161,11 +177,11 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
         d_ls_data.setFlag(area_new_idx);
 
         const std::string& ls_name = ls_cell_var->getName();
-        d_visit_writer->registerPlotQuantity(ls_name + "_Volume_previous", "SCALAR", vol_new_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "_LS_previous", "SCALAR", ls_node_cur_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "_LS_currrent", "SCALAR", ls_node_new_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "_Volume_current", "SCALAR", vol_cur_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "_LS_Cell", "SCALAR", ls_cell_cur_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_volume_previous", "SCALAR", vol_new_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_previous", "SCALAR", ls_node_cur_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_current", "SCALAR", ls_node_new_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_volume_current", "SCALAR", vol_cur_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_Cell", "SCALAR", ls_cell_cur_idx);
     }
 
     d_u_s_var = new SideVariable<NDIM, double>(d_object_name + "::USide");
@@ -206,8 +222,10 @@ SemiLagrangianAdvIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHie
             TBOX_ASSERT(ls_fcn);
             const int ls_cell_cur_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getCurrentContext());
             const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
+            const int ls_node_new_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getNewContext());
             ls_fcn->setDataOnPatchLevel(ls_cell_cur_idx, ls_cell_var, level, data_time, initial_time);
             ls_fcn->setDataOnPatchLevel(ls_node_cur_idx, ls_node_var, level, data_time, initial_time);
+            ls_fcn->setDataOnPatchLevel(ls_node_new_idx, ls_node_var, level, data_time, initial_time);
         }
     }
 }
