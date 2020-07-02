@@ -229,12 +229,13 @@ main(int argc, char* argv[])
         time_integrator->setPhysicalBcCoef(Q_out_var, Q_out_bcs[0]);
         time_integrator->setDiffusionCoefficient(Q_out_var, input_db->getDoubleWithDefault("D_coef", 0.0));
         time_integrator->restrictToLevelSet(Q_out_var, ls_out_cell_var);
+        time_integrator->useLevelSetForTagging(ls_out_cell_var, false);
 
         // Set up diffusion operators
         Pointer<LSCutCellLaplaceOperator> rhs_in_oper = new LSCutCellLaplaceOperator(
-            "LSCutCellRHSOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
+            "LSCutCellInRHSOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         Pointer<LSCutCellLaplaceOperator> sol_in_oper = new LSCutCellLaplaceOperator(
-            "LSCutCellOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
+            "LSCutCellInOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         time_integrator->setHelmholtzRHSOperator(Q_in_var, rhs_in_oper);
         Pointer<PETScKrylovPoissonSolver> Q_in_helmholtz_solver = new PETScKrylovPoissonSolver(
             "PoissonSolver", app_initializer->getComponentDatabase("PoissonSolver"), "poisson_solve_");
@@ -242,9 +243,9 @@ main(int argc, char* argv[])
         time_integrator->setHelmholtzSolver(Q_in_var, Q_in_helmholtz_solver);
 
         Pointer<LSCutCellLaplaceOperator> rhs_out_oper = new LSCutCellLaplaceOperator(
-            "LSCutCellRHSOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
+            "LSCutCellOutRHSOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         Pointer<LSCutCellLaplaceOperator> sol_out_oper = new LSCutCellLaplaceOperator(
-            "LSCutCellOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
+            "LSCutCellOutOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         time_integrator->setHelmholtzRHSOperator(Q_out_var, rhs_out_oper);
         Pointer<PETScKrylovPoissonSolver> Q_out_helmholtz_solver = new PETScKrylovPoissonSolver(
             "PoissonSolver", app_initializer->getComponentDatabase("PoissonSolver"), "poisson_solve_");

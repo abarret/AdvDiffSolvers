@@ -586,6 +586,8 @@ output_to_file(const int Q_idx,
     std::vector<double> theta_data, val_data;
     // We only care about data on the finest level
     Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(hierarchy->getFinestLevelNumber());
+    double integral = 0.0;
+    double tot_area = 0.0;
     for (PatchLevel<NDIM>::Iterator p(level); p; p++)
     {
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
@@ -636,10 +638,12 @@ output_to_file(const int Q_idx,
                 VectorNd X = 0.5 * (X_bounds[0] + X_bounds[1]);
                 VectorNd X_phys;
                 for (int d = 0; d < NDIM; ++d) X_phys[d] = x_low[d] + dx[d] * (X(d) - static_cast<double>(idx_low(d)));
-                X_phys[0] -= 1.509 + cos(M_PI / 4.0) * loop_time;
-                X_phys[1] -= 1.521 + sin(M_PI / 4.0) * loop_time;
+                X_phys[0] -= 1.5 + cos(M_PI / 4.0) * loop_time;
+                X_phys[1] -= 1.5 + sin(M_PI / 4.0) * loop_time;
                 double theta = std::atan2(X_phys[1], X_phys[0]);
                 theta_data.push_back(theta);
+                // Calculate a delta theta for integral calculations
+                double d_theta = area;
 
                 // Do least squares linear approximation to find Q_val
                 Box<NDIM> box_ls(idx, idx);
@@ -672,9 +676,15 @@ output_to_file(const int Q_idx,
 
                 VectorXd soln = (Lambda * A).fullPivHouseholderQr().solve(Lambda * U);
                 val_data.push_back(soln(0));
+                integral += soln(0) * d_theta;
+                tot_area += d_theta;
             }
         }
     }
+    integral = SAMRAI_MPI::sumReduction(integral);
+    tot_area = SAMRAI_MPI::sumReduction(tot_area);
+    pout << "Integral at time: " << loop_time << " is: " << std::setprecision(12) << integral << "\n";
+    pout << "Area     at time: " << loop_time << " is: " << std::setprecision(12) << tot_area << "\n";
     // Now we need to send the data to processor rank 0 for outputting
     if (SAMRAI_MPI::getRank() == 0)
     {
