@@ -143,9 +143,7 @@ QInitial::setDataOnPatchHierarchy(const int data_idx,
     }
     else if (d_init_type == "CONSTANT")
     {
-        auto fcn = [](VectorNd X, double t) -> double {
-            return 10.0 * std::exp(-std::sqrt(std::pow(X(0) + 1.5, 2.0) + std::pow(X(1), 2.0)));
-        };
+        auto fcn = [this](VectorNd X, double t) -> double { return d_val; };
         integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
     }
     for (int ln = coarsest_ln; ln <= finest_ln; ln++)
@@ -266,7 +264,7 @@ QInitial::getFromInput(Pointer<Database> db)
         }
         else if (d_init_type == "CONSTANT")
         {
-            // intentionally blank.
+            d_val = db->getDouble("value");
         }
         else
         {

@@ -7,8 +7,10 @@
 #include "ibtk/LaplaceOperator.h"
 #include "ibtk/ibtk_utilities.h"
 
+#include "LS/LSCutCellBoundaryConditions.h"
 #include "LS/LSFindCellVolume.h"
 #include "LS/SetLSValue.h"
+#include "LS/utility_functions.h"
 
 #include "CellVariable.h"
 #include "IntVector.h"
@@ -109,6 +111,8 @@ public:
      */
     void deallocateOperatorState() override;
 
+    void cacheLeastSquaresData();
+
     inline void setLSIndices(int ls_idx,
                              Pointer<NodeVariable<NDIM, double>> ls_var,
                              int vol_idx,
@@ -122,6 +126,13 @@ public:
         d_vol_var = vol_var;
         d_area_idx = area_idx;
         d_area_var = area_var;
+        d_update_weights = true;
+    }
+
+    inline void setBoundaryConditionOperator(SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> bdry_conds)
+    {
+        d_update_weights = true;
+        d_bdry_conds = bdry_conds;
     }
 
     //\}
@@ -161,13 +172,19 @@ private:
                                 CellData<NDIM, double>& R_data,
                                 const Patch<NDIM>& patch);
 
+    void extrapolateToCellCenters(int Q_idx, int R_idx);
+
+    inline double weight(const double r)
+    {
+        return std::exp(-r * r);
+    }
+
     // Operator parameters.
     int d_ncomp = 0;
 
     // Cached communications operators.
-    SAMRAI::tbox::Pointer<SAMRAI::xfer::VariableFillPattern<NDIM>> d_fill_pattern;
     std::vector<HierarchyGhostCellInterpolation::InterpolationTransactionComponent> d_transaction_comps;
-    SAMRAI::tbox::Pointer<HierarchyGhostCellInterpolation> d_hier_bdry_fill, d_no_fill;
+    SAMRAI::tbox::Pointer<HierarchyGhostCellInterpolation> d_hier_bdry_fill;
 
     // Scratch data.
     SAMRAI::tbox::Pointer<SAMRAI::solv::SAMRAIVectorReal<NDIM, double>> d_x, d_b;
@@ -183,7 +200,16 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::hier::Variable<NDIM>> d_ls_var;
     int d_ls_idx = IBTK::invalid_index;
 
+    SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> d_bdry_conds;
+
     bool d_robin_bdry = false;
+
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_var;
+    int d_Q_scr_idx = IBTK::invalid_index;
+
+    std::vector<std::map<PatchIndexPair, Eigen::FullPivHouseholderQR<MatrixXd>>> d_qr_matrix_vec;
+    bool d_update_weights = true;
+    bool d_cache_bdry;
 };
 } // namespace LS
 

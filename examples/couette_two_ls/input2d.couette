@@ -1,52 +1,53 @@
 // physical parameters
 PI = 3.14159265359
-L = 12.0
+L = 4.0
 BASE_NAME = "test1"
 
 // grid spacing parameters
-MAX_LEVELS = 3                            // maximum number of levels in locally refined grid
-REF_RATIO  = 4                            // refinement ratio between levels
-N = 8                                    // coarsest grid spacing
+MAX_LEVELS = 2                            // maximum number of levels in locally refined grid
+REF_RATIO  = 2                            // refinement ratio between levels
+N = 128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
-CFL_MAX = 0.3
-DT_MAX = H * CFL_MAX / 1
-END_TIME = 10
+CFL_MAX = 0.5
+DT_MAX = H * CFL_MAX / 1.0
+DT_MIN = DT_MAX / 7.5
+END_TIME = 15
 REGRID_INTERVAL = 1
+TAG_BUFFER = 1
 
 OUTPUT_BDRY_INFO = FALSE
 USING_LS_FCN = FALSE
-DRAW_EXACT = TRUE
+DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 2.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
-USE_STRANG_SPLITTING = TRUE
-
-
-USING_CIRCLE = TRUE
-STATIONARY_INTERFACE = FALSE
-USING_VEL_FCN = TRUE
+USE_STRANG_SPLITTING = FALSE
 
 XCOM = 1.5
 YCOM = 1.5
 R = 1.0
+R_2 = 3.75
+R_1 = 0.25
+OMEGA_2 = 0.5
+OMEGA_1 = 5.0
 
-D_coef = 0.1
-
-U = "cos(PI/4.0)"
-V = "sin(PI/4.0)"
-//U = "0.0"
-//V = "0.0"
+D_coef = 0.05
 
 Q = "exp(-50*((X_0-0.8)^2 + X_1^2))*10"
 
 // Level set parameters
-LS_REINIT_INTERVAL = REGRID_INTERVAL
+LS_REINIT_INTERVAL = 1000000//REGRID_INTERVAL
 MAX_ITERATIONS_LS     = NFINEST/4
 LS_ORDER           = "THIRD_ORDER_ENO"
 USE_SUBCELL_FIX    = TRUE
 USE_SIGN_FIX       = TRUE
 LS_ATOL            = 1e-10
+
+LS_Out {
+    R1 = R_1
+    R2 = R_2
+}
 
 RelaxationLSMethod {
     order              = LS_ORDER
@@ -54,38 +55,54 @@ RelaxationLSMethod {
     apply_sign_fix     = USE_SIGN_FIX
     sweep_abs_tol      = LS_ATOL
     max_iterations     = MAX_ITERATIONS_LS
-    enable_logging     = TRUE
+    enable_logging     = FALSE
     reinit_interval    = LS_REINIT_INTERVAL
 }
 
 LSCutCellOperator {
-  robin_boundary = TRUE
+  robin_boundary = FALSE
+  cache_boundary = TRUE
 }
 
 SetLSValue {
     interface_type = "DISK"
     R1 = R
     Center = XCOM,YCOM
-    Vel = cos(PI/4.0),sin(PI/4.0)
-//    Vel = 0.0,0.0
+//    Vel = cos(PI/4.0),sin(PI/4.0)
+    Vel = 0.0,0.0
 }
 
 QInitial {
     init_type = "RADIAL"
-    D = D_coef
+    D = 0.05//D_coef
     R1 = 1.0
     Center = XCOM,YCOM
-    velocity = cos(PI/4.0),sin(PI/4.0)
-//    velocity = 0.0,0.0
+//    velocity = cos(PI/4.0),sin(PI/4.0)
+    velocity = 0.0,0.0
 }
+
+QInitial_out {
+    D = 0.05
+    R1 = 1.0
+    Center = -XCOM,-YCOM
+    velocity = 0.0,0.0
+    init_type = "RADIAL"
+}
+
 
 PoissonSolver {
 }
 
 UFunction {
-//    function_0 = "(X_1 > -1.0 && X_1 < 1.0) ? (1.0-X_1)*(-1.0-X_1) : 0.0"
-    function_0 = U
-    function_1 = V
+   a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_2)
+   b = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
+   xcom = 0.0
+   ycom = 0.0
+   r1 = R_1
+   r2 = R_2
+   h = H
+   function_0 = "(sqrt((X_0-xcom)^2+(X_1-ycom)^2) > (r2+h) ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < (r1-h) ? 0.0 : -(a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_1-ycom)/sqrt((X_0-xcom)^2+(X_1-ycom)^2)))*sin(2*PI*t / 7.5)"
+   function_1 = "(sqrt((X_0-xcom)^2+(X_1-ycom)^2) > (r2+h) ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < (r1-h) ? 0.0 :  (a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_0-xcom)/sqrt((X_0-xcom)^2+(X_1-ycom)^2)))*sin(2*PI*t / 7.5)"
 }
 
 Q_bcs {
@@ -126,9 +143,9 @@ Main {
 
 CartesianGeometry {
    domain_boxes = [ (0,0),(N - 1,N - 1) ]
-   x_lo = 0,0
+   x_lo = -L,-L
    x_up = L,L
-   periodic_dimension = 1,1
+   periodic_dimension = 0,0
 }
 
 GriddingAlgorithm {
@@ -144,8 +161,8 @@ GriddingAlgorithm {
    smallest_patch_size {
       level_0 =   4,  4  // all finer levels will use same values as level_0
    }
-   efficiency_tolerance = 0.5e0  // min % of tag cells in new patch level
-   combine_efficiency   = 0.5e0  // chop box if sum of volumes of smaller boxes < efficiency * vol of large box
+   efficiency_tolerance = 0.9e0  // min % of tag cells in new patch level
+   combine_efficiency   = 0.9e0  // chop box if sum of volumes of smaller boxes < efficiency * vol of large box
 }
 
 StandardTagAndInitialize {
@@ -172,11 +189,10 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     start_time           = 0.0e0  // initial simulation time
     end_time             = END_TIME    // final simulation time
     grow_dt              = 2.0e0  // growth factor for timesteps
-    max_integrator_steps = 10000  // max number of simulation timesteps
     regrid_interval      = REGRID_INTERVAL  // effectively disable regridding
     cfl                  = CFL_MAX
     dt_max               = DT_MAX
-    dt_min               = DT_MAX
+    dt_min               = DT_MIN
     enable_logging       = TRUE
 
     prescribe_level_set  = USING_LS_FCN
@@ -184,7 +200,9 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     max_ls_refine_factor = MAX_REFINE_FACTOR
     least_squares_order = LEAST_SQUARES_ORDER
     use_strang_splitting = USE_STRANG_SPLITTING
- 
+
+    tag_buffer = TAG_BUFFER
+    
     convective_op_type                 = "PPM"//WAVE_PROP"
     convective_difference_form         = "CONSERVATIVE"
     convective_time_stepping_type      = "TRAPEZOIDAL_RULE"

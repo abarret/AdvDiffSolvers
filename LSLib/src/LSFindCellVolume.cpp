@@ -31,6 +31,7 @@ LSFindCellVolume::updateVolumeAndArea(int vol_idx,
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
         double tot_area = 0.0;
+        double tot_vol = 0.0;
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
@@ -58,11 +59,17 @@ LSFindCellVolume::updateVolumeAndArea(int vol_idx,
                     (*area_data)(idx) = area;
                     if (patch->getBox().contains(idx)) tot_area += area;
                 }
-                if (vol_idx != IBTK::invalid_index) (*vol_data)(idx) = volume / cell_volume;
+                if (vol_idx != IBTK::invalid_index)
+                {
+                    (*vol_data)(idx) = volume / cell_volume;
+                    if (patch->getBox().contains(idx)) tot_vol += volume;
+                }
             }
         }
         tot_area = SAMRAI_MPI::sumReduction(tot_area);
-        pout << "Total area found on level: " << ln << " is: " << std::setprecision(12) << tot_area << "\n";
+        tot_vol = SAMRAI_MPI::sumReduction(tot_vol);
+        plog << "Total area found on level:   " << ln << " is: " << std::setprecision(12) << tot_area << "\n";
+        plog << "Total volume found on level: " << ln << " is: " << std::setprecision(12) << tot_vol << "\n";
     }
 }
 
@@ -456,4 +463,4 @@ LSFindCellVolume::findArea(const std::vector<Simplex>& simplices)
     return area;
 }
 
-} // namespace IBAMR
+} // namespace LS

@@ -57,6 +57,12 @@ public:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>
     getLevelSetNodeVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_c_var);
 
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
+    getAreaVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_c_var);
+
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
+    getVolumeVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_c_var);
+
     /*!
      * Initialize the variables, basic communications algorithms, solvers, and
      * other data structures used by this time integrator object.
