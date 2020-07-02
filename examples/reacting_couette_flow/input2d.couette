@@ -9,9 +9,9 @@ REF_RATIO  = 4                            // refinement ratio between levels
 N = 8                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
-CFL_MAX = 0.1
+CFL_MAX = 0.5
 DT_MAX = H * CFL_MAX / 1.0
-DT_MIN = DT_MAX / 4.0
+DT_MIN = DT_MAX / 7.5
 END_TIME = 15
 REGRID_INTERVAL = 1
 TAG_BUFFER = 1
@@ -22,16 +22,16 @@ DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 4.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
-USE_STRANG_SPLITTING = FALSE
+USE_STRANG_SPLITTING = TRUE
 USE_OUT_LS_FOR_TAGGING = FALSE
 
-XCOM = 1.5
-YCOM = 1.5
+XCOM = 1.501
+YCOM = 1.501
 R = 1.0
 R_2 = 3.75
 R_1 = 0.25
-OMEGA_2 = 1.0
-OMEGA_1 = 10.0
+OMEGA_2 = 0.5
+OMEGA_1 = 5.0
 
 D_coef = 0.05
 
@@ -62,6 +62,7 @@ RelaxationLSMethod {
 
 LSCutCellOperator {
   robin_boundary = TRUE
+  cache_boundary = TRUE
 }
 
 SetLSValue {
@@ -107,8 +108,8 @@ UFunction {
    r1 = R_1
    r2 = R_2
    h = H
-   function_0 = "(sqrt((X_0-xcom)^2+(X_1-ycom)^2) > (r2+3*h) ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < (r1-3*h) ? 0.0 : -(a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_1-ycom)/((X_0-xcom)^2+(X_1-ycom)^2 + 1.0e-12)))*sin(2*PI*t / 7.5)"
-   function_1 = "(sqrt((X_0-xcom)^2+(X_1-ycom)^2) > (r2+3*h) ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < (r1-3*h) ? 0.0 : (a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_0-xcom)/((X_0-xcom)^2+(X_1-ycom)^2 + 1.0e-12)))*sin(2*PI*t / 7.5)"
+   function_0 = "(sqrt((X_0-xcom)^2+(X_1-ycom)^2) > (r2+h) ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < (r1-h) ? 0.0 : -(a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_1-ycom)/sqrt((X_0-xcom)^2+(X_1-ycom)^2)))*sin(2*PI*t / 7.5)"
+   function_1 = "(sqrt((X_0-xcom)^2+(X_1-ycom)^2) > (r2+h) ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < (r1-h) ? 0.0 :  (a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_0-xcom)/sqrt((X_0-xcom)^2+(X_1-ycom)^2)))*sin(2*PI*t / 7.5)"
 }
 
 Q_bcs {
@@ -195,7 +196,6 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     start_time           = 0.0e0  // initial simulation time
     end_time             = END_TIME    // final simulation time
     grow_dt              = 2.0e0  // growth factor for timesteps
-    max_integrator_steps = 10000  // max number of simulation timesteps
     regrid_interval      = REGRID_INTERVAL  // effectively disable regridding
     cfl                  = CFL_MAX
     dt_max               = DT_MAX

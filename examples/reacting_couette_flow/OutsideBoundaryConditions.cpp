@@ -3,7 +3,7 @@
 OutsideBoundaryConditions::OutsideBoundaryConditions(const std::string& object_name,
                                                      Pointer<Database> input_db,
                                                      Pointer<CellVariable<NDIM, double>> in_var,
-                                                     Pointer<AdvDiffHierarchyIntegrator> integrator)
+                                                     Pointer<LS::SemiLagrangianAdvIntegrator> integrator)
     : LSCutCellBoundaryConditions(object_name), d_in_var(in_var), d_integrator(integrator)
 {
     d_k1 = input_db->getDouble("k1");
@@ -46,6 +46,7 @@ OutsideBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, dou
             Pointer<CellData<NDIM, double>> in_data = patch->getPatchData(in_idx);
             Pointer<CellData<NDIM, double>> R_data = patch->getPatchData(R_idx);
             Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(d_area_idx);
+            Pointer<CellData<NDIM, double>> area_in_data = patch->getPatchData(d_area_in_idx);
             Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
 
             for (CellIterator<NDIM> ci(box); ci; ci++)
@@ -57,11 +58,12 @@ OutsideBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, dou
 #endif
                                            (*vol_data)(idx);
                 const double area = (*area_data)(idx);
-                if (area > 0.0)
+                const double area_in = (*area_in_data)(idx);
+                if (area > 0.0 && area_in > 0.0)
                 {
                     TBOX_ASSERT(cell_volume > 0.0);
-                    if (!d_homogeneous_bdry) (*R_data)(idx) -= 0.5 * sgn * d_k1 * (*in_data)(idx)*area / cell_volume;
-                    (*R_data)(idx) += 0.5 * sgn * d_k1 * (*out_data)(idx)*area / cell_volume;
+                    if (!d_homogeneous_bdry) (*R_data)(idx) += 0.5 * sgn * d_k1 * (*in_data)(idx)*area / cell_volume;
+                    (*R_data)(idx) -= 0.5 * sgn * d_k1 * (*out_data)(idx)*area / cell_volume;
                 }
             }
         }
