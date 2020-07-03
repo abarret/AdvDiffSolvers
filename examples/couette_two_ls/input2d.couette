@@ -17,7 +17,7 @@ REGRID_INTERVAL = 1
 TAG_BUFFER = 1
 
 OUTPUT_BDRY_INFO = FALSE
-USING_LS_FCN = FALSE
+USING_LS_FCN = TRUE
 DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 2.0
@@ -64,18 +64,17 @@ LSCutCellOperator {
   cache_boundary = TRUE
 }
 
-SetLSValue {
-    interface_type = "DISK"
-    R1 = R
-    Center = XCOM,YCOM
-//    Vel = cos(PI/4.0),sin(PI/4.0)
-    Vel = 0.0,0.0
+InsideLSFcn {
+    r = R
+    x_cent = XCOM,YCOM
+    a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
+    b = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
 }
 
 QInitial {
     init_type = "RADIAL"
     D = 0.05//D_coef
-    R1 = 1.0
+    R1 = R
     Center = XCOM,YCOM
 //    velocity = cos(PI/4.0),sin(PI/4.0)
     velocity = 0.0,0.0
@@ -83,7 +82,7 @@ QInitial {
 
 QInitial_out {
     D = 0.05
-    R1 = 1.0
+    R1 = R
     Center = -XCOM,-YCOM
     velocity = 0.0,0.0
     init_type = "RADIAL"
