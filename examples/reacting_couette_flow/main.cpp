@@ -38,6 +38,7 @@
 #include "LS/utility_functions.h"
 
 #include "InsideBoundaryConditions.h"
+#include "InsideLSFcn.h"
 #include "OutsideBoundaryConditions.h"
 #include "OutsideLSFcn.h"
 
@@ -219,8 +220,8 @@ main(int argc, char* argv[])
         time_integrator->registerLevelSetVariable(ls_in_cell_var);
         time_integrator->registerLevelSetVelocity(ls_in_cell_var, u_var);
         bool use_ls_fcn = input_db->getBool("USING_LS_FCN");
-        Pointer<SetLSValue> ls_fcn =
-            new SetLSValue("SetLSValue", grid_geometry, app_initializer->getComponentDatabase("SetLSValue"));
+        Pointer<InsideLSFcn> ls_fcn =
+            new InsideLSFcn("InsideLSFcn", app_initializer->getComponentDatabase("InsideLSFcn"));
         time_integrator->registerLevelSetFunction(ls_in_cell_var, ls_fcn);
         time_integrator->useLevelSetFunction(ls_in_cell_var, use_ls_fcn);
         LocateInterface interface_in(ls_in_cell_var, time_integrator, ls_fcn);

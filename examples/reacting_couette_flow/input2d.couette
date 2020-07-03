@@ -65,12 +65,11 @@ LSCutCellOperator {
   cache_boundary = TRUE
 }
 
-SetLSValue {
-    interface_type = "DISK"
-    R1 = R
-    Center = XCOM,YCOM
-//    Vel = cos(PI/4.0),sin(PI/4.0)
-    Vel = 0.0,0.0
+InsideLSFcn {
+    r = R
+    x_cent = XCOM,YCOM
+    a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
+    b = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
 }
 
 BdryConds {
