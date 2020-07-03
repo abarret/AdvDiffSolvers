@@ -4,7 +4,7 @@ L = 4.0
 BASE_NAME = "test1"
 
 // grid spacing parameters
-MAX_LEVELS = 4                            // maximum number of levels in locally refined grid
+MAX_LEVELS = 3                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
 N = 8                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
@@ -12,7 +12,7 @@ H = L/NFINEST
 CFL_MAX = 0.5
 DT_MAX = H * CFL_MAX / 1.0
 DT_MIN = DT_MAX / 7.5
-END_TIME = 15
+END_TIME = 7.5
 REGRID_INTERVAL = 1
 TAG_BUFFER = 1
 
@@ -101,15 +101,15 @@ PoissonSolver {
 }
 
 UFunction {
-   a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_2)
+   a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
    b = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
    xcom = 0.0
    ycom = 0.0
    r1 = R_1
    r2 = R_2
    h = H
-   function_0 = "(sqrt((X_0-xcom)^2+(X_1-ycom)^2) > (r2+h) ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < (r1-h) ? 0.0 : -(a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_1-ycom)/sqrt((X_0-xcom)^2+(X_1-ycom)^2)))*sin(2*PI*t / 7.5)"
-   function_1 = "(sqrt((X_0-xcom)^2+(X_1-ycom)^2) > (r2+h) ? 0.0 : (sqrt((X_0-xcom)^2+(X_1-ycom)^2) < (r1-h) ? 0.0 :  (a*((X_0-xcom)^2+(X_1-ycom)^2) + b)*(X_0-xcom)/sqrt((X_0-xcom)^2+(X_1-ycom)^2)))*sin(2*PI*t / 7.5)"
+   function_0 = "(sqrt(X_0^2+X_1^2) > (r2+h) ? 0.0 : (sqrt(X_0^2+X_1^2) < (r1-h) ? 0.0 : -(a*(X_0^2+X_1^2) + b)*X_1/sqrt(X_0^2+X_1^2)))*sin(2*PI*t / 7.5)"
+   function_1 = "(sqrt(X_0^2+X_1^2) > (r2+h) ? 0.0 : (sqrt(X_0^2+X_1^2) < (r1-h) ? 0.0 :  (a*(X_0^2+X_1^2) + b)*X_0/sqrt(X_0^2+X_1^2)))*sin(2*PI*t / 7.5)"
 }
 
 Q_bcs {

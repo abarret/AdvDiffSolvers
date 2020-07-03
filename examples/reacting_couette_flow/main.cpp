@@ -44,53 +44,44 @@
 using namespace LS;
 
 void output_to_file(const int Q_idx,
+                    const int ls_Q_idx,
+                    const int vol_Q_idx,
                     const int area_idx,
-                    const int vol_idx,
-                    const int ls_idx,
                     const std::string& file_name,
                     const double loop_time,
                     Pointer<PatchHierarchy<NDIM>> hierarchy);
 void
 outputBdryInfo(const int Q_idx,
                const int Q_scr_idx,
-               Pointer<NodeVariable<NDIM, double>> ls_var,
-               const int ls_idx,
-               Pointer<CellVariable<NDIM, double>> vol_var,
-               const int vol_idx,
-               Pointer<CellVariable<NDIM, double>> area_var,
+               const int ls_Q_idx,
+               const int vol_Q_idx,
                const int area_idx,
                const double current_time,
                const int iteration_num,
                Pointer<PatchHierarchy<NDIM>> hierarchy,
                const std::string& base_name)
 {
-    Pointer<LSFindCellVolume> find_cell_vol = new LSFindCellVolume("vol", hierarchy);
     for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        if (!level->checkAllocated(ls_idx)) level->allocatePatchData(ls_idx);
-        if (!level->checkAllocated(vol_idx)) level->allocatePatchData(vol_idx);
-        if (!level->checkAllocated(area_idx)) level->allocatePatchData(area_idx);
         if (!level->checkAllocated(Q_scr_idx)) level->allocatePatchData(Q_scr_idx);
     }
 
     using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
     std::vector<ITC> ghost_cell_comps(2);
     ghost_cell_comps[0] = ITC(Q_scr_idx, Q_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR", false, nullptr);
-    ghost_cell_comps[1] = ITC(ls_idx, "LINEAR_REFINE", false, "NONE", "LINEAR", false, nullptr);
+    ghost_cell_comps[1] = ITC(ls_Q_idx, "LINEAR_REFINE", false, "NONE", "LINEAR", false, nullptr);
     HierarchyGhostCellInterpolation hier_ghost_cells;
     hier_ghost_cells.initializeOperatorState(ghost_cell_comps, hierarchy, 0, hierarchy->getFinestLevelNumber());
     hier_ghost_cells.fillData(current_time);
 
-    find_cell_vol->updateVolumeAndArea(vol_idx, vol_var, area_idx, area_var, ls_idx, ls_var, true);
     output_to_file(
-        Q_scr_idx, area_idx, vol_idx, ls_idx, base_name + std::to_string(iteration_num), current_time, hierarchy);
+        Q_scr_idx, vol_Q_idx, ls_Q_idx, area_idx, base_name + std::to_string(iteration_num), current_time, hierarchy);
 
     for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        level->deallocatePatchData(vol_idx);
-        level->deallocatePatchData(area_idx);
+        level->deallocatePatchData(Q_scr_idx);
     }
 }
 
@@ -141,7 +132,8 @@ void calculateTotalAmounts(int Q_in_idx,
                            int Q_out_idx,
                            int ls_in_idx,
                            int ls_out_idx,
-                           int vol_idx,
+                           int vol_in_idx,
+                           int vol_out_idx,
                            Pointer<PatchHierarchy<NDIM>> hierarchy,
                            double time,
                            int iteration);
@@ -356,12 +348,12 @@ main(int argc, char* argv[])
                                                                      time_integrator->getCurrentContext());
         out_bdry_oper->registerAreaAndLSInsideIndex(area_in_idx, ls_in_idx);
 
-        Pointer<CellVariable<NDIM, double>> vol_var = new CellVariable<NDIM, double>("Vol scr");
-        Pointer<CellVariable<NDIM, double>> area_var = new CellVariable<NDIM, double>("Area scr");
-        const int vol_idx =
-            var_db->registerVariableAndContext(vol_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
-        const int area_idx =
-            var_db->registerVariableAndContext(area_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
+        const int vol_in_idx = var_db->mapVariableAndContextToIndex(time_integrator->getVolumeVariable(ls_in_cell_var),
+                                                                    time_integrator->getCurrentContext());
+        const int vol_out_idx = var_db->mapVariableAndContextToIndex(
+            time_integrator->getVolumeVariable(ls_out_cell_var), time_integrator->getCurrentContext());
+        const int area_out_idx = var_db->mapVariableAndContextToIndex(time_integrator->getAreaVariable(ls_out_cell_var),
+                                                                      time_integrator->getCurrentContext());
 
         // Close the restart manager.
         RestartManager::getManager()->closeRestartFile();
@@ -383,30 +375,31 @@ main(int argc, char* argv[])
             u_fcn->setDataOnPatchHierarchy(u_draw_idx, u_draw_var, patch_hierarchy, loop_time);
             visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
             time_integrator->deallocatePatchData(u_draw_idx);
-            calculateTotalAmounts(
-                Q_in_idx, Q_out_idx, ls_in_idx, ls_out_idx, vol_idx, patch_hierarchy, loop_time, iteration_num);
+            calculateTotalAmounts(Q_in_idx,
+                                  Q_out_idx,
+                                  ls_in_idx,
+                                  ls_out_idx,
+                                  vol_in_idx,
+                                  vol_out_idx,
+                                  patch_hierarchy,
+                                  loop_time,
+                                  iteration_num);
             if (output_bdry_info)
             {
                 outputBdryInfo(Q_in_idx,
                                Q_in_scr_idx,
-                               ls_in_node_var,
                                ls_in_idx,
-                               vol_var,
-                               vol_idx,
-                               area_var,
-                               area_idx,
+                               vol_in_idx,
+                               area_in_idx,
                                loop_time,
                                iteration_num,
                                patch_hierarchy,
                                "in_bdry_info_");
                 outputBdryInfo(Q_out_idx,
                                Q_out_scr_idx,
-                               ls_out_node_var,
                                ls_out_idx,
-                               vol_var,
-                               vol_idx,
-                               area_var,
-                               area_idx,
+                               vol_out_idx,
+                               area_in_idx,
                                loop_time,
                                iteration_num,
                                patch_hierarchy,
@@ -448,30 +441,31 @@ main(int argc, char* argv[])
                 u_fcn->setDataOnPatchHierarchy(u_draw_idx, u_draw_var, patch_hierarchy, loop_time);
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
                 time_integrator->deallocatePatchData(u_draw_idx);
-                calculateTotalAmounts(
-                    Q_in_idx, Q_out_idx, ls_in_idx, ls_out_idx, vol_idx, patch_hierarchy, loop_time, iteration_num);
+                calculateTotalAmounts(Q_in_idx,
+                                      Q_out_idx,
+                                      ls_in_idx,
+                                      ls_out_idx,
+                                      vol_in_idx,
+                                      vol_out_idx,
+                                      patch_hierarchy,
+                                      loop_time,
+                                      iteration_num);
                 if (output_bdry_info)
                 {
                     outputBdryInfo(Q_in_idx,
                                    Q_in_scr_idx,
-                                   ls_in_node_var,
                                    ls_in_idx,
-                                   vol_var,
-                                   vol_idx,
-                                   area_var,
-                                   area_idx,
+                                   vol_in_idx,
+                                   area_in_idx,
                                    loop_time,
                                    iteration_num,
                                    patch_hierarchy,
                                    "in_bdry_info_");
                     outputBdryInfo(Q_out_idx,
                                    Q_out_scr_idx,
-                                   ls_out_node_var,
                                    ls_out_idx,
-                                   vol_var,
-                                   vol_idx,
-                                   area_var,
-                                   area_idx,
+                                   vol_out_idx,
+                                   area_in_idx,
                                    loop_time,
                                    iteration_num,
                                    patch_hierarchy,
@@ -504,7 +498,8 @@ calculateTotalAmounts(const int Q_in_idx,
                       const int Q_out_idx,
                       const int ls_in_idx,
                       const int ls_out_idx,
-                      const int vol_idx,
+                      const int vol_in_idx,
+                      const int vol_out_idx,
                       Pointer<PatchHierarchy<NDIM>> hierarchy,
                       const double time,
                       const int iteration)
@@ -513,57 +508,41 @@ calculateTotalAmounts(const int Q_in_idx,
     if (SAMRAI_MPI::getRank() == 0) file.open("amounts", ios::out | ios::app);
     LSFindCellVolume vol_fcn("VolFcn", hierarchy);
     const int coarsest_ln = 0, finest_ln = hierarchy->getFinestLevelNumber();
-    bool was_allocated = true;
-    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        if (!level->checkAllocated(vol_idx))
-        {
-            was_allocated = false;
-            level->allocatePatchData(vol_idx, time);
-        }
-    }
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     Pointer<hier::Variable<NDIM>> vol_var, ls_in_var, ls_out_var;
-    var_db->mapIndexToVariable(vol_idx, vol_var);
-    var_db->mapIndexToVariable(ls_in_idx, ls_in_var);
-    var_db->mapIndexToVariable(ls_out_idx, ls_out_var);
 
-    Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", hierarchy);
-    const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
-    HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
-
+    double tot_in, tot_out;
     // First check inside
-    vol_fcn.updateVolumeAndArea(vol_idx, vol_var, -1, nullptr, ls_in_idx, ls_in_var);
-    hier_cc_data_ops.multiply(vol_idx, vol_idx, wgt_cc_idx);
-    const double tot_in = hier_cc_data_ops.integral(Q_in_idx, vol_idx);
+    {
+        Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", hierarchy);
+        const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
+        HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
+        hier_cc_data_ops.multiply(wgt_cc_idx, vol_in_idx, wgt_cc_idx);
+        tot_in = hier_cc_data_ops.integral(Q_in_idx, wgt_cc_idx);
+    }
 
     // Now check outside
-    vol_fcn.updateVolumeAndArea(vol_idx, vol_var, -1, nullptr, ls_out_idx, ls_out_var);
-    hier_cc_data_ops.multiply(vol_idx, vol_idx, wgt_cc_idx);
-    const double tot_out = hier_cc_data_ops.integral(Q_out_idx, vol_idx);
+    {
+        Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", hierarchy);
+        const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
+        HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
+        hier_cc_data_ops.multiply(wgt_cc_idx, vol_out_idx, wgt_cc_idx);
+        tot_out = hier_cc_data_ops.integral(Q_out_idx, wgt_cc_idx);
+    }
 
     if (SAMRAI_MPI::getRank() == 0)
         file << std::setprecision(12) << tot_in << " " << tot_out << " " << tot_in + tot_out << "\n";
     pout << std::setprecision(12) << tot_in << " " << tot_out << " " << tot_in + tot_out << "\n";
 
-    if (!was_allocated)
-    {
-        for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
-        {
-            Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-            level->deallocatePatchData(vol_idx);
-        }
-    }
     if (SAMRAI_MPI::getRank() == 0) file.close();
     return;
 }
 
 void
 output_to_file(const int Q_idx,
+               const int ls_Q_idx,
+               const int vol_Q_idx,
                const int area_idx,
-               const int vol_idx,
-               const int ls_idx,
                const std::string& file_name,
                const double loop_time,
                Pointer<PatchHierarchy<NDIM>> hierarchy)
@@ -581,8 +560,8 @@ output_to_file(const int Q_idx,
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
         Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
         Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(area_idx);
-        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
-        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_Q_idx);
+        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_Q_idx);
         Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         const double* const dx = pgeom->getDx();
         const double* const x_low = pgeom->getXLower();
