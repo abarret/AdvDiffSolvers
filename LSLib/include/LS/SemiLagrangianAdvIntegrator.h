@@ -119,6 +119,9 @@ protected:
     void initializeCompositeHierarchyDataSpecialized(double current_time, bool initial_time) override;
     void regridHierarchyEndSpecialized() override;
     void resetTimeDependentHierarchyDataSpecialized(double new_time) override;
+    void resetHierarchyConfigurationSpecialized(Pointer<BasePatchHierarchy<NDIM>> base_hierarchy,
+                                                int coarsest_ln,
+                                                int finest_ln);
 
 private:
     void advectionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
@@ -135,8 +138,8 @@ private:
                          double current_time,
                          double new_time);
 
-    void integratePaths(int path_idx, int u_idx, double dt);
-    void integratePaths(int path_idx, int u_idx, int vol_idx, int ls_idx, double dt);
+    void integratePaths(int path_idx, int u_new_idx, int u_half_idx, double dt);
+    void integratePaths(int path_idx, int u_new_idx, int u_half_idx, int vol_idx, int ls_idx, double dt);
 
     void evaluateMappingOnHierarchy(int xstar_idx,
                                     int Q_cur_idx,
@@ -210,6 +213,8 @@ private:
     double d_max_ls_refine_factor = std::numeric_limits<double>::quiet_NaN();
     LeastSquaresOrder d_least_squares_reconstruction_order = UNKNOWN_ORDER;
     bool d_use_strang_splitting = false;
+
+    SAMRAI::tbox::Pointer<SAMRAI::math::HierarchyFaceDataOpsReal<NDIM, double>> d_hier_fc_data_ops;
 
 }; // Class SemiLagrangianAdvIntegrator
 } // Namespace LS

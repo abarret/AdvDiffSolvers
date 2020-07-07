@@ -185,12 +185,17 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
     }
 
     d_u_s_var = new SideVariable<NDIM, double>(d_object_name + "::USide");
-    int u_s_idx;
-    registerVariable(u_s_idx, d_u_s_var, IntVector<NDIM>(1), getScratchContext());
+    int u_new_idx, u_half_idx;
+    registerVariable(u_new_idx, d_u_s_var, IntVector<NDIM>(1), getNewContext());
+    registerVariable(u_half_idx, d_u_s_var, IntVector<NDIM>(1), getScratchContext());
 
     d_vol_fcn = new LSFindCellVolume(d_object_name + "::VolumeFunction", hierarchy);
 
     AdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(hierarchy, gridding_alg);
+
+    auto hier_ops_manager = HierarchyDataOpsManager<NDIM>::getManager();
+    d_hier_fc_data_ops =
+        hier_ops_manager->getOperationsDouble(new FaceVariable<NDIM, double>("fc_var"), d_hierarchy, true);
 
     d_integrator_is_initialized = true;
 }
@@ -496,15 +501,24 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
             const int ls_cell_scr_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getScratchContext());
             plog << d_object_name + "::integrateHierarchy() evolving level set " << ls_cell_var->getName()
                  << " at time " << new_time << "\n";
+            const int u_new_idx = var_db->mapVariableAndContextToIndex(d_ls_u_map[ls_cell_var], getNewContext());
             const int u_cur_idx = var_db->mapVariableAndContextToIndex(d_ls_u_map[ls_cell_var], getCurrentContext());
-            const int u_s_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getScratchContext());
-            using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-            std::vector<ITC> ghost_cell_comps(2);
+            const int u_scr_idx = var_db->mapVariableAndContextToIndex(d_ls_u_map[ls_cell_var], getScratchContext());
+            const int u_s_half_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getScratchContext());
+            const int u_s_new_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getNewContext());
+
             // Copy face data to side data
-            copy_face_to_side(u_s_idx, u_cur_idx, d_hierarchy);
+            copy_face_to_side(u_s_new_idx, u_new_idx, d_hierarchy);
+            d_hier_fc_data_ops->linearSum(u_scr_idx, 0.5, u_new_idx, 0.5, u_cur_idx, true);
+            copy_face_to_side(u_s_half_idx, u_scr_idx, d_hierarchy);
+
+            using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+            std::vector<ITC> ghost_cell_comps(3);
             ghost_cell_comps[0] =
-                ITC(u_s_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR", false, nullptr);
-            ghost_cell_comps[1] = ITC(ls_cell_scr_idx,
+                ITC(u_s_new_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR", false, nullptr);
+            ghost_cell_comps[1] = ITC(
+                u_s_half_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR", false, nullptr);
+            ghost_cell_comps[2] = ITC(ls_cell_scr_idx,
                                       ls_cell_cur_idx,
                                       "CONSERVATIVE_LINEAR_REFINE",
                                       false,
@@ -517,7 +531,7 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
                 ghost_cell_comps, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
             hier_ghost_cell->fillData(current_time);
             hier_ghost_cell->deallocateOperatorState();
-            integratePaths(d_path_idx, u_s_idx, new_time - current_time);
+            integratePaths(d_path_idx, u_s_new_idx, u_s_half_idx, new_time - current_time);
 
             // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next
             // iteration
@@ -699,6 +713,17 @@ SemiLagrangianAdvIntegrator::resetTimeDependentHierarchyDataSpecialized(const do
     AdvDiffHierarchyIntegrator::resetTimeDependentHierarchyDataSpecialized(new_time);
 }
 
+void
+SemiLagrangianAdvIntegrator::resetHierarchyConfigurationSpecialized(
+    const Pointer<BasePatchHierarchy<NDIM>> base_hierarchy,
+    const int coarsest_ln,
+    const int finest_ln)
+{
+    AdvDiffHierarchyIntegrator::resetHierarchyConfigurationSpecialized(base_hierarchy, coarsest_ln, finest_ln);
+    d_hier_fc_data_ops->setPatchHierarchy(base_hierarchy);
+    d_hier_fc_data_ops->resetLevels(0, finest_ln);
+}
+
 /////////////////////// PRIVATE ///////////////////////////////
 void
 SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
@@ -713,7 +738,10 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
     const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
     const Pointer<FaceVariable<NDIM, double>>& u_var = d_Q_u_map[Q_var];
     const int u_new_idx = var_db->mapVariableAndContextToIndex(u_var, getNewContext());
-    const int u_s_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getScratchContext());
+    const int u_cur_idx = var_db->mapVariableAndContextToIndex(u_var, getCurrentContext());
+    const int u_scr_idx = var_db->mapVariableAndContextToIndex(u_var, getScratchContext());
+    const int u_s_new_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getNewContext());
+    const int u_s_half_idx = var_db->mapVariableAndContextToIndex(d_u_s_var, getScratchContext());
 
     const Pointer<CellVariable<NDIM, double>>& ls_cell_var = d_Q_ls_map[Q_var];
     const size_t l =
@@ -726,16 +754,19 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
     const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
 
     {
-        copy_face_to_side(u_s_idx, u_new_idx, d_hierarchy);
+        copy_face_to_side(u_s_new_idx, u_new_idx, d_hierarchy);
+        d_hier_fc_data_ops->linearSum(u_scr_idx, 0.5, u_new_idx, 0.5, u_cur_idx, true);
+        copy_face_to_side(u_s_half_idx, u_scr_idx, d_hierarchy);
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-        std::vector<ITC> ghost_cell_comps(2);
+        std::vector<ITC> ghost_cell_comps(3);
         HierarchyGhostCellInterpolation hier_ghost_cells;
         ghost_cell_comps[0] = ITC(ls_node_new_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
-        ghost_cell_comps[1] = ITC(u_s_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR");
+        ghost_cell_comps[1] = ITC(u_s_new_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR");
+        ghost_cell_comps[2] = ITC(u_s_half_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR");
         hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
         hier_ghost_cells.fillData(current_time);
         // Integrate path
-        integratePaths(d_path_idx, u_s_idx, vol_new_idx, ls_node_new_idx, dt);
+        integratePaths(d_path_idx, u_s_new_idx, u_s_half_idx, vol_new_idx, ls_node_new_idx, dt);
     }
 
     {
@@ -803,7 +834,10 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
 }
 
 void
-SemiLagrangianAdvIntegrator::integratePaths(const int path_idx, const int u_idx, const double dt)
+SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
+                                            const int u_new_idx,
+                                            const int u_half_idx,
+                                            const double dt)
 {
     // Integrate path to find \xx^{n+1}
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
@@ -816,8 +850,9 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx, const int u_idx,
             const Box<NDIM>& box = patch->getBox();
 
             Pointer<CellData<NDIM, double>> path_data = patch->getPatchData(path_idx);
-            Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(u_idx);
-            TBOX_ASSERT(u_data);
+            Pointer<SideData<NDIM, double>> u_new_data = patch->getPatchData(u_new_idx);
+            Pointer<SideData<NDIM, double>> u_half_data = patch->getPatchData(u_half_idx);
+            TBOX_ASSERT(u_new_data && u_half_data);
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
 
@@ -825,10 +860,18 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx, const int u_idx,
             {
                 const CellIndex<NDIM>& idx = ci();
                 VectorNd com = { idx(0) + 0.5, idx(1) + 0.5 };
-                const VectorNd& u = findVelocity(idx, *u_data, com);
+                // First do half step
+                const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
+                VectorNd com_half;
+                for (int d = 0; d < NDIM; ++d) com_half[d] = com[d] - 0.5 * dt * u_new[d] / dx[d];
+
+                // Now do full step
+                const VectorNd& u_half = findVelocity(idx, *u_half_data, com_half);
+                for (int d = 0; d < NDIM; ++d) com[d] = com[d] - dt * u_half[d] / dx[d];
+
                 for (int d = 0; d < NDIM; ++d)
                 {
-                    (*path_data)(idx, d) = (idx(d) + 0.5) - dt * u(d) / dx[d];
+                    (*path_data)(idx, d) = com[d];
                 }
             }
         }
@@ -837,7 +880,8 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx, const int u_idx,
 
 void
 SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
-                                            const int u_idx,
+                                            const int u_new_idx,
+                                            const int u_half_idx,
                                             const int vol_idx,
                                             const int ls_idx,
                                             const double dt)
@@ -855,8 +899,9 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             Pointer<CellData<NDIM, double>> path_data = patch->getPatchData(path_idx);
             Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
             Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
-            Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(u_idx);
-            TBOX_ASSERT(u_data);
+            Pointer<SideData<NDIM, double>> u_new_data = patch->getPatchData(u_new_idx);
+            Pointer<SideData<NDIM, double>> u_half_data = patch->getPatchData(u_half_idx);
+            TBOX_ASSERT(u_new_data && u_half_data);
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
 
@@ -864,8 +909,15 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             {
                 const CellIndex<NDIM>& idx = ci();
                 VectorNd com = find_cell_centroid(idx, *ls_data);
-                const VectorNd& u = findVelocity(idx, *u_data, com);
-                for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com(d) - dt * u(d) / dx[d];
+                const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
+                VectorNd com_half;
+                for (int d = 0; d < NDIM; ++d) com_half[d] = com[d] - 0.5 * dt * u_new[d] / dx[d];
+
+                // Now do full step
+                const VectorNd& u_half = findVelocity(idx, *u_half_data, com_half);
+                for (int d = 0; d < NDIM; ++d) com[d] = com[d] - dt * u_half[d] / dx[d];
+
+                for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com(d);
             }
         }
     }
