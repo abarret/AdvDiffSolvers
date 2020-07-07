@@ -6,13 +6,13 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 2                            // maximum number of levels in locally refined grid
 REF_RATIO  = 2                            // refinement ratio between levels
-N = 128                                    // coarsest grid spacing
+N = 2*2*32                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.5
-DT_MAX = H * CFL_MAX / 1.0
-DT_MIN = DT_MAX / 7.5
-END_TIME = 15
+DT_MIN = H * CFL_MAX / 7.0
+DT_MAX = DT_MIN
+END_TIME = 7.5
 REGRID_INTERVAL = 1
 TAG_BUFFER = 1
 
@@ -22,13 +22,14 @@ DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 2.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
-USE_STRANG_SPLITTING = FALSE
+USE_STRANG_SPLITTING = TRUE
+USE_OUTSIDE_LS_FOR_TAGGING = TRUE
 
 XCOM = 1.5
 YCOM = 1.5
 R = 1.0
 R_2 = 3.75
-R_1 = 0.25
+R_1 = 0.5
 OMEGA_2 = 0.5
 OMEGA_1 = 5.0
 
@@ -93,7 +94,7 @@ PoissonSolver {
 }
 
 UFunction {
-   a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_2)
+   a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
    b = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
    xcom = 0.0
    ycom = 0.0
@@ -138,6 +139,10 @@ Main {
 // restart dump parameters
    restart_dump_interval       = 0
    restart_dump_dirname        = "restart_adv_diff2d"
+
+   data_dump_interval          = 1
+   data_dump_dirname           = "hier_data_IB2d"
+
 }
 
 CartesianGeometry {
