@@ -83,6 +83,14 @@ locateInterface(const int D_idx,
     interface->resetData(D_idx, hier_math_ops, time, initial_time);
 }
 
+void postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                      Pointer<SemiLagrangianAdvIntegrator> integrator,
+                      Pointer<CellVariable<NDIM, double>> Q_in_var,
+                      Pointer<CellVariable<NDIM, double>> Q_out_var,
+                      int iteration_num,
+                      double loop_time,
+                      const std::string& dirname);
+
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
  * be given on the command line.  For non-restarted case, command line is:     *
@@ -119,10 +127,17 @@ main(int argc, char* argv[])
 
         const bool dump_restart_data = app_initializer->dumpRestartData();
         const int restart_dump_interval = app_initializer->getRestartDumpInterval();
-        const string restart_dump_dirname = app_initializer->getRestartDumpDirectory();
+        const std::string restart_dump_dirname = app_initializer->getRestartDumpDirectory();
 
         const bool dump_timer_data = app_initializer->dumpTimerData();
         const int timer_dump_interval = app_initializer->getTimerDumpInterval();
+
+        const bool dump_postproc_data = app_initializer->dumpPostProcessingData();
+        const std::string postproc_data_dump_dirname = app_initializer->getPostProcessingDataDumpDirectory();
+        if (dump_postproc_data && !postproc_data_dump_dirname.empty())
+        {
+            Utilities::recursiveMkdir(postproc_data_dump_dirname);
+        }
 
         // Create major algorithm and data objects that comprise the
         // application.  These objects are configured from the input database
@@ -230,7 +245,7 @@ main(int argc, char* argv[])
         time_integrator->setPhysicalBcCoef(Q_out_var, Q_out_bcs[0]);
         time_integrator->setDiffusionCoefficient(Q_out_var, input_db->getDoubleWithDefault("D_coef", 0.0));
         time_integrator->restrictToLevelSet(Q_out_var, ls_out_cell_var);
-        time_integrator->useLevelSetForTagging(ls_out_cell_var, false);
+        time_integrator->useLevelSetForTagging(ls_out_cell_var, input_db->getBool("USE_OUTSIDE_LS_FOR_TAGGING"));
 
         // Set up diffusion operators
         Pointer<LSCutCellLaplaceOperator> rhs_in_oper = new LSCutCellLaplaceOperator(
@@ -338,6 +353,16 @@ main(int argc, char* argv[])
             }
         }
 
+        // Print out final information
+        if (dump_postproc_data)
+            postprocess_data(patch_hierarchy,
+                             time_integrator,
+                             Q_in_var,
+                             Q_out_var,
+                             iteration_num,
+                             loop_time,
+                             postproc_data_dump_dirname);
+
         if (!periodic_domain) delete Q_in_bcs[0];
         if (!periodic_domain) delete Q_out_bcs[0];
     } // cleanup dynamically allocated objects prior to shutdown
@@ -346,3 +371,28 @@ main(int argc, char* argv[])
     PetscFinalize();
     return 0;
 } // main
+
+void
+postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                 Pointer<SemiLagrangianAdvIntegrator> integrator,
+                 Pointer<CellVariable<NDIM, double>> Q_in_var,
+                 Pointer<CellVariable<NDIM, double>> Q_out_var,
+                 const int iteration_num,
+                 const double loop_time,
+                 const std::string& dirname)
+{
+    std::string file_name = dirname + "/hier_data.";
+    char temp_buf[128];
+    sprintf(temp_buf, "%05d.samrai.%05d", iteration_num, SAMRAI_MPI::getRank());
+    file_name += temp_buf;
+    Pointer<HDFDatabase> hier_db = new HDFDatabase("hier_db");
+    hier_db->create(file_name);
+    ComponentSelector hier_data;
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(Q_in_var, integrator->getCurrentContext()));
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(Q_out_var, integrator->getCurrentContext()));
+    hierarchy->putToDatabase(hier_db->putDatabase("PatchHierarchy"), hier_data);
+    hier_db->putDouble("loop_time", loop_time);
+    hier_db->putInteger("iteration_num", iteration_num);
+    hier_db->close();
+}

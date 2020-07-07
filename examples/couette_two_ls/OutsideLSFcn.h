@@ -44,6 +44,12 @@ public:
                  SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> in_n_var,
                  SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 
+    OutsideLSFcn(SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> ctx,
+                 const string& object_name,
+                 SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> in_c_var,
+                 SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> in_n_var,
+                 SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
+
     /*!
      * \brief Destructor.
      */
@@ -104,6 +110,7 @@ private:
     string d_object_name;
 
     SAMRAI::tbox::Pointer<IBTK::HierarchyIntegrator> d_integrator;
+    SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> d_ctx;
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_in_ls_cell_var;
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_in_ls_node_var;
     double d_R1 = std::numeric_limits<double>::quiet_NaN(), d_R2 = std::numeric_limits<double>::quiet_NaN();
