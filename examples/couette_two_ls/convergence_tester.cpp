@@ -28,7 +28,6 @@
 #include <ibtk/HierarchyGhostCellInterpolation.h>
 #include <ibtk/HierarchyMathOps.h>
 
-#include "LS/CartCellDoubleLSConservativeCoarsen.h"
 #include "LS/LSFindCellVolume.h"
 
 #include "BoxArray.h"
@@ -105,8 +104,6 @@ main(int argc, char* argv[])
     // Create major algorithm and data objects that comprise application.
     Pointer<CartesianGridGeometry<NDIM>> grid_geom = new CartesianGridGeometry<NDIM>(
         "CartesianGeometry", app_initializer->getComponentDatabase("CartesianGeometry"));
-
-    grid_geom->addSpatialCoarsenOperator(new CartCellDoubleLSConservativeCoarsen());
 
     // Initialize variables.
     VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
