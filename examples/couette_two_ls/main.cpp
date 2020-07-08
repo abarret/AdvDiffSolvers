@@ -91,6 +91,52 @@ void postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
                       double loop_time,
                       const std::string& dirname);
 
+void output_to_file(const int Q_idx,
+                    const int area_idx,
+                    const int vol_idx,
+                    const int ls_interior_idx,
+                    const std::string& file_name,
+                    const double loop_time,
+                    Pointer<PatchHierarchy<NDIM>> hierarchy);
+void
+outputBdryInfo(const int Q_idx,
+               const int Q_scr_idx,
+               const int ls_interior_idx,
+               const int vol_idx,
+               const int area_idx,
+               const double current_time,
+               const int iteration_num,
+               Pointer<PatchHierarchy<NDIM>> hierarchy,
+               std::string base_name)
+{
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        if (!level->checkAllocated(Q_scr_idx)) level->allocatePatchData(Q_scr_idx);
+    }
+
+    using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+    std::vector<ITC> ghost_cell_comps(1);
+    ghost_cell_comps[0] = ITC(Q_scr_idx, Q_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR", false, nullptr);
+    HierarchyGhostCellInterpolation hier_ghost_cells;
+    hier_ghost_cells.initializeOperatorState(ghost_cell_comps, hierarchy, 0, hierarchy->getFinestLevelNumber());
+    hier_ghost_cells.fillData(current_time);
+
+    output_to_file(Q_scr_idx,
+                   area_idx,
+                   vol_idx,
+                   ls_interior_idx,
+                   base_name + std::to_string(iteration_num),
+                   current_time,
+                   hierarchy);
+
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        level->deallocatePatchData(Q_scr_idx);
+    }
+}
+
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
  * be given on the command line.  For non-restarted case, command line is:     *
@@ -206,6 +252,7 @@ main(int argc, char* argv[])
             "RelaxationLSMethod_in", app_initializer->getComponentDatabase("RelaxationLSMethod"));
         ls_out_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface, static_cast<void*>(&interface_out));
         time_integrator->registerLevelSetResetFunction(ls_out_cell_var, ls_out_ops);
+        Pointer<NodeVariable<NDIM, double>> ls_out_node_var = time_integrator->getLevelSetNodeVariable(ls_out_cell_var);
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_in_var = new CellVariable<NDIM, double>("Q_in");
@@ -281,6 +328,9 @@ main(int argc, char* argv[])
         const int u_draw_idx = var_db->registerVariableAndContext(u_draw_var, var_db->getContext("Draw"));
         visit_data_writer->registerPlotQuantity("U", "VECTOR", u_draw_idx);
 
+        const int Q_scr_idx =
+            var_db->registerVariableAndContext(Q_in_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
+
         // Initialize hierarchy configuration and data on all patches.
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
@@ -353,6 +403,42 @@ main(int argc, char* argv[])
             }
         }
 
+        // Print out information on disk boundary
+        if (dump_postproc_data)
+        {
+            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            const int Q_in_idx = var_db->mapVariableAndContextToIndex(Q_in_var, time_integrator->getCurrentContext());
+            const int ls_in_n_idx =
+                var_db->mapVariableAndContextToIndex(ls_in_node_var, time_integrator->getCurrentContext());
+            const int vol_in_idx = var_db->mapVariableAndContextToIndex(
+                time_integrator->getVolumeVariable(ls_in_cell_var), time_integrator->getCurrentContext());
+            const int area_in_idx = var_db->mapVariableAndContextToIndex(
+                time_integrator->getAreaVariable(ls_in_cell_var), time_integrator->getCurrentContext());
+            outputBdryInfo(Q_in_idx,
+                           Q_scr_idx,
+                           ls_in_n_idx,
+                           vol_in_idx,
+                           area_in_idx,
+                           loop_time,
+                           iteration_num,
+                           patch_hierarchy,
+                           "inside_bdry_info_");
+            const int Q_out_idx = var_db->mapVariableAndContextToIndex(Q_out_var, time_integrator->getCurrentContext());
+            const int vol_out_idx = var_db->mapVariableAndContextToIndex(
+                time_integrator->getVolumeVariable(ls_out_cell_var), time_integrator->getCurrentContext());
+            const int area_out_idx = var_db->mapVariableAndContextToIndex(
+                time_integrator->getAreaVariable(ls_in_cell_var), time_integrator->getCurrentContext());
+            outputBdryInfo(Q_out_idx,
+                           Q_scr_idx,
+                           ls_in_n_idx,
+                           vol_out_idx,
+                           area_out_idx,
+                           loop_time,
+                           iteration_num,
+                           patch_hierarchy,
+                           "outside_bdry_info_");
+        }
+
         // Print out final information
         if (dump_postproc_data)
             postprocess_data(patch_hierarchy,
@@ -395,4 +481,171 @@ postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
     hier_db->putDouble("loop_time", loop_time);
     hier_db->putInteger("iteration_num", iteration_num);
     hier_db->close();
+}
+
+void
+output_to_file(const int Q_idx,
+               const int area_idx,
+               const int vol_idx,
+               const int ls_interp_idx,
+               const std::string& file_name,
+               const double loop_time,
+               Pointer<PatchHierarchy<NDIM>> hierarchy)
+{
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    Pointer<hier::Variable<NDIM>> Q_var;
+    var_db->mapIndexToVariable(Q_idx, Q_var);
+    std::ofstream bdry_stream;
+    if (SAMRAI_MPI::getRank() == 0) bdry_stream.open(file_name.c_str(), std::ofstream::out);
+    // data structure to hold bdry data : (theta, bdry_val)
+    std::vector<double> theta_data, val_data;
+    // We only care about data on the finest level
+    Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(hierarchy->getFinestLevelNumber());
+    double integral = 0.0;
+    double tot_area = 0.0;
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+    {
+        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+        Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+        Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(area_idx);
+        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_interp_idx);
+        Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+        const double* const dx = pgeom->getDx();
+        const double* const x_low = pgeom->getXLower();
+        const Box<NDIM>& box = patch->getBox();
+        const hier::Index<NDIM>& idx_low = box.lower();
+        for (CellIterator<NDIM> ci(box); ci; ci++)
+        {
+            const CellIndex<NDIM>& idx = ci();
+            const double area = (*area_data)(idx);
+            if (area > 0.0)
+            {
+                std::array<VectorNd, 2> X_bounds;
+                int l = 0;
+                const NodeIndex<NDIM> idx_ll(idx, IntVector<NDIM>(0, 0)), idx_uu(idx, IntVector<NDIM>(1, 1)),
+                    idx_lu(idx, IntVector<NDIM>(0, 1)), idx_ul(idx, IntVector<NDIM>(1, 0));
+                const double phi_ll = (*ls_data)(idx_ll), phi_uu = (*ls_data)(idx_uu), phi_lu = (*ls_data)(idx_lu),
+                             phi_ul = (*ls_data)(idx_ul);
+                VectorNd X_ll(idx(0), idx(1)), X_uu(idx(0) + 1.0, idx(1) + 1.0), X_lu(idx(0), idx(1) + 1.0),
+                    X_ul(idx(0) + 1.0, idx(1));
+                if (phi_ll * phi_lu < 0.0)
+                {
+                    X_bounds[l] = midpoint_value(X_ll, phi_ll, X_lu, phi_lu);
+                    l++;
+                }
+                if (phi_lu * phi_uu < 0.0)
+                {
+                    X_bounds[l] = midpoint_value(X_lu, phi_lu, X_uu, phi_uu);
+                    l++;
+                }
+                if (phi_uu * phi_ul < 0.0)
+                {
+                    X_bounds[l] = midpoint_value(X_uu, phi_uu, X_ul, phi_ul);
+                    l++;
+                }
+                if (phi_ul * phi_ll < 0.0)
+                {
+                    X_bounds[l] = midpoint_value(X_ul, phi_ul, X_ll, phi_ll);
+                    l++;
+                }
+                TBOX_ASSERT(l == 2);
+                VectorNd X = 0.5 * (X_bounds[0] + X_bounds[1]);
+                VectorNd X_phys;
+                for (int d = 0; d < NDIM; ++d) X_phys[d] = x_low[d] + dx[d] * (X(d) - static_cast<double>(idx_low(d)));
+                X_phys[0] -= 1.5 + cos(M_PI / 4.0) * loop_time;
+                X_phys[1] -= 1.5 + sin(M_PI / 4.0) * loop_time;
+                double theta = std::atan2(X_phys[1], X_phys[0]);
+                theta_data.push_back(theta);
+                // Calculate a delta theta for integral calculations
+                double d_theta = area;
+
+                // Do least squares linear approximation to find Q_val
+                Box<NDIM> box_ls(idx, idx);
+                box_ls.grow(1);
+                std::vector<double> Q_vals;
+                std::vector<VectorNd> X_vals;
+                for (CellIterator<NDIM> ci(box_ls); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx_c = ci();
+                    if ((*vol_data)(idx_c) > 0.0)
+                    {
+                        // Use this point
+                        Q_vals.push_back((*Q_data)(idx_c));
+                        X_vals.push_back(find_cell_centroid(idx_c, *ls_data));
+                    }
+                }
+                const int m = Q_vals.size();
+                MatrixXd A(MatrixXd::Zero(m, NDIM + 1)), Lambda(MatrixXd::Zero(m, m));
+                VectorXd U(VectorXd::Zero(m));
+                for (size_t i = 0; i < Q_vals.size(); ++i)
+                {
+                    const VectorNd disp = X_vals[i] - X;
+                    double w = std::sqrt(std::exp(-disp.norm() * disp.norm()));
+                    Lambda(i, i) = w;
+                    A(i, 2) = disp[1];
+                    A(i, 1) = disp[0];
+                    A(i, 0) = 1.0;
+                    U(i) = Q_vals[i];
+                }
+
+                VectorXd soln = (Lambda * A).fullPivHouseholderQr().solve(Lambda * U);
+                val_data.push_back(soln(0));
+                integral += soln(0) * d_theta;
+                tot_area += d_theta;
+            }
+        }
+    }
+    integral = SAMRAI_MPI::sumReduction(integral);
+    tot_area = SAMRAI_MPI::sumReduction(tot_area);
+    pout << "Integral at time: " << loop_time << " for variable: " << Q_var->getName()
+         << " is: " << std::setprecision(12) << integral << "\n";
+    pout << "Area     at time: " << loop_time << " for variable: " << Q_var->getName()
+         << " is: " << std::setprecision(12) << tot_area << "\n";
+    // Now we need to send the data to processor rank 0 for outputting
+    if (SAMRAI_MPI::getRank() == 0)
+    {
+        const int num_procs = SAMRAI_MPI::getNodes();
+        std::vector<int> data_per_proc(num_procs - 1);
+        for (int i = 1; i < num_procs; ++i)
+        {
+            MPI_Recv(&data_per_proc[i - 1], 1, MPI_INT, i, 0, SAMRAI_MPI::commWorld, nullptr);
+        }
+        std::vector<std::vector<double>> theta_per_proc(num_procs - 1), val_per_proc(num_procs - 1);
+        for (int i = 1; i < num_procs; ++i)
+        {
+            theta_per_proc[i - 1].resize(data_per_proc[i - 1]);
+            val_per_proc[i - 1].resize(data_per_proc[i - 1]);
+            MPI_Recv(
+                theta_per_proc[i - 1].data(), data_per_proc[i - 1], MPI_DOUBLE, i, 0, SAMRAI_MPI::commWorld, nullptr);
+            MPI_Recv(
+                val_per_proc[i - 1].data(), data_per_proc[i - 1], MPI_DOUBLE, i, 0, SAMRAI_MPI::commWorld, nullptr);
+        }
+        // Root processor now has all the data. Sort it and print it
+        std::map<double, double> theta_val_data;
+        // Start with root processor
+        for (size_t i = 0; i < theta_data.size(); ++i) theta_val_data[theta_data[i]] = val_data[i];
+        // Now loop through remaining processors
+        for (int i = 1; i < num_procs; ++i)
+        {
+            for (size_t j = 0; j < theta_per_proc[i - 1].size(); ++j)
+            {
+                theta_val_data[theta_per_proc[i - 1][j]] = val_per_proc[i - 1][j];
+            }
+        }
+        bdry_stream << std::setprecision(10) << loop_time << "\n";
+        for (const auto& theta_val_pair : theta_val_data)
+        {
+            bdry_stream << theta_val_pair.first << " " << theta_val_pair.second << "\n";
+        }
+        bdry_stream.close();
+    }
+    else
+    {
+        TBOX_ASSERT(theta_data.size() == val_data.size());
+        int num_data = theta_data.size();
+        MPI_Send(&num_data, 1, MPI_INT, 0, 0, SAMRAI_MPI::commWorld);
+        MPI_Send(theta_data.data(), theta_data.size(), MPI_DOUBLE, 0, 0, SAMRAI_MPI::commWorld);
+        MPI_Send(val_data.data(), val_data.size(), MPI_DOUBLE, 0, 0, SAMRAI_MPI::commWorld);
+    }
 }
