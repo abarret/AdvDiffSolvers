@@ -33,6 +33,8 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
         d_least_squares_reconstruction_order =
             string_to_enum<LeastSquaresOrder>(input_db->getString("least_squares_order"));
         d_use_strang_splitting = input_db->getBool("use_strang_splitting");
+        d_time_integration_method =
+            string_to_enum<TimeIntegrationMethod>(input_db->getString("adv_integration_method"));
     }
 }
 
@@ -856,23 +858,35 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
 
-            for (CellIterator<NDIM> ci(box); ci; ci++)
+            switch (d_time_integration_method)
             {
-                const CellIndex<NDIM>& idx = ci();
-                VectorNd com = { idx(0) + 0.5, idx(1) + 0.5 };
-                // First do half step
-                const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
-                VectorNd com_half;
-                for (int d = 0; d < NDIM; ++d) com_half[d] = com[d] - 0.5 * dt * u_new[d] / dx[d];
-
-                // Now do full step
-                const VectorNd& u_half = findVelocity(idx, *u_half_data, com_half);
-                for (int d = 0; d < NDIM; ++d) com[d] = com[d] - dt * u_half[d] / dx[d];
-
-                for (int d = 0; d < NDIM; ++d)
+            case FORWARD_EULER:
+                for (CellIterator<NDIM> ci(box); ci; ci++)
                 {
-                    (*path_data)(idx, d) = com[d];
+                    const CellIndex<NDIM>& idx = ci();
+                    VectorNd com = { idx(0) + 0.5, idx(1) + 0.5 };
+                    // First do half step
+                    const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
+                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com[d] - dt * u_new[d] / dx[d];
                 }
+                break;
+            case MIDPOINT_RULE:
+                for (CellIterator<NDIM> ci(box); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    VectorNd com = { idx(0) + 0.5, idx(1) + 0.5 };
+                    // First do half step
+                    const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
+                    VectorNd com_half;
+                    for (int d = 0; d < NDIM; ++d) com_half[d] = com[d] - 0.5 * dt * u_new[d] / dx[d];
+
+                    // Now do full step
+                    const VectorNd& u_half = findVelocity(idx, *u_half_data, com_half);
+                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com[d] - dt * u_half[d] / dx[d];
+                }
+                break;
+            default:
+                TBOX_ERROR("UNKNOWN METHOD!\n");
             }
         }
     }
@@ -905,19 +919,33 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
 
-            for (CellIterator<NDIM> ci(box); ci; ci++)
+            switch (d_time_integration_method)
             {
-                const CellIndex<NDIM>& idx = ci();
-                VectorNd com = find_cell_centroid(idx, *ls_data);
-                const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
-                VectorNd com_half;
-                for (int d = 0; d < NDIM; ++d) com_half[d] = com[d] - 0.5 * dt * u_new[d] / dx[d];
+            case FORWARD_EULER:
+                for (CellIterator<NDIM> ci(box); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    VectorNd com = find_cell_centroid(idx, *ls_data);
+                    const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
+                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com[d] - dt * u_new[d] / dx[d];
+                }
+                break;
+            case MIDPOINT_RULE:
+                for (CellIterator<NDIM> ci(box); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    VectorNd com = find_cell_centroid(idx, *ls_data);
+                    const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
+                    VectorNd com_half;
+                    for (int d = 0; d < NDIM; ++d) com_half[d] = com[d] - 0.5 * dt * u_new[d] / dx[d];
 
-                // Now do full step
-                const VectorNd& u_half = findVelocity(idx, *u_half_data, com_half);
-                for (int d = 0; d < NDIM; ++d) com[d] = com[d] - dt * u_half[d] / dx[d];
-
-                for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com(d);
+                    // Now do full step
+                    const VectorNd& u_half = findVelocity(idx, *u_half_data, com_half);
+                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com[d] - dt * u_half[d] / dx[d];
+                }
+                break;
+            default:
+                TBOX_ERROR("UNKNOWN METHOD!\n");
             }
         }
     }

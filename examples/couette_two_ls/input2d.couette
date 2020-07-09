@@ -6,7 +6,7 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 2                            // maximum number of levels in locally refined grid
 REF_RATIO  = 2                            // refinement ratio between levels
-N = 2*2*32                                    // coarsest grid spacing
+N = 2*32                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.5
@@ -24,6 +24,7 @@ MAX_REFINE_FACTOR = 2.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
 USE_STRANG_SPLITTING = TRUE
 USE_OUTSIDE_LS_FOR_TAGGING = TRUE
+ADV_INT_METHOD = "FORWARD_EULER"
 
 XCOM = 1.5
 YCOM = 1.5
@@ -204,6 +205,7 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     max_ls_refine_factor = MAX_REFINE_FACTOR
     least_squares_order = LEAST_SQUARES_ORDER
     use_strang_splitting = USE_STRANG_SPLITTING
+    adv_integration_method = ADV_INT_METHOD
 
     tag_buffer = TAG_BUFFER
     

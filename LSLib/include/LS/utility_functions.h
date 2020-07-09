@@ -151,6 +151,31 @@ enum_to_string<LeastSquaresOrder>(LeastSquaresOrder val)
     return "UNKNOWN_ORDER";
 }
 
+enum TimeIntegrationMethod
+{
+    FORWARD_EULER,
+    MIDPOINT_RULE,
+    UNKNOWN_METHOD = -1
+};
+
+template <>
+inline TimeIntegrationMethod
+string_to_enum<TimeIntegrationMethod>(const std::string& val)
+{
+    if (strcasecmp(val.c_str(), "FORWARD_EULER") == 0) return FORWARD_EULER;
+    if (strcasecmp(val.c_str(), "MIDPOINT_RULE") == 0) return MIDPOINT_RULE;
+    return UNKNOWN_METHOD;
+}
+
+template <>
+inline std::string
+enum_to_string<TimeIntegrationMethod>(TimeIntegrationMethod val)
+{
+    if (val == FORWARD_EULER) return "FORWARD_EULER";
+    if (val == MIDPOINT_RULE) return "MIDPOINT_RULE";
+    return "UNKNOWN_METHOD";
+}
+
 inline void
 copy_face_to_side(const int u_s_idx, const int u_f_idx, Pointer<PatchHierarchy<NDIM>> hierarchy)
 {

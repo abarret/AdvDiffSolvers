@@ -212,6 +212,7 @@ private:
     double d_min_ls_refine_factor = std::numeric_limits<double>::quiet_NaN();
     double d_max_ls_refine_factor = std::numeric_limits<double>::quiet_NaN();
     LeastSquaresOrder d_least_squares_reconstruction_order = UNKNOWN_ORDER;
+    TimeIntegrationMethod d_time_integration_method = UNKNOWN_METHOD;
     bool d_use_strang_splitting = false;
 
     SAMRAI::tbox::Pointer<SAMRAI::math::HierarchyFaceDataOpsReal<NDIM, double>> d_hier_fc_data_ops;
