@@ -4,34 +4,37 @@ L = 4.0
 BASE_NAME = "test1"
 
 // grid spacing parameters
-MAX_LEVELS = 3                            // maximum number of levels in locally refined grid
-REF_RATIO  = 4                            // refinement ratio between levels
-N = 8                                    // coarsest grid spacing
+MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
+REF_RATIO  = 2                            // refinement ratio between levels
+N = 256                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.5
-DT_MAX = H * CFL_MAX / 1.0
-DT_MIN = DT_MAX / 7.5
+DT_MIN = H * CFL_MAX / 7.5
+DT_MAX = DT_MIN
 END_TIME = 7.5
 REGRID_INTERVAL = 1
 TAG_BUFFER = 1
 
-OUTPUT_BDRY_INFO = FALSE
-USING_LS_FCN = FALSE
+OUTPUT_BDRY_INFO = TRUE
+USING_LS_FCN = TRUE
 DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 4.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
 USE_STRANG_SPLITTING = TRUE
 USE_OUT_LS_FOR_TAGGING = FALSE
+ADV_INT_METHOD = "MIDPOINT_RULE"
 
-XCOM = 1.501
-YCOM = 1.501
+XCOM = 1.521
+YCOM = 1.503
 R = 1.0
 R_2 = 3.75
-R_1 = 0.25
+R_1 = 0.5
 OMEGA_2 = 0.5
 OMEGA_1 = 5.0
+A = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
+B = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
 
 D_coef = 0.05
 
@@ -68,8 +71,8 @@ LSCutCellOperator {
 InsideLSFcn {
     r = R
     x_cent = XCOM,YCOM
-    a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
-    b = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
+    a = A
+    b = B
 }
 
 BdryConds {
@@ -100,8 +103,8 @@ PoissonSolver {
 }
 
 UFunction {
-   a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
-   b = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
+   a = A
+   b = B
    xcom = 0.0
    ycom = 0.0
    r1 = R_1
@@ -145,6 +148,10 @@ Main {
 // restart dump parameters
    restart_dump_interval       = 0
    restart_dump_dirname        = "restart_adv_diff2d"
+
+   data_dump_interval          = 1
+   data_dump_dirname           = "hier_data_IB2d"
+
 }
 
 CartesianGeometry {
@@ -206,6 +213,7 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     max_ls_refine_factor = MAX_REFINE_FACTOR
     least_squares_order = LEAST_SQUARES_ORDER
     use_strang_splitting = USE_STRANG_SPLITTING
+    adv_integration_method = ADV_INT_METHOD
 
     tag_buffer = TAG_BUFFER
     
