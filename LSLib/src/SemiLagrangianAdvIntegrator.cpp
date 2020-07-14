@@ -171,18 +171,16 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
         int area_cur_idx = var_db->registerVariableAndContext(area_var, getCurrentContext(), GHOST_CELL_WIDTH);
         int area_new_idx = var_db->registerVariableAndContext(area_var, getNewContext(), GHOST_CELL_WIDTH);
 
-        d_ls_data.setFlag(ls_node_cur_idx);
-        d_ls_data.setFlag(ls_node_new_idx);
-        d_ls_data.setFlag(vol_cur_idx);
-        d_ls_data.setFlag(vol_new_idx);
-        d_ls_data.setFlag(area_cur_idx);
-        d_ls_data.setFlag(area_new_idx);
+        d_current_data.setFlag(ls_node_cur_idx);
+        d_current_data.setFlag(vol_cur_idx);
+        d_current_data.setFlag(area_cur_idx);
+        d_new_data.setFlag(ls_node_new_idx);
+        d_new_data.setFlag(vol_new_idx);
+        d_new_data.setFlag(area_new_idx);
 
         const std::string& ls_name = ls_cell_var->getName();
-        d_visit_writer->registerPlotQuantity(ls_name + "_volume_previous", "SCALAR", vol_new_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "_previous", "SCALAR", ls_node_cur_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "_current", "SCALAR", ls_node_new_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "_volume_current", "SCALAR", vol_cur_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_Node", "SCALAR", ls_node_cur_idx);
+        d_visit_writer->registerPlotQuantity(ls_name + "_volume", "SCALAR", vol_cur_idx);
         d_visit_writer->registerPlotQuantity(ls_name + "_Cell", "SCALAR", ls_cell_cur_idx);
     }
 
@@ -215,7 +213,6 @@ SemiLagrangianAdvIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHie
         hierarchy, ln, data_time, can_be_refined, initial_time, old_level, allocate_data);
     // Initialize level set
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-    if (allocate_data) level->allocatePatchData(d_ls_data, data_time);
 
     if (initial_time)
     {
@@ -229,10 +226,8 @@ SemiLagrangianAdvIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHie
             TBOX_ASSERT(ls_fcn);
             const int ls_cell_cur_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getCurrentContext());
             const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
-            const int ls_node_new_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getNewContext());
             ls_fcn->setDataOnPatchLevel(ls_cell_cur_idx, ls_cell_var, level, data_time, initial_time);
             ls_fcn->setDataOnPatchLevel(ls_node_cur_idx, ls_node_var, level, data_time, initial_time);
-            ls_fcn->setDataOnPatchLevel(ls_node_new_idx, ls_node_var, level, data_time, initial_time);
         }
     }
 }
@@ -703,13 +698,39 @@ SemiLagrangianAdvIntegrator::regridHierarchyEndSpecialized()
 void
 SemiLagrangianAdvIntegrator::resetTimeDependentHierarchyDataSpecialized(const double new_time)
 {
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
     // Copy level set info
-    for (const auto& ls_cell_var : d_ls_cell_vars)
+    for (size_t l = 0; l < d_ls_cell_vars.size(); ++l)
     {
-        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        const Pointer<CellVariable<NDIM, double>>& ls_cell_var = d_ls_cell_vars[l];
         const int ls_cell_cur_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getCurrentContext());
         const int ls_cell_new_idx = var_db->mapVariableAndContextToIndex(ls_cell_var, getNewContext());
         d_hier_cc_data_ops->copyData(ls_cell_cur_idx, ls_cell_new_idx);
+
+        const Pointer<NodeVariable<NDIM, double>>& ls_node_var = d_ls_node_vars[l];
+        const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
+        const int ls_node_new_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getNewContext());
+        for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+        {
+            Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+            for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+            {
+                const Pointer<Patch<NDIM>>& patch = level->getPatch(p());
+                Pointer<NodeData<NDIM, double>> ls_cur_data = patch->getPatchData(ls_node_cur_idx);
+                Pointer<NodeData<NDIM, double>> ls_new_data = patch->getPatchData(ls_node_new_idx);
+                ls_cur_data->copy(*ls_new_data);
+            }
+        }
+
+        const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+        const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
+        const int vol_new_idx = var_db->mapVariableAndContextToIndex(vol_var, getNewContext());
+        d_hier_cc_data_ops->copyData(vol_cur_idx, vol_new_idx);
+
+        const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
+        const int area_cur_idx = var_db->mapVariableAndContextToIndex(area_var, getCurrentContext());
+        const int area_new_idx = var_db->mapVariableAndContextToIndex(area_var, getNewContext());
+        d_hier_cc_data_ops->copyData(area_cur_idx, area_new_idx);
     }
 
     AdvDiffHierarchyIntegrator::resetTimeDependentHierarchyDataSpecialized(new_time);

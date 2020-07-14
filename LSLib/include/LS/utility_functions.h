@@ -9,6 +9,7 @@
 
 namespace LS
 {
+static double s_eps = 1.0e-12;
 inline double
 length_fraction(const double dx, const double phi_l, const double phi_u)
 {
@@ -40,10 +41,15 @@ find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_
     IBTK::VectorNd center;
     center.setZero();
     std::vector<IBTK::VectorNd> X_pts;
-    double phi_ll = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 0))) + 1.0e-12;
-    double phi_lr = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 0))) + 1.0e-12;
-    double phi_ur = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 1))) + 1.0e-12;
-    double phi_ul = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 1))) + 1.0e-12;
+
+    double phi_ll = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 0)));
+    if (std::abs(phi_ll) < s_eps) phi_ll = phi_ll < 0.0 ? -s_eps : s_eps;
+    double phi_lr = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 0)));
+    if (std::abs(phi_lr) < s_eps) phi_lr = phi_lr < 0.0 ? -s_eps : s_eps;
+    double phi_ur = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 1)));
+    if (std::abs(phi_ur) < s_eps) phi_ur = phi_ur < 0.0 ? -s_eps : s_eps;
+    double phi_ul = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 1)));
+    if (std::abs(phi_ul) < s_eps) phi_ul = phi_ul < 0.0 ? -s_eps : s_eps;
     if ((phi_ll < 0.0 && phi_lr < 0.0 && phi_ur < 0.0 && phi_ul < 0.0) ||
         (phi_ll > 0.0 && phi_lr > 0.0 && phi_ur > 0.0 && phi_ul > 0.0))
     {
