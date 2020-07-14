@@ -44,23 +44,34 @@
 
 using namespace LS;
 
+static double a = std::numeric_limits<double>::signaling_NaN();
+static double b = std::numeric_limits<double>::signaling_NaN();
+
+void postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                      Pointer<SemiLagrangianAdvIntegrator> integrator,
+                      Pointer<CellVariable<NDIM, double>> Q_in_var,
+                      Pointer<CellVariable<NDIM, double>> Q_out_var,
+                      int iteration_num,
+                      double loop_time,
+                      const std::string& dirname);
+
 void output_to_file(const int Q_idx,
-                    const int ls_Q_idx,
-                    const int vol_Q_idx,
                     const int area_idx,
+                    const int vol_idx,
+                    const int ls_interior_idx,
                     const std::string& file_name,
                     const double loop_time,
                     Pointer<PatchHierarchy<NDIM>> hierarchy);
 void
 outputBdryInfo(const int Q_idx,
                const int Q_scr_idx,
-               const int ls_Q_idx,
-               const int vol_Q_idx,
+               const int ls_interior_idx,
+               const int vol_idx,
                const int area_idx,
                const double current_time,
                const int iteration_num,
                Pointer<PatchHierarchy<NDIM>> hierarchy,
-               const std::string& base_name)
+               std::string base_name)
 {
     for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
     {
@@ -69,20 +80,78 @@ outputBdryInfo(const int Q_idx,
     }
 
     using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-    std::vector<ITC> ghost_cell_comps(2);
+    std::vector<ITC> ghost_cell_comps(1);
     ghost_cell_comps[0] = ITC(Q_scr_idx, Q_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR", false, nullptr);
-    ghost_cell_comps[1] = ITC(ls_Q_idx, "LINEAR_REFINE", false, "NONE", "LINEAR", false, nullptr);
     HierarchyGhostCellInterpolation hier_ghost_cells;
     hier_ghost_cells.initializeOperatorState(ghost_cell_comps, hierarchy, 0, hierarchy->getFinestLevelNumber());
     hier_ghost_cells.fillData(current_time);
 
-    output_to_file(
-        Q_scr_idx, vol_Q_idx, ls_Q_idx, area_idx, base_name + std::to_string(iteration_num), current_time, hierarchy);
+    output_to_file(Q_scr_idx,
+                   area_idx,
+                   vol_idx,
+                   ls_interior_idx,
+                   base_name + std::to_string(iteration_num),
+                   current_time,
+                   hierarchy);
 
     for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
         level->deallocatePatchData(Q_scr_idx);
+    }
+}
+
+void
+calculateTotalAmounts(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                      const double time,
+                      const int Q_in_idx,
+                      const int Q_out_idx,
+                      const int vol_in_idx,
+                      const int vol_out_idx)
+{
+    std::ofstream amounts_stream;
+    if (SAMRAI_MPI::getRank() == 0)
+    {
+        if (time == 0.0)
+            amounts_stream.open("total_amount", std::ofstream::out);
+        else
+            amounts_stream.open("total_amount", std::ofstream::app);
+    }
+    Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", hierarchy);
+    const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
+    double tot_out = 0.0, tot_in = 0.0;
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            const Box<NDIM>& box = patch->getBox();
+
+            Pointer<CellData<NDIM, double>> Q_in_data = patch->getPatchData(Q_in_idx);
+            Pointer<CellData<NDIM, double>> Q_out_data = patch->getPatchData(Q_out_idx);
+            Pointer<CellData<NDIM, double>> vol_in_data = patch->getPatchData(vol_in_idx);
+            Pointer<CellData<NDIM, double>> vol_out_data = patch->getPatchData(vol_out_idx);
+            Pointer<CellData<NDIM, double>> wgt_data = patch->getPatchData(wgt_cc_idx);
+
+            for (CellIterator<NDIM> ci(box); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                tot_out += (*Q_out_data)(idx) * (*wgt_data)(idx) * (*vol_out_data)(idx);
+                tot_in += (*Q_in_data)(idx) * (*wgt_data)(idx) * (*vol_in_data)(idx);
+            }
+        }
+    }
+    tot_out = SAMRAI_MPI::sumReduction(tot_out);
+    tot_in = SAMRAI_MPI::sumReduction(tot_in);
+    pout << std::setprecision(10) << "Total interior at time t = " << time << " is " << tot_in << "\n";
+    pout << std::setprecision(10) << "Total exterior at time t = " << time << " is " << tot_out << "\n";
+    pout << std::setprecision(10) << "Total amount at time t =   " << time << " is " << tot_out + tot_in << "\n";
+    if (SAMRAI_MPI::getRank() == 0)
+    {
+        amounts_stream << time << " " << std::setprecision(10) << tot_in << " " << tot_out << " " << tot_out + tot_in
+                       << "\n";
+        amounts_stream.close();
     }
 }
 
@@ -129,16 +198,6 @@ locateInterface(const int D_idx,
     interface->resetData(D_idx, hier_math_ops, time, initial_time);
 }
 
-void calculateTotalAmounts(int Q_in_idx,
-                           int Q_out_idx,
-                           int ls_in_idx,
-                           int ls_out_idx,
-                           int vol_in_idx,
-                           int vol_out_idx,
-                           Pointer<PatchHierarchy<NDIM>> hierarchy,
-                           double time,
-                           int iteration);
-
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
  * be given on the command line.  For non-restarted case, command line is:     *
@@ -179,6 +238,13 @@ main(int argc, char* argv[])
 
         const bool dump_timer_data = app_initializer->dumpTimerData();
         const int timer_dump_interval = app_initializer->getTimerDumpInterval();
+
+        const bool dump_postproc_data = app_initializer->dumpPostProcessingData();
+        const std::string postproc_data_dump_dirname = app_initializer->getPostProcessingDataDumpDirectory();
+        if (dump_postproc_data && !postproc_data_dump_dirname.empty())
+        {
+            Utilities::recursiveMkdir(postproc_data_dump_dirname);
+        }
 
         // Create major algorithm and data objects that comprise the
         // application.  These objects are configured from the input database
@@ -249,6 +315,9 @@ main(int argc, char* argv[])
         time_integrator->registerLevelSetResetFunction(ls_out_cell_var, ls_out_ops);
         time_integrator->useLevelSetForTagging(ls_out_cell_var, input_db->getBool("USE_OUT_LS_FOR_TAGGING"));
         Pointer<NodeVariable<NDIM, double>> ls_out_node_var = time_integrator->getLevelSetNodeVariable(ls_out_cell_var);
+
+        a = input_db->getDouble("A");
+        b = input_db->getDouble("B");
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_in_var = new CellVariable<NDIM, double>("Q_in");
@@ -337,10 +406,10 @@ main(int argc, char* argv[])
         bool output_bdry_info = input_db->getBool("OUTPUT_BDRY_INFO");
         const int Q_out_idx = var_db->mapVariableAndContextToIndex(Q_out_var, time_integrator->getCurrentContext());
         const int Q_out_scr_idx =
-            var_db->registerVariableAndContext(Q_out_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(1));
+            var_db->registerVariableAndContext(Q_out_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(2));
         const int Q_in_idx = var_db->mapVariableAndContextToIndex(Q_in_var, time_integrator->getCurrentContext());
         const int Q_in_scr_idx =
-            var_db->registerVariableAndContext(Q_in_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(1));
+            var_db->registerVariableAndContext(Q_in_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(2));
         const int ls_in_idx =
             var_db->mapVariableAndContextToIndex(ls_in_node_var, time_integrator->getCurrentContext());
         const int ls_out_idx =
@@ -376,36 +445,7 @@ main(int argc, char* argv[])
             u_fcn->setDataOnPatchHierarchy(u_draw_idx, u_draw_var, patch_hierarchy, loop_time);
             visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
             time_integrator->deallocatePatchData(u_draw_idx);
-            calculateTotalAmounts(Q_in_idx,
-                                  Q_out_idx,
-                                  ls_in_idx,
-                                  ls_out_idx,
-                                  vol_in_idx,
-                                  vol_out_idx,
-                                  patch_hierarchy,
-                                  loop_time,
-                                  iteration_num);
-            if (output_bdry_info)
-            {
-                outputBdryInfo(Q_in_idx,
-                               Q_in_scr_idx,
-                               ls_in_idx,
-                               vol_in_idx,
-                               area_in_idx,
-                               loop_time,
-                               iteration_num,
-                               patch_hierarchy,
-                               "in_bdry_info_");
-                outputBdryInfo(Q_out_idx,
-                               Q_out_scr_idx,
-                               ls_out_idx,
-                               vol_out_idx,
-                               area_in_idx,
-                               loop_time,
-                               iteration_num,
-                               patch_hierarchy,
-                               "out_bdry_info_");
-            }
+            calculateTotalAmounts(patch_hierarchy, loop_time, Q_in_idx, Q_out_idx, vol_in_idx, vol_out_idx);
         }
 
         // Main time step loop.
@@ -440,17 +480,6 @@ main(int argc, char* argv[])
                 time_integrator->setupPlotData();
                 time_integrator->allocatePatchData(u_draw_idx, loop_time);
                 u_fcn->setDataOnPatchHierarchy(u_draw_idx, u_draw_var, patch_hierarchy, loop_time);
-                visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-                time_integrator->deallocatePatchData(u_draw_idx);
-                calculateTotalAmounts(Q_in_idx,
-                                      Q_out_idx,
-                                      ls_in_idx,
-                                      ls_out_idx,
-                                      vol_in_idx,
-                                      vol_out_idx,
-                                      patch_hierarchy,
-                                      loop_time,
-                                      iteration_num);
                 if (output_bdry_info)
                 {
                     outputBdryInfo(Q_in_idx,
@@ -472,6 +501,9 @@ main(int argc, char* argv[])
                                    patch_hierarchy,
                                    "out_bdry_info_");
                 }
+                visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
+                time_integrator->deallocatePatchData(u_draw_idx);
+                calculateTotalAmounts(patch_hierarchy, loop_time, Q_in_idx, Q_out_idx, vol_in_idx, vol_out_idx);
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
             {
@@ -485,6 +517,16 @@ main(int argc, char* argv[])
             }
         }
 
+        // Print out final information
+        if (dump_postproc_data)
+            postprocess_data(patch_hierarchy,
+                             time_integrator,
+                             Q_in_var,
+                             Q_out_var,
+                             iteration_num,
+                             loop_time,
+                             postproc_data_dump_dirname);
+
         if (!periodic_domain) delete Q_in_bcs[0];
         if (!periodic_domain) delete Q_out_bcs[0];
     } // cleanup dynamically allocated objects prior to shutdown
@@ -495,59 +537,42 @@ main(int argc, char* argv[])
 } // main
 
 void
-calculateTotalAmounts(const int Q_in_idx,
-                      const int Q_out_idx,
-                      const int ls_in_idx,
-                      const int ls_out_idx,
-                      const int vol_in_idx,
-                      const int vol_out_idx,
-                      Pointer<PatchHierarchy<NDIM>> hierarchy,
-                      const double time,
-                      const int iteration)
+postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                 Pointer<SemiLagrangianAdvIntegrator> integrator,
+                 Pointer<CellVariable<NDIM, double>> Q_in_var,
+                 Pointer<CellVariable<NDIM, double>> Q_out_var,
+                 const int iteration_num,
+                 const double loop_time,
+                 const std::string& dirname)
 {
-    ofstream file;
-    if (SAMRAI_MPI::getRank() == 0) file.open("amounts", ios::out | ios::app);
-    LSFindCellVolume vol_fcn("VolFcn", hierarchy);
-    const int coarsest_ln = 0, finest_ln = hierarchy->getFinestLevelNumber();
+    std::string file_name = dirname + "/hier_data.";
+    char temp_buf[128];
+    sprintf(temp_buf, "%05d.samrai.%05d", iteration_num, SAMRAI_MPI::getRank());
+    file_name += temp_buf;
+    Pointer<HDFDatabase> hier_db = new HDFDatabase("hier_db");
+    hier_db->create(file_name);
+    ComponentSelector hier_data;
     auto var_db = VariableDatabase<NDIM>::getDatabase();
-    Pointer<hier::Variable<NDIM>> vol_var, ls_in_var, ls_out_var;
-
-    double tot_in, tot_out;
-    // First check inside
-    {
-        Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", hierarchy);
-        const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
-        HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
-        hier_cc_data_ops.multiply(wgt_cc_idx, vol_in_idx, wgt_cc_idx);
-        tot_in = hier_cc_data_ops.integral(Q_in_idx, wgt_cc_idx);
-    }
-
-    // Now check outside
-    {
-        Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", hierarchy);
-        const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
-        HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
-        hier_cc_data_ops.multiply(wgt_cc_idx, vol_out_idx, wgt_cc_idx);
-        tot_out = hier_cc_data_ops.integral(Q_out_idx, wgt_cc_idx);
-    }
-
-    if (SAMRAI_MPI::getRank() == 0)
-        file << std::setprecision(12) << tot_in << " " << tot_out << " " << tot_in + tot_out << "\n";
-    pout << std::setprecision(12) << tot_in << " " << tot_out << " " << tot_in + tot_out << "\n";
-
-    if (SAMRAI_MPI::getRank() == 0) file.close();
-    return;
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(Q_in_var, integrator->getCurrentContext()));
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(Q_out_var, integrator->getCurrentContext()));
+    hierarchy->putToDatabase(hier_db->putDatabase("PatchHierarchy"), hier_data);
+    hier_db->putDouble("loop_time", loop_time);
+    hier_db->putInteger("iteration_num", iteration_num);
+    hier_db->close();
 }
 
 void
 output_to_file(const int Q_idx,
-               const int ls_Q_idx,
-               const int vol_Q_idx,
                const int area_idx,
+               const int vol_idx,
+               const int ls_interp_idx,
                const std::string& file_name,
                const double loop_time,
                Pointer<PatchHierarchy<NDIM>> hierarchy)
 {
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    Pointer<hier::Variable<NDIM>> Q_var;
+    var_db->mapIndexToVariable(Q_idx, Q_var);
     std::ofstream bdry_stream;
     if (SAMRAI_MPI::getRank() == 0) bdry_stream.open(file_name.c_str(), std::ofstream::out);
     // data structure to hold bdry data : (theta, bdry_val)
@@ -561,8 +586,8 @@ output_to_file(const int Q_idx,
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
         Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
         Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(area_idx);
-        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_Q_idx);
-        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_Q_idx);
+        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_interp_idx);
         Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         const double* const dx = pgeom->getDx();
         const double* const x_low = pgeom->getXLower();
@@ -572,7 +597,7 @@ output_to_file(const int Q_idx,
         {
             const CellIndex<NDIM>& idx = ci();
             const double area = (*area_data)(idx);
-            if (area > 0.0)
+            if (area > 0.0 && (*vol_data)(idx) > 0.0)
             {
                 std::array<VectorNd, 2> X_bounds;
                 int l = 0;
@@ -606,16 +631,22 @@ output_to_file(const int Q_idx,
                 VectorNd X = 0.5 * (X_bounds[0] + X_bounds[1]);
                 VectorNd X_phys;
                 for (int d = 0; d < NDIM; ++d) X_phys[d] = x_low[d] + dx[d] * (X(d) - static_cast<double>(idx_low(d)));
-                X_phys[0] -= 1.501; // + cos(M_PI / 4.0) * loop_time;
-                X_phys[1] -= 1.501; // + sin(M_PI / 4.0) * loop_time;
-                double theta = std::atan2(X_phys[1], X_phys[0]);
+                double cur_theta = std::atan2(X_phys[1], X_phys[0]);
+                double cur_r = X_phys.norm();
+                double ref_theta =
+                    cur_theta + (a * cur_r + b / cur_r) * (7.5 / (2.0 * M_PI)) * std::cos(2 * M_PI * loop_time / 7.5) -
+                    (a * cur_r + b / cur_r) * (7.5 / (2.0 * M_PI));
+                VectorNd X_new_coords = { cur_r * std::cos(ref_theta), cur_r * std::sin(ref_theta) };
+                X_new_coords[0] -= 1.521;
+                X_new_coords[1] -= 1.503;
+                double theta = std::atan2(X_new_coords[1], X_new_coords[0]);
                 theta_data.push_back(theta);
                 // Calculate a delta theta for integral calculations
                 double d_theta = area;
 
                 // Do least squares linear approximation to find Q_val
                 Box<NDIM> box_ls(idx, idx);
-                box_ls.grow(1);
+                box_ls.grow(2);
                 std::vector<double> Q_vals;
                 std::vector<VectorNd> X_vals;
                 for (CellIterator<NDIM> ci(box_ls); ci; ci++)
@@ -629,20 +660,19 @@ output_to_file(const int Q_idx,
                     }
                 }
                 const int m = Q_vals.size();
-                MatrixXd A(MatrixXd::Zero(m, NDIM + 1)), Lambda(MatrixXd::Zero(m, m));
+                MatrixXd A(MatrixXd::Zero(m, NDIM + 1));
                 VectorXd U(VectorXd::Zero(m));
                 for (size_t i = 0; i < Q_vals.size(); ++i)
                 {
                     const VectorNd disp = X_vals[i] - X;
                     double w = std::sqrt(std::exp(-disp.norm() * disp.norm()));
-                    Lambda(i, i) = w;
-                    A(i, 2) = disp[1];
-                    A(i, 1) = disp[0];
-                    A(i, 0) = 1.0;
-                    U(i) = Q_vals[i];
+                    A(i, 2) = w * disp[1];
+                    A(i, 1) = w * disp[0];
+                    A(i, 0) = w;
+                    U(i) = w * Q_vals[i];
                 }
 
-                VectorXd soln = (Lambda * A).fullPivHouseholderQr().solve(Lambda * U);
+                VectorXd soln = A.fullPivHouseholderQr().solve(U);
                 val_data.push_back(soln(0));
                 integral += soln(0) * d_theta;
                 tot_area += d_theta;
@@ -651,8 +681,10 @@ output_to_file(const int Q_idx,
     }
     integral = SAMRAI_MPI::sumReduction(integral);
     tot_area = SAMRAI_MPI::sumReduction(tot_area);
-    pout << "Integral at time: " << loop_time << " is: " << std::setprecision(12) << integral << "\n";
-    pout << "Area     at time: " << loop_time << " is: " << std::setprecision(12) << tot_area << "\n";
+    pout << "Integral at time: " << loop_time << " for variable: " << Q_var->getName()
+         << " is: " << std::setprecision(12) << integral << "\n";
+    pout << "Area     at time: " << loop_time << " for variable: " << Q_var->getName()
+         << " is: " << std::setprecision(12) << tot_area << "\n";
     // Now we need to send the data to processor rank 0 for outputting
     if (SAMRAI_MPI::getRank() == 0)
     {
