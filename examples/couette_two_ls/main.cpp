@@ -553,8 +553,8 @@ output_to_file(const int Q_idx,
                 VectorNd X = 0.5 * (X_bounds[0] + X_bounds[1]);
                 VectorNd X_phys;
                 for (int d = 0; d < NDIM; ++d) X_phys[d] = x_low[d] + dx[d] * (X(d) - static_cast<double>(idx_low(d)));
-                X_phys[0] -= 1.5 + cos(M_PI / 4.0) * loop_time;
-                X_phys[1] -= 1.5 + sin(M_PI / 4.0) * loop_time;
+                X_phys[0] -= 1.521;
+                X_phys[1] -= 1.503;
                 double theta = std::atan2(X_phys[1], X_phys[0]);
                 theta_data.push_back(theta);
                 // Calculate a delta theta for integral calculations
@@ -568,7 +568,7 @@ output_to_file(const int Q_idx,
                 for (CellIterator<NDIM> ci(box_ls); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx_c = ci();
-                    if ((*vol_data)(idx_c) > 0.0)
+                    if ((*vol_data)(idx_c) > 1.0e-5)
                     {
                         // Use this point
                         Q_vals.push_back((*Q_data)(idx_c));
