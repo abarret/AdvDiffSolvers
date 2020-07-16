@@ -45,10 +45,32 @@ OutsideLSFcn::OutsideLSFcn(const string& object_name,
     return;
 } // OutsideLSFcn
 
+OutsideLSFcn::OutsideLSFcn(Pointer<VariableContext> ctx,
+                           const std::string& object_name,
+                           Pointer<CellVariable<NDIM, double>> in_c_var,
+                           Pointer<NodeVariable<NDIM, double>> in_n_var,
+                           Pointer<Database> input_db)
+    : CartGridFunction(object_name),
+      d_object_name(object_name),
+      d_ctx(ctx),
+      d_in_ls_cell_var(in_c_var),
+      d_in_ls_node_var(in_n_var)
+{
+#if !defined(NDEBUG)
+    TBOX_ASSERT(!d_object_name.empty());
+#endif
+
+    // Initialize object with data read from the input database.
+    d_R1 = input_db->getDouble("R1");
+    d_R2 = input_db->getDouble("R2");
+    return;
+}
+
 OutsideLSFcn::~OutsideLSFcn()
 {
     // intentionally destroy hierarchy_integrator to prevent circular references
     d_integrator.setNull();
+    d_ctx.setNull();
     return;
 } // ~OutsideLSFcn
 
@@ -63,14 +85,27 @@ OutsideLSFcn::setDataOnPatch(const int data_idx,
     Pointer<CellData<NDIM, double>> ls_out_cell_data = patch->getPatchData(data_idx);
     Pointer<NodeData<NDIM, double>> ls_out_node_data = patch->getPatchData(data_idx);
 
-    Pointer<VariableContext> ctx =
-        MathUtilities<double>::equalEps(data_time,
-                                        d_integrator->getIntegratorTime() + d_integrator->getCurrentTimeStepSize()) ?
-            d_integrator->getNewContext() :
-            d_integrator->getCurrentContext();
+    Pointer<VariableContext> ctx;
+    if (d_integrator)
+    {
+        ctx = MathUtilities<double>::equalEps(
+                  data_time, d_integrator->getIntegratorTime() + d_integrator->getCurrentTimeStepSize()) ?
+                  d_integrator->getNewContext() :
+                  d_integrator->getCurrentContext();
+    }
+    else if (d_ctx)
+    {
+        ctx = d_ctx;
+    }
+    else
+    {
+        TBOX_ERROR("SHOULD NOT REACH HERE.\n");
+    }
 
-    Pointer<CellData<NDIM, double>> ls_in_cell_data = patch->getPatchData(d_in_ls_cell_var, ctx);
-    Pointer<NodeData<NDIM, double>> ls_in_node_data = patch->getPatchData(d_in_ls_node_var, ctx);
+    Pointer<CellData<NDIM, double>> ls_in_cell_data =
+        d_in_ls_cell_var ? patch->getPatchData(d_in_ls_cell_var, ctx) : nullptr;
+    Pointer<NodeData<NDIM, double>> ls_in_node_data =
+        d_in_ls_node_var ? patch->getPatchData(d_in_ls_node_var, ctx) : nullptr;
 
     Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
     const double* const dx = pgeom->getDx();
