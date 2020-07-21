@@ -3,7 +3,7 @@
 #include "ibamr/AdvDiffWavePropConvectiveOperator.h"
 #include "ibamr/app_namespaces.h"
 
-#include "LS/QInitial.h"
+#include "LS/LSCartGridFunction.h"
 #include "LS/SemiLagrangianAdvIntegrator.h"
 #include "LS/utility_functions.h"
 
@@ -677,7 +677,7 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
             const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_node_var, getCurrentContext());
             const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
             const int Q_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
-            Pointer<QInitial> Q_init = d_Q_init[Q_var];
+            Pointer<LSCartGridFunction> Q_init = d_Q_init[Q_var];
             TBOX_ASSERT(Q_init);
             Q_init->setLSIndex(ls_node_cur_idx, vol_cur_idx);
             Q_init->setDataOnPatchHierarchy(Q_idx, Q_var, d_hierarchy, 0.0);

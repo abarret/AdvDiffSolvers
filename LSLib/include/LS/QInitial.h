@@ -28,6 +28,7 @@
 #include <ibamr/app_namespaces.h>
 
 #include "LS/IntegrateFunction.h"
+#include "LS/LSCartGridFunction.h"
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
@@ -36,7 +37,7 @@
  */
 namespace LS
 {
-class QInitial : public IBTK::CartGridFunction
+class QInitial : public LSCartGridFunction
 {
 public:
     /*!
@@ -86,12 +87,6 @@ public:
                               SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> Q_ctx,
                               SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                               int vol_idx);
-
-    inline void setLSIndex(const int ls_idx, const int vol_idx)
-    {
-        d_ls_idx = ls_idx;
-        d_vol_idx = vol_idx;
-    }
 
 protected:
 private:

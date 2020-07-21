@@ -26,7 +26,7 @@ namespace LS
 /////////////////////////////// PUBLIC ///////////////////////////////////////
 
 QInitial::QInitial(const string& object_name, Pointer<GridGeometry<NDIM>> grid_geom, Pointer<Database> input_db)
-    : CartGridFunction(object_name), d_grid_geom(grid_geom)
+    : LSCartGridFunction(object_name), d_grid_geom(grid_geom)
 {
 #if !defined(NDEBUG)
     TBOX_ASSERT(!d_object_name.empty());
