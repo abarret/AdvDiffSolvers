@@ -69,7 +69,7 @@ IntegrateFunction::integrateFcnOnPatchHierarchy(Pointer<PatchHierarchy<NDIM>> hi
             Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
 
             const Box<NDIM>& box = patch->getBox();
-            const Index<NDIM>& idx_l = box.lower();
+            const hier::Index<NDIM>& idx_l = box.lower();
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
             const double* const xlow = pgeom->getXLower();
