@@ -4,9 +4,9 @@ L = 4.0
 BASE_NAME = "test1"
 
 // grid spacing parameters
-MAX_LEVELS = 2                            // maximum number of levels in locally refined grid
-REF_RATIO  = 2                            // refinement ratio between levels
-N = 2*32                                    // coarsest grid spacing
+MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
+REF_RATIO  = 4                            // refinement ratio between levels
+N = 2*128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.5
@@ -24,10 +24,10 @@ MAX_REFINE_FACTOR = 2.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
 USE_STRANG_SPLITTING = TRUE
 USE_OUTSIDE_LS_FOR_TAGGING = TRUE
-ADV_INT_METHOD = "FORWARD_EULER"
+ADV_INT_METHOD = "MIDPOINT_RULE"
 
-XCOM = 1.5
-YCOM = 1.5
+XCOM = 1.521
+YCOM = 1.503
 R = 1.0
 R_2 = 3.75
 R_1 = 0.5
@@ -74,20 +74,15 @@ InsideLSFcn {
 }
 
 QInitial {
-    init_type = "RADIAL"
-    D = 0.05//D_coef
-    R1 = R
-    Center = XCOM,YCOM
-//    velocity = cos(PI/4.0),sin(PI/4.0)
-    velocity = 0.0,0.0
+   r = R
+   D = D_coef
+   com = XCOM, YCOM
 }
 
 QInitial_out {
-    D = 0.05
-    R1 = R
-    Center = -XCOM,-YCOM
-    velocity = 0.0,0.0
-    init_type = "RADIAL"
+   r = R
+   D = D_coef
+   com = -XCOM,-YCOM
 }
 
 
