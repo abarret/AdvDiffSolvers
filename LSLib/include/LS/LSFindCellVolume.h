@@ -22,6 +22,8 @@
 #include "VariableDatabase.h"
 #include "tbox/Pointer.h"
 
+#include <boost/multi_array.hpp>
+
 namespace LS
 {
 class LSFindCellVolume

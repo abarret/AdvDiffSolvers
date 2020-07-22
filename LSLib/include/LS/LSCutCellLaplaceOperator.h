@@ -20,6 +20,8 @@
 #include "VariableFillPattern.h"
 #include "tbox/Pointer.h"
 
+#include <Eigen/Dense>
+
 #include <string>
 #include <vector>
 
