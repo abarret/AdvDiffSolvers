@@ -20,9 +20,6 @@
 #include "VariableFillPattern.h"
 #include "tbox/Pointer.h"
 
-#include "libmesh/elem.h"
-#include "libmesh/utility.h"
-
 #include <string>
 #include <vector>
 

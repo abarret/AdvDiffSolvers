@@ -3,15 +3,12 @@
 
 #include "ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h"
 #include "ibamr/ConvectiveOperator.h"
-#include "ibamr/IBFEMethod.h"
 #include "ibamr/ibamr_utilities.h"
 
 #include "ibtk/CartCellRobinPhysBdryOp.h"
 #include "ibtk/CartGridFunction.h"
-#include "ibtk/FEDataManager.h"
 #include "ibtk/IndexUtilities.h"
 #include "ibtk/app_namespaces.h"
-#include "ibtk/libmesh_utilities.h"
 
 #include "Box.h"
 #include "CellData.h"
@@ -24,12 +21,6 @@
 #include "Variable.h"
 #include "VariableDatabase.h"
 #include "tbox/Pointer.h"
-
-#include "libmesh/dof_map.h"
-#include "libmesh/equation_systems.h"
-#include "libmesh/explicit_system.h"
-#include "libmesh/fe_base.h"
-#include "libmesh/mesh.h"
 
 namespace LS
 {
