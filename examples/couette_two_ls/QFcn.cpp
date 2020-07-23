@@ -58,7 +58,10 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
 
     auto fcn = [this](VectorNd X, double t) -> double {
         auto w = [](double r, double D, double t) -> double {
-            return 10.0 * std::pow(1.0 - std::cos(2 * M_PI * r), 2.0);
+            if (r < 1.0)
+                return std::pow(std::cos(M_PI * r) + 1.0, 4.0);
+            else
+                return 0.0;
         };
         MatrixNd Q;
         Q(0, 0) = Q(1, 1) = std::cos(t * (2.0 * M_PI));
