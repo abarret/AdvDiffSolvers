@@ -157,28 +157,53 @@ enum_to_string<LeastSquaresOrder>(LeastSquaresOrder val)
     return "UNKNOWN_ORDER";
 }
 
-enum TimeIntegrationMethod
+enum class AdvectionTimeIntegrationMethod
 {
     FORWARD_EULER,
     MIDPOINT_RULE,
-    UNKNOWN_METHOD = -1
+    UNKNOWN_METHOD
 };
 
 template <>
-inline TimeIntegrationMethod
-string_to_enum<TimeIntegrationMethod>(const std::string& val)
+inline AdvectionTimeIntegrationMethod
+string_to_enum<AdvectionTimeIntegrationMethod>(const std::string& val)
 {
-    if (strcasecmp(val.c_str(), "FORWARD_EULER") == 0) return FORWARD_EULER;
-    if (strcasecmp(val.c_str(), "MIDPOINT_RULE") == 0) return MIDPOINT_RULE;
-    return UNKNOWN_METHOD;
+    if (strcasecmp(val.c_str(), "FORWARD_EULER") == 0) return AdvectionTimeIntegrationMethod::FORWARD_EULER;
+    if (strcasecmp(val.c_str(), "MIDPOINT_RULE") == 0) return AdvectionTimeIntegrationMethod::MIDPOINT_RULE;
+    return AdvectionTimeIntegrationMethod::UNKNOWN_METHOD;
 }
 
 template <>
 inline std::string
-enum_to_string<TimeIntegrationMethod>(TimeIntegrationMethod val)
+enum_to_string<AdvectionTimeIntegrationMethod>(AdvectionTimeIntegrationMethod val)
 {
-    if (val == FORWARD_EULER) return "FORWARD_EULER";
-    if (val == MIDPOINT_RULE) return "MIDPOINT_RULE";
+    if (val == AdvectionTimeIntegrationMethod::FORWARD_EULER) return "FORWARD_EULER";
+    if (val == AdvectionTimeIntegrationMethod::MIDPOINT_RULE) return "MIDPOINT_RULE";
+    return "UNKNOWN_METHOD";
+}
+
+enum class DiffusionTimeIntegrationMethod
+{
+    BACKWARD_EULER,
+    TRAPEZOIDAL_RULE,
+    UNKNOWN_METHOD
+};
+
+template <>
+inline DiffusionTimeIntegrationMethod
+string_to_enum<DiffusionTimeIntegrationMethod>(const std::string& val)
+{
+    if (strcasecmp(val.c_str(), "BACKWARD_EULER") == 0) return DiffusionTimeIntegrationMethod::BACKWARD_EULER;
+    if (strcasecmp(val.c_str(), "TRAPEZOIDAL_RULE") == 0) return DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE;
+    return DiffusionTimeIntegrationMethod::UNKNOWN_METHOD;
+}
+
+template <>
+inline std::string
+enum_to_string<DiffusionTimeIntegrationMethod>(DiffusionTimeIntegrationMethod val)
+{
+    if (val == DiffusionTimeIntegrationMethod::BACKWARD_EULER) return "BACKWARD_EULER";
+    if (val == DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE) return "TRAPEZOIDAL_RULE";
     return "UNKNOWN_METHOD";
 }
 

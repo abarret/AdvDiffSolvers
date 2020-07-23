@@ -1,3 +1,5 @@
+#include "LS/utility_functions.h"
+
 #include "RadialBoundaryCond.h"
 
 RadialBoundaryCond::RadialBoundaryCond(const std::string& object_name, Pointer<Database> input_db)
@@ -24,6 +26,8 @@ RadialBoundaryCond::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>> Q
                 (1.0 + 2.0 * time));
 
     const double sgn = d_D / std::abs(d_D);
+    double pre_fac = sgn * (d_ts_type == LS::DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE ? 0.5 : 1.0);
+    if (d_D == 0.0) pre_fac = 0.0;
 
     for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
     {
@@ -54,8 +58,8 @@ RadialBoundaryCond::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>> Q
                     TBOX_ASSERT(cell_volume > 0.0);
                     for (int l = 0; l < Q_data->getDepth(); ++l)
                     {
-                        if (!d_homogeneous_bdry) (*R_data)(idx, l) += 0.5 * sgn * g * area / cell_volume;
-                        (*R_data)(idx, l) -= 0.5 * sgn * d_a * (*Q_data)(idx, l) * area / cell_volume;
+                        if (!d_homogeneous_bdry) (*R_data)(idx, l) += pre_fac * g * area / cell_volume;
+                        (*R_data)(idx, l) -= pre_fac * d_a * (*Q_data)(idx, l) * area / cell_volume;
                     }
                 }
             }

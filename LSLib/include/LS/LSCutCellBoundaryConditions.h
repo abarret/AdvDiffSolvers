@@ -9,6 +9,7 @@
 
 #include "LS/LSFindCellVolume.h"
 #include "LS/SetLSValue.h"
+#include "LS/utility_functions.h"
 
 #include "CellVariable.h"
 #include "IntVector.h"
@@ -65,6 +66,11 @@ public:
 
     void setDiffusionCoefficient(double D);
 
+    void setTimeStepType(DiffusionTimeIntegrationMethod ts_type)
+    {
+        d_ts_type = ts_type;
+    }
+
 protected:
     std::string d_object_name;
 
@@ -76,6 +82,8 @@ protected:
     bool d_homogeneous_bdry = false;
 
     double d_D = std::numeric_limits<double>::quiet_NaN();
+
+    DiffusionTimeIntegrationMethod d_ts_type = DiffusionTimeIntegrationMethod::UNKNOWN_METHOD;
 };
 
 } // namespace LS

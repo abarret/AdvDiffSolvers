@@ -154,10 +154,6 @@ private:
     double d_v = std::numeric_limits<double>::quiet_NaN();
 
     double d_val = std::numeric_limits<double>::quiet_NaN();
-
-    // Level set info
-    int d_ls_idx = IBTK::invalid_index;
-    int d_vol_idx = IBTK::invalid_index;
 };
 
 } // namespace LS

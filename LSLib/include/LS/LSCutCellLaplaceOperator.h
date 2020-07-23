@@ -134,6 +134,11 @@ public:
         d_bdry_conds = bdry_conds;
     }
 
+    inline void setTimeStepType(DiffusionTimeIntegrationMethod ts_type)
+    {
+        d_ts_type = ts_type;
+    }
+
     //\}
 
 private:
@@ -209,6 +214,8 @@ private:
     std::vector<std::map<PatchIndexPair, Eigen::FullPivHouseholderQR<MatrixXd>>> d_qr_matrix_vec;
     bool d_update_weights = true;
     bool d_cache_bdry;
+
+    DiffusionTimeIntegrationMethod d_ts_type = DiffusionTimeIntegrationMethod::UNKNOWN_METHOD;
 };
 } // namespace LS
 

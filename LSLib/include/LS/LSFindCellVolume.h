@@ -9,6 +9,7 @@
 #include "ibtk/CartGridFunction.h"
 #include "ibtk/IndexUtilities.h"
 #include "ibtk/app_namespaces.h"
+#include "ibtk/ibtk_macros.h"
 
 #include "Box.h"
 #include "CellData.h"
@@ -22,7 +23,9 @@
 #include "VariableDatabase.h"
 #include "tbox/Pointer.h"
 
+IBTK_DISABLE_EXTRA_WARNINGS
 #include <boost/multi_array.hpp>
+IBTK_ENABLE_EXTRA_WARNINGS
 
 namespace LS
 {

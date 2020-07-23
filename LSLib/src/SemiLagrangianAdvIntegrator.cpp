@@ -33,8 +33,8 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
         d_least_squares_reconstruction_order =
             string_to_enum<LeastSquaresOrder>(input_db->getString("least_squares_order"));
         d_use_strang_splitting = input_db->getBool("use_strang_splitting");
-        d_time_integration_method =
-            string_to_enum<TimeIntegrationMethod>(input_db->getString("adv_integration_method"));
+        d_adv_ts_type = string_to_enum<AdvectionTimeIntegrationMethod>(input_db->getString("advection_ts_type"));
+        d_dif_ts_type = string_to_enum<DiffusionTimeIntegrationMethod>(input_db->getString("diffusion_ts_type"));
     }
 }
 
@@ -366,7 +366,20 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
             (D_rhs_var ? var_db->mapVariableAndContextToIndex(D_rhs_var, getScratchContext()) : IBTK::invalid_index);
 
         // This should be changed for different time stepping for diffusion. Right now set at trapezoidal rule.
-        double K = 0.5;
+        double K = 0.0;
+        switch (d_dif_ts_type)
+        {
+        case DiffusionTimeIntegrationMethod::BACKWARD_EULER:
+            K = 1.0;
+            break;
+        case DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE:
+            K = 0.5;
+            break;
+        default:
+            TBOX_ERROR(d_object_name << "::integrateHierarchy():\n"
+                                     << "  unsupported diffusion time stepping type: "
+                                     << enum_to_string<DiffusionTimeIntegrationMethod>(d_dif_ts_type) << "\n");
+        }
 
         PoissonSpecifications rhs_spec(d_object_name + "::rhs_spec" + Q_var->getName());
         PoissonSpecifications solv_spec(d_object_name + "::solv_spec" + Q_var->getName());
@@ -831,6 +844,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
 #if !defined(NDEBUG)
     TBOX_ASSERT(rhs_oper);
 #endif
+    rhs_oper->setTimeStepType(d_dif_ts_type);
     rhs_oper->setLSIndices(ls_idx, ls_var, vol_idx, vol_var, area_idx, area_var);
     rhs_oper->setSolutionTime(current_time);
     rhs_oper->apply(*d_sol_vecs[l], *d_rhs_vecs[l]);
@@ -843,6 +857,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
 #if !defined(NDEBUG)
     TBOX_ASSERT(solv_oper);
 #endif
+    solv_oper->setTimeStepType(d_dif_ts_type);
     solv_oper->setLSIndices(ls_idx, ls_var, vol_idx, vol_var, area_idx, area_var);
     solv_oper->setSolutionTime(new_time);
     Q_helmholtz_solver->solveSystem(*d_sol_vecs[l], *d_rhs_vecs[l]);
@@ -879,9 +894,9 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
 
-            switch (d_time_integration_method)
+            switch (d_adv_ts_type)
             {
-            case FORWARD_EULER:
+            case AdvectionTimeIntegrationMethod::FORWARD_EULER:
                 for (CellIterator<NDIM> ci(box); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
@@ -891,7 +906,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
                     for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com[d] - dt * u_new[d] / dx[d];
                 }
                 break;
-            case MIDPOINT_RULE:
+            case AdvectionTimeIntegrationMethod::MIDPOINT_RULE:
                 for (CellIterator<NDIM> ci(box); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
@@ -940,9 +955,9 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
 
-            switch (d_time_integration_method)
+            switch (d_adv_ts_type)
             {
-            case FORWARD_EULER:
+            case AdvectionTimeIntegrationMethod::FORWARD_EULER:
                 for (CellIterator<NDIM> ci(box); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
@@ -951,7 +966,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
                     for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com[d] - dt * u_new[d] / dx[d];
                 }
                 break;
-            case MIDPOINT_RULE:
+            case AdvectionTimeIntegrationMethod::MIDPOINT_RULE:
                 for (CellIterator<NDIM> ci(box); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();

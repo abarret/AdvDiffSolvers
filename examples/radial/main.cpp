@@ -37,6 +37,8 @@
 
 #include "LS/SemiLagrangianAdvIntegrator.h"
 
+#include <Eigen/Dense>
+
 using namespace LS;
 
 void output_to_file(const int Q_idx,
@@ -523,7 +525,7 @@ main(int argc, char* argv[])
                 for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
-                    (*wgt_data)(idx) *= ((*vol_data)(idx) < 1.0 ? 0.0 : (*vol_data)(idx));
+                    (*wgt_data)(idx) *= (*vol_data)(idx);
                 }
             }
         }
