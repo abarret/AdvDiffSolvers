@@ -34,6 +34,11 @@ main3d: $(IBAMR_LIB_3D) $(IBTK_LIB_3D) $(OBJS) main.o LSLib3D.a
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) main.o \
 	../../LSLib/src/LSLib3D.a $(IBAMR_LIB_3D) $(IBTK_LIB_3D) $(LDFLAGS) $(LIBS) -DNDIM=$(PDIM) -o main3d
 
+convergence_tester2d: $(IBAMR_LIB_2D) $(IBTK_LIB_2D) $(OBJS) convergence_tester.o LSLib2D.a
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) convergence_tester.o \
+	../../LSLib/src/LSLib2D.a $(IBAMR_LIB_2D) $(IBTK_LIB_2D) $(LDFLAGS) $(LIBS) -DNDIM=$(PDIM) -o convergence_tester2d
+
+
 check-opt:
 	if test "$(OPT)" == "1" ; then				\
 	  if test -f stamp-debug ; then $(MAKE) clean ; fi ;	\

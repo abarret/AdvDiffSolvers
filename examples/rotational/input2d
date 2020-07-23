@@ -4,9 +4,9 @@ L = 4.0
 BASE_NAME = "test1"
 
 // grid spacing parameters
-MAX_LEVELS = 4                            // maximum number of levels in locally refined grid
+MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 2*8                                    // coarsest grid spacing
+N = 128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.3
@@ -22,6 +22,7 @@ MAX_REFINE_FACTOR = 2.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
 USE_STRANG_SPLITTING = TRUE
 ADV_INTEGRATION_METHOD = "MIDPOINT_RULE"
+DIF_INTEGRATION_METHOD = "TRAPEZOIDAL_RULE"
 
 
 USING_CIRCLE = TRUE
@@ -124,6 +125,9 @@ Main {
 // restart dump parameters
    restart_dump_interval       = 0
    restart_dump_dirname        = "restart_adv_diff2d"
+
+   data_dump_interval          = 1
+   data_dump_dirname           = "hier_data_IB2d"
 }
 
 CartesianGeometry {
@@ -186,7 +190,8 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     max_ls_refine_factor = MAX_REFINE_FACTOR
     least_squares_order = LEAST_SQUARES_ORDER
     use_strang_splitting = USE_STRANG_SPLITTING
-    adv_integration_method = ADV_INTEGRATION_METHOD
+    advection_ts_type = ADV_INTEGRATION_METHOD
+    diffusion_ts_type = DIF_INTEGRATION_METHOD
  
     convective_op_type                 = "PPM"//WAVE_PROP"
     convective_difference_form         = "CONSERVATIVE"

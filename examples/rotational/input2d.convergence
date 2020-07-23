@@ -1,0 +1,71 @@
+// grid spacing parameters
+L = 4.0
+MAX_LEVELS = 3                            // maximum number of levels in locally refined grid
+REF_RATIO  = 4                            // refinement ratio between levels
+N = 128//512                                    // coarsest grid spacing
+
+XCOM = 1.521
+YCOM = 1.503
+R = 1.0
+
+SKIP_CUT_CELLS = 1
+
+
+Main {
+
+coarse_hier_dump_interval = 3200
+fine_hier_dump_interval = 6400
+coarse_hier_dump_dirname = "coarse/hier_data_IB2d"
+fine_hier_dump_dirname = "medium/hier_data_IB2d"
+
+//coarse_hier_dump_interval = 6720
+//fine_hier_dump_interval = 13440
+//coarse_hier_dump_dirname = "no_advection/medium/hier_data_IB2d"
+//fine_hier_dump_dirname = "no_advection/fine/hier_data_IB2d"
+
+//coarse_hier_dump_interval = 3360
+//fine_hier_dump_interval = 6720
+//coarse_hier_dump_dirname = "no_advection/coarse/hier_data_IB2d"
+//fine_hier_dump_dirname = "no_advection/medium/hier_data_IB2d"
+
+//coarse_hier_dump_interval = 3360
+//fine_hier_dump_interval = 6720
+//coarse_hier_dump_dirname = "fine_single_process"
+//fine_hier_dump_dirname = "finer_single_process"
+
+//coarse_hier_dump_interval = 1680
+//fine_hier_dump_interval = 3360
+//coarse_hier_dump_dirname = "coarse_single_process"
+//fine_hier_dump_dirname = "fine_single_process"
+
+
+// log file parameters
+   log_file_name               = "test.log"
+   log_all_nodes               = FALSE
+
+// visualization dump parameters
+   viz_writer                  = "VisIt"
+   viz_dump_interval           = 1
+   viz_dump_dirname            = "convergence_viz"
+   visit_number_procs_per_file = 1
+
+// restart dump parameters
+   restart_dump_interval       = 0
+   restart_dump_dirname        = "restart_adv_diff2d"
+
+   data_dump_interval          = 1
+   data_dump_dirname           = "hier_data_IB2d"
+
+}
+
+CartesianGeometry {
+   domain_boxes = [ (0,0),(N - 1,N - 1) ]
+   x_lo = -L,-L
+   x_up = L,L
+   periodic_dimension = 1,1
+}
+
+LSFcn {
+    r = R
+    com = XCOM,YCOM
+}
