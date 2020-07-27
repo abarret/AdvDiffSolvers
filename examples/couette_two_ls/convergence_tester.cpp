@@ -509,7 +509,7 @@ main(int argc, char* argv[])
                         const CellIndex<NDIM>& idx_i = cii();
                         if ((*vol_data)(idx_i) < 1.0) next_to_cut = true;
                     }
-                    (*wgt_data)(idx) *= next_to_cut ? 0.0 : (dx[0] * dx[1]);
+                    (*wgt_data)(idx) *= next_to_cut ? 0.0 : (*vol_data)(idx);
                 }
             }
         }
@@ -542,7 +542,7 @@ main(int argc, char* argv[])
                         const CellIndex<NDIM>& idx_i = cii();
                         if ((*vol_data)(idx_i) < 1.0) next_to_cut = true;
                     }
-                    (*wgt_data)(idx) *= next_to_cut ? 0.0 : (dx[0] * dx[1]);
+                    (*wgt_data)(idx) *= next_to_cut ? 0.0 : (*vol_data)(idx);
                 }
             }
         }

@@ -6,7 +6,7 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 128                                    // coarsest grid spacing
+N = 2*128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.3
@@ -128,6 +128,8 @@ Main {
 
    data_dump_interval          = 1
    data_dump_dirname           = "hier_data_IB2d"
+
+   timer_interval = 0
 }
 
 CartesianGeometry {
@@ -167,10 +169,10 @@ LoadBalancer {
 }
 
 TimerManager{
-   print_exclusive = FALSE
+   print_exclusive = TRUE
    print_total     = TRUE
-   print_threshold = 0.1
-   timer_list      = "IBAMR::*::*","IBTK::*::*","*::*::*"
+   print_threshold = 0.0001
+   timer_list      = "IBAMR::*::*","IBTK::*::*","*::*::*","LS::*::*"
 }
 
 

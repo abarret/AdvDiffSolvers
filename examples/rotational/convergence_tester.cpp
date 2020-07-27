@@ -424,6 +424,9 @@ main(int argc, char* argv[])
         // Compute norms of differences.
         coarse_hier_cc_data_ops.subtract(Q_idx, Q_idx, Q_interp_idx);
 
+        Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume("VolFcn", coarse_patch_hierarchy);
+        vol_fcn->updateVolumeAndArea(vol_idx, vol_var, IBTK::invalid_index, nullptr, ls_idx, ls_var, true);
+
         //        coarse_hier_cc_data_ops.multiply(wgt_cc_idx, vol_in_idx, wgt_cc_idx);
         const IntVector<NDIM> cut_cell_width(input_db->getInteger("SKIP_CUT_CELLS"));
         for (int ln = 0; ln <= coarse_patch_hierarchy->getFinestLevelNumber(); ++ln)
@@ -447,7 +450,7 @@ main(int argc, char* argv[])
                         const CellIndex<NDIM>& idx_i = cii();
                         if ((*vol_data)(idx_i) < 1.0) next_to_cut = true;
                     }
-                    (*wgt_data)(idx) *= next_to_cut ? 0.0 : (dx[0] * dx[1]);
+                    (*wgt_data)(idx) *= next_to_cut ? 0.0 : 1.0;
                 }
             }
         }

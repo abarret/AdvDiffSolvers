@@ -2,7 +2,7 @@
 L = 4.0
 MAX_LEVELS = 3                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 128//512                                    // coarsest grid spacing
+N = 128//256//512                                    // coarsest grid spacing
 
 XCOM = 1.521
 YCOM = 1.503

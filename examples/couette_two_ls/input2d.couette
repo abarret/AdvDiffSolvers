@@ -140,6 +140,7 @@ Main {
    data_dump_interval          = 1
    data_dump_dirname           = "hier_data_IB2d"
 
+   timer_dump_interval = 1
 }
 
 CartesianGeometry {
@@ -179,10 +180,10 @@ LoadBalancer {
 }
 
 TimerManager{
-   print_exclusive = FALSE
+   print_exclusive = TRUE
    print_total     = TRUE
-   print_threshold = 0.1
-   timer_list      = "IBAMR::*::*","IBTK::*::*","*::*::*"
+   print_threshold = 0.2
+   timer_list      = "LS::*::*","*::*::*"
 }
 
 

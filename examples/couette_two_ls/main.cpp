@@ -399,6 +399,7 @@ main(int argc, char* argv[])
             {
                 pout << "\nWriting timer data...\n\n";
                 TimerManager::getManager()->print(plog);
+                TimerManager::getManager()->resetAllTimers();
             }
         }
 

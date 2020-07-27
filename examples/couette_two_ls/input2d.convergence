@@ -1,26 +1,36 @@
 // grid spacing parameters
 L = 4.0
-MAX_LEVELS = 2                            // maximum number of levels in locally refined grid
-REF_RATIO  = 2                            // refinement ratio between levels
-N =2*32                                    // coarsest grid spacing
+MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
+REF_RATIO  = 4                            // refinement ratio between levels
+N = 2*128//512                                    // coarsest grid spacing
 
-XCOM = 1.5
-YCOM = 1.5
+XCOM = 1.521
+YCOM = 1.503
 R = 1.0
 R_2 = 3.75
 R_1 = 0.5
 OMEGA_2 = 0.5
 OMEGA_1 = 5.0
 
-SKIP_CUT_CELLS = 2
+SKIP_CUT_CELLS = 1
 
 
 Main {
 
-coarse_hier_dump_interval = 3360
-fine_hier_dump_interval = 6720
-coarse_hier_dump_dirname = "coarse_parallel_data"
-fine_hier_dump_dirname = "fine_parallel_data"
+coarse_hier_dump_interval = 6720
+fine_hier_dump_interval = 13440
+coarse_hier_dump_dirname = "cosine/fine/hier_data_IB2d"
+fine_hier_dump_dirname = "cosine/finer/hier_data_IB2d"
+
+//coarse_hier_dump_interval = 6720
+//fine_hier_dump_interval = 13440
+//coarse_hier_dump_dirname = "no_advection/medium/hier_data_IB2d"
+//fine_hier_dump_dirname = "no_advection/fine/hier_data_IB2d"
+
+//coarse_hier_dump_interval = 3360
+//fine_hier_dump_interval = 6720
+//coarse_hier_dump_dirname = "no_advection/coarse/hier_data_IB2d"
+//fine_hier_dump_dirname = "no_advection/medium/hier_data_IB2d"
 
 //coarse_hier_dump_interval = 3360
 //fine_hier_dump_interval = 6720

@@ -31,8 +31,8 @@ YCOM = 1.503
 R = 1.0
 R_2 = 3.75
 R_1 = 0.5
-OMEGA_2 = 0.5
-OMEGA_1 = 5.0
+OMEGA_2 = 0.0
+OMEGA_1 = 0.0
 A = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
 B = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
 
