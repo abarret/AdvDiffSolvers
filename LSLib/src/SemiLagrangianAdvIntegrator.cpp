@@ -12,6 +12,66 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+extern "C"
+{
+#if (NDIM == 2)
+    void integrate_paths_midpoint_(const double*,
+                                   const int&,
+                                   const double*,
+                                   const double*,
+                                   const int&,
+                                   const double*,
+                                   const double*,
+                                   const int&,
+                                   const double&,
+                                   const double*,
+                                   const int&,
+                                   const int&,
+                                   const int&,
+                                   const int&);
+    void integrate_paths_forward_(const double*,
+                                  const int&,
+                                  const double*,
+                                  const double*,
+                                  const int&,
+                                  const double&,
+                                  const double*,
+                                  const int&,
+                                  const int&,
+                                  const int&,
+                                  const int&);
+    void integrate_paths_ls_midpoint_(const double*,
+                                      const int&,
+                                      const double*,
+                                      const double*,
+                                      const int&,
+                                      const double*,
+                                      const double*,
+                                      const int&,
+                                      const double*,
+                                      const int&,
+                                      const double&,
+                                      const double*,
+                                      const int&,
+                                      const int&,
+                                      const int&,
+                                      const int&);
+    void integrate_paths_ls_forward_(const double*,
+                                     const int&,
+                                     const double*,
+                                     const double*,
+                                     const int&,
+                                     const double*,
+                                     const int&,
+                                     const double&,
+                                     const double*,
+                                     const int&,
+                                     const int&,
+                                     const int&,
+                                     const int&);
+#endif
+}
+
 namespace LS
 {
 int SemiLagrangianAdvIntegrator::GHOST_CELL_WIDTH = 4;
@@ -886,6 +946,8 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
 
             const Box<NDIM>& box = patch->getBox();
+            const hier::Index<NDIM>& idx_low = box.lower();
+            const hier::Index<NDIM>& idx_up = box.upper();
 
             Pointer<CellData<NDIM, double>> path_data = patch->getPatchData(path_idx);
             Pointer<SideData<NDIM, double>> u_new_data = patch->getPatchData(u_new_idx);
@@ -893,33 +955,36 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             TBOX_ASSERT(u_new_data && u_half_data);
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
-
             switch (d_adv_ts_type)
             {
             case AdvectionTimeIntegrationMethod::FORWARD_EULER:
-                for (CellIterator<NDIM> ci(box); ci; ci++)
-                {
-                    const CellIndex<NDIM>& idx = ci();
-                    VectorNd com = { idx(0) + 0.5, idx(1) + 0.5 };
-                    // First do half step
-                    const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
-                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com[d] - dt * u_new[d] / dx[d];
-                }
+                integrate_paths_forward_(path_data->getPointer(),
+                                         path_data->getGhostCellWidth().max(),
+                                         u_new_data->getPointer(0),
+                                         u_new_data->getPointer(1),
+                                         u_new_data->getGhostCellWidth().max(),
+                                         dt,
+                                         dx,
+                                         idx_low(0),
+                                         idx_low(1),
+                                         idx_up(0),
+                                         idx_up(1));
                 break;
             case AdvectionTimeIntegrationMethod::MIDPOINT_RULE:
-                for (CellIterator<NDIM> ci(box); ci; ci++)
-                {
-                    const CellIndex<NDIM>& idx = ci();
-                    VectorNd com = { idx(0) + 0.5, idx(1) + 0.5 };
-                    // First do half step
-                    const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
-                    VectorNd com_half;
-                    for (int d = 0; d < NDIM; ++d) com_half[d] = com[d] - 0.5 * dt * u_new[d] / dx[d];
-
-                    // Now do full step
-                    const VectorNd& u_half = findVelocity(idx, *u_half_data, com_half);
-                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com[d] - dt * u_half[d] / dx[d];
-                }
+                integrate_paths_midpoint_(path_data->getPointer(),
+                                          path_data->getGhostCellWidth().max(),
+                                          u_new_data->getPointer(0),
+                                          u_new_data->getPointer(1),
+                                          u_new_data->getGhostCellWidth().max(),
+                                          u_half_data->getPointer(0),
+                                          u_half_data->getPointer(1),
+                                          u_half_data->getGhostCellWidth().max(),
+                                          dt,
+                                          dx,
+                                          idx_low(0),
+                                          idx_low(1),
+                                          idx_up(0),
+                                          idx_up(1));
                 break;
             default:
                 TBOX_ERROR("UNKNOWN METHOD!\n");
@@ -945,6 +1010,8 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
 
             const Box<NDIM>& box = patch->getBox();
+            const hier::Index<NDIM>& idx_low = box.lower();
+            const hier::Index<NDIM>& idx_up = box.upper();
 
             Pointer<CellData<NDIM, double>> path_data = patch->getPatchData(path_idx);
             Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
@@ -958,27 +1025,37 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             switch (d_adv_ts_type)
             {
             case AdvectionTimeIntegrationMethod::FORWARD_EULER:
-                for (CellIterator<NDIM> ci(box); ci; ci++)
-                {
-                    const CellIndex<NDIM>& idx = ci();
-                    VectorNd com = find_cell_centroid(idx, *ls_data);
-                    const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
-                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com[d] - dt * u_new[d] / dx[d];
-                }
+                integrate_paths_ls_forward_(path_data->getPointer(),
+                                            path_data->getGhostCellWidth().max(),
+                                            u_new_data->getPointer(0),
+                                            u_new_data->getPointer(1),
+                                            u_new_data->getGhostCellWidth().max(),
+                                            ls_data->getPointer(0),
+                                            ls_data->getGhostCellWidth().max(),
+                                            dt,
+                                            dx,
+                                            idx_low(0),
+                                            idx_low(1),
+                                            idx_up(0),
+                                            idx_up(1));
                 break;
             case AdvectionTimeIntegrationMethod::MIDPOINT_RULE:
-                for (CellIterator<NDIM> ci(box); ci; ci++)
-                {
-                    const CellIndex<NDIM>& idx = ci();
-                    VectorNd com = find_cell_centroid(idx, *ls_data);
-                    const VectorNd& u_new = findVelocity(idx, *u_new_data, com);
-                    VectorNd com_half;
-                    for (int d = 0; d < NDIM; ++d) com_half[d] = com[d] - 0.5 * dt * u_new[d] / dx[d];
-
-                    // Now do full step
-                    const VectorNd& u_half = findVelocity(idx, *u_half_data, com_half);
-                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = com[d] - dt * u_half[d] / dx[d];
-                }
+                integrate_paths_ls_midpoint_(path_data->getPointer(),
+                                             path_data->getGhostCellWidth().max(),
+                                             u_new_data->getPointer(0),
+                                             u_new_data->getPointer(1),
+                                             u_new_data->getGhostCellWidth().max(),
+                                             u_half_data->getPointer(0),
+                                             u_half_data->getPointer(1),
+                                             u_half_data->getGhostCellWidth().max(),
+                                             ls_data->getPointer(),
+                                             ls_data->getGhostCellWidth().max(),
+                                             dt,
+                                             dx,
+                                             idx_low(0),
+                                             idx_low(1),
+                                             idx_up(0),
+                                             idx_up(1));
                 break;
             default:
                 TBOX_ERROR("UNKNOWN METHOD!\n");

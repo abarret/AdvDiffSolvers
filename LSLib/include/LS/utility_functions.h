@@ -44,14 +44,14 @@ find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_
 
     double phi_ll = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 0)));
     if (std::abs(phi_ll) < s_eps) phi_ll = phi_ll < 0.0 ? -s_eps : s_eps;
-    double phi_lr = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 0)));
-    if (std::abs(phi_lr) < s_eps) phi_lr = phi_lr < 0.0 ? -s_eps : s_eps;
-    double phi_ur = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 1)));
-    if (std::abs(phi_ur) < s_eps) phi_ur = phi_ur < 0.0 ? -s_eps : s_eps;
-    double phi_ul = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 1)));
+    double phi_ul = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 0)));
     if (std::abs(phi_ul) < s_eps) phi_ul = phi_ul < 0.0 ? -s_eps : s_eps;
-    if ((phi_ll < 0.0 && phi_lr < 0.0 && phi_ur < 0.0 && phi_ul < 0.0) ||
-        (phi_ll > 0.0 && phi_lr > 0.0 && phi_ur > 0.0 && phi_ul > 0.0))
+    double phi_uu = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 1)));
+    if (std::abs(phi_uu) < s_eps) phi_uu = phi_uu < 0.0 ? -s_eps : s_eps;
+    double phi_lu = ls_data(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 1)));
+    if (std::abs(phi_lu) < s_eps) phi_lu = phi_lu < 0.0 ? -s_eps : s_eps;
+    if ((phi_ll < 0.0 && phi_ul < 0.0 && phi_uu < 0.0 && phi_lu < 0.0) ||
+        (phi_ll > 0.0 && phi_ul > 0.0 && phi_uu > 0.0 && phi_lu > 0.0))
     {
         // Not a cut cell. Center is idx
         center(0) = idx(0) + 0.5;
@@ -61,13 +61,13 @@ find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_
     {
         // Loop over nodes and edges and find points
         if (phi_ll < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1)));
-        if (phi_ll * phi_ul < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1) - phi_ll / (phi_ul - phi_ll)));
-        if (phi_ul < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1) + 1.0));
-        if (phi_ul * phi_ur < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) - phi_ul / (phi_ur - phi_ul), idx(1) + 1.0));
-        if (phi_ur < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 1.0, idx(1) + 1.0));
-        if (phi_ur * phi_lr < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 1.0, idx(1) - phi_lr / (phi_ur - phi_lr)));
-        if (phi_lr < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 1.0, idx(1)));
-        if (phi_lr * phi_ll < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) - phi_ll / (phi_lr - phi_ll), idx(1)));
+        if (phi_ll * phi_lu < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1) - phi_ll / (phi_lu - phi_ll)));
+        if (phi_lu < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0), idx(1) + 1.0));
+        if (phi_lu * phi_uu < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) - phi_lu / (phi_uu - phi_lu), idx(1) + 1.0));
+        if (phi_uu < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 1.0, idx(1) + 1.0));
+        if (phi_uu * phi_ul < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 1.0, idx(1) - phi_ul / (phi_uu - phi_ul)));
+        if (phi_ul < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) + 1.0, idx(1)));
+        if (phi_ul * phi_ll < 0.0) X_pts.push_back(IBTK::VectorNd(idx(0) - phi_ll / (phi_ul - phi_ll), idx(1)));
 
         double signed_area = 0.0;
         for (size_t i = 0; i < X_pts.size(); ++i)
