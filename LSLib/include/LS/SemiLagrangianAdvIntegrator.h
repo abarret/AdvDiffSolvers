@@ -167,9 +167,6 @@ private:
                                       const NodeData<NDIM, double>& ls_data,
                                       const Pointer<Patch<NDIM>>& patch);
 
-    VectorNd
-    findVelocity(const CellIndex<NDIM>& idx, const SAMRAI::pdat::SideData<NDIM, double>& u_data, const VectorNd& x_pt);
-
     double evaluateZSpline(const IBTK::VectorNd x, const int order);
 
     int getSplineWidth(int order);

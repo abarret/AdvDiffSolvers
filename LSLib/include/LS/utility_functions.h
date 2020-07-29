@@ -268,6 +268,9 @@ public:
     int d_patch_num = -1;
     int d_global_idx = -1;
 };
+#define LS_TIMER_START(timer) timer->start();
+
+#define LS_TIMER_STOP(timer) timer->stop();
 
 } // namespace LS
 #endif

@@ -8,6 +8,8 @@
 #include "LS/utility_functions.h"
 
 #include "SAMRAIVectorReal.h"
+#include <tbox/Timer.h>
+#include <tbox/TimerManager.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -74,6 +76,22 @@ extern "C"
 
 namespace LS
 {
+namespace
+{
+static Timer* t_advective_step;
+static Timer* t_diffusion_step;
+static Timer* t_preprocess;
+static Timer* t_postprocess;
+static Timer* t_integrate_hierarchy;
+static Timer* t_find_velocity;
+static Timer* t_sum_zsplines;
+static Timer* t_evaluate_mapping_vol;
+static Timer* t_evaluate_mapping_ls;
+static Timer* t_integrate_path_vol;
+static Timer* t_integrate_path_ls;
+static Timer* t_least_squares;
+
+} // namespace
 int SemiLagrangianAdvIntegrator::GHOST_CELL_WIDTH = 4;
 
 SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& object_name,
@@ -96,6 +114,25 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
         d_adv_ts_type = string_to_enum<AdvectionTimeIntegrationMethod>(input_db->getString("advection_ts_type"));
         d_dif_ts_type = string_to_enum<DiffusionTimeIntegrationMethod>(input_db->getString("diffusion_ts_type"));
     }
+
+    IBAMR_DO_ONCE(
+        t_advective_step = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::advective_step");
+        t_diffusion_step = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::diffusive_step");
+        t_preprocess = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::preprocess");
+        t_postprocess = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::postprocess");
+        t_find_velocity = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::find_velocity");
+        t_sum_zsplines = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::sum_zsplines");
+        t_evaluate_mapping_vol =
+            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::evaluate_mapping_vol");
+        t_evaluate_mapping_ls =
+            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::evaluate_mapping_ls");
+        t_integrate_path_vol =
+            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::integrage_path_vol");
+        t_integrate_path_ls =
+            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::integrate_path_ls");
+        t_least_squares = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::least_squares");
+        t_integrate_hierarchy =
+            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::integrate_hierarchy"););
 }
 
 void
@@ -337,6 +374,7 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
                                                           const double new_time,
                                                           const int num_cycles)
 {
+    LS_TIMER_START(t_preprocess)
     AdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(current_time, new_time, num_cycles);
     const double dt = new_time - current_time;
     const int coarsest_ln = 0;
@@ -494,11 +532,13 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         }
         l++;
     }
+    LS_TIMER_STOP(t_preprocess);
 }
 
 void
 SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
 {
+    LS_TIMER_START(t_integrate_hierarchy);
     AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
     const double half_time = current_time + 0.5 * (new_time - current_time);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
@@ -696,6 +736,7 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
             // TODO: Should we synchronize hierarchy?
         }
     }
+    LS_TIMER_STOP(t_integrate_hierarchy);
 }
 
 void
@@ -704,11 +745,13 @@ SemiLagrangianAdvIntegrator::postprocessIntegrateHierarchy(const double current_
                                                            const bool skip_synchronize_new_state_data,
                                                            const int num_cycles)
 {
+    LS_TIMER_START(t_postprocess);
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
         d_hierarchy->getPatchLevel(ln)->deallocatePatchData(d_adv_data);
 
     AdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(
         current_time, new_time, skip_synchronize_new_state_data, num_cycles);
+    LS_TIMER_STOP(t_postprocess);
 }
 
 void
@@ -826,6 +869,7 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
                                              const double current_time,
                                              const double new_time)
 {
+    LS_TIMER_START(t_advective_step);
     const double dt = new_time - current_time;
     int finest_ln = d_hierarchy->getFinestLevelNumber();
     int coarsest_ln = 0;
@@ -881,6 +925,7 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
         evaluateMappingOnHierarchy(
             d_path_idx, d_Q_scratch_idx, vol_cur_idx, Q_new_idx, vol_new_idx, ls_node_cur_idx, /*order*/ 1);
     }
+    LS_TIMER_STOP(t_advective_step);
 }
 
 void
@@ -894,6 +939,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
                                              const double current_time,
                                              const double new_time)
 {
+    LS_TIMER_START(t_diffusion_step);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     // We assume scratch context is already filled correctly.
     const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
@@ -929,6 +975,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
         plog << d_object_name << "::integrateHierarchy(): diffusion solve residual norm        = "
              << Q_helmholtz_solver->getResidualNorm() << "\n";
     }
+    LS_TIMER_STOP(t_diffusion_step);
 }
 
 void
@@ -937,6 +984,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
                                             const int u_half_idx,
                                             const double dt)
 {
+    LS_TIMER_START(t_integrate_path_ls);
     // Integrate path to find \xx^{n+1}
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
@@ -991,6 +1039,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             }
         }
     }
+    LS_TIMER_STOP(t_integrate_path_ls);
 }
 
 void
@@ -1001,6 +1050,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
                                             const int ls_idx,
                                             const double dt)
 {
+    LS_TIMER_START(t_integrate_path_vol);
     // Integrate path to find \xx^{n+1}
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
@@ -1062,6 +1112,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             }
         }
     }
+    LS_TIMER_STOP(t_integrate_path_vol);
 }
 
 void
@@ -1070,6 +1121,7 @@ SemiLagrangianAdvIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
                                                         const int Q_new_idx,
                                                         const int order)
 {
+    LS_TIMER_START(t_evaluate_mapping_ls)
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -1094,6 +1146,7 @@ SemiLagrangianAdvIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
             }
         }
     }
+    LS_TIMER_STOP(t_evaluate_mapping_ls);
 }
 
 void
@@ -1105,6 +1158,7 @@ SemiLagrangianAdvIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
                                                         const int ls_idx,
                                                         const int order)
 {
+    LS_TIMER_START(t_evaluate_mapping_vol);
 #ifndef NDEBUG
     TBOX_ASSERT(vol_cur_idx > 0);
     TBOX_ASSERT(vol_new_idx > 0);
@@ -1150,6 +1204,7 @@ SemiLagrangianAdvIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
             }
         }
     }
+    LS_TIMER_STOP(t_evaluate_mapping_vol);
 }
 
 double
@@ -1158,6 +1213,7 @@ SemiLagrangianAdvIntegrator::sumOverZSplines(const IBTK::VectorNd& x_loc,
                                              const CellData<NDIM, double>& Q_data,
                                              const int order)
 {
+    LS_TIMER_START(t_sum_zsplines);
     double val = 0.0;
     Box<NDIM> box(idx, idx);
     box.grow(getSplineWidth(order) + 1);
@@ -1170,6 +1226,7 @@ SemiLagrangianAdvIntegrator::sumOverZSplines(const IBTK::VectorNd& x_loc,
         for (int d = 0; d < NDIM; ++d) xx(d) = idx_c(d) + 0.5;
         val += Q_data(idx_c) * evaluateZSpline(x_loc - xx, order);
     }
+    LS_TIMER_STOP(t_sum_zsplines);
     return val;
 }
 
@@ -1197,6 +1254,7 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
                                                         const NodeData<NDIM, double>& ls_data,
                                                         const Pointer<Patch<NDIM>>& patch)
 {
+    LS_TIMER_START(t_least_squares);
     int size = 0;
     int box_size = 0;
     switch (d_least_squares_reconstruction_order)
@@ -1281,72 +1339,7 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
     }
 
     VectorXd x = (Lambda * A).fullPivHouseholderQr().solve(Lambda * U);
+    LS_TIMER_STOP(t_least_squares);
     return x(0);
-}
-
-VectorNd
-SemiLagrangianAdvIntegrator::findVelocity(const CellIndex<NDIM>& idx,
-                                          const SideData<NDIM, double>& u_data,
-                                          const VectorNd& x_pt)
-{
-    VectorNd u;
-    // First x-axis:
-    // Determine if we should use the "lower" or "upper" values.
-    {
-        VectorNd x_low;
-        SideIndex<NDIM> idx_ll, idx_ul, idx_lu, idx_uu;
-        if (x_pt(1) > (idx(1) + 0.5))
-        {
-            // Use "upper" points
-            for (int d = 0; d < NDIM; ++d) x_low(d) = static_cast<double>(idx(d)) + (d == 1 ? 0.5 : 0.0);
-            idx_ll = SideIndex<NDIM>(idx, 0, 0);
-            idx_ul = SideIndex<NDIM>(idx, 0, 1);
-            idx_lu = SideIndex<NDIM>(idx + IntVector<NDIM>(0, 1), 0, 0);
-            idx_uu = SideIndex<NDIM>(idx + IntVector<NDIM>(0, 1), 0, 1);
-        }
-        else
-        {
-            // Use "lower" points
-            for (int d = 0; d < NDIM; ++d) x_low(d) = static_cast<double>(idx(d)) - (d == 1 ? 0.5 : 0.0);
-            idx_lu = SideIndex<NDIM>(idx, 0, 0);
-            idx_uu = SideIndex<NDIM>(idx, 0, 1);
-            idx_ll = SideIndex<NDIM>(idx - IntVector<NDIM>(0, 1), 0, 0);
-            idx_ul = SideIndex<NDIM>(idx - IntVector<NDIM>(0, 1), 0, 1);
-        }
-        u(0) = u_data(idx_ll) + (u_data(idx_ul) - u_data(idx_ll)) * (x_pt(0) - x_low(0)) +
-               (u_data(idx_lu) - u_data(idx_ll)) * (x_pt(1) - x_low(1)) +
-               (u_data(idx_uu) - u_data(idx_lu) - u_data(idx_ul) + u_data(idx_ll)) * (x_pt(0) - x_low(0)) *
-                   (x_pt(1) - x_low(1));
-    }
-
-    // Second y-axis
-    {
-        VectorNd x_low;
-        SideIndex<NDIM> idx_ll, idx_ul, idx_lu, idx_uu;
-        if (x_pt(0) > (idx(0) + 0.5))
-        {
-            // Use "upper" points
-            for (int d = 0; d < NDIM; ++d) x_low(d) = static_cast<double>(idx(d)) + (d == 0 ? 0.5 : 0.0);
-            idx_ll = SideIndex<NDIM>(idx, 1, 0);
-            idx_lu = SideIndex<NDIM>(idx, 1, 1);
-            idx_ul = SideIndex<NDIM>(idx + IntVector<NDIM>(1, 0), 1, 0);
-            idx_uu = SideIndex<NDIM>(idx + IntVector<NDIM>(1, 0), 1, 1);
-        }
-        else
-        {
-            // Use "lower" points
-            for (int d = 0; d < NDIM; ++d) x_low(d) = static_cast<double>(idx(d)) - (d == 0 ? 0.5 : 0.0);
-            idx_ul = SideIndex<NDIM>(idx, 1, 0);
-            idx_uu = SideIndex<NDIM>(idx, 1, 1);
-            idx_ll = SideIndex<NDIM>(idx - IntVector<NDIM>(1, 0), 1, 0);
-            idx_lu = SideIndex<NDIM>(idx - IntVector<NDIM>(1, 0), 1, 1);
-        }
-        u(1) = u_data(idx_ll) + (u_data(idx_ul) - u_data(idx_ll)) * (x_pt(0) - x_low(0)) +
-               (u_data(idx_lu) - u_data(idx_ll)) * (x_pt(1) - x_low(1)) +
-               (u_data(idx_uu) - u_data(idx_lu) - u_data(idx_ul) + u_data(idx_ll)) * (x_pt(0) - x_low(0)) *
-                   (x_pt(1) - x_low(1));
-    }
-
-    return u;
 }
 } // namespace LS

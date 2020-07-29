@@ -48,6 +48,11 @@ static const std::string BDRY_EXTRAP_TYPE = "LINEAR";
 // Whether to enforce consistent interpolated values at Type 2 coarse-fine
 // interface ghost cells.
 static const bool CONSISTENT_TYPE_2_BDRY = false;
+
+static Timer* t_cache_l2;
+static Timer* t_compute_helmholtz;
+static Timer* t_extrapolate;
+static Timer* t_apply;
 } // namespace
 
 /////////////////////////////// PUBLIC ///////////////////////////////////////
@@ -65,6 +70,14 @@ LSCutCellLaplaceOperator::LSCutCellLaplaceOperator(const std::string& object_nam
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_var, var_db->getContext(d_object_name + "::SCRATCH"), CELLG);
+
+    IBAMR_DO_ONCE(t_cache_l2 =
+                      TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::cacheLeastSquaresData()");
+                  t_compute_helmholtz =
+                      TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::computeHelmholtzAction()");
+                  t_extrapolate =
+                      TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::extrapolateToCellCenters()");
+                  t_apply = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::apply()"););
     return;
 } // LSCutCellLaplaceOperator()
 
@@ -77,6 +90,7 @@ LSCutCellLaplaceOperator::~LSCutCellLaplaceOperator()
 void
 LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorReal<NDIM, double>& y)
 {
+    LS_TIMER_START(t_apply);
 #if !defined(NDEBUG)
     TBOX_ASSERT(d_is_initialized);
     for (int comp = 0; comp < d_ncomp; ++comp)
@@ -158,6 +172,7 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
             }
         }
     }
+    LS_TIMER_STOP(t_apply);
     return;
 } // apply
 
@@ -260,6 +275,7 @@ LSCutCellLaplaceOperator::deallocateOperatorState()
 void
 LSCutCellLaplaceOperator::cacheLeastSquaresData()
 {
+    LS_TIMER_START(t_cache_l2);
     const int coarsest_ln = 0;
     const int finest_ln = d_hierarchy->getFinestLevelNumber();
     // Free any preallocated matrices
@@ -336,6 +352,7 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
         }
     }
     d_update_weights = false;
+    LS_TIMER_STOP(t_cache_l2);
 }
 
 /////////////////////////////// PRIVATE //////////////////////////////////////
@@ -345,6 +362,7 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
                                                  CellData<NDIM, double>& R_data,
                                                  const Patch<NDIM>& patch)
 {
+    LS_TIMER_START(t_compute_helmholtz);
     const Box<NDIM>& box = patch.getBox();
     const Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch.getPatchGeometry();
     const double* const dx = pgeom->getDx();
@@ -412,12 +430,14 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
             R_data(idx, l) += C * Q_data(idx, l);
         }
     }
+    LS_TIMER_STOP(t_compute_helmholtz);
     return;
 }
 
 void
 LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_idx)
 {
+    LS_TIMER_START(t_extrapolate);
     if (d_update_weights) cacheLeastSquaresData();
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
@@ -483,6 +503,7 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
             }
         }
     }
+    LS_TIMER_STOP(t_extrapolate);
 }
 
 //////////////////////////////////////////////////////////////////////////////
