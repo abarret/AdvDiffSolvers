@@ -14,7 +14,7 @@ CPPFLAGS+= -I../../LSLib/include/
 PDIM = 2
 export PDIM
 
-OBJS = OutsideLSFcn.o OutsideBoundaryConditions.o InsideBoundaryConditions.o InsideLSFcn.o
+OBJS = OutsideLSFcn.o OutsideBoundaryConditions.o InsideBoundaryConditions.o InsideLSFcn.o QFcn.o
 
 default: check-opt main2d
 
