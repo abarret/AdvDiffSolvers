@@ -41,6 +41,7 @@
 #include "InsideLSFcn.h"
 #include "OutsideBoundaryConditions.h"
 #include "OutsideLSFcn.h"
+#include "QFcn.h"
 
 using namespace LS;
 
@@ -321,8 +322,7 @@ main(int argc, char* argv[])
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_in_var = new CellVariable<NDIM, double>("Q_in");
-        Pointer<QInitial> Q_in_init =
-            new QInitial("QInit", grid_geometry, app_initializer->getComponentDatabase("QInitial"));
+        Pointer<CartGridFunction> Q_in_init = new QFcn("QInit", app_initializer->getComponentDatabase("QFcnIn"));
         const bool periodic_domain = grid_geometry->getPeriodicShift().min() > 0;
         std::vector<RobinBcCoefStrategy<NDIM>*> Q_in_bcs(1);
         if (!periodic_domain)
