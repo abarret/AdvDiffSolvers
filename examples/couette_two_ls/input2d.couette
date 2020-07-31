@@ -35,6 +35,10 @@ R_1 = 0.5
 OMEGA_2 = 0.5
 OMEGA_1 = 5.0
 
+A = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
+B = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
+
+
 D_coef = 0.05
 
 Q = "exp(-50*((X_0-0.8)^2 + X_1^2))*10"
@@ -70,8 +74,8 @@ LSCutCellOperator {
 InsideLSFcn {
     r = R
     x_cent = XCOM,YCOM
-    a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
-    b = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
+    a = A
+    b = B
 }
 
 QInitial {
@@ -91,8 +95,8 @@ PoissonSolver {
 }
 
 UFunction {
-   a = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
-   b = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
+   a = A
+   b = B
    xcom = 0.0
    ycom = 0.0
    r1 = R_1
@@ -105,20 +109,20 @@ UFunction {
 Q_bcs {
     D = 1.0
 
-    acoef_function_0 = "1.0"
-    acoef_function_1 = "1.0"
-    acoef_function_2 = "1.0"
-    acoef_function_3 = "1.0"
+    acoef_function_0 = "0.0"
+    acoef_function_1 = "0.0"
+    acoef_function_2 = "0.0"
+    acoef_function_3 = "0.0"
 
-    bcoef_function_0 = "0.0"
-    bcoef_function_1 = "0.0"
-    bcoef_function_2 = "0.0"
-    bcoef_function_3 = "0.0"
+    bcoef_function_0 = "1.0"
+    bcoef_function_1 = "1.0"
+    bcoef_function_2 = "1.0"
+    bcoef_function_3 = "1.0"
 
-    gcoef_function_0 = Q
-    gcoef_function_1 = Q
-    gcoef_function_2 = Q
-    gcoef_function_3 = Q
+    gcoef_function_0 = "0.0"
+    gcoef_function_1 = "0.0"
+    gcoef_function_2 = "0.0"
+    gcoef_function_3 = "0.0"
 }
 
 Main {
@@ -182,8 +186,8 @@ LoadBalancer {
 TimerManager{
    print_exclusive = TRUE
    print_total     = TRUE
-   print_threshold = 0.2
-   timer_list      = "LS::*::*","*::*::*"
+   print_threshold = 0.0
+   timer_list      = "LS::*::*","IBAMR::*::*","IBTK::*::*"
 }
 
 

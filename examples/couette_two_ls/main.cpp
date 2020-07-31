@@ -41,6 +41,9 @@
 
 using namespace LS;
 
+static double a = std::numeric_limits<double>::signaling_NaN();
+static double b = std::numeric_limits<double>::signaling_NaN();
+
 struct LocateInterface
 {
 public:
@@ -254,6 +257,9 @@ main(int argc, char* argv[])
         ls_out_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface, static_cast<void*>(&interface_out));
         time_integrator->registerLevelSetResetFunction(ls_out_cell_var, ls_out_ops);
         Pointer<NodeVariable<NDIM, double>> ls_out_node_var = time_integrator->getLevelSetNodeVariable(ls_out_cell_var);
+
+        a = input_db->getDouble("A");
+        b = input_db->getDouble("B");
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_in_var = new CellVariable<NDIM, double>("Q_in");
@@ -553,9 +559,15 @@ output_to_file(const int Q_idx,
                 VectorNd X = 0.5 * (X_bounds[0] + X_bounds[1]);
                 VectorNd X_phys;
                 for (int d = 0; d < NDIM; ++d) X_phys[d] = x_low[d] + dx[d] * (X(d) - static_cast<double>(idx_low(d)));
-                X_phys[0] -= 1.521;
-                X_phys[1] -= 1.503;
-                double theta = std::atan2(X_phys[1], X_phys[0]);
+                double cur_theta = std::atan2(X_phys[1], X_phys[0]);
+                double cur_r = X_phys.norm();
+                double ref_theta =
+                    cur_theta + (a * cur_r + b / cur_r) * (7.5 / (2.0 * M_PI)) * std::cos(2 * M_PI * loop_time / 7.5) -
+                    (a * cur_r + b / cur_r) * (7.5 / (2.0 * M_PI));
+                VectorNd X_new_coords = { cur_r * std::cos(ref_theta), cur_r * std::sin(ref_theta) };
+                X_new_coords[0] -= 1.521;
+                X_new_coords[1] -= 1.503;
+                double theta = std::atan2(X_new_coords[1], X_new_coords[0]);
                 theta_data.push_back(theta);
                 // Calculate a delta theta for integral calculations
                 double d_theta = area;
