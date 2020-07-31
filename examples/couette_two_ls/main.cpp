@@ -183,6 +183,7 @@ main(int argc, char* argv[])
         const int timer_dump_interval = app_initializer->getTimerDumpInterval();
 
         const bool dump_postproc_data = app_initializer->dumpPostProcessingData();
+        const int dump_postproc_interval = app_initializer->getPostProcessingDataDumpInterval();
         const std::string postproc_data_dump_dirname = app_initializer->getPostProcessingDataDumpDirectory();
         if (dump_postproc_data && !postproc_data_dump_dirname.empty())
         {
@@ -407,53 +408,50 @@ main(int argc, char* argv[])
                 TimerManager::getManager()->print(plog);
                 TimerManager::getManager()->resetAllTimers();
             }
+            if (dump_postproc_data && (iteration_num % dump_postproc_interval == 0 || last_step))
+            {
+                auto var_db = VariableDatabase<NDIM>::getDatabase();
+                const int Q_in_idx =
+                    var_db->mapVariableAndContextToIndex(Q_in_var, time_integrator->getCurrentContext());
+                const int ls_in_n_idx =
+                    var_db->mapVariableAndContextToIndex(ls_in_node_var, time_integrator->getCurrentContext());
+                const int vol_in_idx = var_db->mapVariableAndContextToIndex(
+                    time_integrator->getVolumeVariable(ls_in_cell_var), time_integrator->getCurrentContext());
+                const int area_in_idx = var_db->mapVariableAndContextToIndex(
+                    time_integrator->getAreaVariable(ls_in_cell_var), time_integrator->getCurrentContext());
+                outputBdryInfo(Q_in_idx,
+                               Q_scr_idx,
+                               ls_in_n_idx,
+                               vol_in_idx,
+                               area_in_idx,
+                               loop_time,
+                               iteration_num,
+                               patch_hierarchy,
+                               "inside_bdry_info_");
+                const int Q_out_idx =
+                    var_db->mapVariableAndContextToIndex(Q_out_var, time_integrator->getCurrentContext());
+                const int vol_out_idx = var_db->mapVariableAndContextToIndex(
+                    time_integrator->getVolumeVariable(ls_out_cell_var), time_integrator->getCurrentContext());
+                const int area_out_idx = var_db->mapVariableAndContextToIndex(
+                    time_integrator->getAreaVariable(ls_in_cell_var), time_integrator->getCurrentContext());
+                outputBdryInfo(Q_out_idx,
+                               Q_scr_idx,
+                               ls_in_n_idx,
+                               vol_out_idx,
+                               area_out_idx,
+                               loop_time,
+                               iteration_num,
+                               patch_hierarchy,
+                               "outside_bdry_info_");
+                postprocess_data(patch_hierarchy,
+                                 time_integrator,
+                                 Q_in_var,
+                                 Q_out_var,
+                                 iteration_num,
+                                 loop_time,
+                                 postproc_data_dump_dirname);
+            }
         }
-
-        // Print out information on disk boundary
-        if (dump_postproc_data)
-        {
-            auto var_db = VariableDatabase<NDIM>::getDatabase();
-            const int Q_in_idx = var_db->mapVariableAndContextToIndex(Q_in_var, time_integrator->getCurrentContext());
-            const int ls_in_n_idx =
-                var_db->mapVariableAndContextToIndex(ls_in_node_var, time_integrator->getCurrentContext());
-            const int vol_in_idx = var_db->mapVariableAndContextToIndex(
-                time_integrator->getVolumeVariable(ls_in_cell_var), time_integrator->getCurrentContext());
-            const int area_in_idx = var_db->mapVariableAndContextToIndex(
-                time_integrator->getAreaVariable(ls_in_cell_var), time_integrator->getCurrentContext());
-            outputBdryInfo(Q_in_idx,
-                           Q_scr_idx,
-                           ls_in_n_idx,
-                           vol_in_idx,
-                           area_in_idx,
-                           loop_time,
-                           iteration_num,
-                           patch_hierarchy,
-                           "inside_bdry_info_");
-            const int Q_out_idx = var_db->mapVariableAndContextToIndex(Q_out_var, time_integrator->getCurrentContext());
-            const int vol_out_idx = var_db->mapVariableAndContextToIndex(
-                time_integrator->getVolumeVariable(ls_out_cell_var), time_integrator->getCurrentContext());
-            const int area_out_idx = var_db->mapVariableAndContextToIndex(
-                time_integrator->getAreaVariable(ls_in_cell_var), time_integrator->getCurrentContext());
-            outputBdryInfo(Q_out_idx,
-                           Q_scr_idx,
-                           ls_in_n_idx,
-                           vol_out_idx,
-                           area_out_idx,
-                           loop_time,
-                           iteration_num,
-                           patch_hierarchy,
-                           "outside_bdry_info_");
-        }
-
-        // Print out final information
-        if (dump_postproc_data)
-            postprocess_data(patch_hierarchy,
-                             time_integrator,
-                             Q_in_var,
-                             Q_out_var,
-                             iteration_num,
-                             loop_time,
-                             postproc_data_dump_dirname);
 
         if (!periodic_domain) delete Q_in_bcs[0];
         if (!periodic_domain) delete Q_out_bcs[0];
