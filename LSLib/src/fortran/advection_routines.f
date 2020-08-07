@@ -294,17 +294,17 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         integer num, i, i2
         double precision sgn_area, fac
 
-        if (ABS(ls_ll) .lt. 1.0d-12) then
-          ls_ll = SIGN(1.0d-12, ls_ll)
+        if (DABS(ls_ll) .lt. 1.0d-12) then
+          ls_ll = DSIGN(1.0d-12, ls_ll)
         endif
-        if (ABS(ls_lu) .lt. 1.0d-12) then
-          ls_lu = SIGN(1.0d-12, ls_lu)
+        if (DABS(ls_lu) .lt. 1.0d-12) then
+          ls_lu = DSIGN(1.0d-12, ls_lu)
         endif
-        if (ABS(ls_ul) .lt. 1.0d-12) then
-          ls_ul = SIGN(1.0d-12, ls_ul)
+        if (DABS(ls_ul) .lt. 1.0d-12) then
+          ls_ul = DSIGN(1.0d-12, ls_ul)
         endif
-        if (ABS(ls_uu) .lt. 1.0d-12) then
-          ls_uu = SIGN(1.0d-12, ls_uu)
+        if (DABS(ls_uu) .lt. 1.0d-12) then
+          ls_uu = DSIGN(1.0d-12, ls_uu)
         endif
 
         if ((ls_ll .lt. 0.d0 .and. ls_lu .lt. 0.d0
