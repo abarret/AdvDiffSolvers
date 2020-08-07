@@ -17,16 +17,16 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
      &                        0:1)
 
         integer un_gcw
-        double precision un_0((ilower0-un_gcw):(iupper0+un_gcw),
-     &                        (ilower1-un_gcw):(iupper1+un_gcw+1))
-        double precision un_1((ilower0-un_gcw):(iupper0+un_gcw+1),
+        double precision un_0((ilower0-un_gcw):(iupper0+un_gcw+1),
      &                        (ilower1-un_gcw):(iupper1+un_gcw))
+        double precision un_1((ilower0-un_gcw):(iupper0+un_gcw),
+     &                        (ilower1-un_gcw):(iupper1+un_gcw+1))
 
         integer uh_gcw
-        double precision uh_0((ilower0-uh_gcw):(iupper0+uh_gcw),
-     &                        (ilower1-uh_gcw):(iupper1+uh_gcw+1))
-        double precision uh_1((ilower0-uh_gcw):(iupper0+uh_gcw+1),
+        double precision uh_0((ilower0-uh_gcw):(iupper0+uh_gcw+1),
      &                        (ilower1-uh_gcw):(iupper1+uh_gcw))
+        double precision uh_1((ilower0-uh_gcw):(iupper0+uh_gcw),
+     &                        (ilower1-uh_gcw):(iupper1+uh_gcw+1))
 
         double precision dt, dx(0:1)
 
@@ -70,10 +70,10 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
      &                        0:1)
 
         integer u_gcw
-        double precision u_0((ilower0-u_gcw):(iupper0+u_gcw),
-     &                       (ilower1-u_gcw):(iupper1+u_gcw+1))
-        double precision u_1((ilower0-u_gcw):(iupper0+u_gcw+1),
+        double precision u_0((ilower0-u_gcw):(iupper0+u_gcw+1),
      &                       (ilower1-u_gcw):(iupper1+u_gcw))
+        double precision u_1((ilower0-u_gcw):(iupper0+u_gcw),
+     &                       (ilower1-u_gcw):(iupper1+u_gcw+1))
 
         double precision dt, dx(0:1)
         integer i0, i1
@@ -110,16 +110,16 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
      &                        0:1)
      
         integer un_gcw
-        double precision un_0((ilower0-un_gcw):(iupper0+un_gcw),
-     &                        (ilower1-un_gcw):(iupper1+un_gcw+1))
-        double precision un_1((ilower0-un_gcw):(iupper0+un_gcw+1),
+        double precision un_0((ilower0-un_gcw):(iupper0+un_gcw+1),
      &                        (ilower1-un_gcw):(iupper1+un_gcw))
+        double precision un_1((ilower0-un_gcw):(iupper0+un_gcw),
+     &                        (ilower1-un_gcw):(iupper1+un_gcw+1))
      
         integer uh_gcw
-        double precision uh_0((ilower0-uh_gcw):(iupper0+uh_gcw),
-     &                        (ilower1-uh_gcw):(iupper1+uh_gcw+1))
-        double precision uh_1((ilower0-uh_gcw):(iupper0+uh_gcw+1),
+        double precision uh_0((ilower0-uh_gcw):(iupper0+uh_gcw+1),
      &                        (ilower1-uh_gcw):(iupper1+uh_gcw))
+        double precision uh_1((ilower0-uh_gcw):(iupper0+uh_gcw),
+     &                        (ilower1-uh_gcw):(iupper1+uh_gcw+1))
      
         integer ls_gcw
         double precision ls((ilower0-ls_gcw):(iupper0+ls_gcw+1),
@@ -165,10 +165,10 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
      &                        (ilower1-path_gcw):(iupper1+path_gcw),
      &                        0:1)
         integer u_gcw
-        double precision u_0((ilower0-u_gcw):(iupper0+u_gcw),
-     &                       (ilower1-u_gcw):(iupper1+u_gcw+1))
-        double precision u_1((ilower0-u_gcw):(iupper0+u_gcw+1),
+        double precision u_0((ilower0-u_gcw):(iupper0+u_gcw+1),
      &                       (ilower1-u_gcw):(iupper1+u_gcw))
+        double precision u_1((ilower0-u_gcw):(iupper0+u_gcw),
+     &                       (ilower1-u_gcw):(iupper1+u_gcw+1))
         integer ls_gcw
         double precision ls((ilower0-ls_gcw):(iupper0+ls_gcw+1),
      &                      (ilower1-ls_gcw):(iupper1+ls_gcw+1))
@@ -203,10 +203,10 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         integer iupper0, iupper1
 
         integer u_gcw
-        double precision u0((ilower0-u_gcw):(iupper0+u_gcw),
-     &                      (ilower1-u_gcw):(iupper1+u_gcw+1))
-        double precision u1((ilower0-u_gcw):(iupper0+u_gcw+1),
+        double precision u0((ilower0-u_gcw):(iupper0+u_gcw+1),
      &                      (ilower1-u_gcw):(iupper1+u_gcw))
+        double precision u1((ilower0-u_gcw):(iupper0+u_gcw),
+     &                      (ilower1-u_gcw):(iupper1+u_gcw+1))
 
         double precision x0, x1
 
@@ -366,15 +366,9 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             xcom = xcom + (x_bounds(i) + x_bounds(i2)) * fac
             ycom = ycom + (y_bounds(i) + y_bounds(i2)) * fac
             sgn_area  = sgn_area + 0.5d0 * fac
-c            print *, i, i2, num
-c            print *, x_bounds(i), x_bounds(i2), fac
-c            print *, y_bounds(i), y_bounds(i2)
-c            print *, xcom, ycom, sgn_area
           enddo
           xcom = xcom / (6.d0 * sgn_area)
           ycom = ycom / (6.d0 * sgn_area)
-c          print *, xcom, ycom
-c          print *, "finished"
 
           if (sgn_area .lt. 1.0d-8) then
             xcom = 0.d0
