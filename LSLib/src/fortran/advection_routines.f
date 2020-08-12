@@ -370,7 +370,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           xcom = xcom / (6.d0 * sgn_area)
           ycom = ycom / (6.d0 * sgn_area)
 
-          if (sgn_area .lt. 1.0d-8) then
+          if (DABS(sgn_area) .lt. 1.0d-8) then
             xcom = 0.d0
             ycom = 0.d0
             do i = 0,(num-1)
