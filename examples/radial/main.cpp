@@ -332,40 +332,20 @@ main(int argc, char* argv[])
             if (draw_exact) time_integrator->deallocatePatchData(Q_exact_idx);
             if (output_bdry_info)
             {
-                if (use_ls_fcn)
-                {
-                    outputBdryInfo(Q_idx,
-                                   Q_scr_idx,
-                                   ls_n_var,
-                                   ls_n_idx,
-                                   vol_var,
-                                   vol_idx,
-                                   area_var,
-                                   area_idx,
-                                   loop_time,
-                                   iteration_num,
-                                   patch_hierarchy,
-                                   ls_fcn,
-                                   true);
-                }
-                else
-                {
-                    outputBdryInfo(
-                        Q_idx,
-                        Q_scr_idx,
-                        time_integrator->getLevelSetNodeVariable(ls_var),
-                        var_db->mapVariableAndContextToIndex(time_integrator->getLevelSetNodeVariable(ls_var),
-                                                             time_integrator->getCurrentContext()),
-                        vol_var,
-                        vol_idx,
-                        area_var,
-                        area_idx,
-                        loop_time,
-                        iteration_num,
-                        patch_hierarchy,
-                        nullptr,
-                        false);
-                }
+                outputBdryInfo(Q_idx,
+                               Q_scr_idx,
+                               time_integrator->getLevelSetNodeVariable(ls_var),
+                               var_db->mapVariableAndContextToIndex(time_integrator->getLevelSetNodeVariable(ls_var),
+                                                                    time_integrator->getCurrentContext()),
+                               vol_var,
+                               vol_idx,
+                               area_var,
+                               area_idx,
+                               loop_time,
+                               iteration_num,
+                               patch_hierarchy,
+                               nullptr,
+                               false);
             }
         }
 
@@ -421,40 +401,21 @@ main(int argc, char* argv[])
                 }
                 if (output_bdry_info)
                 {
-                    if (use_ls_fcn)
-                    {
-                        outputBdryInfo(Q_idx,
-                                       Q_scr_idx,
-                                       ls_n_var,
-                                       ls_n_idx,
-                                       vol_var,
-                                       vol_idx,
-                                       area_var,
-                                       area_idx,
-                                       loop_time,
-                                       iteration_num,
-                                       patch_hierarchy,
-                                       ls_fcn,
-                                       true);
-                    }
-                    else
-                    {
-                        outputBdryInfo(
-                            Q_idx,
-                            Q_scr_idx,
-                            time_integrator->getLevelSetNodeVariable(ls_var),
-                            var_db->mapVariableAndContextToIndex(time_integrator->getLevelSetNodeVariable(ls_var),
-                                                                 time_integrator->getNewContext()),
-                            vol_var,
-                            vol_idx,
-                            area_var,
-                            area_idx,
-                            loop_time,
-                            iteration_num,
-                            patch_hierarchy,
-                            nullptr,
-                            false);
-                    }
+                    outputBdryInfo(
+                        Q_idx,
+                        Q_scr_idx,
+                        time_integrator->getLevelSetNodeVariable(ls_var),
+                        var_db->mapVariableAndContextToIndex(time_integrator->getLevelSetNodeVariable(ls_var),
+                                                             time_integrator->getCurrentContext()),
+                        vol_var,
+                        vol_idx,
+                        area_var,
+                        area_idx,
+                        loop_time,
+                        iteration_num,
+                        patch_hierarchy,
+                        nullptr,
+                        false);
                 }
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
