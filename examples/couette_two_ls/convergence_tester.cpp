@@ -154,6 +154,7 @@ main(int argc, char* argv[])
     int fine_iteration_num = fine_hier_dump_interval;
 
     bool files_exist = true;
+    int draw_iter = 0;
     for (; files_exist;
          coarse_iteration_num += coarse_hier_dump_interval, fine_iteration_num += fine_hier_dump_interval)
     {
@@ -478,9 +479,9 @@ main(int argc, char* argv[])
         }
 
         // Output plot data before taking norms of differences.
-        visit_data_writer->writePlotData(coarse_patch_hierarchy, 0, loop_time);
-        visit_data_writer->writePlotData(coarsened_fine_patch_hierarchy, 1, loop_time);
-        visit_data_writer->writePlotData(fine_patch_hierarchy, 2, loop_time);
+        visit_data_writer->writePlotData(coarse_patch_hierarchy, draw_iter++, loop_time);
+        visit_data_writer->writePlotData(coarsened_fine_patch_hierarchy, draw_iter++, loop_time);
+        visit_data_writer->writePlotData(fine_patch_hierarchy, draw_iter++, loop_time);
 
         // Compute norms of differences.
         coarse_hier_cc_data_ops.subtract(Q_in_idx, Q_in_idx, Q_in_interp_idx);
@@ -555,7 +556,7 @@ main(int argc, char* argv[])
              << "  max-norm: " << coarse_hier_cc_data_ops.maxNorm(Q_out_idx, wgt_cc_idx) << "\n";
 
         // Output plot data after taking norms of differences.
-        visit_data_writer->writePlotData(coarse_patch_hierarchy, 3, loop_time);
+        visit_data_writer->writePlotData(coarse_patch_hierarchy, draw_iter++, loop_time);
 
         pout << endl;
         pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
