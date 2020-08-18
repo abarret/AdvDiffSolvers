@@ -375,7 +375,7 @@ SemiLagrangianAdvIntegrator::applyGradientDetectorSpecialized(Pointer<BasePatchH
 int
 SemiLagrangianAdvIntegrator::getNumberOfCycles() const
 {
-    return 1;
+    return 2;
 }
 
 void
@@ -449,9 +449,13 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
     {
         const int u_cur_idx = var_db->mapVariableAndContextToIndex(u_var, getCurrentContext());
         const int u_new_idx = var_db->mapVariableAndContextToIndex(u_var, getNewContext());
-        d_u_fcn[u_var]->setDataOnPatchHierarchy(
-            u_cur_idx, u_var, d_hierarchy, current_time, false, coarsest_ln, finest_ln);
-        d_u_fcn[u_var]->setDataOnPatchHierarchy(u_new_idx, u_var, d_hierarchy, new_time, false, coarsest_ln, finest_ln);
+        if (d_u_fcn[u_var])
+        {
+            d_u_fcn[u_var]->setDataOnPatchHierarchy(
+                u_cur_idx, u_var, d_hierarchy, current_time, false, coarsest_ln, finest_ln);
+            d_u_fcn[u_var]->setDataOnPatchHierarchy(
+                u_new_idx, u_var, d_hierarchy, new_time, false, coarsest_ln, finest_ln);
+        }
     }
 
     // Prepare diffusion
@@ -547,8 +551,9 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
 void
 SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
 {
-    LS_TIMER_START(t_integrate_hierarchy);
     AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
+    if (cycle_num == 0) return;
+    LS_TIMER_START(t_integrate_hierarchy);
     const double half_time = current_time + 0.5 * (new_time - current_time);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     for (const auto& Q_var : d_Q_var)
@@ -988,6 +993,7 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
     }
 
     {
+        // TODO: What kind of physical boundary conditions should we use for advection?
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
         std::vector<ITC> ghost_cell_comps(2);
         ghost_cell_comps[0] =
