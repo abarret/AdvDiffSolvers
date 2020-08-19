@@ -6,13 +6,13 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 128                                    // coarsest grid spacing
+N = 512                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.5
 DT_MIN = H * CFL_MAX / 7.0
 DT_MAX = DT_MIN
-END_TIME = 3.75
+END_TIME = 7.5
 REGRID_INTERVAL = 1
 TAG_BUFFER = 1
 
@@ -141,10 +141,10 @@ Main {
    restart_dump_interval       = 0
    restart_dump_dirname        = "restart_adv_diff2d"
 
-   data_dump_interval          = 1
+   data_dump_interval          = 3360*NFINEST/256
    data_dump_dirname           = "hier_data_IB2d"
 
-   timer_dump_interval = 1
+   timer_dump_interval = 0
 }
 
 CartesianGeometry {
