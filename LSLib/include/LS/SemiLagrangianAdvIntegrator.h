@@ -184,7 +184,8 @@ private:
     // Level set information
     std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>> d_ls_node_vars;
     std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>> d_ls_cell_vars;
-    std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>> d_vol_vars, d_area_vars;
+    std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>> d_vol_vars, d_area_vars,
+        d_vol_wgt_vars;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>,
              SAMRAI::tbox::Pointer<IBTK::CartGridFunction>>
         d_ls_fcn_map;
@@ -203,6 +204,8 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_s_var;
 
     SAMRAI::hier::ComponentSelector d_ls_data;
+
+    std::vector<SAMRAI::tbox::Pointer<SAMRAI::solv::SAMRAIVectorReal<NDIM, double>>> d_sol_ls_vecs, d_rhs_ls_vecs;
 
     static int GHOST_CELL_WIDTH;
 

@@ -153,6 +153,7 @@ SemiLagrangianAdvIntegrator::registerLevelSetVariable(Pointer<CellVariable<NDIM,
     d_ls_node_vars.push_back(new NodeVariable<NDIM, double>(ls_var->getName() + "_NodeVar"));
     d_vol_vars.push_back(new CellVariable<NDIM, double>(ls_var->getName() + "_VolVar"));
     d_area_vars.push_back(new CellVariable<NDIM, double>(ls_var->getName() + "_AreaVar"));
+    d_vol_wgt_vars.push_back(new CellVariable<NDIM, double>(ls_var->getName() + "_VolWgtVar"));
     d_ls_fcn_map[ls_var] = nullptr;
     d_ls_strategy_map[ls_var] = nullptr;
     d_ls_use_fcn[ls_var] = false;
@@ -249,6 +250,7 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
         const Pointer<NodeVariable<NDIM, double>>& ls_node_var = d_ls_node_vars[l];
         const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
         const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+        const Pointer<CellVariable<NDIM, double>>& vol_wgt_var = d_vol_wgt_vars[l];
 
         int ls_cell_cur_idx, ls_cell_new_idx, ls_cell_scr_idx;
         int ls_node_cur_idx, ls_node_new_idx;
@@ -267,10 +269,12 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
         int vol_new_idx = var_db->registerVariableAndContext(vol_var, getNewContext(), GHOST_CELL_WIDTH);
         int area_cur_idx = var_db->registerVariableAndContext(area_var, getCurrentContext(), GHOST_CELL_WIDTH);
         int area_new_idx = var_db->registerVariableAndContext(area_var, getNewContext(), GHOST_CELL_WIDTH);
+        int vol_wgt_idx = var_db->registerVariableAndContext(vol_wgt_var, getCurrentContext());
 
         d_current_data.setFlag(ls_node_cur_idx);
         d_current_data.setFlag(vol_cur_idx);
         d_current_data.setFlag(area_cur_idx);
+        d_current_data.setFlag(vol_wgt_idx);
         d_new_data.setFlag(ls_node_new_idx);
         d_new_data.setFlag(vol_new_idx);
         d_new_data.setFlag(area_new_idx);
@@ -861,6 +865,35 @@ SemiLagrangianAdvIntegrator::resetHierarchyConfigurationSpecialized(
     AdvDiffHierarchyIntegrator::resetHierarchyConfigurationSpecialized(base_hierarchy, coarsest_ln, finest_ln);
     d_hier_fc_data_ops->setPatchHierarchy(base_hierarchy);
     d_hier_fc_data_ops->resetLevels(0, finest_ln);
+
+    // Reset solution and rhs vecs
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    d_sol_ls_vecs.resize(d_Q_var.size());
+    d_rhs_ls_vecs.resize(d_Q_var.size());
+    int l = 0;
+    for (auto cit = d_Q_var.begin(); cit != d_Q_var.end(); ++cit, ++l)
+    {
+        const Pointer<CellVariable<NDIM, double>>& Q_var = *cit;
+        const std::string& name = Q_var->getName();
+        const int Q_scratch_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
+
+        const Pointer<CellVariable<NDIM, double>>& Q_rhs_var = d_Q_Q_rhs_map[Q_var];
+        const int Q_rhs_scratch_idx = var_db->mapVariableAndContextToIndex(Q_rhs_var, getScratchContext());
+
+        const Pointer<CellVariable<NDIM, double>> ls_c_var = d_Q_ls_map[Q_var];
+        TBOX_ASSERT(ls_c_var);
+        const size_t ll =
+            std::distance(d_ls_cell_vars.begin(), std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_c_var));
+        const Pointer<CellVariable<NDIM, double>> vol_wgt_var = d_vol_wgt_vars[ll];
+        const int vol_wgt_idx = var_db->mapVariableAndContextToIndex(vol_wgt_var, getCurrentContext());
+
+        d_sol_ls_vecs[l] = new SAMRAIVectorReal<NDIM, double>(
+            d_object_name + "::sol_vec::" + name, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+        d_sol_ls_vecs[l]->addComponent(Q_var, Q_scratch_idx, vol_wgt_idx, d_hier_cc_data_ops);
+        d_rhs_ls_vecs[l] = new SAMRAIVectorReal<NDIM, double>(
+            d_object_name + "::rhs_vec::" + name, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+        d_rhs_ls_vecs[l]->addComponent(Q_rhs_var, Q_rhs_scratch_idx, vol_wgt_idx, d_hier_cc_data_ops);
+    }
 }
 
 /////////////////////// PRIVATE ///////////////////////////////
@@ -945,6 +978,13 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
     const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
     const size_t l = distance(d_Q_var.begin(), std::find(d_Q_var.begin(), d_Q_var.end(), Q_var));
+
+    const size_t ls_l =
+        distance(d_ls_node_vars.begin(), std::find(d_ls_node_vars.begin(), d_ls_node_vars.end(), ls_var));
+    const Pointer<CellVariable<NDIM, double>>& vol_wgt_var = d_vol_wgt_vars[ls_l];
+    const int vol_wgt_idx = var_db->mapVariableAndContextToIndex(vol_wgt_var, getCurrentContext());
+    const int wgt_idx = d_hier_math_ops->getCellWeightPatchDescriptorIndex();
+    d_hier_cc_data_ops->multiply(vol_wgt_idx, vol_idx, wgt_idx);
 
     Pointer<LSCutCellLaplaceOperator> rhs_oper = d_helmholtz_rhs_ops[l];
 #if !defined(NDEBUG)
