@@ -7,6 +7,8 @@
 #include "Variable.h"
 #include "tbox/MathUtilities.h"
 
+#include "Eigen/Dense"
+
 namespace LS
 {
 static double s_eps = 1.0e-12;
@@ -103,6 +105,56 @@ node_to_cell(const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data)
     double ls_ll = ls_data(idx_ll), ls_lu = ls_data(idx_lu);
     double ls_ul = ls_data(idx_ul), ls_uu = ls_data(idx_uu);
     return 0.25 * (ls_ll + ls_lu + ls_ul + ls_uu);
+}
+
+inline double
+biliner_interpolant(const VectorNd& x,
+                    const VectorNd& x_ll,
+                    const double phi_ll,
+                    const double phi_ul,
+                    const double phi_uu,
+                    const double phi_lu)
+{
+    return (phi_ll + (phi_ul - phi_ll) * (x(0) - x_ll(0)) + (phi_lu - phi_ll) * (x(1) - x_ll(1)) +
+            (phi_uu - phi_lu - phi_ul + phi_ll) * (x(0) - x_ll(0)) * (x(1) - x_ll(1)));
+}
+
+inline VectorNd
+compute_grad(const VectorNd& x,
+             const VectorNd& x_ll,
+             const double* const dx,
+             const double phi_ll,
+             const double phi_ul,
+             const double phi_uu,
+             const double phi_lu)
+{
+    MatrixXd mat = MatrixXd::Zero(4, 4);
+    VectorXd rhs = VectorXd::Zero(4);
+    rhs(1) = 1.0;
+    mat(0, 0) = 1.0;
+    mat(0, 1) = 1.0;
+    mat(0, 2) = 1.0;
+    mat(0, 3) = 1.0;
+    mat(1, 0) = x_ll(0) - x(0);
+    mat(1, 1) = x_ll(0) + dx[0] - x(0);
+    mat(1, 2) = x_ll(0) + dx[0] - x(0);
+    mat(1, 3) = x_ll(0) - x(0);
+    mat(2, 0) = x_ll(1) - x(1);
+    mat(2, 1) = x_ll(1) - x(1);
+    mat(2, 2) = x_ll(1) + dx[1] - x(1);
+    mat(2, 3) = x_ll(1) + dx[1] - x(1);
+    mat(3, 0) = (x_ll(0) - x(0)) * (x_ll(1) - x(1));
+    mat(3, 1) = (x_ll(0) + dx[0] - x(0)) * (x_ll(1) - x(1));
+    mat(3, 2) = (x_ll(0) + dx[0] - x(0)) * (x_ll(1) + dx[1] - x(1));
+    mat(3, 3) = (x_ll(0) - x(0)) * (x_ll(1) + dx[1] - x(1));
+    VectorXd coefs_0 = mat.fullPivHouseholderQr().solve(rhs);
+    rhs(1) = 0.0;
+    rhs(2) = 1.0;
+    VectorXd coefs_1 = mat.fullPivHouseholderQr().solve(rhs);
+    VectorNd grad_phi;
+    grad_phi(0) = coefs_0(0) * phi_ll + coefs_0(1) * phi_ul + coefs_0(2) * phi_uu + coefs_0(3) * phi_lu;
+    grad_phi(1) = coefs_1(0) * phi_ll + coefs_1(1) * phi_ul + coefs_1(2) * phi_uu + coefs_1(3) * phi_lu;
+    return grad_phi;
 }
 
 /*!

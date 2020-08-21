@@ -258,14 +258,16 @@ main(int argc, char* argv[])
         time_integrator->restrictToLevelSet(Q_var, ls_var);
 
         // Set up diffusion operators
-        Pointer<RadialBoundaryCond> bdry_oper =
-            new RadialBoundaryCond("BdryOperator", app_initializer->getComponentDatabase("BdryOperator"));
+        Pointer<RadialBoundaryCond> rhs_bdry_oper =
+            new RadialBoundaryCond("RHSBdryOperator", app_initializer->getComponentDatabase("BdryOperator"));
+        Pointer<RadialBoundaryCond> sol_bdry_oper =
+            new RadialBoundaryCond("SOLBdryOperator", app_initializer->getComponentDatabase("BdryOperator"));
         Pointer<LSCutCellLaplaceOperator> rhs_oper = new LSCutCellLaplaceOperator(
             "LSCutCellRHSOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         Pointer<LSCutCellLaplaceOperator> sol_oper = new LSCutCellLaplaceOperator(
             "LSCutCellOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
-        rhs_oper->setBoundaryConditionOperator(bdry_oper);
-        sol_oper->setBoundaryConditionOperator(bdry_oper);
+        rhs_oper->setBoundaryConditionOperator(rhs_bdry_oper);
+        sol_oper->setBoundaryConditionOperator(sol_bdry_oper);
         time_integrator->setHelmholtzRHSOperator(Q_var, rhs_oper);
         Pointer<PETScKrylovPoissonSolver> Q_helmholtz_solver = new PETScKrylovPoissonSolver(
             "PoissonSolver", app_initializer->getComponentDatabase("PoissonSolver"), "poisson_solve_");

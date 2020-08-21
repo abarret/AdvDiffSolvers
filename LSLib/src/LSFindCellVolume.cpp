@@ -32,6 +32,7 @@ LSFindCellVolume::updateVolumeAndArea(int vol_idx,
     {
         double tot_area = 0.0;
         double tot_vol = 0.0;
+        double min_vol = 1.0;
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
@@ -63,11 +64,14 @@ LSFindCellVolume::updateVolumeAndArea(int vol_idx,
                 {
                     (*vol_data)(idx) = volume / cell_volume;
                     if (patch->getBox().contains(idx)) tot_vol += volume;
+                    min_vol = volume > 0.0 ? std::min(min_vol, volume) : min_vol;
                 }
             }
         }
         tot_area = SAMRAI_MPI::sumReduction(tot_area);
         tot_vol = SAMRAI_MPI::sumReduction(tot_vol);
+        min_vol = SAMRAI_MPI::minReduction(min_vol);
+        plog << "Minimum volume on level:     " << ln << " is: " << std::setprecision(12) << min_vol << "\n";
         plog << "Total area found on level:   " << ln << " is: " << std::setprecision(12) << tot_area << "\n";
         plog << "Total volume found on level: " << ln << " is: " << std::setprecision(12) << tot_vol << "\n";
     }
