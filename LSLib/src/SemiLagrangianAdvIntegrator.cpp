@@ -516,7 +516,7 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
             if (d_enable_logging)
                 plog << d_object_name << ": "
                      << "Initializing Helmholtz RHS operator for variable number " << l << "\n";
-            rhs_oper->initializeOperatorState(*d_sol_vecs[l], *d_rhs_vecs[l]);
+            rhs_oper->initializeOperatorState(*d_sol_ls_vecs[l], *d_rhs_ls_vecs[l]);
             d_helmholtz_rhs_ops_need_init[l] = false;
         }
 
@@ -531,7 +531,7 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
             if (d_enable_logging)
                 plog << d_object_name << ": "
                      << "Initializing Helmholtz solver for variable number " << l << "\n";
-            helmholtz_solver->initializeSolverState(*d_sol_vecs[l], *d_rhs_vecs[l]);
+            helmholtz_solver->initializeSolverState(*d_sol_ls_vecs[l], *d_rhs_ls_vecs[l]);
             d_helmholtz_solvers_need_init[l] = false;
         }
         l++;
@@ -993,7 +993,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     rhs_oper->setTimeStepType(d_dif_ts_type);
     rhs_oper->setLSIndices(ls_idx, ls_var, vol_idx, vol_var, area_idx, area_var);
     rhs_oper->setSolutionTime(current_time);
-    rhs_oper->apply(*d_sol_vecs[l], *d_rhs_vecs[l]);
+    rhs_oper->apply(*d_sol_ls_vecs[l], *d_rhs_ls_vecs[l]);
 
     Pointer<PETScKrylovPoissonSolver> Q_helmholtz_solver = d_helmholtz_solvers[l];
 #if !defined(NDEBUG)
@@ -1006,7 +1006,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     solv_oper->setTimeStepType(d_dif_ts_type);
     solv_oper->setLSIndices(ls_idx, ls_var, vol_idx, vol_var, area_idx, area_var);
     solv_oper->setSolutionTime(new_time);
-    Q_helmholtz_solver->solveSystem(*d_sol_vecs[l], *d_rhs_vecs[l]);
+    Q_helmholtz_solver->solveSystem(*d_sol_ls_vecs[l], *d_rhs_ls_vecs[l]);
     d_hier_cc_data_ops->copyData(Q_new_idx, Q_scr_idx);
     if (d_enable_logging)
     {
