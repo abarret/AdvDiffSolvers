@@ -36,5 +36,9 @@ private:
     double d_a = std::numeric_limits<double>::quiet_NaN();
     double d_D_coef = std::numeric_limits<double>::quiet_NaN();
     double d_R = std::numeric_limits<double>::quiet_NaN();
+
+    double d_R1 = 0.25;
+    VectorNd d_center = { 1.509, 1.521 };
+    std::vector<double> d_vel;
 };
 #endif

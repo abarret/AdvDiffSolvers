@@ -14,7 +14,7 @@ CPPFLAGS+= -I../../LSLib/include/
 PDIM = 2
 export PDIM
 
-OBJS = RadialBoundaryCond.o
+OBJS = RadialBoundaryCond.o QFcn.o
 
 default: check-opt main2d
 

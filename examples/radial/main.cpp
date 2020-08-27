@@ -37,6 +37,8 @@
 
 #include "LS/SemiLagrangianAdvIntegrator.h"
 
+#include "QFcn.h"
+
 #include <Eigen/Dense>
 
 using namespace LS;
@@ -208,10 +210,11 @@ main(int argc, char* argv[])
                                         box_generator,
                                         load_balancer);
 
+        time_integrator->registerLoadBalancer(load_balancer);
+
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_var = new CellVariable<NDIM, double>("Q");
-        Pointer<QInitial> Q_init =
-            new QInitial("QInit", grid_geometry, app_initializer->getComponentDatabase("QInitial"));
+        Pointer<QFcn> Q_init = new QFcn("QInit", grid_geometry, app_initializer->getComponentDatabase("QInitial"));
         const bool periodic_domain = grid_geometry->getPeriodicShift().min() > 0;
         std::vector<RobinBcCoefStrategy<NDIM>*> Q_bcs(1);
         if (!periodic_domain)

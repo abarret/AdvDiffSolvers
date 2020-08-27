@@ -1,17 +1,17 @@
 // physical parameters
 PI = 3.14159265359
-L = 12.0
+L = 6.0
 BASE_NAME = "test1"
 
 // grid spacing parameters
-MAX_LEVELS = 4                            // maximum number of levels in locally refined grid
+MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 8                                    // coarsest grid spacing
+N = 2*64                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.3
-DT_MAX = H * CFL_MAX / 1
-END_TIME = 10
+DT_MAX = H * CFL_MAX / 2.0
+END_TIME = 2
 REGRID_INTERVAL = 1
 
 OUTPUT_BDRY_INFO = TRUE
@@ -20,22 +20,22 @@ DRAW_EXACT = TRUE
 MIN_REFINE_FACTOR = -20.0
 MAX_REFINE_FACTOR = 2.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
-USE_STRANG_SPLITTING = FALSE
+USE_STRANG_SPLITTING = TRUE
 ADVECTION_TS_TYPE = "MIDPOINT_RULE"
-DIFFUSION_TS_TYPE = "BACKWARD_EULER"
+DIFFUSION_TS_TYPE = "TRAPEZOIDAL_RULE"
 
 USING_CIRCLE = TRUE
 STATIONARY_INTERFACE = FALSE
 USING_VEL_FCN = TRUE
 
-XCOM = 1.5
-YCOM = 1.5
+XCOM = 1.521
+YCOM = 1.503
 R = 1.0
 
-D_coef = 0.1
+D_coef = 0.05
 
-U = "cos(PI/4.0)"
-V = "sin(PI/4.0)"
+U = "2.0*cos(PI/4.0)"
+V = "2.0*sin(PI/4.0)"
 //U = "0.0"
 //V = "0.0"
 
@@ -61,29 +61,34 @@ RelaxationLSMethod {
 
 LSCutCellOperator {
   robin_boundary = TRUE
-  cache_boundary = FALSE
+  cache_boundary = TRUE
 }
 
 BdryOperator {
-    a_coef = 1.0
+    a_coef = 0.0
     D = D_coef
     R = R
+    velocity = 2.0*cos(PI/4.0), 2.0*sin(PI/4.0)
+//    velocity = 0.0,0.0
+    Center = XCOM,YCOM
+    R1 = R
 }
 
 SetLSValue {
     interface_type = "DISK"
     R1 = R
     Center = XCOM,YCOM
-    Vel = cos(PI/4.0),sin(PI/4.0)
+    Vel = 2.0*cos(PI/4.0), 2.0*sin(PI/4.0)
 //    Vel = 0.0,0.0
 }
 
 QInitial {
+    integrate_function = TRUE
     init_type = "RADIAL"
     D = D_coef
     R1 = 1.0
     Center = XCOM,YCOM
-    velocity = cos(PI/4.0),sin(PI/4.0)
+    velocity = 2.0*cos(PI/4.0), 2.0*sin(PI/4.0)
 //    velocity = 0.0,0.0
 }
 
@@ -92,8 +97,8 @@ PoissonSolver {
 
 UFunction {
 //    function_0 = "(X_1 > -1.0 && X_1 < 1.0) ? (1.0-X_1)*(-1.0-X_1) : 0.0"
-    function_0 = U
-    function_1 = V
+   function_0 = U
+   function_1 = V
 }
 
 Q_bcs {
@@ -135,7 +140,7 @@ Main {
 CartesianGeometry {
    domain_boxes = [ (0,0),(N - 1,N - 1) ]
    x_lo = 0,0
-   x_up = L,L
+   x_up = L, L
    periodic_dimension = 1,1
 }
 
