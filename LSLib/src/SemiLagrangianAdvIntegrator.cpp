@@ -806,6 +806,12 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
 }
 
 void
+SemiLagrangianAdvIntegrator::regridHierarchyBeginSpecialized()
+{
+    updateWorkloadEstimates();
+}
+
+void
 SemiLagrangianAdvIntegrator::regridHierarchyEndSpecialized()
 {
     // Force reinitialization of level set after regrid.
@@ -893,6 +899,40 @@ SemiLagrangianAdvIntegrator::resetHierarchyConfigurationSpecialized(
         d_rhs_ls_vecs[l] = new SAMRAIVectorReal<NDIM, double>(
             d_object_name + "::rhs_vec::" + name, d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
         d_rhs_ls_vecs[l]->addComponent(Q_rhs_var, Q_rhs_scratch_idx, vol_wgt_idx, d_hier_cc_data_ops);
+    }
+}
+
+void
+SemiLagrangianAdvIntegrator::addWorkloadEstimate(Pointer<PatchHierarchy<NDIM>> hierarchy, const int workload_data_idx)
+{
+    plog << d_object_name << "::addWorkloadEstimate()"
+         << "\n";
+    const int coarsest_ln = 0;
+    const int finest_ln = hierarchy->getFinestLevelNumber();
+    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            Pointer<CellData<NDIM, double>> workload_data = patch->getPatchData(workload_data_idx);
+            CellData<NDIM, double> temp_work_data(patch->getBox(), 1, 0);
+            temp_work_data.fillAll(0.0);
+            for (const auto& vol_var : d_vol_vars)
+            {
+                Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_var, getCurrentContext());
+                for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    if ((*vol_data)(idx) > 0.0) temp_work_data(idx) = 10.0;
+                }
+            }
+            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                (*workload_data)(idx) += temp_work_data(idx);
+            }
+        }
     }
 }
 

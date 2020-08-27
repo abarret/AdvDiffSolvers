@@ -339,7 +339,7 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
                     }
                     PatchIndexPair p_idx = PatchIndexPair(patch, idx);
 
-#ifdef NDEBUG
+#ifndef NDEBUG
                     if (qr_map.find(p_idx) == qr_map.end())
                         qr_map[p_idx] = FullPivHouseholderQR<MatrixXd>(A);
                     else
@@ -384,7 +384,7 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
     for (CellIterator<NDIM> ci(box); ci; ci++)
     {
         const CellIndex<NDIM>& idx = ci();
-        double cell_volume = (*vol_data)(idx) * dx[0] * dx[1];
+        double cell_volume = (*vol_data)(idx)*dx[0] * dx[1];
         if (MathUtilities<double>::equalEps(cell_volume, 0.0))
         {
             for (unsigned int l = 0; l < d_bc_coefs.size(); ++l) R_data(idx, l) = 0.0;

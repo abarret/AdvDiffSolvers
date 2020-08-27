@@ -117,11 +117,15 @@ public:
 
 protected:
     void initializeCompositeHierarchyDataSpecialized(double current_time, bool initial_time) override;
+    void regridHierarchyBeginSpecialized() override;
     void regridHierarchyEndSpecialized() override;
     void resetTimeDependentHierarchyDataSpecialized(double new_time) override;
     void resetHierarchyConfigurationSpecialized(Pointer<BasePatchHierarchy<NDIM>> base_hierarchy,
                                                 int coarsest_ln,
                                                 int finest_ln);
+
+    void addWorkloadEstimate(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                             const int workload_data_idx) override;
 
 private:
     void advectionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
