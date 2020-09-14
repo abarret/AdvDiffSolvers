@@ -48,12 +48,18 @@ public:
      */
     LSCutCellBoundaryConditions& operator=(const LSCutCellBoundaryConditions& that) = delete;
 
+    virtual void allocateOperatorState(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                                       double time);
+
     virtual void applyBoundaryCondition(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                         int Q_idx,
                                         SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> R_var,
                                         int R_idx,
                                         SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                                         double time) = 0;
+
+    virtual void deallocateOperatorState(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                                         double time);
 
     void setLSData(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                    int ls_idx,

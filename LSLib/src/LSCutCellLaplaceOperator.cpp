@@ -67,6 +67,7 @@ LSCutCellLaplaceOperator::LSCutCellLaplaceOperator(const std::string& object_nam
 
     d_robin_bdry = input_db->getBoolWithDefault("robin_boundary", d_robin_bdry);
     d_cache_bdry = input_db->getBool("cache_boundary");
+    d_using_rbf = input_db->getBool("using_rbf");
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_var, var_db->getContext(d_object_name + "::SCRATCH"), CELLG);
@@ -231,6 +232,8 @@ LSCutCellLaplaceOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, d
     d_hier_bdry_fill->initializeOperatorState(d_transaction_comps, d_hierarchy, d_coarsest_ln, d_finest_ln);
     d_update_weights = true;
 
+    if (d_bdry_conds) d_bdry_conds->allocateOperatorState(d_hierarchy, d_current_time);
+
     // Indicate the operator is initialized.
     d_is_initialized = true;
     return;
@@ -266,6 +269,8 @@ LSCutCellLaplaceOperator::deallocateOperatorState()
     for (std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>>& qr_matrix_map : d_qr_matrix_vec)
         qr_matrix_map.clear();
     d_update_weights = true;
+
+    if (d_bdry_conds) d_bdry_conds->deallocateOperatorState(d_hierarchy, d_current_time);
 
     // Indicate that the operator is NOT initialized.
     d_is_initialized = false;
@@ -355,6 +360,95 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
     LS_TIMER_STOP(t_cache_l2);
 }
 
+void
+LSCutCellLaplaceOperator::cacheRBFData()
+{
+    const int coarsest_ln = 0;
+    const int finest_ln = d_hierarchy->getFinestLevelNumber();
+    // Free any preallocated matrices
+    for (std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>>& qr_matrix_map : d_qr_matrix_vec)
+        qr_matrix_map.clear();
+
+    // allocate matrix data
+    d_qr_matrix_vec.resize(finest_ln + 1);
+
+    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+    {
+        std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>>& qr_map = d_qr_matrix_vec[ln];
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+
+            const Box<NDIM>& box = patch->getBox();
+            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_ls_idx);
+            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
+
+            for (CellIterator<NDIM> ci(box); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
+                {
+                    // We are on a cut cell. We need to interpolate to cell center
+                    VectorNd x_loc;
+                    for (int d = 0; d < NDIM; ++d) x_loc(d) = static_cast<double>(idx(d)) + 0.5;
+                    int box_size = 1;
+                    Box<NDIM> box(idx, idx);
+                    box.grow(box_size);
+#ifndef NDEBUG
+                    TBOX_ASSERT(ls_data->getGhostBox().contains(box));
+                    TBOX_ASSERT(vol_data->getGhostBox().contains(box));
+#endif
+
+                    const CellIndex<NDIM>& idx_low = patch->getBox().lower();
+                    std::vector<VectorNd> X_vals;
+
+                    for (CellIterator<NDIM> ci(box); ci; ci++)
+                    {
+                        const CellIndex<NDIM>& idx_c = ci();
+                        if ((*vol_data)(idx_c) > 0.0)
+                        {
+                            // Use this point to calculate least squares reconstruction.
+                            VectorNd x_cent_c = find_cell_centroid(idx_c, *ls_data);
+                            X_vals.push_back(x_cent_c);
+                        }
+                    }
+                    const int m = X_vals.size();
+                    MatrixXd A(MatrixXd::Zero(m, m));
+                    MatrixXd B(MatrixXd::Zero(m, NDIM + 1));
+                    for (size_t i = 0; i < X_vals.size(); ++i)
+                    {
+                        for (size_t j = 0; j < X_vals.size(); ++j)
+                        {
+                            const VectorNd X = X_vals[i] - X_vals[j];
+                            const double phi = rbf(X.norm());
+                            A(i, j) = phi;
+                        }
+                        B(i, 0) = 1.0;
+                        for (int d = 0; d < NDIM; ++d) B(i, d + 1) = X_vals[i](d);
+                    }
+                    PatchIndexPair p_idx = PatchIndexPair(patch, idx);
+
+                    MatrixXd final_mat(MatrixXd::Zero(m + NDIM + 1, m + NDIM + 1));
+                    final_mat.block(0, 0, m, m) = A;
+                    final_mat.block(0, m, m, NDIM + 1) = B;
+                    final_mat.block(m, 0, NDIM + 1, m) = B.transpose();
+
+#ifndef NDEBUG
+                    if (qr_map.find(p_idx) == qr_map.end())
+                        qr_map[p_idx] = FullPivHouseholderQR<MatrixXd>(final_mat);
+                    else
+                        TBOX_WARNING("Already had a QR decomposition in place");
+#else
+                    qr_map[p_idx] = FullPivHouseholderQR<MatrixXd>(final_mat);
+#endif
+                }
+            }
+        }
+    }
+    d_update_weights = false;
+}
+
 /////////////////////////////// PRIVATE //////////////////////////////////////
 
 void
@@ -438,7 +532,13 @@ void
 LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_idx)
 {
     LS_TIMER_START(t_extrapolate);
-    if (d_update_weights) cacheLeastSquaresData();
+    if (d_update_weights)
+    {
+        if (d_using_rbf)
+            cacheRBFData();
+        else
+            cacheLeastSquaresData();
+    }
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -490,15 +590,38 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
                         }
                     }
                     const int m = Q_vals.size();
-                    VectorXd U(VectorXd::Zero(m));
+                    VectorXd U(VectorXd::Zero(m + (d_using_rbf ? NDIM + 1 : 0)));
                     for (size_t i = 0; i < Q_vals.size(); ++i)
                     {
-                        VectorNd X = X_vals[i] - x_loc;
-                        U(i) = Q_vals[i] * std::sqrt(weight(static_cast<double>(X.norm())));
+                        if (d_using_rbf)
+                        {
+                            U(i) = Q_vals[i];
+                        }
+                        else
+                        {
+                            VectorNd X = X_vals[i] - x_loc;
+                            U(i) = Q_vals[i] * std::sqrt(weight(static_cast<double>(X.norm())));
+                        }
                     }
 
                     VectorXd x1 = qr_matrix_map[PatchIndexPair(patch, idx)].solve(U);
-                    (*R_data)(idx) = x1(0);
+                    if (d_using_rbf)
+                    {
+                        VectorXd rbf_coefs = x1.block(0, 0, m, 1);
+                        VectorXd poly_coefs = x1.block(m, 0, NDIM + 1, 1);
+                        Vector3d poly_vec = { 1.0, x_loc(0), x_loc(1) };
+                        double val = 0.0;
+                        for (size_t i = 0; i < X_vals.size(); ++i)
+                        {
+                            val += rbf_coefs[i] * rbf((X_vals[i] - x_loc).norm());
+                        }
+                        val += poly_coefs.dot(poly_vec);
+                        (*R_data)(idx) = val;
+                    }
+                    else
+                    {
+                        (*R_data)(idx) = x1(0);
+                    }
                 }
             }
         }

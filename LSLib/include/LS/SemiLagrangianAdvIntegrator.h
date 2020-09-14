@@ -164,6 +164,13 @@ private:
                           const CellIndex<NDIM>& idx,
                           const SAMRAI::pdat::CellData<NDIM, double>& vol_data);
 
+    double radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
+                                             const CellIndex<NDIM>& idx,
+                                             const CellData<NDIM, double>& Q_data,
+                                             const CellData<NDIM, double>& vol_data,
+                                             const NodeData<NDIM, double>& ls_data,
+                                             const Pointer<Patch<NDIM>>& patch);
+
     double leastSquaresReconstruction(IBTK::VectorNd x_loc,
                                       const CellIndex<NDIM>& idx,
                                       const CellData<NDIM, double>& Q_data,
@@ -177,6 +184,8 @@ private:
     double ZSpline(double x, int order);
 
     double weight(double r);
+
+    double rbf(const double r);
 
     // patch data for particle trajectories
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_path_var;
@@ -219,6 +228,8 @@ private:
     AdvectionTimeIntegrationMethod d_adv_ts_type = AdvectionTimeIntegrationMethod::UNKNOWN_METHOD;
     DiffusionTimeIntegrationMethod d_dif_ts_type = DiffusionTimeIntegrationMethod::UNKNOWN_METHOD;
     bool d_use_strang_splitting = false;
+
+    bool d_use_rbfs = false;
 
     SAMRAI::tbox::Pointer<SAMRAI::math::HierarchyFaceDataOpsReal<NDIM, double>> d_hier_fc_data_ops;
 

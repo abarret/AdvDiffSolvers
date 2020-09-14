@@ -90,6 +90,7 @@ static Timer* t_evaluate_mapping_ls;
 static Timer* t_integrate_path_vol;
 static Timer* t_integrate_path_ls;
 static Timer* t_least_squares;
+static Timer* t_rbf_reconstruct;
 
 } // namespace
 int SemiLagrangianAdvIntegrator::GHOST_CELL_WIDTH = 4;
@@ -113,6 +114,7 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
         d_use_strang_splitting = input_db->getBool("use_strang_splitting");
         d_adv_ts_type = string_to_enum<AdvectionTimeIntegrationMethod>(input_db->getString("advection_ts_type"));
         d_dif_ts_type = string_to_enum<DiffusionTimeIntegrationMethod>(input_db->getString("diffusion_ts_type"));
+        d_use_rbfs = input_db->getBool("using_rbfs");
     }
 
     IBAMR_DO_ONCE(
@@ -132,7 +134,9 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
             TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::integrate_path_ls");
         t_least_squares = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::least_squares");
         t_integrate_hierarchy =
-            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::integrate_hierarchy"););
+            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::integrate_hierarchy");
+        t_rbf_reconstruct =
+            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::radial_basis_reconstruction"));
 }
 
 void
@@ -1275,7 +1279,10 @@ SemiLagrangianAdvIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
                         (*Q_new_data)(idx) = sumOverZSplines(x_loc, idx, *Q_cur_data, order);
                     else
                         (*Q_new_data)(idx) =
-                            leastSquaresReconstruction(x_loc, idx, *Q_cur_data, *vol_cur_data, *ls_data, patch);
+                            d_use_rbfs ?
+                                radialBasisFunctionReconstruction(
+                                    x_loc, idx, *Q_cur_data, *vol_cur_data, *ls_data, patch) :
+                                leastSquaresReconstruction(x_loc, idx, *Q_cur_data, *vol_cur_data, *ls_data, patch);
                 }
                 else
                 {
@@ -1324,6 +1331,76 @@ SemiLagrangianAdvIntegrator::indexWithinWidth(const int stencil_width,
         if (vol_data(idx_c) < 1.0) withinWidth = false;
     }
     return withinWidth;
+}
+
+double
+SemiLagrangianAdvIntegrator::radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
+                                                               const CellIndex<NDIM>& idx,
+                                                               const CellData<NDIM, double>& Q_data,
+                                                               const CellData<NDIM, double>& vol_data,
+                                                               const NodeData<NDIM, double>& ls_data,
+                                                               const Pointer<Patch<NDIM>>& patch)
+{
+    LS_TIMER_START(t_rbf_reconstruct);
+    int box_size = 1;
+    Box<NDIM> box(idx, idx);
+    box.grow(box_size);
+#ifndef NDEBUG
+    TBOX_ASSERT(ls_data.getGhostBox().contains(box));
+    TBOX_ASSERT(Q_data.getGhostBox().contains(box));
+    TBOX_ASSERT(vol_data.getGhostBox().contains(box));
+#endif
+
+    const CellIndex<NDIM>& idx_low = patch->getBox().lower();
+
+    std::vector<double> Q_vals;
+    std::vector<VectorNd> X_vals;
+
+    for (CellIterator<NDIM> ci(box); ci; ci++)
+    {
+        const CellIndex<NDIM>& idx_c = ci();
+        if (vol_data(idx_c) > 0.0)
+        {
+            // Use this point to calculate least squares reconstruction.
+            // Find cell center
+            VectorNd x_cent_c = find_cell_centroid(idx_c, ls_data);
+            Q_vals.push_back(Q_data(idx_c));
+            X_vals.push_back(x_cent_c);
+        }
+    }
+    const int m = Q_vals.size();
+    MatrixXd A(MatrixXd::Zero(m, m));
+    MatrixXd B(MatrixXd::Zero(m, NDIM + 1));
+    VectorXd U(VectorXd::Zero(m + NDIM + 1));
+    for (size_t i = 0; i < Q_vals.size(); ++i)
+    {
+        for (size_t j = 0; j < Q_vals.size(); ++j)
+        {
+            const VectorNd X = X_vals[i] - X_vals[j];
+            A(i, j) = rbf(X.norm());
+        }
+        B(i, 0) = 1.0;
+        for (int d = 0; d < NDIM; ++d) B(i, d + 1) = X_vals[i](d);
+        U(i) = Q_vals[i];
+    }
+
+    MatrixXd final_mat(MatrixXd::Zero(m + NDIM + 1, m + NDIM + 1));
+    final_mat.block(0, 0, m, m) = A;
+    final_mat.block(0, m, m, NDIM + 1) = B;
+    final_mat.block(m, 0, NDIM + 1, m) = B.transpose();
+
+    VectorXd x = final_mat.fullPivHouseholderQr().solve(U);
+    double val = 0.0;
+    VectorXd rbf_coefs = x.block(0, 0, m, 1);
+    VectorXd poly_coefs = x.block(m, 0, NDIM + 1, 1);
+    Vector3d poly_vec = { 1.0, x_loc(0), x_loc(1) };
+    for (size_t i = 0; i < X_vals.size(); ++i)
+    {
+        val += rbf_coefs[i] * rbf((X_vals[i] - x_loc).norm());
+    }
+    val += poly_coefs.dot(poly_vec);
+    LS_TIMER_STOP(t_rbf_reconstruct);
+    return val;
 }
 
 double

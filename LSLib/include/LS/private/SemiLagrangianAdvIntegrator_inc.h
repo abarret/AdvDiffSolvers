@@ -63,5 +63,11 @@ SemiLagrangianAdvIntegrator::weight(const double r)
 {
     return std::exp(-r * r);
 }
+
+inline double
+SemiLagrangianAdvIntegrator::rbf(const double r)
+{
+    return r * r * r;
+}
 } // namespace LS
 #endif

@@ -112,6 +112,8 @@ public:
 
     void cacheLeastSquaresData();
 
+    void cacheRBFData();
+
     inline void setLSIndices(int ls_idx,
                              Pointer<NodeVariable<NDIM, double>> ls_var,
                              int vol_idx,
@@ -178,9 +180,16 @@ private:
 
     void extrapolateToCellCenters(int Q_idx, int R_idx);
 
+    void extrapolateToCellCentersRBF(int Q_idx, int R_idx);
+
     inline double weight(const double r)
     {
         return std::exp(-r * r);
+    }
+
+    inline double rbf(const double r)
+    {
+        return r * r * r;
     }
 
     // Operator parameters.
@@ -214,6 +223,7 @@ private:
     std::vector<std::map<PatchIndexPair, Eigen::FullPivHouseholderQR<MatrixXd>>> d_qr_matrix_vec;
     bool d_update_weights = true;
     bool d_cache_bdry;
+    bool d_using_rbf = true;
 
     DiffusionTimeIntegrationMethod d_ts_type = DiffusionTimeIntegrationMethod::UNKNOWN_METHOD;
 };

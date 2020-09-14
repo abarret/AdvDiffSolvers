@@ -8,6 +8,18 @@ LSCutCellBoundaryConditions::LSCutCellBoundaryConditions(const std::string& obje
 }
 
 void
+LSCutCellBoundaryConditions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> /*hierarchy*/, double /*time*/)
+{
+    // intentionally blank
+}
+
+void
+LSCutCellBoundaryConditions::deallocateOperatorState(Pointer<PatchHierarchy<NDIM>> /*hierarchy*/, double /*time*/)
+{
+    // intentionally blank
+}
+
+void
 LSCutCellBoundaryConditions::setLSData(Pointer<NodeVariable<NDIM, double>> ls_var,
                                        const int ls_idx,
                                        Pointer<CellVariable<NDIM, double>> vol_var,
