@@ -230,6 +230,7 @@ private:
     bool d_use_strang_splitting = false;
 
     bool d_use_rbfs = false;
+    int d_rbf_stencil_size = 2;
 
     SAMRAI::tbox::Pointer<SAMRAI::math::HierarchyFaceDataOpsReal<NDIM, double>> d_hier_fc_data_ops;
 

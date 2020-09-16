@@ -218,12 +218,13 @@ private:
     bool d_robin_bdry = false;
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_var;
-    int d_Q_scr_idx = IBTK::invalid_index;
+    int d_Q_scr_idx = IBTK::invalid_index, d_Q_extrap_idx = IBTK::invalid_index;
 
     std::vector<std::map<PatchIndexPair, Eigen::FullPivHouseholderQR<MatrixXd>>> d_qr_matrix_vec;
     bool d_update_weights = true;
     bool d_cache_bdry;
     bool d_using_rbf = true;
+    int d_stencil_size = 2;
 
     DiffusionTimeIntegrationMethod d_ts_type = DiffusionTimeIntegrationMethod::UNKNOWN_METHOD;
 };

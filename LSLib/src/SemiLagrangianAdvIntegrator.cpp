@@ -114,7 +114,8 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
         d_use_strang_splitting = input_db->getBool("use_strang_splitting");
         d_adv_ts_type = string_to_enum<AdvectionTimeIntegrationMethod>(input_db->getString("advection_ts_type"));
         d_dif_ts_type = string_to_enum<DiffusionTimeIntegrationMethod>(input_db->getString("diffusion_ts_type"));
-        d_use_rbfs = input_db->getBool("using_rbfs");
+        d_use_rbfs = input_db->getBool("use_rbfs");
+        d_rbf_stencil_size = input_db->getInteger("rbf_stencil_size");
     }
 
     IBAMR_DO_ONCE(
@@ -1342,9 +1343,8 @@ SemiLagrangianAdvIntegrator::radialBasisFunctionReconstruction(IBTK::VectorNd x_
                                                                const Pointer<Patch<NDIM>>& patch)
 {
     LS_TIMER_START(t_rbf_reconstruct);
-    int box_size = 1;
     Box<NDIM> box(idx, idx);
-    box.grow(box_size);
+    box.grow(d_rbf_stencil_size);
 #ifndef NDEBUG
     TBOX_ASSERT(ls_data.getGhostBox().contains(box));
     TBOX_ASSERT(Q_data.getGhostBox().contains(box));

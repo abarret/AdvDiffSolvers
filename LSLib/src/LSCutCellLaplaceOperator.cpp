@@ -35,7 +35,7 @@ namespace LS
 namespace
 {
 // Number of ghosts cells used for each variable quantity.
-static const int CELLG = 1;
+static const int CELLG = 2;
 
 // Types of refining and coarsening to perform prior to setting coarse-fine
 // boundary and physical boundary ghost cell values.
@@ -67,10 +67,13 @@ LSCutCellLaplaceOperator::LSCutCellLaplaceOperator(const std::string& object_nam
 
     d_robin_bdry = input_db->getBoolWithDefault("robin_boundary", d_robin_bdry);
     d_cache_bdry = input_db->getBool("cache_boundary");
-    d_using_rbf = input_db->getBool("using_rbf");
+    d_using_rbf = input_db->getBool("use_rbfs");
+    d_stencil_size = input_db->getInteger("stencil_size");
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_var, var_db->getContext(d_object_name + "::SCRATCH"), CELLG);
+    d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_var, var_db->getContext(d_object_name + "::SCRATCH"), 1);
+    d_Q_extrap_idx = var_db->registerVariableAndContext(
+        d_Q_var, var_db->getContext(d_object_name + "::EXTRAPOLATE"), d_stencil_size);
 
     IBAMR_DO_ONCE(t_cache_l2 =
                       TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::cacheLeastSquaresData()");
@@ -126,7 +129,8 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
             using InterpolationTransactionComponent =
                 HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
             std::vector<InterpolationTransactionComponent> transaction_comps;
-            InterpolationTransactionComponent x_component(x.getComponentDescriptorIndex(comp),
+            InterpolationTransactionComponent x_component(d_Q_extrap_idx,
+                                                          x.getComponentDescriptorIndex(comp),
                                                           DATA_REFINE_TYPE,
                                                           false,
                                                           DATA_COARSEN_TYPE,
@@ -140,7 +144,7 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
             hier_ghost_cell.fillData(d_solution_time);
         }
 
-        extrapolateToCellCenters(x.getComponentDescriptorIndex(comp), d_Q_scr_idx);
+        extrapolateToCellCenters(d_Q_extrap_idx, d_Q_scr_idx);
         d_hier_bdry_fill->setHomogeneousBc(d_homogeneous_bc);
         d_hier_bdry_fill->fillData(d_solution_time);
 
@@ -225,6 +229,7 @@ LSCutCellLaplaceOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, d
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         if (!level->checkAllocated(d_Q_scr_idx)) level->allocatePatchData(d_Q_scr_idx);
+        if (!level->checkAllocated(d_Q_extrap_idx)) level->allocatePatchData(d_Q_extrap_idx);
     }
 
     // Initialize the interpolation operators.
@@ -248,6 +253,7 @@ LSCutCellLaplaceOperator::deallocateOperatorState()
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         if (level->checkAllocated(d_Q_scr_idx)) level->deallocatePatchData(d_Q_scr_idx);
+        if (level->checkAllocated(d_Q_extrap_idx)) level->deallocatePatchData(d_Q_extrap_idx);
     }
 
     // Deallocate the interpolation operators.
@@ -311,9 +317,8 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
                     VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d) x_loc(d) = static_cast<double>(idx(d)) + 0.5;
                     int size = 1 + NDIM;
-                    int box_size = 1;
                     Box<NDIM> box(idx, idx);
-                    box.grow(box_size);
+                    box.grow(d_stencil_size);
 #ifndef NDEBUG
                     TBOX_ASSERT(ls_data->getGhostBox().contains(box));
                     TBOX_ASSERT(vol_data->getGhostBox().contains(box));
@@ -392,9 +397,8 @@ LSCutCellLaplaceOperator::cacheRBFData()
                     // We are on a cut cell. We need to interpolate to cell center
                     VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d) x_loc(d) = static_cast<double>(idx(d)) + 0.5;
-                    int box_size = 1;
                     Box<NDIM> box(idx, idx);
-                    box.grow(box_size);
+                    box.grow(d_stencil_size);
 #ifndef NDEBUG
                     TBOX_ASSERT(ls_data->getGhostBox().contains(box));
                     TBOX_ASSERT(vol_data->getGhostBox().contains(box));
@@ -563,9 +567,8 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
                     // We are on a cut cell. We need to interpolate to cell center
                     VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d) x_loc(d) = static_cast<double>(idx(d)) + 0.5;
-                    int box_size = 1;
                     Box<NDIM> box(idx, idx);
-                    box.grow(box_size);
+                    box.grow(d_stencil_size);
 #ifndef NDEBUG
                     TBOX_ASSERT(ls_data->getGhostBox().contains(box));
                     TBOX_ASSERT(Q_data->getGhostBox().contains(box));
