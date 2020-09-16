@@ -50,6 +50,13 @@ void output_to_file(const int Q_idx,
                     const std::string& file_name,
                     const double loop_time,
                     Pointer<PatchHierarchy<NDIM>> hierarchy);
+
+void postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                      Pointer<SemiLagrangianAdvIntegrator> integrator,
+                      Pointer<CellVariable<NDIM, double>> Q_var,
+                      int iteration_num,
+                      double loop_time,
+                      const std::string& dirname);
 void
 outputBdryInfo(const int Q_idx,
                const int Q_scr_idx,
@@ -185,6 +192,14 @@ main(int argc, char* argv[])
         const bool dump_timer_data = app_initializer->dumpTimerData();
         const int timer_dump_interval = app_initializer->getTimerDumpInterval();
 
+        const bool dump_postproc_data = app_initializer->dumpPostProcessingData();
+        const int dump_postproc_interval = app_initializer->getPostProcessingDataDumpInterval();
+        const std::string postproc_data_dump_dirname = app_initializer->getPostProcessingDataDumpDirectory();
+        if (dump_postproc_data && !postproc_data_dump_dirname.empty())
+        {
+            Utilities::recursiveMkdir(postproc_data_dump_dirname);
+        }
+
         // Create major algorithm and data objects that comprise the
         // application.  These objects are configured from the input database
         // and, if this is a restarted run, from the restart database.
@@ -209,8 +224,6 @@ main(int argc, char* argv[])
                                         error_detector,
                                         box_generator,
                                         load_balancer);
-
-        time_integrator->registerLoadBalancer(load_balancer);
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_var = new CellVariable<NDIM, double>("Q");
@@ -432,6 +445,11 @@ main(int argc, char* argv[])
             {
                 pout << "\nWriting timer data...\n\n";
                 TimerManager::getManager()->print(plog);
+            }
+            if (dump_postproc_data && (iteration_num % dump_postproc_interval == 0 || last_step))
+            {
+                postprocess_data(
+                    patch_hierarchy, time_integrator, Q_var, iteration_num, loop_time, postproc_data_dump_dirname);
             }
         }
 
@@ -699,4 +717,27 @@ output_to_file(const int Q_idx,
         MPI_Send(theta_data.data(), theta_data.size(), MPI_DOUBLE, 0, 0, SAMRAI_MPI::commWorld);
         MPI_Send(val_data.data(), val_data.size(), MPI_DOUBLE, 0, 0, SAMRAI_MPI::commWorld);
     }
+}
+
+void
+postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                 Pointer<SemiLagrangianAdvIntegrator> integrator,
+                 Pointer<CellVariable<NDIM, double>> Q_in_var,
+                 const int iteration_num,
+                 const double loop_time,
+                 const std::string& dirname)
+{
+    std::string file_name = dirname + "/hier_data.";
+    char temp_buf[128];
+    sprintf(temp_buf, "%05d.samrai.%05d", iteration_num, SAMRAI_MPI::getRank());
+    file_name += temp_buf;
+    Pointer<HDFDatabase> hier_db = new HDFDatabase("hier_db");
+    hier_db->create(file_name);
+    ComponentSelector hier_data;
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(Q_in_var, integrator->getCurrentContext()));
+    hierarchy->putToDatabase(hier_db->putDatabase("PatchHierarchy"), hier_data);
+    hier_db->putDouble("loop_time", loop_time);
+    hier_db->putInteger("iteration_num", iteration_num);
+    hier_db->close();
 }

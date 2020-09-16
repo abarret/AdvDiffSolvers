@@ -1,0 +1,58 @@
+// grid spacing parameters
+L = 3.0
+MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
+REF_RATIO  = 4                            // refinement ratio between levels
+N = 256//512                                    // coarsest grid spacing
+
+XCOM = 1.521
+YCOM = 1.503
+R = 1.0
+R_2 = 3.75
+R_1 = 0.5
+OMEGA_2 = 0.0
+OMEGA_1 = 0.0
+
+SKIP_CUT_CELLS = 1
+
+
+Main {
+
+coarse_hier_dump_interval = 32
+fine_hier_dump_interval = 64
+coarse_hier_dump_dirname = "rbf_couette_test/medium/hier_data_IB2d"
+fine_hier_dump_dirname = "rbf_couette_test/fine/hier_data_IB2d"
+
+
+// log file parameters
+   log_file_name               = "test.log"
+   log_all_nodes               = FALSE
+
+// visualization dump parameters
+   viz_writer                  = "VisIt"
+   viz_dump_interval           = 1
+   viz_dump_dirname            = "convergence_viz"
+   visit_number_procs_per_file = 1
+
+// restart dump parameters
+   restart_dump_interval       = 0
+   restart_dump_dirname        = "restart_adv_diff2d"
+
+   data_dump_interval          = 1
+   data_dump_dirname           = "hier_data_IB2d"
+
+}
+
+CartesianGeometry {
+   domain_boxes = [ (0,0),(N - 1,N - 1) ]
+   x_lo = 0,0
+   x_up = L,L
+   periodic_dimension = 1,1
+}
+
+SetLSValue {
+    interface_type = "DISK"
+    R1 = R
+    Center = XCOM,YCOM
+//    Vel = 2.0*cos(PI/4.0), 2.0*sin(PI/4.0)
+    Vel = 0.0,0.0
+}
