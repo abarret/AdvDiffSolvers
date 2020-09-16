@@ -517,9 +517,9 @@ main(int argc, char* argv[])
 
         pout << "\n"
              << "Error in " << Q_in_var->getName() << " at time " << loop_time << ":\n"
-             << "  L1-norm:  " << coarse_hier_cc_data_ops.L1Norm(Q_in_idx, wgt_cc_idx) << "\n"
-             << "  L2-norm:  " << coarse_hier_cc_data_ops.L2Norm(Q_in_idx, wgt_cc_idx) << "\n"
-             << "  max-norm: " << coarse_hier_cc_data_ops.maxNorm(Q_in_idx, wgt_cc_idx) << "\n";
+             << "  In_L1-norm:  " << coarse_hier_cc_data_ops.L1Norm(Q_in_idx, wgt_cc_idx) << "\n"
+             << "  In_L2-norm:  " << coarse_hier_cc_data_ops.L2Norm(Q_in_idx, wgt_cc_idx) << "\n"
+             << "  In_max-norm: " << coarse_hier_cc_data_ops.maxNorm(Q_in_idx, wgt_cc_idx) << "\n";
 
         hier_math_ops.resetLevels(0, coarse_patch_hierarchy->getFinestLevelNumber());
         for (int ln = 0; ln <= coarse_patch_hierarchy->getFinestLevelNumber(); ++ln)
@@ -551,9 +551,9 @@ main(int argc, char* argv[])
 
         pout << "\n"
              << "Error in " << Q_out_var->getName() << " at time " << loop_time << ":\n"
-             << "  L1-norm:  " << coarse_hier_cc_data_ops.L1Norm(Q_out_idx, wgt_cc_idx) << "\n"
-             << "  L2-norm:  " << coarse_hier_cc_data_ops.L2Norm(Q_out_idx, wgt_cc_idx) << "\n"
-             << "  max-norm: " << coarse_hier_cc_data_ops.maxNorm(Q_out_idx, wgt_cc_idx) << "\n";
+             << "  Out_L1-norm:  " << coarse_hier_cc_data_ops.L1Norm(Q_out_idx, wgt_cc_idx) << "\n"
+             << "  Out_L2-norm:  " << coarse_hier_cc_data_ops.L2Norm(Q_out_idx, wgt_cc_idx) << "\n"
+             << "  Out_max-norm: " << coarse_hier_cc_data_ops.maxNorm(Q_out_idx, wgt_cc_idx) << "\n";
 
         // Output plot data after taking norms of differences.
         visit_data_writer->writePlotData(coarse_patch_hierarchy, draw_iter++, loop_time);
