@@ -141,6 +141,60 @@ outputBdryInfo(const int Q_idx,
     }
 }
 
+void
+calculateTotalAmounts(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                      const double time,
+                      const int Q_in_idx,
+                      const int Q_out_idx,
+                      const int vol_in_idx,
+                      const int vol_out_idx)
+{
+    std::ofstream amounts_stream;
+    if (SAMRAI_MPI::getRank() == 0)
+    {
+        if (time == 0.0)
+            amounts_stream.open("total_amount", std::ofstream::out);
+        else
+            amounts_stream.open("total_amount", std::ofstream::app);
+    }
+    Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", hierarchy);
+    const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
+    double tot_out = 0.0, tot_in = 0.0;
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            const Box<NDIM>& box = patch->getBox();
+
+            Pointer<CellData<NDIM, double>> Q_in_data = patch->getPatchData(Q_in_idx);
+            Pointer<CellData<NDIM, double>> Q_out_data = patch->getPatchData(Q_out_idx);
+            Pointer<CellData<NDIM, double>> vol_in_data = patch->getPatchData(vol_in_idx);
+            Pointer<CellData<NDIM, double>> vol_out_data = patch->getPatchData(vol_out_idx);
+            Pointer<CellData<NDIM, double>> wgt_data = patch->getPatchData(wgt_cc_idx);
+
+            for (CellIterator<NDIM> ci(box); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                tot_out += (*Q_out_data)(idx) * (*wgt_data)(idx) * (*vol_out_data)(idx);
+                tot_in += (*Q_in_data)(idx) * (*wgt_data)(idx) * (*vol_in_data)(idx);
+            }
+        }
+    }
+    tot_out = SAMRAI_MPI::sumReduction(tot_out);
+    tot_in = SAMRAI_MPI::sumReduction(tot_in);
+    pout << std::setprecision(10) << "Total interior at time t = " << time << " is " << tot_in << "\n";
+    pout << std::setprecision(10) << "Total exterior at time t = " << time << " is " << tot_out << "\n";
+    pout << std::setprecision(10) << "Total amount at time t =   " << time << " is " << tot_out + tot_in << "\n";
+    if (SAMRAI_MPI::getRank() == 0)
+    {
+        amounts_stream << time << " " << std::setprecision(10) << tot_in << " " << tot_out << " " << tot_out + tot_in
+                       << "\n";
+        amounts_stream.close();
+    }
+}
+
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
  * be given on the command line.  For non-restarted case, command line is:     *
@@ -337,6 +391,13 @@ main(int argc, char* argv[])
         const int Q_scr_idx =
             var_db->registerVariableAndContext(Q_in_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
 
+        const int Q_out_idx = var_db->mapVariableAndContextToIndex(Q_out_var, time_integrator->getCurrentContext());
+        const int Q_in_idx = var_db->mapVariableAndContextToIndex(Q_in_var, time_integrator->getCurrentContext());
+        const int vol_in_idx = var_db->mapVariableAndContextToIndex(time_integrator->getVolumeVariable(ls_in_cell_var),
+                                                                    time_integrator->getCurrentContext());
+        const int vol_out_idx = var_db->mapVariableAndContextToIndex(
+            time_integrator->getVolumeVariable(ls_out_cell_var), time_integrator->getCurrentContext());
+
         // Initialize hierarchy configuration and data on all patches.
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
@@ -360,6 +421,7 @@ main(int argc, char* argv[])
             u_fcn->setDataOnPatchHierarchy(u_draw_idx, u_draw_var, patch_hierarchy, loop_time);
             visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
             time_integrator->deallocatePatchData(u_draw_idx);
+            calculateTotalAmounts(patch_hierarchy, loop_time, Q_in_idx, Q_out_idx, vol_in_idx, vol_out_idx);
         }
 
         // Main time step loop.
@@ -396,6 +458,7 @@ main(int argc, char* argv[])
                 u_fcn->setDataOnPatchHierarchy(u_draw_idx, u_draw_var, patch_hierarchy, loop_time);
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
                 time_integrator->deallocatePatchData(u_draw_idx);
+                calculateTotalAmounts(patch_hierarchy, loop_time, Q_in_idx, Q_out_idx, vol_in_idx, vol_out_idx);
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
             {
