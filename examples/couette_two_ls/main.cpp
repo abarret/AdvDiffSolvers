@@ -391,15 +391,15 @@ main(int argc, char* argv[])
         const int Q_scr_idx =
             var_db->registerVariableAndContext(Q_in_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
 
+        // Initialize hierarchy configuration and data on all patches.
+        time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
+
         const int Q_out_idx = var_db->mapVariableAndContextToIndex(Q_out_var, time_integrator->getCurrentContext());
         const int Q_in_idx = var_db->mapVariableAndContextToIndex(Q_in_var, time_integrator->getCurrentContext());
         const int vol_in_idx = var_db->mapVariableAndContextToIndex(time_integrator->getVolumeVariable(ls_in_cell_var),
                                                                     time_integrator->getCurrentContext());
         const int vol_out_idx = var_db->mapVariableAndContextToIndex(
             time_integrator->getVolumeVariable(ls_out_cell_var), time_integrator->getCurrentContext());
-
-        // Initialize hierarchy configuration and data on all patches.
-        time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
         // Close the restart manager.
         RestartManager::getManager()->closeRestartFile();

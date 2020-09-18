@@ -63,12 +63,7 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
             else
                 return 0.0;
         };
-        MatrixNd Q;
-        Q(0, 0) = Q(1, 1) = std::cos(t * (2.0 * M_PI));
-        Q(0, 1) = -std::sin(t * (2.0 * M_PI));
-        Q(1, 0) = std::sin(t * (2.0 * M_PI));
-        VectorNd current_com = Q * d_com;
-        X = X - current_com;
+        X = X - d_com;
         double r = X.norm();
         return w(r, d_D, t);
     };
