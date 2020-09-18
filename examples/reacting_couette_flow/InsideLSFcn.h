@@ -102,5 +102,6 @@ private:
     double d_R = std::numeric_limits<double>::quiet_NaN();
     IBTK::VectorNd d_x_cent;
     double d_a = std::numeric_limits<double>::quiet_NaN(), d_b = std::numeric_limits<double>::quiet_NaN();
+    double d_period = std::numeric_limits<double>::quiet_NaN();
 };
 #endif //#ifndef included_InsideLSFcn

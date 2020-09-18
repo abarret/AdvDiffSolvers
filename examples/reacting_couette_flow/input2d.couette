@@ -6,13 +6,14 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 2                            // refinement ratio between levels
-N = 1024                                    // coarsest grid spacing
+N = 128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.5
-DT_MIN = H * CFL_MAX / 7.5
+U_MAX = 15.0
+DT_MIN = H * CFL_MAX / U_MAX
 DT_MAX = DT_MIN
-END_TIME = 3.75
+END_TIME = 2.0
 REGRID_INTERVAL = 1
 TAG_BUFFER = 1
 
@@ -26,18 +27,21 @@ USE_STRANG_SPLITTING = TRUE
 USE_OUT_LS_FOR_TAGGING = FALSE
 ADV_INT_METHOD = "MIDPOINT_RULE"
 DIF_INT_METHOD = "TRAPEZOIDAL_RULE"
+USE_RBFS = TRUE
+RBF_STENCIL_SIZE = 2
 
 XCOM = 1.521
 YCOM = 1.503
 R = 1.0
 R_2 = 3.75
 R_1 = 0.5
-OMEGA_2 = 0.0
-OMEGA_1 = 0.0
+OMEGA_2 = 1.0
+OMEGA_1 = 10.0
 A = (OMEGA_2*R_2*R_2 - OMEGA_1*R_1*R_1)/(R_2*R_2 - R_1*R_1)
 B = (OMEGA_1 - OMEGA_2) * R_1*R_1 * R_2*R_2 / (R_2*R_2 - R_1*R_1)
+ROT_PERIOD = 2.0
 
-D_coef = 0.05
+D_coef = 0.1
 
 Q = "exp(-50*((X_0-0.8)^2 + X_1^2))*10"
 
@@ -67,6 +71,8 @@ RelaxationLSMethod {
 LSCutCellOperator {
   robin_boundary = TRUE
   cache_boundary = TRUE
+  use_rbfs = USE_RBFS
+  stencil_size = RBF_STENCIL_SIZE
 }
 
 InsideLSFcn {
@@ -74,6 +80,7 @@ InsideLSFcn {
     x_cent = XCOM,YCOM
     a = A
     b = B
+    period = ROT_PERIOD
 }
 
 BdryConds {
@@ -107,8 +114,9 @@ UFunction {
    r1 = R_1
    r2 = R_2
    h = H
-   function_0 = "(sqrt(X_0^2+X_1^2) > (r2+h) ? 0.0 : (sqrt(X_0^2+X_1^2) < (r1-h) ? 0.0 : -(a*(X_0^2+X_1^2) + b)*X_1/sqrt(X_0^2+X_1^2)))*sin(2*PI*t / 7.5)"
-   function_1 = "(sqrt(X_0^2+X_1^2) > (r2+h) ? 0.0 : (sqrt(X_0^2+X_1^2) < (r1-h) ? 0.0 :  (a*(X_0^2+X_1^2) + b)*X_0/sqrt(X_0^2+X_1^2)))*sin(2*PI*t / 7.5)"
+   period = ROT_PERIOD
+   function_0 = "(sqrt(X_0^2+X_1^2) > (r2+h) ? 0.0 : (sqrt(X_0^2+X_1^2) < (r1-h) ? 0.0 : -(a*(X_0^2+X_1^2) + b)*X_1/sqrt(X_0^2+X_1^2)))*sin(2*PI*t / period)"
+   function_1 = "(sqrt(X_0^2+X_1^2) > (r2+h) ? 0.0 : (sqrt(X_0^2+X_1^2) < (r1-h) ? 0.0 :  (a*(X_0^2+X_1^2) + b)*X_0/sqrt(X_0^2+X_1^2)))*sin(2*PI*t / period)"
 }
 
 Q_bcs {
@@ -212,6 +220,8 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     use_strang_splitting = USE_STRANG_SPLITTING
     advection_ts_type = ADV_INT_METHOD
     diffusion_ts_type = DIF_INT_METHOD
+    use_rbfs = USE_RBFS
+    rbf_stencil_size = RBF_STENCIL_SIZE
 
     tag_buffer = TAG_BUFFER
     

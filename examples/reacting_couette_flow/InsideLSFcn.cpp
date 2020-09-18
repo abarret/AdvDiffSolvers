@@ -35,6 +35,7 @@ InsideLSFcn::InsideLSFcn(const string& object_name, Pointer<Database> input_db)
     d_R = input_db->getDouble("r");
     d_a = input_db->getDouble("a");
     d_b = input_db->getDouble("b");
+    d_period = input_db->getDouble("period");
     input_db->getDoubleArray("x_cent", d_x_cent.data(), NDIM);
     return;
 } // InsideLSFcn
@@ -68,8 +69,8 @@ InsideLSFcn::setDataOnPatch(const int data_idx,
                 x_pt(d) = x_low[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
             const double r = x_pt.norm() + 1.0e-12;
             const double th = std::atan2(static_cast<double>(x_pt[1]), static_cast<double>(x_pt[0]));
-            double new_th = (d_a * r + d_b / r) * (7.5 / (2.0 * M_PI)) * cos(2.0 * M_PI * data_time / 7.5) +
-                            (th - (d_a * r + d_b / r) * (7.5 / (2.0 * M_PI)));
+            double new_th = (d_a * r + d_b / r) * (d_period / (2.0 * M_PI)) * cos(2.0 * M_PI * data_time / d_period) +
+                            (th - (d_a * r + d_b / r) * (d_period / (2.0 * M_PI)));
             x_pt[0] = r * std::cos(new_th);
             x_pt[1] = r * std::sin(new_th);
             (*ls_c_data)(idx) = (x_pt - d_x_cent).norm() - d_R;
@@ -85,8 +86,8 @@ InsideLSFcn::setDataOnPatch(const int data_idx,
             for (int d = 0; d < NDIM; ++d) x_pt(d) = x_low[d] + dx[d] * static_cast<double>(idx(d) - idx_low(d));
             const double r = x_pt.norm() + 1.0e-12;
             const double th = std::atan2(static_cast<double>(x_pt[1]), static_cast<double>(x_pt[0]));
-            double new_th = (d_a * r + d_b / r) * (7.5 / (2.0 * M_PI)) * cos(2.0 * M_PI * data_time / 7.5) +
-                            (th - (d_a * r + d_b / r) * (7.5 / (2.0 * M_PI)));
+            double new_th = (d_a * r + d_b / r) * (d_period / (2.0 * M_PI)) * cos(2.0 * M_PI * data_time / d_period) +
+                            (th - (d_a * r + d_b / r) * (d_period / (2.0 * M_PI)));
             x_pt[0] = r * std::cos(new_th);
             x_pt[1] = r * std::sin(new_th);
             (*ls_n_data)(idx) = (x_pt - d_x_cent).norm() - d_R;
