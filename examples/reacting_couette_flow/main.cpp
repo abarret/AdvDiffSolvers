@@ -241,6 +241,7 @@ main(int argc, char* argv[])
         const int timer_dump_interval = app_initializer->getTimerDumpInterval();
 
         const bool dump_postproc_data = app_initializer->dumpPostProcessingData();
+        const int dump_postproc_interval = app_initializer->getPostProcessingDataDumpInterval();
         const std::string postproc_data_dump_dirname = app_initializer->getPostProcessingDataDumpDirectory();
         if (dump_postproc_data && !postproc_data_dump_dirname.empty())
         {
@@ -515,17 +516,17 @@ main(int argc, char* argv[])
                 pout << "\nWriting timer data...\n\n";
                 TimerManager::getManager()->print(plog);
             }
+            if (dump_postproc_data && (iteration_num % dump_postproc_interval == 0 || last_step))
+            {
+                postprocess_data(patch_hierarchy,
+                                 time_integrator,
+                                 Q_in_var,
+                                 Q_out_var,
+                                 iteration_num,
+                                 loop_time,
+                                 postproc_data_dump_dirname);
+            }
         }
-
-        // Print out final information
-        if (dump_postproc_data)
-            postprocess_data(patch_hierarchy,
-                             time_integrator,
-                             Q_in_var,
-                             Q_out_var,
-                             iteration_num,
-                             loop_time,
-                             postproc_data_dump_dirname);
 
         if (!periodic_domain) delete Q_in_bcs[0];
         if (!periodic_domain) delete Q_out_bcs[0];
