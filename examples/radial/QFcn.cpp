@@ -58,9 +58,13 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
     auto integrator = IntegrateFunction::getIntegrator();
 
     auto fcn = [this](VectorNd X, double t) -> double {
+        auto w = [](double r, double D, double t) -> double {
+            return 10 * std::exp(-r * r / (4.0 * D * (t + 0.5))) / (4.0 * D * (t + 0.5));
+        };
         X = X - d_center;
         for (int d = 0; d < NDIM; ++d) X(d) -= t * d_vel[d];
-        return -std::exp(-2.0 * t * M_PI * M_PI * d_D) * std::cos(M_PI * X(0)) * std::cos(M_PI * X(1));
+        double r = X.norm();
+        return w(r, d_D, t);
     };
     integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
 

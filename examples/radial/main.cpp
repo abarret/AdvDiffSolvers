@@ -527,6 +527,28 @@ main(int argc, char* argv[])
              << "  max-norm: " << hier_cc_data_ops.maxNorm(Q_idx, wgt_cc_idx) << "\n"
              << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
 
+        for (int ln = 0; ln <= finest_ln; ++ln)
+        {
+            Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
+            for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+            {
+                Pointer<Patch<NDIM>> patch = level->getPatch(p());
+                Pointer<CellData<NDIM, double>> wgt_data = patch->getPatchData(wgt_cc_idx);
+                Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+                for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    (*wgt_data)(idx) *= (*vol_data)(idx) < 1.0 ? 0.0 : 1.0;
+                }
+            }
+        }
+
+        pout << "Error without cut cells in " << Q_var->getName() << " at time " << loop_time << ":\n"
+             << "  L1-norm:  " << std::setprecision(10) << hier_cc_data_ops.L1Norm(Q_idx, wgt_cc_idx) << "\n"
+             << "  L2-norm:  " << hier_cc_data_ops.L2Norm(Q_idx, wgt_cc_idx) << "\n"
+             << "  max-norm: " << hier_cc_data_ops.maxNorm(Q_idx, wgt_cc_idx) << "\n"
+             << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+
         if (dump_viz_data)
         {
             if (uses_visit)
