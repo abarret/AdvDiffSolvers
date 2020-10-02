@@ -50,13 +50,24 @@ InsideLSFcn::setDataOnPatch(const int data_idx,
     Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
     const double* const dx = pgeom->getDx();
     const double* const x_low = pgeom->getXLower();
-    MatrixNd Q;
-    Q(0, 0) = Q(1, 1) = std::cos(d_theta);
-    Q(0, 1) = std::sin(d_theta);
-    Q(1, 0) = -Q(0, 1);
-
     const Box<NDIM>& box = patch->getBox();
     const hier::Index<NDIM>& idx_low = box.lower();
+    auto dist_up = [this](VectorNd x_pt, double y_p) -> double {
+        VectorNd x_int;
+        x_int(0) =
+            1.0 / std::tan(d_theta) * (x_pt(0) / std::tan(d_theta) + x_pt(1) - y_p) * sin(d_theta) * sin(d_theta);
+        x_int(1) = (x_pt(0) / std::tan(d_theta) + x_pt(1) + y_p / (std::tan(d_theta) * std::tan(d_theta))) *
+                   sin(d_theta) * sin(d_theta);
+        return (x_pt(1) > x_int(1) ? 1.0 : -1.0) * ((x_pt - x_int).norm());
+    };
+    auto dist_low = [this](VectorNd x_pt, double y_p) -> double {
+        VectorNd x_int;
+        x_int(0) =
+            1.0 / std::tan(d_theta) * (x_pt(0) / std::tan(d_theta) + x_pt(1) - y_p) * sin(d_theta) * sin(d_theta);
+        x_int(1) = (x_pt(0) / std::tan(d_theta) + x_pt(1) + y_p / (std::tan(d_theta) * std::tan(d_theta))) *
+                   sin(d_theta) * sin(d_theta);
+        return (x_pt(1) > x_int(1) ? -1.0 : 1.0) * ((x_pt - x_int).norm());
+    };
 
     if (ls_c_data)
     {
@@ -67,8 +78,7 @@ InsideLSFcn::setDataOnPatch(const int data_idx,
             VectorNd x_pt;
             for (int d = 0; d < NDIM; ++d)
                 x_pt(d) = x_low[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
-            x_pt = Q * x_pt;
-            (*ls_c_data)(idx) = std::max(x_pt(1) - d_y_up, d_y_low - x_pt(1));
+            (*ls_c_data)(idx) = std::max(dist_up(x_pt, d_y_up), dist_low(x_pt, d_y_low));
         }
     }
     else if (ls_n_data)
@@ -79,8 +89,7 @@ InsideLSFcn::setDataOnPatch(const int data_idx,
 
             VectorNd x_pt;
             for (int d = 0; d < NDIM; ++d) x_pt(d) = x_low[d] + dx[d] * static_cast<double>(idx(d) - idx_low(d));
-            x_pt = Q * x_pt;
-            (*ls_n_data)(idx) = std::max(x_pt(1) - d_y_up, d_y_low - x_pt(1));
+            (*ls_n_data)(idx) = std::max(dist_up(x_pt, d_y_up), dist_low(x_pt, d_y_low));
         }
     }
     else
