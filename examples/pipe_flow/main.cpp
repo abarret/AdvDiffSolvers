@@ -49,6 +49,7 @@
 
 #include "InsideLSFcn.h"
 #include "QFcn.h"
+#include "SurfaceBoundaryReactions.h"
 
 using namespace LS;
 
@@ -142,12 +143,32 @@ tether_force_function(VectorValue<double>& F,
 
 } // namespace ModelData
 
-void updateVolumeMesh(Mesh& vol_mesh,
-                      const BoundaryMesh& lower_mesh,
-                      const BoundaryMesh& upper_mesh,
-                      const EquationSystems& lower_eq_sys,
-                      const EquationSystems& upp_eq_sys);
+void
+synchFluidConcentration(const int Q_in_idx,
+                        Pointer<CellVariable<NDIM, double>> Q_in_var,
+                        Pointer<HierarchyIntegrator> integrator,
+                        Pointer<PatchHierarchy<NDIM>> hierarchy)
+{
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        if (!level->checkAllocated(Q_in_idx)) level->allocatePatchData(Q_in_idx);
+    }
 
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    const int Q_true_idx = var_db->mapVariableAndContextToIndex(Q_in_var, integrator->getCurrentContext());
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            Pointer<CellData<NDIM, double>> Q_in_data = patch->getPatchData(Q_in_idx);
+            Pointer<CellData<NDIM, double>> Q_true_data = patch->getPatchData(Q_true_idx);
+            Q_in_data->copy(*Q_true_data);
+        }
+    }
+}
 using namespace ModelData;
 
 /*******************************************************************************
@@ -184,7 +205,7 @@ main(int argc, char* argv[])
         const bool uses_exodus = dump_viz_data && !app_initializer->getExodusIIFilename().empty();
         const string lower_exodus_filename = app_initializer->getExodusIIFilename("lower");
         const string upper_exodus_filename = app_initializer->getExodusIIFilename("upper");
-        const string vol_exodus_filename = app_initializer->getExodusIIFilename("volume");
+        const string reaction_exodus_filename = app_initializer->getExodusIIFilename("reaction");
 
         const bool dump_restart_data = app_initializer->dumpRestartData();
         const int restart_dump_interval = app_initializer->getRestartDumpInterval();
@@ -240,32 +261,29 @@ main(int argc, char* argv[])
         upper_mesh_bdry.set_spatial_dimension(NDIM);
         upper_mesh_bdry.prepare_for_use();
 
-        static const int LOWER_MESH_ID = 0;
-        static const int UPPER_MESH_ID = 1;
-        vector<MeshBase*> meshes(2);
-        meshes[LOWER_MESH_ID] = &lower_mesh_bdry;
-        meshes[UPPER_MESH_ID] = &upper_mesh_bdry;
-
-        Mesh vol_mesh(init.comm(), NDIM);
-        string vol_elem_type = second_order_mesh ? "QUAD9" : "QUAD4";
-        MeshTools::Generation::build_square(vol_mesh,
-                                            static_cast<int>(ceil(L / ds)),
-                                            static_cast<int>(ceil((y_up - y_low) / ds)),
-                                            0.0,
-                                            L,
-                                            0.0,
-                                            y_up - y_low,
-                                            Utility::string_to_enum<ElemType>(vol_elem_type));
-        for (MeshBase::node_iterator it = vol_mesh.nodes_begin(); it != vol_mesh.nodes_end(); ++it)
+        Mesh reaction_mesh(init.comm(), NDIM);
+        const double reaction_fraction = input_db->getDouble("REACT_FRAC");
+        MeshTools::Generation::build_line(reaction_mesh,
+                                          static_cast<int>(ceil(reaction_fraction * L / ds)),
+                                          0.25 * L,
+                                          0.25 * L + L * reaction_fraction,
+                                          Utility::string_to_enum<ElemType>(bdry_elem_type));
+        for (MeshBase::node_iterator it = reaction_mesh.nodes_begin(); it != reaction_mesh.nodes_end(); ++it)
         {
             Node* n = *it;
             libMesh::Point& X = *n;
-            X(1) += y_low + std::tan(theta) * X(0);
+            X(1) = y_up + std::tan(theta) * X(0);
         }
-        vol_mesh.prepare_for_use();
+        reaction_mesh.set_spatial_dimension(NDIM);
+        reaction_mesh.prepare_for_use();
 
-        EquationSystems vol_eq_sys(vol_mesh);
-        ExplicitSystem& vol_system = vol_eq_sys.add_system<ExplicitSystem>("Displacement");
+        static const int LOWER_MESH_ID = 0;
+        static const int UPPER_MESH_ID = 1;
+        static const int REACTION_MESH_ID = 2;
+        vector<MeshBase*> meshes(3);
+        meshes[LOWER_MESH_ID] = &lower_mesh_bdry;
+        meshes[UPPER_MESH_ID] = &upper_mesh_bdry;
+        meshes[REACTION_MESH_ID] = &reaction_mesh;
 
         // Setup data for imposing constraints.
         kappa_s = input_db->getDouble("KAPPA_S");
@@ -409,11 +427,24 @@ main(int argc, char* argv[])
             "LSCutCellInRHSOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         Pointer<LSCutCellLaplaceOperator> sol_in_oper = new LSCutCellLaplaceOperator(
             "LSCutCellInOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
+        // Create boundary operators
+        Pointer<SurfaceBoundaryReactions> surface_bdry_reactions =
+            new SurfaceBoundaryReactions("SurfaceBoundaryReactions",
+                                         app_initializer->getComponentDatabase("SurfaceBoundaryReactions"),
+                                         &reaction_mesh,
+                                         ib_method_ops->getFEDataManager(REACTION_MESH_ID));
+        rhs_in_oper->setBoundaryConditionOperator(surface_bdry_reactions);
+        sol_in_oper->setBoundaryConditionOperator(surface_bdry_reactions);
         adv_diff_integrator->setHelmholtzRHSOperator(Q_in_var, rhs_in_oper);
         Pointer<PETScKrylovPoissonSolver> Q_in_helmholtz_solver = new PETScKrylovPoissonSolver(
             "PoissonSolver", app_initializer->getComponentDatabase("PoissonSolver"), "poisson_solve_");
         Q_in_helmholtz_solver->setOperator(sol_in_oper);
         adv_diff_integrator->setHelmholtzSolver(Q_in_var, Q_in_helmholtz_solver);
+
+        // Create scratch index for SurfaceBoundaryReactions
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        const int Q_in_idx =
+            var_db->registerVariableAndContext(Q_in_var, var_db->getContext("Scratch"), IntVector<NDIM>(2));
 
         // Set up visualization plot file writer.
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
@@ -423,10 +454,10 @@ main(int argc, char* argv[])
         }
         libMesh::UniquePtr<ExodusII_IO> lower_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[LOWER_MESH_ID]) : NULL);
         libMesh::UniquePtr<ExodusII_IO> upper_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[UPPER_MESH_ID]) : NULL);
-        libMesh::UniquePtr<ExodusII_IO> vol_exodus_io(uses_exodus ? new ExodusII_IO(vol_mesh) : NULL);
+        libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[REACTION_MESH_ID]) :
+                                                                         NULL);
 
         // Register a drawing variable with the data writer
-        auto var_db = VariableDatabase<NDIM>::getDatabase();
         const int Q_scr_idx =
             var_db->registerVariableAndContext(Q_in_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
 
@@ -446,6 +477,7 @@ main(int argc, char* argv[])
         // Write out initial visualization data.
         EquationSystems* lower_equation_systems = ib_method_ops->getFEDataManager(0)->getEquationSystems();
         EquationSystems* upper_equation_systems = ib_method_ops->getFEDataManager(1)->getEquationSystems();
+        EquationSystems* reaction_eq_sys = ib_method_ops->getFEDataManager(2)->getEquationSystems();
         int iteration_num = time_integrator->getIntegratorStep();
         double loop_time = time_integrator->getIntegratorTime();
         if (dump_viz_data && uses_visit)
@@ -459,6 +491,8 @@ main(int argc, char* argv[])
                     lower_exodus_filename, *lower_equation_systems, iteration_num / viz_dump_interval + 1, loop_time);
                 upper_exodus_io->write_timestep(
                     upper_exodus_filename, *upper_equation_systems, iteration_num / viz_dump_interval + 1, loop_time);
+                reaction_exodus_io->write_timestep(
+                    reaction_exodus_filename, *reaction_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
             }
         }
 
@@ -475,6 +509,18 @@ main(int argc, char* argv[])
             pout << "Simulation time is " << loop_time << "\n";
 
             dt = time_integrator->getMaximumTimeStepSize();
+            synchFluidConcentration(Q_in_idx, Q_in_var, adv_diff_integrator, patch_hierarchy);
+            const int ls_idx = var_db->mapVariableAndContextToIndex(
+                adv_diff_integrator->getLevelSetNodeVariable(ls_in_cell_var), adv_diff_integrator->getCurrentContext());
+            const int vol_idx = var_db->mapVariableAndContextToIndex(
+                adv_diff_integrator->getVolumeVariable(ls_in_cell_var), adv_diff_integrator->getCurrentContext());
+            surface_bdry_reactions->setLSData(adv_diff_integrator->getLevelSetNodeVariable(ls_in_cell_var),
+                                              ls_idx,
+                                              adv_diff_integrator->getVolumeVariable(ls_in_cell_var),
+                                              vol_idx,
+                                              nullptr,
+                                              -1);
+            surface_bdry_reactions->updateSurfaceConcentration(Q_in_idx, loop_time, loop_time + dt, patch_hierarchy);
             time_integrator->advanceHierarchy(dt);
             loop_time += dt;
 
@@ -503,6 +549,8 @@ main(int argc, char* argv[])
                                                     *upper_equation_systems,
                                                     iteration_num / viz_dump_interval + 1,
                                                     loop_time);
+                    reaction_exodus_io->write_timestep(
+                        reaction_exodus_filename, *reaction_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
                 }
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
@@ -562,20 +610,4 @@ postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
     hier_db->putDouble("loop_time", loop_time);
     hier_db->putInteger("iteration_num", iteration_num);
     hier_db->close();
-}
-
-void
-updateVolumeMesh(Mesh& vol_mesh,
-                 const BoundaryMesh& lower_mesh,
-                 const BoundaryMesh& upper_mesh,
-                 const EquationSystems& lower_eq_sys,
-                 const EquationSystems& upp_eq_sys)
-{
-    const std::unique_ptr<BoundaryInfo>& vol_bdry_info = vol_mesh.boundary_info;
-    const std::vector<std::tuple<dof_id_type, boundary_id_type>> bdry_node_list = vol_bdry_info->build_node_list();
-    for (const auto& bdry_node_pair : bdry_node_list)
-    {
-        Node* n = vol_mesh.node_ptr(std::get<0>(bdry_node_pair));
-        n->
-    }
 }

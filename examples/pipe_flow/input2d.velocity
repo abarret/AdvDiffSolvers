@@ -18,7 +18,7 @@ H = DX
 REGRID_INTERVAL = 1
 
 OUTPUT_BDRY_INFO = FALSE
-USING_LS_FCN = FALSE
+USING_LS_FCN = TRUE
 DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 2.0
@@ -27,6 +27,9 @@ USE_STRANG_SPLITTING = TRUE
 USE_OUTSIDE_LS_FOR_TAGGING = TRUE
 ADV_INT_METHOD = "MIDPOINT_RULE"
 DIF_INT_METHOD = "TRAPEZOIDAL_RULE"
+USE_RBFS = TRUE
+RBF_STENCIL_SIZE = 2
+REACT_FRAC = 0.25
 
 ERROR_ON_MOVE = TRUE
 MFAC = 1.0
@@ -38,7 +41,7 @@ Y_UP = 1.5
 KAPPA_S = 5.0e2
 ETA_S = 1.0e1
 
-D_coef = 0.05
+D_coef = 0.1
 
 USE_IB_DELTA_FUNCTIONS     = TRUE                   // whether to use smoothed delta functions to mediate Lagrangian-Eulerian interaction
 IB_DELTA_FUNCTION          = "BSPLINE_3"         // the type of smoothed delta function to use for Lagrangian-Eulerian interaction
@@ -57,7 +60,7 @@ NORMALIZE_PRESSURE         = FALSE                  // whether to explicitly for
 CFL_MAX                    = 0.1                    // maximum CFL number
 DT                         = CFL_MAX*DX/U_MAX       // maximum timestep size
 START_TIME                 = 0.0e0                  // initial simulation time
-END_TIME                   = 10.0                 // final simulation time
+END_TIME                   = 15.0                 // final simulation time
 ERROR_ON_DT_CHANGE         = TRUE                  // whether to emit an error message if the time step size changes
 VORTICITY_TAGGING          = TRUE                   // whether to tag cells for refinement based on vorticity thresholds
 TAG_BUFFER                 = 1                      // size of tag buffer used by grid generation algorithm
@@ -79,6 +82,14 @@ LS_ATOL            = 1e-10
 
 U = "4.0*(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : (-cos(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta))))))"
 V = "4.0*(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : (-sin(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta))))))"
+
+SurfaceBoundaryReactions {
+   k_on = 1.0
+   cb_max = 1.0
+   k_off = 1.0
+   D = D_coef
+   perturb_nodes = FALSE
+}
 
 LSBcCoefs {
    y_low = Y_LOW
@@ -174,8 +185,10 @@ RelaxationLSMethod {
 }
 
 LSCutCellOperator {
-  robin_boundary = FALSE
+  robin_boundary = TRUE
   cache_boundary = TRUE
+  use_rbfs = USE_RBFS
+  stencil_size = RBF_STENCIL_SIZE
 }
 
 InsideLSFcn {
@@ -226,7 +239,7 @@ Main {
 // visualization dump parameters
    viz_writer                  = "VisIt", "ExodusII"
    viz_dump_interval           = NFINEST/8
-   viz_dump_dirname            = "viz_adv_diff2d"
+   viz_dump_dirname            = "new_viz_adv_diff2d"
    visit_number_procs_per_file = 1
 
 // restart dump parameters
@@ -300,6 +313,8 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     use_strang_splitting = USE_STRANG_SPLITTING
     advection_ts_type = ADV_INT_METHOD
     diffusion_ts_type = DIF_INT_METHOD
+    use_rbfs = USE_RBFS
+    rbf_stencil_size = RBF_STENCIL_SIZE
 
     tag_buffer = TAG_BUFFER
     

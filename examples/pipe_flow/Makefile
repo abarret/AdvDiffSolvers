@@ -14,7 +14,7 @@ CPPFLAGS+= -I../../LSLib/include/
 PDIM = 2
 export PDIM
 
-OBJS = InsideLSFcn.o QFcn.o
+OBJS = InsideLSFcn.o QFcn.o SurfaceBoundaryReactions.o
 
 default: check-opt main2d
 
