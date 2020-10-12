@@ -50,6 +50,7 @@ static const std::string BDRY_EXTRAP_TYPE = "LINEAR";
 static const bool CONSISTENT_TYPE_2_BDRY = false;
 
 static Timer* t_cache_l2;
+static Timer* t_cache_rbf;
 static Timer* t_compute_helmholtz;
 static Timer* t_extrapolate;
 static Timer* t_apply;
@@ -81,7 +82,8 @@ LSCutCellLaplaceOperator::LSCutCellLaplaceOperator(const std::string& object_nam
                       TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::computeHelmholtzAction()");
                   t_extrapolate =
                       TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::extrapolateToCellCenters()");
-                  t_apply = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::apply()"););
+                  t_apply = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::apply()");
+                  t_cache_rbf = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::cacheRBF()"););
     return;
 } // LSCutCellLaplaceOperator()
 
@@ -368,6 +370,7 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
 void
 LSCutCellLaplaceOperator::cacheRBFData()
 {
+    LS_TIMER_START(t_cache_rbf);
     const int coarsest_ln = 0;
     const int finest_ln = d_hierarchy->getFinestLevelNumber();
     // Free any preallocated matrices
@@ -451,6 +454,7 @@ LSCutCellLaplaceOperator::cacheRBFData()
         }
     }
     d_update_weights = false;
+    LS_TIMER_STOP(t_cache_rbf);
 }
 
 /////////////////////////////// PRIVATE //////////////////////////////////////
