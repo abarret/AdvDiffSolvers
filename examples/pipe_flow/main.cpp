@@ -19,6 +19,7 @@
 #include <utility>
 
 // Headers for application-specific algorithm/data structure objects
+#include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
 #include <ibamr/IBFEMethod.h>
 #include <ibamr/IBFESurfaceMethod.h>
@@ -39,6 +40,7 @@
 #include <libmesh/exodusII_io.h>
 #include <libmesh/mesh.h>
 #include <libmesh/mesh_generation.h>
+#include <libmesh/numeric_vector.h>
 
 // Set up application namespace declarations
 #include <ibamr/app_namespaces.h>
@@ -169,7 +171,12 @@ synchFluidConcentration(const int Q_in_idx,
         }
     }
 }
+
+void updateVolumeMesh(Mesh& vol_mesh, EquationSystems* vol_eq_sys, FEDataManager* vol_fe_manager);
+
 using namespace ModelData;
+
+static std::map<std::pair<Elem*, int>, libMesh::Point> s_elem_point_cache;
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -206,6 +213,7 @@ main(int argc, char* argv[])
         const string lower_exodus_filename = app_initializer->getExodusIIFilename("lower");
         const string upper_exodus_filename = app_initializer->getExodusIIFilename("upper");
         const string reaction_exodus_filename = app_initializer->getExodusIIFilename("reaction");
+        const string vol_mesh_file_name = app_initializer->getExodusIIFilename("vol");
 
         const bool dump_restart_data = app_initializer->dumpRestartData();
         const int restart_dump_interval = app_initializer->getRestartDumpInterval();
@@ -277,13 +285,55 @@ main(int argc, char* argv[])
         reaction_mesh.set_spatial_dimension(NDIM);
         reaction_mesh.prepare_for_use();
 
+        Mesh vol_vol_mesh(init.comm(), NDIM);
+        MeshTools::Generation::build_cube(vol_vol_mesh,
+                                          static_cast<int>(ceil(L / ds)),
+                                          static_cast<int>(ceil(1.0 / dx)),
+                                          0,
+                                          0.0,
+                                          L,
+                                          y_low,
+                                          y_up,
+                                          Utility::string_to_enum<ElemType>(bdry_elem_type));
+        BoundaryMesh vol_mesh(init.comm(), vol_vol_mesh.mesh_dimension() - 1);
+        vol_vol_mesh.boundary_info->sync(vol_mesh);
+
+        for (MeshBase::node_iterator it = vol_mesh.nodes_begin(); it != vol_mesh.nodes_end(); ++it)
+        {
+            Node* n = *it;
+            libMesh::Point& X = *n;
+            X(1) += std::tan(theta) * X(0);
+        }
+        const MeshBase::const_element_iterator end_el = vol_mesh.elements_end();
+        for (MeshBase::const_element_iterator el = vol_mesh.elements_begin(); el != end_el; ++el)
+        {
+            Elem* const elem = *el;
+            for (unsigned int side = 0; side < elem->n_sides(); ++side)
+            {
+                BoundaryInfo* boundary_info = vol_mesh.boundary_info.get();
+                const libMesh::Point& p = elem->point(side);
+                if (p(0) == 0.0 || p(0) == 8.0)
+                {
+                    boundary_info->add_side(elem, side, 0);
+                }
+                if (boundary_info->has_boundary_id(elem, side, 0) || boundary_info->has_boundary_id(elem, side, 1))
+                {
+                    s_elem_point_cache[std::make_pair(elem, side)] = elem->point(side);
+                }
+            }
+        }
+        vol_mesh.set_spatial_dimension(NDIM);
+        vol_mesh.prepare_for_use();
+
         static const int LOWER_MESH_ID = 0;
         static const int UPPER_MESH_ID = 1;
         static const int REACTION_MESH_ID = 2;
-        vector<MeshBase*> meshes(3);
+        static const int VOL_MESH_ID = 3;
+        vector<MeshBase*> meshes(4);
         meshes[LOWER_MESH_ID] = &lower_mesh_bdry;
         meshes[UPPER_MESH_ID] = &upper_mesh_bdry;
         meshes[REACTION_MESH_ID] = &reaction_mesh;
+        meshes[VOL_MESH_ID] = &vol_mesh;
 
         // Setup data for imposing constraints.
         kappa_s = input_db->getDouble("KAPPA_S");
@@ -456,10 +506,22 @@ main(int argc, char* argv[])
         libMesh::UniquePtr<ExodusII_IO> upper_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[UPPER_MESH_ID]) : NULL);
         libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[REACTION_MESH_ID]) :
                                                                          NULL);
+        libMesh::UniquePtr<ExodusII_IO> vol_mesh_io(uses_exodus ? new ExodusII_IO(*meshes[VOL_MESH_ID]) : NULL);
 
         // Register a drawing variable with the data writer
         const int Q_scr_idx =
             var_db->registerVariableAndContext(Q_in_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
+
+        Pointer<CellVariable<NDIM, double>> dist_var = new CellVariable<NDIM, double>("distance");
+        Pointer<CellVariable<NDIM, double>> n_var = new CellVariable<NDIM, double>("num_elements");
+        const int dist_idx =
+            var_db->registerVariableAndContext(dist_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(1));
+        const int n_idx = var_db->registerVariableAndContext(n_var, var_db->getContext("Scratch"), IntVector<NDIM>(1));
+        visit_data_writer->registerPlotQuantity("num_elements", "SCALAR", n_idx);
+        visit_data_writer->registerPlotQuantity("distance", "SCALAR", dist_idx);
+
+        FESurfaceDistanceEvaluator surface_distance_eval(
+            "FESurfaceDistanceEvaulator", patch_hierarchy, vol_vol_mesh, vol_mesh, 1, true);
 
         ib_method_ops->initializeFEData();
         // Initialize hierarchy configuration and data on all patches.
@@ -478,12 +540,32 @@ main(int argc, char* argv[])
         EquationSystems* lower_equation_systems = ib_method_ops->getFEDataManager(0)->getEquationSystems();
         EquationSystems* upper_equation_systems = ib_method_ops->getFEDataManager(1)->getEquationSystems();
         EquationSystems* reaction_eq_sys = ib_method_ops->getFEDataManager(2)->getEquationSystems();
+        EquationSystems* vol_eq_sys = ib_method_ops->getFEDataManager(3)->getEquationSystems();
+        FEDataManager* vol_fe_manager = ib_method_ops->getFEDataManager(3);
         int iteration_num = time_integrator->getIntegratorStep();
         double loop_time = time_integrator->getIntegratorTime();
         if (dump_viz_data && uses_visit)
         {
             pout << "\n\nWriting visualization files...\n\n";
             time_integrator->setupPlotData();
+            updateVolumeMesh(vol_mesh, vol_eq_sys, vol_fe_manager);
+            for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
+            {
+                Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
+                level->allocatePatchData(n_idx);
+                level->allocatePatchData(dist_idx);
+            }
+            pout << "Started mapping intersections" << std::endl;
+            surface_distance_eval.mapIntersections();
+            pout << "Finished mapping intersections" << std::endl;
+            pout << "Computing face normal" << std::endl;
+            surface_distance_eval.calculateSurfaceNormals();
+            pout << "Finished calculation of face normal" << std::endl;
+            pout << "Computing distances" << std::endl;
+            surface_distance_eval.computeSignedDistance(n_idx, dist_idx);
+            pout << "Finished computing distances" << std::endl;
+            surface_distance_eval.updateSignAwayFromInterface(dist_idx, patch_hierarchy);
+
             visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
             if (uses_exodus)
             {
@@ -493,6 +575,8 @@ main(int argc, char* argv[])
                     upper_exodus_filename, *upper_equation_systems, iteration_num / viz_dump_interval + 1, loop_time);
                 reaction_exodus_io->write_timestep(
                     reaction_exodus_filename, *reaction_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
+                vol_mesh_io->write_timestep(
+                    vol_mesh_file_name, *vol_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
             }
         }
 
@@ -538,6 +622,23 @@ main(int argc, char* argv[])
             {
                 pout << "\nWriting visualization files...\n\n";
                 time_integrator->setupPlotData();
+                updateVolumeMesh(vol_mesh, vol_eq_sys, vol_fe_manager);
+                for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
+                {
+                    Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
+                    level->allocatePatchData(n_idx);
+                    level->allocatePatchData(dist_idx);
+                }
+                pout << "Started mapping intersections" << std::endl;
+                surface_distance_eval.mapIntersections();
+                pout << "Finished mapping intersections" << std::endl;
+                pout << "Computing face normal" << std::endl;
+                surface_distance_eval.calculateSurfaceNormals();
+                pout << "Finished calculation of face normal" << std::endl;
+                pout << "Computing distances" << std::endl;
+                surface_distance_eval.computeSignedDistance(n_idx, dist_idx);
+                pout << "Finished computing distances" << std::endl;
+                surface_distance_eval.updateSignAwayFromInterface(dist_idx, patch_hierarchy);
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
                 if (uses_exodus)
                 {
@@ -551,6 +652,8 @@ main(int argc, char* argv[])
                                                     loop_time);
                     reaction_exodus_io->write_timestep(
                         reaction_exodus_filename, *reaction_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
+                    vol_mesh_io->write_timestep(
+                        vol_mesh_file_name, *vol_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
                 }
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
@@ -610,4 +713,54 @@ postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
     hier_db->putDouble("loop_time", loop_time);
     hier_db->putInteger("iteration_num", iteration_num);
     hier_db->close();
+}
+
+void
+updateVolumeMesh(Mesh& vol_mesh, EquationSystems* vol_eq_sys, FEDataManager* vol_fe_manager)
+{
+    System& X_sys = vol_eq_sys->get_system(vol_fe_manager->COORDINATES_SYSTEM_NAME);
+    System& X_mapping_sys = vol_eq_sys->get_system("IB coordinate mapping system");
+    DofMap& X_dof_map = X_sys.get_dof_map();
+    DofMap& X_mapping_map = X_mapping_sys.get_dof_map();
+    NumericVector<double>* X_vec = X_sys.solution.get();
+    NumericVector<double>* X_map_vec = X_mapping_sys.solution.get();
+    // Loop through lower and upper mesh
+    const MeshBase::const_element_iterator end_el = vol_mesh.elements_end();
+    for (MeshBase::const_element_iterator el = vol_mesh.elements_begin(); el != end_el; ++el)
+    {
+        Elem* const elem = *el;
+        for (unsigned int side = 0; side < elem->n_sides(); ++side)
+        {
+            BoundaryInfo* boundary_info = vol_mesh.boundary_info.get();
+            std::vector<dof_id_type> X_dofs;
+            if (boundary_info->has_boundary_id(elem, side, 0))
+            {
+                Node* node = elem->node_ptr(side);
+                for (int d = 0; d < NDIM; ++d)
+                {
+                    IBTK::get_nodal_dof_indices(X_dof_map, node, d, X_dofs);
+                    X_vec->set(X_dofs[0], s_elem_point_cache[std::make_pair(elem, side)](d));
+                    IBTK::get_nodal_dof_indices(X_mapping_map, node, d, X_dofs);
+                    X_map_vec->set(X_dofs[0], 0.0);
+                }
+            }
+            else
+            {
+                Node* node = elem->node_ptr(side);
+                libMesh::Point& p = elem->point(side);
+                for (int d = 0; d < NDIM; ++d)
+                {
+                    IBTK::get_nodal_dof_indices(X_dof_map, node, d, X_dofs);
+                    double X_val;
+                    X_vec->get(X_dofs, &X_val);
+                    p(d) = X_val;
+                    IBTK::get_nodal_dof_indices(X_mapping_map, node, d, X_dofs);
+                    X_map_vec->set(X_dofs[0], 0.0);
+                }
+            }
+        }
+    }
+    X_vec->close();
+    X_map_vec->close();
+    vol_mesh.prepare_for_use();
 }

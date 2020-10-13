@@ -26,6 +26,7 @@ SurfaceBoundaryReactions::SurfaceBoundaryReactions(const std::string& object_nam
     d_D_coef = input_db->getDouble("D");
     d_cb_max = input_db->getDouble("cb_max");
     d_perturb_nodes = input_db->getBool("perturb_nodes");
+    d_use_rbfs = input_db->getBool("use_rbfs");
 
     // Set up equation systems for reactions
     EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
@@ -36,10 +37,8 @@ SurfaceBoundaryReactions::SurfaceBoundaryReactions(const std::string& object_nam
     fluid_sys.assemble_before_solve = false;
     fluid_sys.assemble();
 
-    const std::string elem_type_str = "EDGE3";
-
-    surface_sys.add_variable("SurfaceConcentration", Utility::string_to_enum<ElemType>(elem_type_str));
-    fluid_sys.add_variable("FluidConcentration", Utility::string_to_enum<ElemType>(elem_type_str));
+    surface_sys.add_variable("SurfaceConcentration", FEType());
+    fluid_sys.add_variable("FluidConcentration", FEType());
 
     IBAMR_DO_ONCE(s_apply_timer =
                       TimerManager::getManager()->getTimer("LS::SurfaceBoundaryReactions::applyBoundaryCondition"));
@@ -216,8 +215,10 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                     double cell_volume = dx[0] * dx[1] * (*vol_data)(i_c);
                     if (cell_volume <= 0.0)
                     {
+                        plog << "Found intersection with zero cell volume.\n";
+                        plog << "On index: " << i_c << " with intersection points:\n";
+                        plog << "P0: " << intersection_points[0] << " and P1: " << intersection_points[1] << "\n";
                         continue;
-                        TBOX_ASSERT(cell_volume > 0.0);
                     }
                     (*R_data)(i_c) += pre_fac * g * area / cell_volume;
                     (*R_data)(i_c) -= pre_fac * a * (*Q_data)(i_c)*area / cell_volume;
@@ -253,8 +254,10 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                     double cell_volume = dx[0] * dx[1] * (*vol_data)(i_c);
                     if (cell_volume <= 0.0)
                     {
+                        plog << "Found intersection with zero cell volume.\n";
+                        plog << "On index: " << i_c << " with intersection points:\n";
+                        plog << "P0: " << intersection_points[0] << " and P1: " << intersection_points[1] << "\n";
                         continue;
-                        TBOX_ASSERT(cell_volume > 0.0);
                     }
                     (*R_data)(i_c) += pre_fac * g * area / cell_volume;
                     (*R_data)(i_c) -= pre_fac * a * (*Q_data)(i_c)*area / cell_volume;
@@ -428,14 +431,6 @@ SurfaceBoundaryReactions::interpolateToBoundary(const int Q_idx,
         {
             // Use a MLS linear approximation to evaluate data on structure
             const CellIndex<NDIM> cell_idx = IndexUtilities::getCellIndex(&X_node[NDIM * i], pgeom, patch->getBox());
-            Box<NDIM> interp_box(cell_idx, cell_idx);
-            int box_size = 2;
-            int interp_size = NDIM + 1;
-            interp_box.grow(box_size);
-            TBOX_ASSERT(Q_data->getGhostBox().contains(interp_box));
-            TBOX_ASSERT(ls_data->getGhostBox().contains(interp_box));
-            TBOX_ASSERT(vol_data->getGhostBox().contains(interp_box));
-
             const CellIndex<NDIM>& idx_low = patch->getBox().lower();
             VectorNd x_loc = {
                 X_node[NDIM * i],
@@ -445,36 +440,8 @@ SurfaceBoundaryReactions::interpolateToBoundary(const int Q_idx,
                 X_node[NDIM * i + 2]
 #endif
             };
-
-            std::vector<double> Q_vals;
-            std::vector<VectorNd> X_vals;
-
-            for (CellIterator<NDIM> ci(interp_box); ci; ci++)
-            {
-                const CellIndex<NDIM>& idx = ci();
-                if ((*vol_data)(idx) > 0.0)
-                {
-                    VectorNd x_cent_c = LS::find_cell_centroid(idx, *ls_data);
-                    for (int d = 0; d < NDIM; ++d) x_cent_c[d] = dx[d] * x_cent_c[d];
-                    Q_vals.push_back((*Q_data)(idx));
-                    X_vals.push_back(x_cent_c);
-                }
-            }
-            const int m = Q_vals.size();
-            MatrixXd A(MatrixXd::Zero(m, interp_size));
-            VectorXd U(VectorXd::Zero(m));
-            auto w = [](double r) -> double { return std::exp(-r * r); };
-            for (size_t ii = 0; ii < Q_vals.size(); ++ii)
-            {
-                const VectorNd X = X_vals[ii] - x_loc;
-                double weight = std::sqrt(w(X.norm()));
-                U(ii) = weight * Q_vals[ii];
-                A(ii, 2) = weight * X[1];
-                A(ii, 1) = weight * X[0];
-                A(ii, 0) = weight;
-            }
-            VectorXd x = A.fullPivHouseholderQr().solve(U);
-            Q_node[i] = x(0);
+            Q_node[i] = d_use_rbfs ? reconstructRBF(x_loc, cell_idx, *ls_data, *vol_data, *Q_data, patch) :
+                                     reconstructMLS(x_loc, cell_idx, *ls_data, *vol_data, *Q_data, patch);
         }
         Q_vec->add_vector(Q_node, Q_node_idxs);
     }
@@ -531,4 +498,131 @@ SurfaceBoundaryReactions::findIntersection(libMesh::Point& p,
         TBOX_ERROR("Unknown element.\n");
     }
     return found_intersection;
+}
+
+double
+SurfaceBoundaryReactions::reconstructMLS(const VectorNd& x,
+                                         const CellIndex<NDIM>& idx_interp,
+                                         const NodeData<NDIM, double>& ls_data,
+                                         const CellData<NDIM, double>& vol_data,
+                                         const CellData<NDIM, double>& Q_data,
+                                         Pointer<Patch<NDIM>> patch)
+{
+    Box<NDIM> interp_box(idx_interp, idx_interp);
+    int box_size = 2;
+    int interp_size = NDIM + 1;
+    interp_box.grow(box_size);
+    TBOX_ASSERT(Q_data.getGhostBox().contains(interp_box));
+    TBOX_ASSERT(ls_data.getGhostBox().contains(interp_box));
+    TBOX_ASSERT(vol_data.getGhostBox().contains(interp_box));
+    std::vector<double> Q_vals;
+    std::vector<VectorNd> X_vals;
+
+    Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+    const double* const dx = pgeom->getDx();
+    const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+    const double* const xlow = pgeom->getXLower();
+
+    for (CellIterator<NDIM> ci(interp_box); ci; ci++)
+    {
+        const CellIndex<NDIM>& idx = ci();
+        if (vol_data(idx) > 0.0)
+        {
+            VectorNd x_cent_c = LS::find_cell_centroid(idx, ls_data);
+            for (int d = 0; d < NDIM; ++d)
+                x_cent_c[d] = xlow[d] + dx[d] * (x_cent_c[d] - static_cast<double>(idx_low(d)));
+            Q_vals.push_back(Q_data(idx));
+            X_vals.push_back(x_cent_c);
+        }
+    }
+    const int m = Q_vals.size();
+    MatrixXd A(MatrixXd::Zero(m, interp_size));
+    VectorXd U(VectorXd::Zero(m));
+    auto w = [](double r) -> double { return std::exp(-r * r); };
+    for (size_t ii = 0; ii < Q_vals.size(); ++ii)
+    {
+        const VectorNd X = X_vals[ii] - x;
+        double weight = std::sqrt(w(X.norm()));
+        U(ii) = weight * Q_vals[ii];
+        A(ii, 2) = weight * X[1];
+        A(ii, 1) = weight * X[0];
+        A(ii, 0) = weight;
+    }
+    VectorXd soln = A.fullPivHouseholderQr().solve(U);
+    return soln(0);
+}
+
+double
+SurfaceBoundaryReactions::reconstructRBF(const VectorNd& x_loc,
+                                         const CellIndex<NDIM>& idx_interp,
+                                         const NodeData<NDIM, double>& ls_data,
+                                         const CellData<NDIM, double>& vol_data,
+                                         const CellData<NDIM, double>& Q_data,
+                                         Pointer<Patch<NDIM>> patch)
+{
+    Box<NDIM> box(idx_interp, idx_interp);
+    box.grow(2);
+#ifndef NDEBUG
+    TBOX_ASSERT(ls_data.getGhostBox().contains(box));
+    TBOX_ASSERT(Q_data.getGhostBox().contains(box));
+    TBOX_ASSERT(vol_data.getGhostBox().contains(box));
+#endif
+
+    Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+    const double* const dx = pgeom->getDx();
+    const double* const x_low = pgeom->getXLower();
+
+    auto rbf = [](double r) -> double { return r * r * r; };
+
+    const CellIndex<NDIM>& idx_low = patch->getBox().lower();
+
+    std::vector<double> Q_vals;
+    std::vector<VectorNd> X_vals;
+
+    for (CellIterator<NDIM> ci(box); ci; ci++)
+    {
+        const CellIndex<NDIM>& idx_c = ci();
+        if (vol_data(idx_c) > 0.0)
+        {
+            // Use this point to calculate least squares reconstruction.
+            // Find cell center
+            VectorNd x_cent_c = LS::find_cell_centroid(idx_c, ls_data);
+            for (int d = 0; d < NDIM; ++d)
+                x_cent_c[d] = x_low[d] + dx[d] * (x_cent_c(d) - static_cast<double>(idx_low(d)));
+            Q_vals.push_back(Q_data(idx_c));
+            X_vals.push_back(x_cent_c);
+        }
+    }
+    const int m = Q_vals.size();
+    MatrixXd A(MatrixXd::Zero(m, m));
+    MatrixXd B(MatrixXd::Zero(m, NDIM + 1));
+    VectorXd U(VectorXd::Zero(m + NDIM + 1));
+    for (size_t i = 0; i < Q_vals.size(); ++i)
+    {
+        for (size_t j = 0; j < Q_vals.size(); ++j)
+        {
+            const VectorNd X = X_vals[i] - X_vals[j];
+            A(i, j) = rbf(X.norm());
+        }
+        B(i, 0) = 1.0;
+        for (int d = 0; d < NDIM; ++d) B(i, d + 1) = X_vals[i](d);
+        U(i) = Q_vals[i];
+    }
+
+    MatrixXd final_mat(MatrixXd::Zero(m + NDIM + 1, m + NDIM + 1));
+    final_mat.block(0, 0, m, m) = A;
+    final_mat.block(0, m, m, NDIM + 1) = B;
+    final_mat.block(m, 0, NDIM + 1, m) = B.transpose();
+
+    VectorXd x = final_mat.fullPivHouseholderQr().solve(U);
+    double val = 0.0;
+    VectorXd rbf_coefs = x.block(0, 0, m, 1);
+    VectorXd poly_coefs = x.block(m, 0, NDIM + 1, 1);
+    Vector3d poly_vec = { 1.0, x_loc(0), x_loc(1) };
+    for (size_t i = 0; i < X_vals.size(); ++i)
+    {
+        val += rbf_coefs[i] * rbf((X_vals[i] - x_loc).norm());
+    }
+    val += poly_coefs.dot(poly_vec);
+    return val;
 }

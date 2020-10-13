@@ -58,6 +58,20 @@ private:
      */
     bool findIntersection(libMesh::Point& p, libMesh::Elem* elem, libMesh::Point r, libMesh::VectorValue<double> q);
 
+    double reconstructMLS(const IBTK::VectorNd& x,
+                          const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                          const SAMRAI::pdat::NodeData<NDIM, double>& ls_vals,
+                          const SAMRAI::pdat::CellData<NDIM, double>& vol_vals,
+                          const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
+                          SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
+
+    double reconstructRBF(const IBTK::VectorNd& x,
+                          const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                          const SAMRAI::pdat::NodeData<NDIM, double>& ls_vals,
+                          const SAMRAI::pdat::CellData<NDIM, double>& vol_vals,
+                          const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
+                          SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
+
     double d_D_coef = std::numeric_limits<double>::quiet_NaN();
     double d_k_on = std::numeric_limits<double>::quiet_NaN(), d_k_off = std::numeric_limits<double>::quiet_NaN();
     double d_cb_max = std::numeric_limits<double>::quiet_NaN();
@@ -66,6 +80,8 @@ private:
     IBTK::FEDataManager* d_fe_data_manager = nullptr;
 
     bool d_perturb_nodes = false;
+
+    bool d_use_rbfs = true;
 
     static std::string s_fluid_sys_name, s_surface_sys_name;
 };

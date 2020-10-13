@@ -89,6 +89,7 @@ SurfaceBoundaryReactions {
    k_off = 1.0
    D = D_coef
    perturb_nodes = FALSE
+   use_rbfs = USE_RBFS
 }
 
 LSBcCoefs {
