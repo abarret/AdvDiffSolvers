@@ -59,7 +59,7 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
 
     auto fcn = [this](VectorNd X, double t) -> double {
         auto w = [](double r, double D, double t) -> double {
-            return 10 * std::exp(-r * r / (4.0 * D * (t + 0.5))) / (4.0 * D * (t + 0.5));
+            return 10 * std::exp(-r * r / (4.0 * D * (t + 0.5))) / std::pow(4.0 * D * M_PI * (t + 0.5), NDIM / 2);
         };
         X = X - d_center;
         for (int d = 0; d < NDIM; ++d) X(d) -= t * d_vel[d];
@@ -84,7 +84,11 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
                 const CellIndex<NDIM>& idx = ci();
                 if ((*vol_data)(idx) > 0.0)
                 {
-                    (*Q_data)(idx) /= (*vol_data)(idx)*dx[0] * dx[1];
+                    (*Q_data)(idx) /= (*vol_data)(idx)*dx[0] * dx[1]
+#if (NDIM == 3)
+                                      * dx[2]
+#endif
+                        ;
                 }
             }
         }

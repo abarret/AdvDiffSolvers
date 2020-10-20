@@ -129,7 +129,12 @@ private:
      * Annulus information
      */
     double d_R1 = 0.25;
+#if (NDIM == 2)
     VectorNd d_center = { 1.509, 1.521 };
+#endif
+#if (NDIM == 3)
+    VectorNd d_center = { 1.509, 1.521, 1.514 };
+#endif
     std::vector<double> d_vel;
 };
 

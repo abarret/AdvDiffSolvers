@@ -30,10 +30,16 @@ RadialBoundaryCond::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>> Q
     LS_TIMER_START(s_apply_timer);
     TBOX_ASSERT(d_ls_var && d_vol_var && d_area_var);
     TBOX_ASSERT(d_ls_idx > 0 && d_vol_idx > 0 && d_area_idx > 0);
-
+#if (NDIM == 2)
     double g = 5.0 * (d_a - d_R + 2.0 * d_a * time) /
                (d_D_coef * std::exp(d_R * d_R / (2.0 * d_D_coef + 4.0 * d_D_coef * time)) * (1.0 + 2.0 * time) *
                 (1.0 + 2.0 * time));
+#endif
+#if (NDIM == 3)
+    double g = 5.0 * (d_a - d_R + 2.0 * d_a * time) /
+               (d_D_coef * std::exp(d_R * d_R / (2.0 * d_D_coef + 4.0 * d_D_coef * time)) * (1.0 + 2.0 * time) *
+                (1.0 + 2.0 * time) * std::sqrt(2.0 * M_PI * M_PI * M_PI * (d_D_coef + 2.0 * d_D_coef * time)));
+#endif
 
     const double sgn = d_D / std::abs(d_D);
     double pre_fac = sgn * (d_ts_type == LS::DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE ? 0.5 : 1.0);
@@ -48,8 +54,6 @@ RadialBoundaryCond::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>> Q
             const Box<NDIM>& box = patch->getBox();
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
-            const double* const xlow = pgeom->getXLower();
-            const hier::Index<NDIM>& idx_low = box.lower();
 
             Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
             Pointer<CellData<NDIM, double>> R_data = patch->getPatchData(R_idx);

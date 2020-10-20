@@ -588,6 +588,10 @@ output_to_file(const int Q_idx,
                const double loop_time,
                Pointer<PatchHierarchy<NDIM>> hierarchy)
 {
+#if (NDIM == 3)
+    return;
+#endif
+#if (NDIM == 2)
     std::ofstream bdry_stream;
     if (SAMRAI_MPI::getRank() == 0) bdry_stream.open(file_name.c_str(), std::ofstream::out);
     // data structure to hold bdry data : (theta, bdry_val)
@@ -739,6 +743,7 @@ output_to_file(const int Q_idx,
         MPI_Send(theta_data.data(), theta_data.size(), MPI_DOUBLE, 0, 0, SAMRAI_MPI::commWorld);
         MPI_Send(val_data.data(), val_data.size(), MPI_DOUBLE, 0, 0, SAMRAI_MPI::commWorld);
     }
+#endif
 }
 
 void
