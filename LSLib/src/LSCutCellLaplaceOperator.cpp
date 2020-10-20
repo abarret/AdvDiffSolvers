@@ -54,6 +54,7 @@ static Timer* t_cache_rbf;
 static Timer* t_compute_helmholtz;
 static Timer* t_extrapolate;
 static Timer* t_apply;
+static Timer* t_find_cell_centroid;
 } // namespace
 
 /////////////////////////////// PUBLIC ///////////////////////////////////////
@@ -83,7 +84,9 @@ LSCutCellLaplaceOperator::LSCutCellLaplaceOperator(const std::string& object_nam
                   t_extrapolate =
                       TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::extrapolateToCellCenters()");
                   t_apply = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::apply()");
-                  t_cache_rbf = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::cacheRBF()"););
+                  t_cache_rbf = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::cacheRBF()");
+                  t_find_cell_centroid =
+                      TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::find_cell_centroid"););
     return;
 } // LSCutCellLaplaceOperator()
 
@@ -335,7 +338,9 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
                         if ((*vol_data)(idx_c) > 0.0)
                         {
                             // Use this point to calculate least squares reconstruction.
+                            LS_TIMER_START(t_find_cell_centroid);
                             VectorNd x_cent_c = find_cell_centroid(idx_c, *ls_data);
+                            LS_TIMER_STOP(t_find_cell_centroid);
                             X_vals.push_back(x_cent_c);
                         }
                     }
@@ -345,6 +350,9 @@ LSCutCellLaplaceOperator::cacheLeastSquaresData()
                     {
                         const VectorNd X = X_vals[i] - x_loc;
                         double w = std::sqrt(weight(static_cast<double>(X.norm())));
+#if (NDIM == 3)
+                        A(i, 3) = w * X[2];
+#endif
                         A(i, 2) = w * X[1];
                         A(i, 1) = w * X[0];
                         A(i, 0) = w * 1.0;
@@ -416,7 +424,9 @@ LSCutCellLaplaceOperator::cacheRBFData()
                         if ((*vol_data)(idx_c) > 0.0)
                         {
                             // Use this point to calculate least squares reconstruction.
+                            LS_TIMER_START(t_find_cell_centroid);
                             VectorNd x_cent_c = find_cell_centroid(idx_c, *ls_data);
+                            LS_TIMER_STOP(t_find_cell_centroid);
                             X_vals.push_back(x_cent_c);
                         }
                     }
@@ -479,9 +489,11 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
     Pointer<CellData<NDIM, double>> area_data = patch.getPatchData(d_area_idx);
     Pointer<CellData<NDIM, double>> vol_data = patch.getPatchData(d_vol_idx);
 
+#if (NDIM == 2)
     IntVector<NDIM> xp(1, 0), yp(0, 1);
+#endif
 #if (NDIM == 3)
-    IntVector<NDIM> zp(0, 0, 1);
+    IntVector<NDIM> xp(1, 0, 0), yp(0, 1, 0), zp(0, 0, 1);
 #endif
     for (CellIterator<NDIM> ci(box); ci; ci++)
     {
@@ -502,9 +514,20 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
             for (int f = 0; f < 2; ++f)
             {
                 const int sgn = f == 0 ? -1 : 1;
+#if (NDIM == 2)
                 double L = length_fraction(dx[1],
                                            (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 0))),
                                            (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 1))));
+#endif
+#if (NDIM == 3)
+                // Note the awkward ordering of indices. Needs to start at "bottom left" index and go clockwise
+                double L = area_fraction(dx[1] * dx[2],
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 0, 1))),
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 1, 1))),
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 1, 0))),
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 0, 0))));
+#endif
+
                 double Q_next = Q_data(idx + xp * sgn);
                 double vol_next = (*vol_data)(idx + xp * sgn);
                 if (MathUtilities<double>::equalEps(vol_next, 0.0)) continue;
@@ -515,9 +538,19 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
             for (int f = 0; f < 2; ++f)
             {
                 const int sgn = f == 0 ? -1 : 1;
+#if (NDIM == 2)
                 double L = length_fraction(dx[0],
                                            (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, f))),
                                            (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, f))));
+#endif
+#if (NDIM == 3)
+                // Note the awkward ordering of indices. Needs to start at "bottom left" index and go clockwise
+                double L = area_fraction(dx[0] * dx[2],
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, f, 0))),
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, f, 1))),
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, f, 0))),
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, f, 1))));
+#endif
                 double Q_next = Q_data(idx + yp * sgn);
                 double vol_next = (*vol_data)(idx + yp * sgn);
                 if (MathUtilities<double>::equalEps(vol_next, 0.0)) continue;
@@ -525,8 +558,21 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
                 R_data(idx, l) += D * L * dudy / cell_volume;
             }
 #if (NDIM == 3)
-            // Loop through Z faces
-            TBOX_ERROR("3 Spatial dimensions not currently supported");
+            for (int f = 0; f < 2; ++f)
+            {
+                const int sgn = f == 0 ? -1 : 1;
+                // Note the awkward ordering of indices. Needs to start at "bottom left" index and go clockwise
+                double L = area_fraction(dx[0] * dx[1],
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 0, f))),
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 1, f))),
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 0, f))),
+                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 1, f))));
+                double Q_next = Q_data(idx + zp * sgn);
+                double vol_next = (*vol_data)(idx + zp * sgn);
+                if (MathUtilities<double>::equalEps(vol_next, 0.0)) continue;
+                double dudz = (Q_next - Q_avg) / dx[2];
+                R_data(idx, l) += D * L * dudz / cell_volume;
+            }
 #endif
             // Add C constant
             R_data(idx, l) += C * Q_data(idx, l);
@@ -591,7 +637,9 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
                         {
                             // Use this point to calculate least squares reconstruction.
                             // Find cell center
+                            LS_TIMER_START(t_find_cell_centroid);
                             VectorNd x_cent_c = find_cell_centroid(idx_c, *ls_data);
+                            LS_TIMER_STOP(t_find_cell_centroid);
                             Q_vals.push_back((*Q_data)(idx_c));
                             X_vals.push_back(x_cent_c);
                         }
@@ -611,12 +659,15 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
                         }
                     }
 
+                    PatchIndexPair pi_pair(patch, idx);
+                    const FullPivHouseholderQR<MatrixXd>& qr_matrix = qr_matrix_map[pi_pair];
                     VectorXd x1 = qr_matrix_map[PatchIndexPair(patch, idx)].solve(U);
                     if (d_using_rbf)
                     {
                         VectorXd rbf_coefs = x1.block(0, 0, m, 1);
                         VectorXd poly_coefs = x1.block(m, 0, NDIM + 1, 1);
-                        Vector3d poly_vec = { 1.0, x_loc(0), x_loc(1) };
+                        VectorXd poly_vec = VectorXd::Ones(NDIM + 1);
+                        for (int d = 0; d < NDIM; ++d) poly_vec(d + 1) = x_loc(d);
                         double val = 0.0;
                         for (size_t i = 0; i < X_vals.size(); ++i)
                         {

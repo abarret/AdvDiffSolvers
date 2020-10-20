@@ -116,24 +116,17 @@ private:
     string d_interface_type = "ANNULUS";
 
     IBTK::VectorNd d_U;
+
     /*
-     * Annulus information
+     * Disk information
      */
-    double d_R1 = 0.25, d_R2 = 1.25;
+    double d_R1 = 0.25;
+#if (NDIM == 2)
     VectorNd d_center = { 1.509, 1.521 };
-
-    /*
-     * Channel information
-     */
-    double d_theta = M_PI / 12.0, d_y_p = 1.25, d_y_n = 0.5;
-    VectorNd d_channel_center = { 1.5, 1.5 };
-
-    /*
-     * Radial information.
-     */
-    double d_v = std::numeric_limits<double>::quiet_NaN();
-    VectorNd d_disk_center = { 1.509, 1.521 };
-    VectorNd d_rot_center = { 6.0, 6.0 };
+#endif
+#if (NDIM == 3)
+    VectorNd d_center = {1.509, 1.521, 1.514};
+#endif
 
     bool d_extended_box = false;
 };

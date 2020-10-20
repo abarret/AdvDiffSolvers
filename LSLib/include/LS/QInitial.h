@@ -138,15 +138,14 @@ private:
     /*
      * Annulus information
      */
-    double d_R1 = 0.25, d_R2 = 1.25;
+    double d_R1 = 0.25;
+#if (NDIM == 2)
     VectorNd d_center = { 1.509, 1.521 };
-    std::vector<double> d_vel;
-
-    /*
-     * Channel information
-     */
-    double d_theta = M_PI / 12.0, d_y_p = 1.25, d_y_n = 0.5;
-    VectorNd d_channel_center = { 1.5, 1.5 };
+#endif
+#if (NDIM == 3)
+    VectorNd d_center = {1.509, 1.521, 1.514};
+#endif
+    std::array<double, NDIM> d_vel;
 
     /*
      * Rotational information

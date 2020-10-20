@@ -11,6 +11,10 @@
 
 namespace LS
 {
+#define LS_TIMER_START(timer) timer->start();
+
+#define LS_TIMER_STOP(timer) timer->stop();
+
 static double s_eps = 1.0e-12;
 inline double
 length_fraction(const double dx, const double phi_l, const double phi_u)
@@ -31,12 +35,40 @@ length_fraction(const double dx, const double phi_l, const double phi_u)
     return L * dx;
 }
 
+inline double
+area_fraction(const double reg_area, const double phi_ll, const double phi_lu, const double phi_uu, const double phi_ul)
+{
+    // Find list of vertices
+    std::vector<IBTK::Vector2d> vertices;
+    // Start at bottom left
+    if (phi_ll < 0.0) vertices.push_back({0.0, 0.0});
+    // Go clockwise towards top
+    if (phi_ll * phi_lu < 0.0) vertices.push_back({ 0.0, -phi_ll / (phi_lu - phi_ll)});
+    if (phi_lu < 0.0) vertices.push_back({0.0, 1.0});
+    if (phi_lu * phi_uu < 0.0) vertices.push_back({ -phi_lu / (phi_uu - phi_lu), 1.0});
+    if (phi_uu < 0.0) vertices.push_back({1.0, 1.0});
+    if (phi_uu * phi_ul < 0.0) vertices.push_back({1.0, 1.0 - phi_uu / (phi_ul - phi_uu)});
+    if (phi_ul < 0.0) vertices.push_back({1.0, 0.0});
+    if (phi_ul * phi_ll < 0.0) vertices.push_back({1.0 - phi_ul / (phi_ll - phi_ul), 0.0});
+
+    // We have vertices, now use shoelace formula to find area
+    double A = 0.0;
+    for (unsigned int i = 0; i < vertices.size(); ++i)
+    {
+        const IBTK::Vector2d& vertex = vertices[i];
+        const IBTK::Vector2d& vertex_n = vertices[(i + 1) % vertices.size()];
+        A += vertex(0) * vertex_n(1) - vertex_n(0) * vertex(1);
+    }
+    return 0.5 * std::abs(A) * reg_area;
+}
+
 inline VectorNd
 midpoint_value(const VectorNd& pt0, const double& phi0, const VectorNd& pt1, const double& phi1)
 {
     return pt0 * phi1 / (phi1 - phi0) - pt1 * phi0 / (phi1 - phi0);
 }
 
+#if (NDIM == 2)
 inline IBTK::VectorNd
 find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_data)
 {
@@ -94,10 +126,249 @@ find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_
 
     return center;
 }
+#endif
+#if (NDIM == 3)
+// Slow, accurate computation of cell centroid
+using Simplex = std::array<std::pair<VectorNd, double>, NDIM + 1>;
+inline IBTK::VectorNd
+find_cell_centroid_slow(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_data)
+{
+    IBTK::VectorNd center;
+    center.setZero();
+    // Compute vertices
+    VectorNd X;
+    double phi;
+    int num_p = 0, num_n = 0;
+    boost::multi_array<std::pair<VectorNd, double>, NDIM> indices(boost::extents[2][2][2]);
+    for (int x = 0; x <= 1; ++x)
+    {
+        X(0) = static_cast<double>(idx(0) + x);
+        for (int y = 0; y <= 1; ++y)
+        {
+            X(1) = static_cast<double>(idx(1) + y);
+            for (int z = 0; z <= 1; ++z)
+            {
+                X(2) = static_cast<double>(idx(2) + z);
+                NodeIndex<NDIM> n_idx(idx, IntVector<NDIM>(x, y, z));
+                phi = ls_data(n_idx);
+                if (std::abs(phi) < s_eps) phi = phi < 0.0 ? -s_eps : s_eps;
+                indices[x][y][z] = std::make_pair(X, phi);
+                if (phi > 0.0)
+                    ++num_p;
+                else
+                    ++num_n;
+            }
+        }
+    }
+    if ((num_n == NDIM * NDIM) || (num_p == NDIM * NDIM))
+    {
+        // Grid cell is interior or exterior, cell centroid is idx + 0.5
+        for (int d = 0; d < NDIM; ++d)
+            center[d] = static_cast<double>(idx(d)) + 0.5;
+        return center;
+    }
+
+    // We are on a cut cell.
+    // Break apart vertices into simplices. Then integrate along the surface
+    std::vector<Simplex> simplices;
+    simplices.push_back({ indices[0][0][0], indices[1][0][0], indices[0][1][0], indices[0][0][1] });
+    simplices.push_back({ indices[1][1][0], indices[1][0][0], indices[0][1][0], indices[1][1][1] });
+    simplices.push_back({ indices[1][0][1], indices[1][0][0], indices[1][1][1], indices[0][0][1] });
+    simplices.push_back({ indices[0][1][1], indices[1][1][1], indices[0][1][0], indices[0][0][1] });
+    simplices.push_back({ indices[1][1][1], indices[1][0][0], indices[0][1][0], indices[0][0][1] });
+
+    std::vector<std::array<IBTK::VectorNd, NDIM + 1>> final_simplices;
+    for (const auto& simplex : simplices)
+    {
+        // Loop through simplices.
+        // Determine boundary points on simplex to form polytope.
+        std::vector<int> n_phi, p_phi;
+        for (unsigned long k = 0; k < simplex.size(); ++k)
+        {
+            const std::pair<IBTK::VectorNd, double>& pt_pair = simplex[k];
+            double phi = pt_pair.second;
+            if (phi < 0)
+            {
+                n_phi.push_back(k);
+            }
+            else
+            {
+                p_phi.push_back(k);
+            }
+        }
+        // Determine new simplices
+        IBTK::VectorNd pt0, pt1, pt2, pt3;
+        double phi0, phi1, phi2, phi3;
+        if (n_phi.size() == 1)
+        {
+            pt0 = simplex[n_phi[0]].first;
+            pt1 = simplex[p_phi[0]].first;
+            pt2 = simplex[p_phi[1]].first;
+            pt3 = simplex[p_phi[2]].first;
+            phi0 = simplex[n_phi[0]].second;
+            phi1 = simplex[p_phi[0]].second;
+            phi2 = simplex[p_phi[1]].second;
+            phi3 = simplex[p_phi[2]].second;
+            // Simplex is between P0, P01, P02, P03
+            IBTK::VectorNd P01 = midpoint_value(pt0, phi0, pt1, phi1);
+            IBTK::VectorNd P02 = midpoint_value(pt0, phi0, pt2, phi2);
+            IBTK::VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
+            final_simplices.push_back({ pt0, P01, P02, P03 });
+        }
+        else if (n_phi.size() == 2)
+        {
+            pt0 = simplex[n_phi[0]].first;
+            pt1 = simplex[n_phi[1]].first;
+            pt2 = simplex[p_phi[0]].first;
+            pt3 = simplex[p_phi[1]].first;
+            phi0 = simplex[n_phi[0]].second;
+            phi1 = simplex[n_phi[1]].second;
+            phi2 = simplex[p_phi[0]].second;
+            phi3 = simplex[p_phi[1]].second;
+            // Simplices are between P0, P1, P02, P13
+            IBTK::VectorNd P02 = midpoint_value(pt0, phi0, pt2, phi2);
+            IBTK::VectorNd P13 = midpoint_value(pt1, phi1, pt3, phi3);
+            final_simplices.push_back({ pt0, pt1, P02, P13 });
+            // and P12, P1, P02, P13
+            IBTK::VectorNd P12 = midpoint_value(pt1, phi1, pt2, phi2);
+            final_simplices.push_back({ P12, pt1, P02, P13 });
+            // and P0, P03, P02, P13
+            IBTK::VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
+            final_simplices.push_back({ pt0, P03, P02, P13 });
+        }
+        else if (n_phi.size() == 3)
+        {
+            pt0 = simplex[n_phi[0]].first;
+            pt1 = simplex[n_phi[1]].first;
+            pt2 = simplex[n_phi[2]].first;
+            pt3 = simplex[p_phi[0]].first;
+            phi0 = simplex[n_phi[0]].second;
+            phi1 = simplex[n_phi[1]].second;
+            phi2 = simplex[n_phi[2]].second;
+            phi3 = simplex[p_phi[0]].second;
+            // Simplex is between P0, P1, P2, P13
+            VectorNd P13 = midpoint_value(pt1, phi1, pt3, phi3);
+            final_simplices.push_back({ pt0, pt1, pt2, P13 });
+            // and P0, P03, P2, P13
+            VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
+            final_simplices.push_back({ pt0, P03, pt2, P13 });
+            // and P23, P03, P2, P13
+            VectorNd P23 = midpoint_value(pt2, phi2, pt3, phi3);
+            final_simplices.push_back({ P23, P03, pt2, P13 });
+        }
+        else if (n_phi.size() == 4)
+        {
+            pt0 = simplex[n_phi[0]].first;
+            pt1 = simplex[n_phi[1]].first;
+            pt2 = simplex[n_phi[2]].first;
+            pt3 = simplex[n_phi[3]].first;
+            final_simplices.push_back({ pt0, pt1, pt2, pt3 });
+        }
+        else if (n_phi.size() == 0)
+        {
+            continue;
+        }
+        else
+        {
+            TBOX_ERROR("This statement should not be reached!");
+        }
+    }
+    // Loop through final_simplices and calculate centroid of each tetrahedron
+    for (const auto& simplex : final_simplices)
+    {
+        // Centroid of tetrahedron is average of vertices
+        IBTK::VectorNd tet_cent;
+        tet_cent.setZero();
+        for (const auto& vertex : simplex)
+            tet_cent += vertex;
+        tet_cent /= static_cast<double>(simplex.size());
+        center += tet_cent;
+    }
+    for (int d = 0; d < NDIM; ++d)
+        center(d) /= static_cast<double>(final_simplices.size());
+    return center;
+}
+// Fast, but possibly wrong computation of cell centroid
+inline VectorNd find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_data)
+{
+    VectorNd centroid;
+    std::vector<VectorNd> vertices;
+    // Find all vertices
+    for (int normal = 0; normal < NDIM; ++normal)
+    {
+        for (int side1 = 0; side1 < 2; ++side1)
+        {
+            for (int side2 = 0; side2 < 2; ++side2)
+            {
+                IntVector<NDIM> dir(0);
+                dir(normal) = 1;
+                IntVector<NDIM> low(0, 0, 0);
+                if (normal == 0)
+                {
+                    low(1) = side1;
+                    low(2) = side2;
+                }
+                else if (normal == 1)
+                {
+                    low(0) = side1;
+                    low(2) = side2;
+                }
+                else
+                {
+                    low(0) = side1;
+                    low(1) = side2;
+                }
+                const NodeIndex<NDIM> ni(idx, low);
+                const double& phi_l = ls_data(ni);
+                const double& phi_u = ls_data(ni + dir);
+
+                VectorNd x_l = VectorNd::Zero(), x_u = VectorNd::Zero();
+                for (int d = 0; d < NDIM; ++d)
+                {
+                    x_l(d) = static_cast<double>(ni(d));
+                    x_u(d) = static_cast<double>(ni(d) + dir(d));
+                }
+                if (phi_l * phi_u < 0.0)
+                    vertices.push_back(midpoint_value(x_l, phi_l, x_u, phi_u));
+            }
+        }
+    }
+    // Loop through vertices of box
+    for (int x = 0; x < 2; ++x)
+    {
+        for (int y = 0; y < 2; ++y)
+        {
+            for (int z = 0; z < 2; ++z)
+            {
+                IntVector<NDIM> node(x, y, z);
+                const NodeIndex<NDIM> ni(idx, node);
+                if (ls_data(ni) < 0.0)
+                    vertices.push_back({ static_cast<double>(ni(0)), static_cast<double>(ni(1)), static_cast<double>(ni(2))});
+            }
+        }
+    }
+    if (vertices.size() == 0)
+    {
+        for (int d = 0; d < NDIM; ++d)
+            centroid[d] = static_cast<double>(idx(d)) + 0.5;
+        return centroid;
+    }
+
+    centroid.setZero();
+    for (const auto& vertex : vertices)
+    {
+        centroid += vertex;
+    }
+    for (int d = 0; d < NDIM; ++d)
+        centroid(d) /= static_cast<double>(vertices.size());
+    return centroid;
+}
+#endif
 
 inline double
 node_to_cell(const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data)
 {
+#if (NDIM == 2)
     NodeIndex<NDIM> idx_ll(idx, IntVector<NDIM>(0, 0));
     NodeIndex<NDIM> idx_lu(idx, IntVector<NDIM>(0, 1));
     NodeIndex<NDIM> idx_ul(idx, IntVector<NDIM>(1, 0));
@@ -105,56 +376,22 @@ node_to_cell(const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data)
     double ls_ll = ls_data(idx_ll), ls_lu = ls_data(idx_lu);
     double ls_ul = ls_data(idx_ul), ls_uu = ls_data(idx_uu);
     return 0.25 * (ls_ll + ls_lu + ls_ul + ls_uu);
-}
-
-inline double
-biliner_interpolant(const VectorNd& x,
-                    const VectorNd& x_ll,
-                    const double phi_ll,
-                    const double phi_ul,
-                    const double phi_uu,
-                    const double phi_lu)
-{
-    return (phi_ll + (phi_ul - phi_ll) * (x(0) - x_ll(0)) + (phi_lu - phi_ll) * (x(1) - x_ll(1)) +
-            (phi_uu - phi_lu - phi_ul + phi_ll) * (x(0) - x_ll(0)) * (x(1) - x_ll(1)));
-}
-
-inline VectorNd
-compute_grad(const VectorNd& x,
-             const VectorNd& x_ll,
-             const double* const dx,
-             const double phi_ll,
-             const double phi_ul,
-             const double phi_uu,
-             const double phi_lu)
-{
-    MatrixXd mat = MatrixXd::Zero(4, 4);
-    VectorXd rhs = VectorXd::Zero(4);
-    rhs(1) = 1.0;
-    mat(0, 0) = 1.0;
-    mat(0, 1) = 1.0;
-    mat(0, 2) = 1.0;
-    mat(0, 3) = 1.0;
-    mat(1, 0) = x_ll(0) - x(0);
-    mat(1, 1) = x_ll(0) + dx[0] - x(0);
-    mat(1, 2) = x_ll(0) + dx[0] - x(0);
-    mat(1, 3) = x_ll(0) - x(0);
-    mat(2, 0) = x_ll(1) - x(1);
-    mat(2, 1) = x_ll(1) - x(1);
-    mat(2, 2) = x_ll(1) + dx[1] - x(1);
-    mat(2, 3) = x_ll(1) + dx[1] - x(1);
-    mat(3, 0) = (x_ll(0) - x(0)) * (x_ll(1) - x(1));
-    mat(3, 1) = (x_ll(0) + dx[0] - x(0)) * (x_ll(1) - x(1));
-    mat(3, 2) = (x_ll(0) + dx[0] - x(0)) * (x_ll(1) + dx[1] - x(1));
-    mat(3, 3) = (x_ll(0) - x(0)) * (x_ll(1) + dx[1] - x(1));
-    VectorXd coefs_0 = mat.fullPivHouseholderQr().solve(rhs);
-    rhs(1) = 0.0;
-    rhs(2) = 1.0;
-    VectorXd coefs_1 = mat.fullPivHouseholderQr().solve(rhs);
-    VectorNd grad_phi;
-    grad_phi(0) = coefs_0(0) * phi_ll + coefs_0(1) * phi_ul + coefs_0(2) * phi_uu + coefs_0(3) * phi_lu;
-    grad_phi(1) = coefs_1(0) * phi_ll + coefs_1(1) * phi_ul + coefs_1(2) * phi_uu + coefs_1(3) * phi_lu;
-    return grad_phi;
+#endif
+#if (NDIM == 3)
+    double val = 0.0;
+    for (int x = 0; x < 2; ++x)
+    {
+        for (int y = 0; y < 2; ++y)
+        {
+            for (int z = 0; z < 2; ++z)
+            {
+                NodeIndex<NDIM> n_idx(idx, IntVector<NDIM>(x, y, z));
+                val += ls_data(n_idx);
+            }
+        }
+    }
+    return val / 6.0;
+#endif
 }
 
 /*!
@@ -295,7 +532,7 @@ public:
         int num_x = idx_up(0) - idx_low(0) + 1;
         d_global_idx = idx(0) - idx_low(0) + num_x * (idx(1) - idx_low(1) + 1);
 #if (NDIM == 3)
-        int num_y = idx_up(1) - idx_low(0) + 1;
+        int num_y = idx_up(1) - idx_low(1) + 1;
         d_global_idx += num_x * num_y * (idx(2) - idx_low(2));
 #endif
     }
@@ -320,9 +557,6 @@ public:
     int d_patch_num = -1;
     int d_global_idx = -1;
 };
-#define LS_TIMER_START(timer) timer->start();
-
-#define LS_TIMER_STOP(timer) timer->stop();
 
 } // namespace LS
 #endif

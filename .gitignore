@@ -180,3 +180,6 @@ command
 *viz*
 convergence_tester2d
 *bdry*
+*.mpg
+*visit*
+*session*

@@ -13,6 +13,7 @@ namespace LS
 
 IntegrateFunction* IntegrateFunction::s_integrate_function = nullptr;
 unsigned char IntegrateFunction::s_shutdown_priority = 225;
+#if (NDIM == 2)
 const std::array<double, 9> IntegrateFunction::s_weights = { 0.9876542474e-1, 0.1391378575e-1, 0.1095430035,
                                                              0.6172839460e-1, 0.8696116674e-2, 0.6846438175e-1,
                                                              0.6172839460e-1, 0.8696116674e-2, 0.6846438175e-1 };
@@ -25,7 +26,47 @@ const std::array<IBTK::VectorNd, 9> IntegrateFunction::s_quad_pts = { IBTK::Vect
                                                                       IBTK::VectorNd(0.5635083269e-1, 0.5),
                                                                       IBTK::VectorNd(0.1270166538e-1, 0.8872983346),
                                                                       IBTK::VectorNd(0.1, 0.1127016654) };
+#endif
+#if (NDIM == 3)
+const std::array<double, 27> IntegrateFunction::s_weights = {
+    3.068198819728420e-5, 3.068198819728420e-5, 4.909118111565470e-5, 2.177926162424280e-4, 2.177926162424280e10 - 4,
+    3.484681859878840e-4, 2.415587821057510e-4, 2.415587821057510e-4, 3.864940513692010e-4, 9.662351284230000e-4,
+    9.662351284230000e-4, 0.001545976205477,    0.006858710562414,    0.006858710562414,    0.010973936899863,
+    0.007607153074595,    0.007607153074595,    0.012171444919352,    0.001901788268649,    0.001901788268649,
+    0.003042861229838,    0.013499628508586,    0.013499628508586,    0.021599405613738,    0.014972747367084,
+    0.014972747367084,    0.023956395787334
+};
 
+const std::array<IBTK::VectorNd, 27> IntegrateFunction::s_quad_pts = {
+    VectorNd(0.001431498841332, 0.011270166537926, 0.100000000000000),
+    VectorNd(0.001431498841332, 0.011270166537926, 0.100000000000000),
+    VectorNd(0.006350832689629, 0.006350832689629, 0.100000000000000),
+    VectorNd(0.006350832689629, 0.050000000000000, 0.056350832689629),
+    VectorNd(0.050000000000000, 0.006350832689629, 0.056350832689629),
+    VectorNd(0.028175416344815, 0.028175416344815, 0.056350832689629),
+    VectorNd(0.011270166537926, 0.088729833462074, 0.012701665379258),
+    VectorNd(0.088729833462074, 0.011270166537926, 0.012701665379258),
+    VectorNd(0.050000000000000, 0.050000000000000, 0.012701665379258),
+    VectorNd(0.006350832689629, 0.050000000000000, 0.443649167310371),
+    VectorNd(0.050000000000000, 0.006350832689629, 0.443649167310371),
+    VectorNd(0.028175416344815, 0.028175416344815, 0.443649167310371),
+    VectorNd(0.028175416344815, 0.221824583655185, 0.250000000000000),
+    VectorNd(0.221824583655185, 0.028175416344815, 0.250000000000000),
+    VectorNd(0.125000000000000, 0.125000000000000, 0.250000000000000),
+    VectorNd(0.050000000000000, 0.393649167310371, 0.056350832689629),
+    VectorNd(0.393649167310371, 0.050000000000000, 0.056350832689629),
+    VectorNd(0.221824583655185, 0.221824583655185, 0.056350832689629),
+    VectorNd(0.011270166537926, 0.088729833462074, 0.787298334620741),
+    VectorNd(0.088729833462074, 0.011270166537926, 0.787298334620741),
+    VectorNd(0.050000000000000, 0.050000000000000, 0.787298334620741),
+    VectorNd(0.050000000000000, 0.393649167310371, 0.443649167310371),
+    VectorNd(0.393649167310371, 0.050000000000000, 0.443649167310371),
+    VectorNd(0.221824583655185, 0.221824583655185, 0.443649167310371),
+    VectorNd(0.088729833462074, 0.698568501158667, 0.100000000000000),
+    VectorNd(0.698568501158667, 0.088729833462074, 0.100000000000000),
+    VectorNd(0.393649167310371, 0.393649167310371, 0.100000000000000)
+};
+#endif
 const double IntegrateFunction::s_eps = 1.0e-12;
 
 IntegrateFunction*
@@ -231,7 +272,7 @@ IntegrateFunction::integrate(const std::vector<Simplex>& simplices)
             VectorNd P01 = midpoint_value(pt0, phi0, pt1, phi1);
             VectorNd P02 = midpoint_value(pt0, phi0, pt2, phi2);
             VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
-            final_simplices.push_back({ P0, P01, P02, P03 });
+            final_simplices.push_back({ pt0, P01, P02, P03 });
         }
         else if (n_phi.size() == 2)
         {
@@ -254,12 +295,32 @@ IntegrateFunction::integrate(const std::vector<Simplex>& simplices)
             VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
             final_simplices.push_back({ pt0, P03, P02, P13 });
         }
+        else if (n_phi.size() == 3)
+        {
+            pt0 = simplex[n_phi[0]].first;
+            pt1 = simplex[n_phi[1]].first;
+            pt2 = simplex[n_phi[2]].first;
+            pt3 = simplex[p_phi[0]].first;
+            phi0 = simplex[n_phi[0]].second;
+            phi1 = simplex[n_phi[1]].second;
+            phi2 = simplex[n_phi[2]].second;
+            phi3 = simplex[p_phi[0]].second;
+            // Simplex is between P0, P1, P2, P13
+            VectorNd P13 = midpoint_value(pt1, phi1, pt3, phi3);
+            final_simplices.push_back({ pt0, pt1, pt2, P13 });
+            // and P0, P03, P2, P13
+            VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
+            final_simplices.push_back({ pt0, P03, pt2, P13 });
+            // and P23, P03, P2, P13
+            VectorNd P23 = midpoint_value(pt2, phi2, pt3, phi3);
+            final_simplices.push_back({ P23, P03, pt2, P13 });
+        }
         else if (n_phi.size() == 4)
         {
             pt0 = simplex[n_phi[0]].first;
             pt1 = simplex[n_phi[1]].first;
-            pt2 = simplex[p_phi[0]].first;
-            pt3 = simplex[p_phi[1]].first;
+            pt2 = simplex[n_phi[2]].first;
+            pt3 = simplex[n_phi[3]].first;
             final_simplices.push_back({ pt0, pt1, pt2, pt3 });
         }
         else if (n_phi.size() == 0)
@@ -285,8 +346,20 @@ double
 IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_pts, const double t)
 {
 #if (NDIM == 3)
-    TBOX_ERROR("3 spatial dimensions not yet implemented!");
+    double integral = 0.0;
+    for (const auto& X_pt : X_pts)
+    {
+        integral += d_fcn(X_pt, t);
+    }
+    MatrixXd mat = MatrixXd::Zero(NDIM, NDIM);
+    for (size_t l = 1; l < X_pts.size(); ++l)
+    {
+        mat.block(0, l - 1, NDIM, 1) = X_pts[l] - X_pts[0];
+    }
+    integral *= abs(mat.determinant()) / 6.0;
+    return integral;
 #endif
+#if (NDIM == 2)
     double integral = 0.0;
     double J = std::abs((X_pts[1](0) - X_pts[0](0)) * (X_pts[2](1) - X_pts[0](1)) -
                         (X_pts[2](0) - X_pts[0](0)) * (X_pts[1](1) - X_pts[0](1)));
@@ -296,6 +369,7 @@ IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_
         pout << "pt 0: \n" << X_pts[0] << "\n";
         pout << "pt 1: \n" << X_pts[1] << "\n";
         pout << "pt 2: \n" << X_pts[2] << "\n";
+        pout << "M: \n" << M << "\n";
         TBOX_ERROR("Found zero or negative J: " << J << "\n");
     }
 #endif
@@ -309,5 +383,6 @@ IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_
         integral += val * s_weights[i];
     }
     return integral * J;
+#endif
 }
 } // namespace LS

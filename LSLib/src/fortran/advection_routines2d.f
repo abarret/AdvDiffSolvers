@@ -282,7 +282,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       end
        
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c     Find a cell centroid given level set values on nodes.           c
+c     Find a cell centroid given level set values on nodes.            c
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       subroutine find_cell_centroid(xcom, ycom, i0, i1,
      &        ls_ll, ls_lu, ls_uu, ls_ul)

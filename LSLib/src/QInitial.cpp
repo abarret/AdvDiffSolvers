@@ -58,60 +58,7 @@ QInitial::setDataOnPatchHierarchy(const int data_idx,
 
     auto integrator = IntegrateFunction::getIntegrator();
 
-    if (d_init_type == "ANNULUS")
-    {
-        auto fcn = [this](VectorNd X, double t) -> double {
-            auto w = [](double theta, double D) -> double {
-                return 0.5 * (std::erf((M_PI / 6.0 - theta) / std::sqrt(4.0 * D)) +
-                              std::erf((M_PI / 6.0 + theta) / std::sqrt(4.0 * D)));
-            };
-            X = X - d_center;
-            double r = X.norm();
-            if (r >= d_R1 && r <= d_R2)
-            {
-                double theta = std::atan2(X(1), X(0));
-                return w(theta - M_PI / 2.0, d_D);
-            }
-            else
-            {
-                return 0.0;
-            }
-        };
-        integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
-    }
-    else if (d_init_type == "DISK")
-    {
-        auto fcn = [this](VectorNd X, double t) -> double {
-            X = X - d_center;
-            for (int d = 0; d < NDIM; ++d) X(d) -= t * d_vel[d];
-            double r = X.norm();
-            return r <= d_R1 ? 1.0 : 0.0;
-        };
-        integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
-    }
-    else if (d_init_type == "CHANNEL")
-    {
-        auto fcn = [this](VectorNd X, double t) -> double {
-            auto w = [](double xi, double D, double t) -> double {
-                return 0.5 * (std::erf((0.25 - (xi + 0.8)) / std::sqrt(4.0 * D * (1 + t))) +
-                              std::erf((0.25 + xi + 0.8) / std::sqrt(4.0 * D * (1 + t))));
-            };
-            MatrixNd Q;
-            Q(0, 0) = cos(d_theta);
-            Q(0, 1) = -sin(d_theta);
-            Q(1, 0) = sin(d_theta);
-            Q(1, 1) = cos(d_theta);
-            X[0] -= cos(M_PI / 12.0) * t;
-            X[1] -= sin(M_PI / 12.0) * t;
-            X = Q.transpose() * (X - d_channel_center) + d_channel_center;
-            if ((X(1) - d_channel_center(1)) > 0.375 || (X(1) - d_channel_center(1)) < -0.375)
-                return 0.0;
-            else
-                return w(X(0) - d_channel_center(0), d_D, t);
-        };
-        integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
-    }
-    else if (d_init_type == "RADIAL")
+    if (d_init_type == "RADIAL")
     {
         auto fcn = [this](VectorNd X, double t) -> double {
             auto w = [](double r, double D, double t) -> double {
@@ -119,23 +66,6 @@ QInitial::setDataOnPatchHierarchy(const int data_idx,
             };
             X = X - d_center;
             for (int d = 0; d < NDIM; ++d) X(d) -= t * d_vel[d];
-            double r = X.norm();
-            return w(r, d_D, t);
-        };
-        integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
-    }
-    else if (d_init_type == "ROTATIONAL")
-    {
-        auto fcn = [this](VectorNd X, double t) -> double {
-            auto w = [](double r, double D, double t) -> double {
-                return 10.0 * std::exp(-r * r / (4.0 * D * (t + 0.5))) / (4.0 * D * (t + 0.5));
-            };
-            MatrixNd Q;
-            Q(0, 0) = Q(1, 1) = std::cos(d_v * t);
-            Q(0, 1) = std::sin(d_v * t);
-            Q(1, 0) = -Q(0, 1);
-            X = Q * X;
-            X(0) -= 2.0;
             double r = X.norm();
             return w(r, d_D, t);
         };
@@ -161,7 +91,11 @@ QInitial::setDataOnPatchHierarchy(const int data_idx,
                 const CellIndex<NDIM>& idx = ci();
                 if ((*vol_data)(idx) > 0.0)
                 {
-                    (*Q_data)(idx) /= (*vol_data)(idx)*dx[0] * dx[1];
+                    (*Q_data)(idx) /= (*vol_data)(idx)*dx[0] * dx[1]
+#if (NDIM == 3)
+                                      * dx[2]
+#endif
+                        ;
                 }
             }
         }
@@ -226,32 +160,10 @@ QInitial::getFromInput(Pointer<Database> db)
     {
         d_init_type = db->getStringWithDefault("init_type", d_init_type);
 
-        if (d_init_type == "ANNULUS")
-        {
-            d_D = db->getDoubleWithDefault("D", d_D);
-            d_R1 = db->getDoubleWithDefault("R1", d_R1);
-            d_R2 = db->getDoubleWithDefault("R2", d_R2);
-            if (db->keyExists("Center")) db->getDoubleArray("Center", d_center.data(), NDIM);
-        }
-        else if (d_init_type == "CHANNEL")
-        {
-            d_D = db->getDoubleWithDefault("D", d_D);
-            d_theta = db->getDoubleWithDefault("Theta", d_theta);
-            d_y_p = db->getDoubleWithDefault("Y_p", d_y_p);
-            d_y_n = db->getDoubleWithDefault("Y_n", d_y_n);
-        }
-        else if (d_init_type == "DISK")
+        if (d_init_type == "RADIAL")
         {
             d_R1 = db->getDoubleWithDefault("R1", d_R1);
             if (db->keyExists("Center")) db->getDoubleArray("Center", d_center.data(), NDIM);
-            d_vel.resize(NDIM);
-            db->getDoubleArray("velocity", d_vel.data(), NDIM);
-        }
-        else if (d_init_type == "RADIAL")
-        {
-            d_R1 = db->getDoubleWithDefault("R1", d_R1);
-            if (db->keyExists("Center")) db->getDoubleArray("Center", d_center.data(), NDIM);
-            d_vel.resize(NDIM);
             db->getDoubleArray("velocity", d_vel.data(), NDIM);
             d_D = db->getDoubleWithDefault("D", d_D);
         }

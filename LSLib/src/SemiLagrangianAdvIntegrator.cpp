@@ -72,6 +72,76 @@ extern "C"
                                      const int&,
                                      const int&);
 #endif
+#if (NDIM == 3)
+    void integrate_paths_midpoint_(const double*,
+                                   const int&,
+                                   const double*,
+                                   const double*,
+                                   const double*,
+                                   const int&,
+                                   const double*,
+                                   const double*,
+                                   const double*,
+                                   const int&,
+                                   const double&,
+                                   const double*,
+                                   const int&,
+                                   const int&,
+                                   const int&,
+                                   const int&,
+                                   const int&,
+                                   const int&);
+    void integrate_paths_forward_(const double*,
+                                  const int&,
+                                  const double*,
+                                  const double*,
+                                  const double*,
+                                  const int&,
+                                  const double&,
+                                  const double*,
+                                  const int&,
+                                  const int&,
+                                  const int&,
+                                  const int&,
+                                  const int&,
+                                  const int&);
+    void integrate_paths_ls_midpoint_(const double*,
+                                      const int&,
+                                      const double*,
+                                      const double*,
+                                      const double*,
+                                      const int&,
+                                      const double*,
+                                      const double*,
+                                      const double*,
+                                      const int&,
+                                      const double*,
+                                      const int&,
+                                      const double&,
+                                      const double*,
+                                      const int&,
+                                      const int&,
+                                      const int&,
+                                      const int&,
+                                      const int&,
+                                      const int&);
+    void integrate_paths_ls_forward_(const double*,
+                                     const int&,
+                                     const double*,
+                                     const double*,
+                                     const double*,
+                                     const int&,
+                                     const double*,
+                                     const int&,
+                                     const double&,
+                                     const double*,
+                                     const int&,
+                                     const int&,
+                                     const int&,
+                                     const int&,
+                                     const int&,
+                                     const int&);
+#endif
 }
 
 namespace LS
@@ -91,6 +161,7 @@ static Timer* t_integrate_path_vol;
 static Timer* t_integrate_path_ls;
 static Timer* t_least_squares;
 static Timer* t_rbf_reconstruct;
+static Timer* t_find_cell_centroid;
 
 } // namespace
 int SemiLagrangianAdvIntegrator::GHOST_CELL_WIDTH = 4;
@@ -137,7 +208,9 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
         t_integrate_hierarchy =
             TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::integrate_hierarchy");
         t_rbf_reconstruct =
-            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::radial_basis_reconstruction"));
+            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::radial_basis_reconstruction");
+        t_find_cell_centroid =
+            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::find_cell_centroid"));
 }
 
 void
@@ -1097,6 +1170,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             switch (d_adv_ts_type)
             {
             case AdvectionTimeIntegrationMethod::FORWARD_EULER:
+#if (NDIM == 2)
                 integrate_paths_forward_(path_data->getPointer(),
                                          path_data->getGhostCellWidth().max(),
                                          u_new_data->getPointer(0),
@@ -1108,8 +1182,26 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
                                          idx_low(1),
                                          idx_up(0),
                                          idx_up(1));
+#endif
+#if (NDIM == 3)
+                integrate_paths_forward_(path_data->getPointer(),
+                                         path_data->getGhostCellWidth().max(),
+                                         u_new_data->getPointer(0),
+                                         u_new_data->getPointer(1),
+                                         u_new_data->getPointer(2),
+                                         u_new_data->getGhostCellWidth().max(),
+                                         dt,
+                                         dx,
+                                         idx_low(0),
+                                         idx_low(1),
+                                         idx_low(2),
+                                         idx_up(0),
+                                         idx_up(1),
+                                         idx_up(2));
+#endif
                 break;
             case AdvectionTimeIntegrationMethod::MIDPOINT_RULE:
+#if (NDIM == 2)
                 integrate_paths_midpoint_(path_data->getPointer(),
                                           path_data->getGhostCellWidth().max(),
                                           u_new_data->getPointer(0),
@@ -1124,6 +1216,27 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
                                           idx_low(1),
                                           idx_up(0),
                                           idx_up(1));
+#endif
+#if (NDIM == 3)
+                integrate_paths_midpoint_(path_data->getPointer(),
+                                          path_data->getGhostCellWidth().max(),
+                                          u_new_data->getPointer(0),
+                                          u_new_data->getPointer(1),
+                                          u_new_data->getPointer(2),
+                                          u_new_data->getGhostCellWidth().max(),
+                                          u_half_data->getPointer(0),
+                                          u_half_data->getPointer(1),
+                                          u_half_data->getPointer(2),
+                                          u_half_data->getGhostCellWidth().max(),
+                                          dt,
+                                          dx,
+                                          idx_low(0),
+                                          idx_low(1),
+                                          idx_low(2),
+                                          idx_up(0),
+                                          idx_up(1),
+                                          idx_up(2));
+#endif
                 break;
             default:
                 TBOX_ERROR("UNKNOWN METHOD!\n");
@@ -1162,10 +1275,23 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             TBOX_ASSERT(u_new_data && u_half_data);
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
+#if (NDIM == 3)
+            // Computing cell centroids in Fortran can be difficult. We'll precompute them here, and pass them along
+            CellData<NDIM, double> centroid_data(box, NDIM, 0);
+            for (CellIterator<NDIM> ci(box); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                LS_TIMER_START(t_find_cell_centroid);
+                VectorNd centroid = find_cell_centroid(idx, *ls_data);
+                LS_TIMER_STOP(t_find_cell_centroid);
+                for (int d = 0; d < NDIM; ++d) centroid_data(idx, d) = centroid[d];
+            }
+#endif
 
             switch (d_adv_ts_type)
             {
             case AdvectionTimeIntegrationMethod::FORWARD_EULER:
+#if (NDIM == 2)
                 integrate_paths_ls_forward_(path_data->getPointer(),
                                             path_data->getGhostCellWidth().max(),
                                             u_new_data->getPointer(0),
@@ -1179,8 +1305,28 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
                                             idx_low(1),
                                             idx_up(0),
                                             idx_up(1));
+#endif
+#if (NDIM == 3)
+                integrate_paths_ls_forward_(path_data->getPointer(),
+                                            path_data->getGhostCellWidth().max(),
+                                            u_new_data->getPointer(0),
+                                            u_new_data->getPointer(1),
+                                            u_new_data->getPointer(2),
+                                            u_new_data->getGhostCellWidth().max(),
+                                            centroid_data.getPointer(),
+                                            centroid_data.getGhostCellWidth().max(),
+                                            dt,
+                                            dx,
+                                            idx_low(0),
+                                            idx_low(1),
+                                            idx_low(2),
+                                            idx_up(0),
+                                            idx_up(1),
+                                            idx_up(2));
+#endif
                 break;
             case AdvectionTimeIntegrationMethod::MIDPOINT_RULE:
+#if (NDIM == 2)
                 integrate_paths_ls_midpoint_(path_data->getPointer(),
                                              path_data->getGhostCellWidth().max(),
                                              u_new_data->getPointer(0),
@@ -1197,6 +1343,29 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
                                              idx_low(1),
                                              idx_up(0),
                                              idx_up(1));
+#endif
+#if (NDIM == 3)
+                integrate_paths_ls_midpoint_(path_data->getPointer(),
+                                             path_data->getGhostCellWidth().max(),
+                                             u_new_data->getPointer(0),
+                                             u_new_data->getPointer(1),
+                                             u_new_data->getPointer(2),
+                                             u_new_data->getGhostCellWidth().max(),
+                                             u_half_data->getPointer(0),
+                                             u_half_data->getPointer(1),
+                                             u_half_data->getPointer(2),
+                                             u_half_data->getGhostCellWidth().max(),
+                                             centroid_data.getPointer(),
+                                             centroid_data.getGhostCellWidth().max(),
+                                             dt,
+                                             dx,
+                                             idx_low(0),
+                                             idx_low(1),
+                                             idx_low(2),
+                                             idx_up(0),
+                                             idx_up(1),
+                                             idx_up(2));
+#endif
                 break;
             default:
                 TBOX_ERROR("UNKNOWN METHOD!\n");
@@ -1369,7 +1538,9 @@ SemiLagrangianAdvIntegrator::radialBasisFunctionReconstruction(IBTK::VectorNd x_
         {
             // Use this point to calculate least squares reconstruction.
             // Find cell center
+            LS_TIMER_START(t_find_cell_centroid);
             VectorNd x_cent_c = find_cell_centroid(idx_c, ls_data);
+            LS_TIMER_STOP(t_find_cell_centroid);
             Q_vals.push_back(Q_data(idx_c));
             X_vals.push_back(x_cent_c);
         }
@@ -1399,7 +1570,8 @@ SemiLagrangianAdvIntegrator::radialBasisFunctionReconstruction(IBTK::VectorNd x_
     double val = 0.0;
     VectorXd rbf_coefs = x.block(0, 0, m, 1);
     VectorXd poly_coefs = x.block(m, 0, NDIM + 1, 1);
-    Vector3d poly_vec = { 1.0, x_loc(0), x_loc(1) };
+    VectorXd poly_vec = VectorXd::Ones(NDIM + 1);
+    for (int d = 0; d < NDIM; ++d) poly_vec(d + 1) = x_loc(d);
     for (size_t i = 0; i < X_vals.size(); ++i)
     {
         val += rbf_coefs[i] * rbf((X_vals[i] - x_loc).norm());
@@ -1417,6 +1589,9 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
                                                         const NodeData<NDIM, double>& ls_data,
                                                         const Pointer<Patch<NDIM>>& patch)
 {
+#if (NDIM == 3)
+    TBOX_ERROR("MLS reconstruction not implemented for 3 spatial dimensions. Use RBF reconstruction.\n");
+#endif
     LS_TIMER_START(t_least_squares);
     int size = 0;
     int box_size = 0;
@@ -1462,7 +1637,9 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
         {
             // Use this point to calculate least squares reconstruction.
             // Find cell center
+            LS_TIMER_START(t_find_cell_centroid);
             VectorNd x_cent_c = find_cell_centroid(idx_c, ls_data);
+            LS_TIMER_STOP(t_find_cell_centroid);
             Q_vals.push_back(Q_data(idx_c));
             X_vals.push_back(x_cent_c);
         }

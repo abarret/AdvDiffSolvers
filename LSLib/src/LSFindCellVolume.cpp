@@ -265,7 +265,7 @@ LSFindCellVolume::findVolume(const std::vector<Simplex>& simplices)
             VectorNd P01 = midpoint_value(pt0, phi0, pt1, phi1);
             VectorNd P02 = midpoint_value(pt0, phi0, pt2, phi2);
             VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
-            final_simplices.push_back({ P0, P01, P02, P03 });
+            final_simplices.push_back({ pt0, P01, P02, P03 });
         }
         else if (n_phi.size() == 2)
         {
@@ -288,12 +288,32 @@ LSFindCellVolume::findVolume(const std::vector<Simplex>& simplices)
             VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
             final_simplices.push_back({ pt0, P03, P02, P13 });
         }
+        else if (n_phi.size() == 3)
+        {
+            pt0 = simplex[n_phi[0]].first;
+            pt1 = simplex[n_phi[1]].first;
+            pt2 = simplex[n_phi[2]].first;
+            pt3 = simplex[p_phi[0]].first;
+            phi0 = simplex[n_phi[0]].second;
+            phi1 = simplex[n_phi[1]].second;
+            phi2 = simplex[n_phi[2]].second;
+            phi3 = simplex[p_phi[0]].second;
+            // Simplex is between P0, P1, P2, P13
+            VectorNd P13 = midpoint_value(pt1, phi1, pt3, phi3);
+            final_simplices.push_back({ pt0, pt1, pt2, P13 });
+            // and P0, P03, P2, P13
+            VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
+            final_simplices.push_back({ pt0, P03, pt2, P13 });
+            // and P23, P03, P2, P13
+            VectorNd P23 = midpoint_value(pt2, phi2, pt3, phi3);
+            final_simplices.push_back({ P23, P03, pt2, P13 });
+        }
         else if (n_phi.size() == 4)
         {
             pt0 = simplex[n_phi[0]].first;
             pt1 = simplex[n_phi[1]].first;
-            pt2 = simplex[p_phi[0]].first;
-            pt3 = simplex[p_phi[1]].first;
+            pt2 = simplex[n_phi[2]].first;
+            pt3 = simplex[n_phi[3]].first;
             final_simplices.push_back({ pt0, pt1, pt2, pt3 });
         }
         else if (n_phi.size() == 0)
@@ -310,17 +330,21 @@ LSFindCellVolume::findVolume(const std::vector<Simplex>& simplices)
     double volume = 0.0;
     for (const auto& simplex : final_simplices)
     {
+#if (NDIM == 2)
         VectorNd pt1 = simplex[0], pt2 = simplex[1], pt3 = simplex[2];
         double a = (pt1 - pt2).norm(), b = (pt2 - pt3).norm(), c = (pt1 - pt3).norm();
         double p = 0.5 * (a + b + c);
         volume += std::sqrt(p * (p - a) * (p - b) * (p - c));
-        //         // Volume is given by 1/4 determinant of matrix
-        //         Eigen::MatrixXd A(NDIM,NDIM);
-        //         for (int d = 0; d < NDIM; ++d)
-        //         {
-        //             A.col(d) = simplex[d+1] - simplex[0];
-        //         }
-        //         volume += 1.0/static_cast<double>(NDIM)*std::abs(A.determinant());
+#endif
+#if (NDIM == 3)
+        // Volume is given by 1/NDIM! * determinant of matrix
+        Eigen::MatrixXd A(NDIM, NDIM);
+        for (int d = 0; d < NDIM; ++d)
+        {
+            A.col(d) = simplex[d + 1] - simplex[0];
+        }
+        volume += 1.0 / 6.0 * std::abs(A.determinant());
+#endif
     }
     return volume;
 }
