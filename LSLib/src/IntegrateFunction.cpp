@@ -369,7 +369,6 @@ IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_
         pout << "pt 0: \n" << X_pts[0] << "\n";
         pout << "pt 1: \n" << X_pts[1] << "\n";
         pout << "pt 2: \n" << X_pts[2] << "\n";
-        pout << "M: \n" << M << "\n";
         TBOX_ERROR("Found zero or negative J: " << J << "\n");
     }
 #endif
