@@ -273,8 +273,8 @@ main(int argc, char* argv[])
         const double reaction_fraction = input_db->getDouble("REACT_FRAC");
         MeshTools::Generation::build_line(reaction_mesh,
                                           static_cast<int>(ceil(reaction_fraction * L / ds)),
-                                          0.25 * L,
-                                          0.25 * L + L * reaction_fraction,
+                                          0.05 * L,
+                                          0.05 * L + L * reaction_fraction,
                                           Utility::string_to_enum<ElemType>(bdry_elem_type));
         for (MeshBase::node_iterator it = reaction_mesh.nodes_begin(); it != reaction_mesh.nodes_end(); ++it)
         {

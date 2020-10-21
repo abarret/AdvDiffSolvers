@@ -2,6 +2,7 @@
 
 #include "SurfaceBoundaryReactions.h"
 
+#include "libmesh/elem_cutter.h"
 #include "libmesh/explicit_system.h"
 #include "libmesh/string_to_enum.h"
 
@@ -75,7 +76,6 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
     System& Q_fl_sys = eq_sys->get_system(s_fluid_sys_name);
     DofMap& Q_fl_dof_map = Q_fl_sys.get_dof_map();
     FEType Q_fl_fe_type = Q_fl_dof_map.variable_type(0);
-    NumericVector<double>* Q_fl_vec = Q_fl_sys.solution.get();
 
     System& Q_st_sys = eq_sys->get_system(s_surface_sys_name);
     DofMap& Q_st_dof_map = Q_st_sys.get_dof_map();
@@ -88,6 +88,7 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
     std::unique_ptr<QBase> qrule = QBase::build(QGAUSS, d_mesh->mesh_dimension(), THIRD);
     fe->attach_quadrature_rule(qrule.get());
     const std::vector<std::vector<double>>& phi = fe->get_phi();
+    const std::vector<double>& JxW = fe->get_JxW();
     std::array<const std::vector<std::vector<double>>*, NDIM - 1> dphi_dxi;
     dphi_dxi[0] = &fe->get_dphidxi();
     if (NDIM > 2) dphi_dxi[1] = &fe->get_dphideta();
@@ -183,7 +184,7 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                         q((axis + 1) % NDIM) = dx[(axis + 1) % NDIM];
 #endif
                         libMesh::Point r;
-                        for (unsigned int d = 0; d < NDIM; ++d)
+                        for (int d = 0; d < NDIM; ++d)
                             r(d) = x_lower[d] + dx[d] * (static_cast<double>(i_c(d) - patch_lower[d]) +
                                                          (d == axis ? (upper_lower == 1 ? 1.0 : 0.0) : 0.5));
 
@@ -198,6 +199,79 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
 
                 // An element may have zero, one, or two intersections with a cell.
                 TBOX_ASSERT(intersection_points.size() <= 2);
+                if (intersection_points.size() == 0) continue;
+#if (NDIM > 2)
+                // We've found an intersection point. We need to find distances from these intersections to the nodes
+                // Note that ElemCutter only works in > 1 spatial dimensions, so we only use it for NDIM = 3
+                std::vector<double> node_dists(elem->n_nodes(), std::numeric_limits<double>::max());
+                plog << "On element: " << elem->id() << "\n";
+                for (unsigned int node_num = 0; node_num < elem->n_nodes(); ++node_num)
+                {
+                    const Node* node = elem->node_ptr(node_num);
+                    for (const auto& pt : intersection_points)
+                    {
+                        // Find distance to node
+                        double dist = (*node - pt).norm();
+                        // determine if distance is "positive" (outside of current cell) or "negative" (inside of
+                        // current cell)
+                        hier::Index<NDIM> node_idx =
+                            IndexUtilities::getCellIndex(&(*node)(0), grid_geom, level->getRatio());
+                        if (node_idx == i_c)
+                        {
+                            // distance is negative
+                            dist = -dist;
+                        }
+                        plog << "Found new distance: " << dist << "\n";
+                        node_dists[node_num] = std::min(node_dists[node_num], dist);
+                    }
+                }
+                // We have the signed distances, use ElemCutter to subdivide the element
+                libMesh::ElemCutter elem_cutter;
+                elem_cutter(*elem, node_dists);
+                const std::vector<const Elem*>& new_elems = elem_cutter.inside_elements();
+                plog << "On index: " << i_c << " we found: " << new_elems.size() << " new elements.\n";
+                plog << "Node distances: \n";
+                for (const auto& dist : node_dists) plog << dist << "\n";
+                // Now we need to loop over the new elements and interpolate the data onto the nodes
+                for (const auto& new_elem : new_elems)
+                {
+                    std::vector<libMesh::Point> nodes;
+                    unsigned int num_nodes = new_elem->n_nodes();
+                    for (unsigned int node_num = 0; node_num < num_nodes; ++node_num)
+                        nodes.push_back(new_elem->node_ref(node_num));
+                    fe->reinit(elem, &nodes);
+                    std::vector<double> new_node_vals(num_nodes);
+                    for (unsigned int node_num = 0; node_num < num_nodes; ++node_num)
+                    {
+                        new_node_vals[node_num] = IBTK::interpolate(node_num, q_st_node, phi);
+                    }
+                    // Now integrate solution on new_elem.
+                    fe->reinit(new_elem);
+                    double g = 0.0, a = 0.0;
+                    for (unsigned int node_num = 0; node_num < num_nodes; ++node_num)
+                    {
+                        for (unsigned int qp = 0; qp < phi[node_num].size(); ++qp)
+                        {
+                            a += d_k_on * (d_cb_max - new_node_vals[node_num] * phi[node_num][qp]) * JxW[qp];
+                            g -= d_k_off * new_node_vals[node_num] * phi[node_num][qp] * JxW[qp];
+                        }
+                    }
+                    double area = (*area_data)(i_c);
+                    double cell_volume = dx[0] * dx[1] * (*vol_data)(i_c);
+                    if (cell_volume <= 0.0)
+                    {
+                        plog << "Found intersection with zero cell volume.\n";
+                        plog << "On index: " << i_c << " with intersection points:\n";
+                        plog << "P0: " << intersection_points[0] << " and P1: " << intersection_points[1] << "\n";
+                        continue;
+                    }
+                    plog << "For index: " << i_c << "\n";
+                    plog << "a value: " << a << "\n";
+                    plog << "g value: " << g << "\n";
+                    (*R_data)(i_c) += pre_fac * g * area / cell_volume;
+                    (*R_data)(i_c) -= pre_fac * a * (*Q_data)(i_c)*area / cell_volume;
+                }
+#else
                 if (intersection_points.size() == 2)
                 {
                     // An element completely pierces this grid cell.
@@ -262,6 +336,7 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                     (*R_data)(i_c) += pre_fac * g * area / cell_volume;
                     (*R_data)(i_c) -= pre_fac * a * (*Q_data)(i_c)*area / cell_volume;
                 }
+#endif
             }
 
             // Restore the element coordinates.
@@ -354,8 +429,6 @@ SurfaceBoundaryReactions::interpolateToBoundary(const int Q_idx,
     const DofMap& Q_dof_map = Q_system.get_dof_map();
     System& X_system = eq_sys->get_system(d_fe_data_manager->COORDINATES_SYSTEM_NAME);
     const DofMap& X_dof_map = X_system.get_dof_map();
-    FEType Q_fe_type = Q_dof_map.variable_type(0);
-    Order Q_order = Q_dof_map.variable_order(0);
 
     NumericVector<double>* X_vec = X_system.current_local_solution.get();
     NumericVector<double>* Q_vec = Q_system.solution.get();
@@ -382,7 +455,6 @@ SurfaceBoundaryReactions::interpolateToBoundary(const int Q_idx,
         const Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         const double* const patch_x_low = pgeom->getXLower();
         const double* const patch_x_up = pgeom->getXUpper();
-        const double* const dx = pgeom->getDx();
         std::array<bool, NDIM> touches_upper_regular_bdry;
         for (int d = 0; d < NDIM; ++d) touches_upper_regular_bdry[d] = pgeom->getTouchesRegularBoundary(d, 1);
 

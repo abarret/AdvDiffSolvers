@@ -54,22 +54,7 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
 
     auto integrator = IntegrateFunction::getIntegrator();
 
-    auto fcn = [this](VectorNd X, double t) -> double {
-        auto w = [](double xi, double D, double t) -> double {
-            return 0.5 * (std::erf((0.25 - (xi + 0.8)) / std::sqrt(4.0 * D * (1.0 + t))) +
-                          std::erf((0.25 + xi + 0.5) / std::sqrt(4.0 * D * (1.0 + t))));
-        };
-        MatrixNd Q;
-        Q(0, 0) = cos(d_theta);
-        Q(0, 1) = -sin(d_theta);
-        Q(1, 1) = cos(d_theta);
-        Q(1, 0) = sin(d_theta);
-        X = Q.transpose() * (X - d_channel_center) + d_channel_center;
-        //        if ((X(1) - d_channel_center(1)) > d_y_up || (X(1) - d_channel_center(1)) < d_y_low)
-        return 0.0;
-        //        else
-        //            return w(X(0) - d_channel_center(0), d_D, t);
-    };
+    auto fcn = [this](VectorNd X, double t) -> double { return 0.0; };
     integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
 
     // Divide by total volume to get cell average
