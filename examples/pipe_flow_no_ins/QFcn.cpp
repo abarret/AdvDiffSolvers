@@ -54,7 +54,7 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
 
     auto integrator = IntegrateFunction::getIntegrator();
 
-    auto fcn = [this](VectorNd X, double t) -> double { return 0.0; };
+    auto fcn = [this](VectorNd X, double t) -> double { return d_initial; };
     integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
 
     // Divide by total volume to get cell average
@@ -109,6 +109,7 @@ QFcn::getFromInput(Pointer<Database> db)
     d_y_low = db->getDouble("y_low");
     d_y_up = db->getDouble("y_up");
     d_D = db->getDouble("d");
+    d_initial = db->getDouble("initial");
     return;
 } // getFromInput
 

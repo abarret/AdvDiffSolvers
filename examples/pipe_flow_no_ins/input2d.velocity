@@ -88,14 +88,15 @@ UFcn
    y_low = Y_LOW
    y_up = Y_UP
    theta = THETA
-   function_0 = U
-   function_1 = V
+   function_0 = "0.0"//U
+   function_1 = "0.0"//V
 }
 
 SurfaceBoundaryReactions {
    k_on = 1.0
    cb_max = 1.0
-   k_off = 1.0
+   k_off = 0.0
+   initial = 0.0
    D = D_coef
    perturb_nodes = FALSE
    use_rbfs = USE_RBFS
@@ -209,6 +210,7 @@ InsideLSFcn {
 }
 
 QInitial {
+   initial = 1.0
    y_low = Y_LOW
    y_up = Y_UP
    theta = THETA
@@ -224,17 +226,18 @@ Q_bcs {
     yup = Y_UP
     D = 1.0
 
-    acoef_function_0 = "1.0"
+    acoef_function_0 = "0.0"
     acoef_function_1 = "0.0"
     acoef_function_2 = "0.0"
     acoef_function_3 = "0.0"
 
-    bcoef_function_0 = "0.0"
+    bcoef_function_0 = "1.0"
     bcoef_function_1 = "1.0"
     bcoef_function_2 = "1.0"
     bcoef_function_3 = "1.0"
 
-    gcoef_function_0 = " (X_1 < ylow ? 0.0 : X_1 > yup ? 0.0 : 1.0)"
+    //gcoef_function_0 = " (X_1 < ylow ? 0.0 : X_1 > yup ? 0.0 : 1.0)"
+    gcoef_function_0 = "0.0"
     gcoef_function_1 = "0.0"
     gcoef_function_2 = "0.0"
     gcoef_function_3 = "0.0"

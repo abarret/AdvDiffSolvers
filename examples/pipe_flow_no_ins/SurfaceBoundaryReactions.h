@@ -45,8 +45,16 @@ public:
                                     double new_time,
                                     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
 
+    void fillInitialCondition();
+
+    void beginTimestepping(double current_time, double new_time);
+    void endTimestepping(double current_time, double new_time);
+
+    static std::string s_fluid_sys_name, s_surface_sys_name;
+
+    void fillExactSolution(double time);
+
 private:
-    void spreadToFluid(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
     void interpolateToBoundary(int Q_idx,
                                const std::string& Q_sys_name,
                                SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
@@ -72,9 +80,12 @@ private:
                           const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
                           SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
 
+
+
     double d_D_coef = std::numeric_limits<double>::quiet_NaN();
     double d_k_on = std::numeric_limits<double>::quiet_NaN(), d_k_off = std::numeric_limits<double>::quiet_NaN();
     double d_cb_max = std::numeric_limits<double>::quiet_NaN();
+    double d_cb_initial = std::numeric_limits<double>::quiet_NaN();
 
     libMesh::Mesh* d_mesh = nullptr;
     IBTK::FEDataManager* d_fe_data_manager = nullptr;
@@ -82,7 +93,5 @@ private:
     bool d_perturb_nodes = false;
 
     bool d_use_rbfs = true;
-
-    static std::string s_fluid_sys_name, s_surface_sys_name;
 };
 #endif

@@ -134,6 +134,9 @@ synchFluidConcentration(const int Q_in_idx,
 
 static std::map<std::pair<Elem*, int>, libMesh::Point> s_elem_point_cache;
 
+void
+checkConservation(FEDataManager* fe_data_manager, const std::string& sys_name, const int Q_idx, const int vol_idx, Pointer<PatchHierarchy<NDIM>> hierarchy, const double time);
+
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
  * be given on the command line.  For non-restarted case, command line is:     *
@@ -401,6 +404,7 @@ main(int argc, char* argv[])
         const int Q_in_idx =
             var_db->registerVariableAndContext(Q_in_var, var_db->getContext("Scratch"), IntVector<NDIM>(2));
 
+
         // Set up visualization plot file writer.
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
         if (uses_visit)
@@ -431,6 +435,9 @@ main(int argc, char* argv[])
         ib_method_ops->initializeFEData();
         // Initialize hierarchy configuration and data on all patches.
         adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
+        const int Q_idx = var_db->mapVariableAndContextToIndex(Q_in_var, adv_diff_integrator->getCurrentContext());
+
+        surface_bdry_reactions->fillInitialCondition();
 
         for (unsigned int part = 0; part < meshes.size(); ++part)
         {
@@ -461,6 +468,7 @@ main(int argc, char* argv[])
             adv_diff_integrator->setupPlotData();
 
             visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
+            surface_bdry_reactions->fillExactSolution(loop_time);
             if (uses_exodus)
             {
                 lower_exodus_io->write_timestep(
@@ -470,6 +478,9 @@ main(int argc, char* argv[])
                 reaction_exodus_io->write_timestep(
                     reaction_exodus_filename, *reaction_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
             }
+            const int vol_idx = var_db->mapVariableAndContextToIndex(
+                adv_diff_integrator->getVolumeVariable(ls_in_cell_var), adv_diff_integrator->getCurrentContext());
+            checkConservation(ib_method_ops->getFEDataManager(REACTION_MESH_ID), SurfaceBoundaryReactions::s_surface_sys_name, Q_idx, vol_idx, patch_hierarchy, loop_time);
         }
 
         // Main time step loop.
@@ -486,6 +497,7 @@ main(int argc, char* argv[])
 
             dt = adv_diff_integrator->getMaximumTimeStepSize();
             synchFluidConcentration(Q_in_idx, Q_in_var, adv_diff_integrator, patch_hierarchy);
+            surface_bdry_reactions->beginTimestepping(loop_time, loop_time + dt);
             const int ls_idx = var_db->mapVariableAndContextToIndex(
                 adv_diff_integrator->getLevelSetNodeVariable(ls_in_cell_var), adv_diff_integrator->getCurrentContext());
             const int vol_idx = var_db->mapVariableAndContextToIndex(
@@ -497,6 +509,7 @@ main(int argc, char* argv[])
                                               nullptr,
                                               -1);
             surface_bdry_reactions->updateSurfaceConcentration(Q_in_idx, loop_time, loop_time + dt, patch_hierarchy);
+            surface_bdry_reactions->endTimestepping(loop_time, loop_time + dt);
             adv_diff_integrator->advanceHierarchy(dt);
             loop_time += dt;
 
@@ -515,6 +528,7 @@ main(int argc, char* argv[])
                 pout << "\nWriting visualization files...\n\n";
                 adv_diff_integrator->setupPlotData();
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
+                surface_bdry_reactions->fillExactSolution(loop_time);
                 if (uses_exodus)
                 {
                     lower_exodus_io->write_timestep(lower_exodus_filename,
@@ -528,6 +542,7 @@ main(int argc, char* argv[])
                     reaction_exodus_io->write_timestep(
                         reaction_exodus_filename, *reaction_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
                 }
+                checkConservation(ib_method_ops->getFEDataManager(REACTION_MESH_ID), SurfaceBoundaryReactions::s_surface_sys_name, Q_idx, vol_idx, patch_hierarchy, loop_time);
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
             {
@@ -586,6 +601,73 @@ postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
     hier_db->putDouble("loop_time", loop_time);
     hier_db->putInteger("iteration_num", iteration_num);
     hier_db->close();
+}
+
+void
+checkConservation(FEDataManager* fe_data_manager, const std::string& sys_name, const int Q_idx, const int vol_idx, Pointer<PatchHierarchy<NDIM>> hierarchy, const double time)
+{
+    double surface_amount = 0.0, fluid_amount = 0.0;
+    EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
+    System& Q_sys = eq_sys->get_system(sys_name);
+    DofMap& Q_dof_map = Q_sys.get_dof_map();
+    NumericVector<double>* Q_vec = Q_sys.solution.get();
+
+    const MeshBase& mesh = eq_sys->get_mesh();
+    std::unique_ptr<FEBase> fe = FEBase::build(mesh.mesh_dimension(), Q_dof_map.variable_type(0));
+    std::unique_ptr<QBase> qrule = QBase::build(QGAUSS, mesh.mesh_dimension(), THIRD);
+    fe->attach_quadrature_rule(qrule.get());
+    const std::vector<std::vector<double>>& phi = fe->get_phi();
+    const std::vector<double>& JxW = fe->get_JxW();
+
+    std::vector<dof_id_type> Q_dof_indices;
+    boost::multi_array<double, 1> Q_nodes;
+    auto it = mesh.local_elements_begin();
+    const auto& it_end = mesh.local_elements_end();
+    for (; it != it_end; ++it)
+    {
+        const auto elem = *it;
+        Q_dof_map.dof_indices(elem, Q_dof_indices);
+        IBTK::get_values_for_interpolation(Q_nodes, *Q_vec, Q_dof_indices);
+        fe->reinit(elem);
+        for (int qp = 0; qp < JxW.size(); ++qp)
+        {
+            double Q = 0.0;
+            for (int n = 0; n < 2; ++n)
+                Q += Q_nodes[n] * phi[n][qp];
+            surface_amount += Q * JxW[qp];
+        }
+    }
+
+    Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(hierarchy->getFinestLevelNumber());
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+    {
+        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+        const Box<NDIM>& box = patch->getBox();
+        Pointer<CellData<NDIM, double>> q_data = patch->getPatchData(Q_idx);
+        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+
+        Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+        const double* const dx = pgeom->getDx();
+
+        for (CellIterator<NDIM> ci(box); ci; ci++)
+        {
+            const CellIndex<NDIM>& idx = ci();
+            fluid_amount += (*q_data)(idx) * (*vol_data)(idx) * dx[0] * dx[1];
+        }
+    }
+
+    fluid_amount = SAMRAI_MPI::sumReduction(fluid_amount);
+    surface_amount = SAMRAI_MPI::sumReduction(surface_amount);
+
+    if (SAMRAI_MPI::getRank() == 0)
+    {
+        plog << "Total amount on surface: " << surface_amount << "\n";
+        plog << "Total amount in fluid:   " << fluid_amount << "\n";
+        plog << "Total amount total:      " << surface_amount + fluid_amount << "\n";
+        std::ofstream output;
+        output.open("TotalAmount", time == 0.0 ? std::ofstream::out : std::ofstream::app);
+        output << time << " " << surface_amount << " " << fluid_amount << " " << surface_amount + fluid_amount << "\n";
+    }
 }
 
 void

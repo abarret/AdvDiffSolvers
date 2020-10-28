@@ -5,6 +5,7 @@
 #include "libmesh/elem_cutter.h"
 #include "libmesh/explicit_system.h"
 #include "libmesh/string_to_enum.h"
+#include "libmesh/transient_system.h"
 
 #include <boost/multi_array.hpp>
 
@@ -28,11 +29,15 @@ SurfaceBoundaryReactions::SurfaceBoundaryReactions(const std::string& object_nam
     d_cb_max = input_db->getDouble("cb_max");
     d_perturb_nodes = input_db->getBool("perturb_nodes");
     d_use_rbfs = input_db->getBool("use_rbfs");
+    d_cb_initial = input_db->getDouble("initial");
 
     // Set up equation systems for reactions
     EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
-    ExplicitSystem& surface_sys = eq_sys->add_system<ExplicitSystem>(s_surface_sys_name);
+    TransientExplicitSystem& surface_sys = eq_sys->add_system<TransientExplicitSystem>(s_surface_sys_name);
     ExplicitSystem& fluid_sys = eq_sys->add_system<ExplicitSystem>(s_fluid_sys_name);
+    ExplicitSystem& exact_sys = eq_sys->add_system<ExplicitSystem>("EXACT");
+    ExplicitSystem& error_sys = eq_sys->add_system<ExplicitSystem>("ERROR");
+    ExplicitSystem& scratch_fluid_sys = eq_sys->add_system<ExplicitSystem>(s_fluid_sys_name + "::SCRATCH");
     surface_sys.assemble_before_solve = false;
     surface_sys.assemble();
     fluid_sys.assemble_before_solve = false;
@@ -40,6 +45,9 @@ SurfaceBoundaryReactions::SurfaceBoundaryReactions(const std::string& object_nam
 
     surface_sys.add_variable("SurfaceConcentration", FEType());
     fluid_sys.add_variable("FluidConcentration", FEType());
+    exact_sys.add_variable("Exact", FEType());
+    error_sys.add_variable("Error", FEType());
+    scratch_fluid_sys.add_variable("SCRFluid", FEType());
 
     IBAMR_DO_ONCE(s_apply_timer =
                       TimerManager::getManager()->getTimer("LS::SurfaceBoundaryReactions::applyBoundaryCondition"));
@@ -57,6 +65,8 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
     TBOX_ASSERT(d_ls_var && d_vol_var && d_area_var);
     TBOX_ASSERT(d_ls_idx > 0 && d_vol_idx > 0 && d_area_idx > 0);
 
+    interpolateToBoundary(Q_idx, s_fluid_sys_name + "::SCRATCH", hierarchy, time);
+
     const double sgn = d_D / std::abs(d_D);
     double pre_fac = sgn * (d_ts_type == LS::DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE ? 0.5 : 1.0);
     if (d_D == 0.0) pre_fac = 0.0;
@@ -73,14 +83,15 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
     FEDataManager::SystemDofMapCache& X_dof_map_cache =
         *d_fe_data_manager->getDofMapCache(d_fe_data_manager->COORDINATES_SYSTEM_NAME);
 
-    System& Q_fl_sys = eq_sys->get_system(s_fluid_sys_name);
+    System& Q_fl_sys = eq_sys->get_system(s_fluid_sys_name + "::SCRATCH");
     DofMap& Q_fl_dof_map = Q_fl_sys.get_dof_map();
     FEType Q_fl_fe_type = Q_fl_dof_map.variable_type(0);
+    NumericVector<double>* Q_fl_vec = Q_fl_sys.solution.get();
 
-    System& Q_st_sys = eq_sys->get_system(s_surface_sys_name);
+    TransientExplicitSystem& Q_st_sys = eq_sys->get_system<TransientExplicitSystem>(s_surface_sys_name);
     DofMap& Q_st_dof_map = Q_st_sys.get_dof_map();
     FEType Q_st_fe_type = Q_st_dof_map.variable_type(0);
-    NumericVector<double>* Q_st_vec = Q_st_sys.solution.get();
+    NumericVector<double>* Q_st_vec = Q_st_sys.old_local_solution.get();
 
     TBOX_ASSERT(Q_st_fe_type == X_fe_type && Q_fl_fe_type == X_fe_type);
 
@@ -119,15 +130,17 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
         const double* const dx = pgeom->getDx();
         const hier::Index<NDIM>& patch_lower = patch->getBox().lower();
 
-        std::vector<dof_id_type> Q_st_dof_indices;
+        std::vector<dof_id_type> Q_st_dof_indices, Q_fl_dof_indices;
         boost::multi_array<double, 2> x_node;
-        boost::multi_array<double, 1> q_st_node;
+        boost::multi_array<double, 1> q_st_node, q_fl_node;
         for (const auto& elem : patch_elems)
         {
             const auto& X_dof_indices = X_dof_map_cache.dof_indices(elem);
             Q_st_dof_map.dof_indices(elem, Q_st_dof_indices);
+            Q_fl_dof_map.dof_indices(elem, Q_fl_dof_indices);
             IBTK::get_values_for_interpolation(x_node, *X_petsc_vec, X_local_soln, X_dof_indices);
             IBTK::get_values_for_interpolation(q_st_node, *Q_st_vec, Q_st_dof_indices);
+            IBTK::get_values_for_interpolation(q_fl_node, *Q_fl_vec, Q_fl_dof_indices);
 
             const unsigned int n_node = elem->n_nodes();
             std::vector<libMesh::Point> X_node_cache(n_node), x_node_cache(n_node);
@@ -297,29 +310,31 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                     new_elem->set_id(0);
                     new_elem->set_node(i) = new_nodes_for_elem[i].get();
                 }
-                plog << "On index: " << i_c << "\n";
+//                plog << "On index: " << i_c << "\n";
                 // We need to interpolate our solution to the new element's nodes
-                std::array<double, 2> q_sf_soln_on_new_elem;
+                std::array<double, 2> q_sf_soln_on_new_elem, q_fl_soln_on_new_elem;
                 fe->reinit(elem, &intersection_points);
                 for (unsigned int l = 0; l < 2; ++l)
                 {
                     q_sf_soln_on_new_elem[l] = IBTK::interpolate(l, q_st_node, phi);
-                    plog << "Value on new node: " << q_sf_soln_on_new_elem[l] << "\n";
+                    q_fl_soln_on_new_elem[l] = IBTK::interpolate(l, q_fl_node, phi);
+//                    plog << "Value on new node: " << q_sf_soln_on_new_elem[l] << "\n";
                 }
                 // Then we need to integrate
                 fe->reinit(new_elem.get());
                 double a = 0.0, g = 0.0;
-                for (unsigned int qp = 0; qp < phi.size(); ++qp)
+                for (unsigned int qp = 0; qp < JxW.size(); ++qp)
                 {
-                    double q_sf = 0.0;
+                    double q_sf = 0.0, q_fl = 0.0;
                     for (int n = 0; n < 2; ++n)
                     {
                         q_sf += q_sf_soln_on_new_elem[n] * phi[n][qp];
+                        q_fl += q_fl_soln_on_new_elem[n] * phi[n][qp];
                     }
-                    plog << "q_sf at quadrature point: " << q_sf << "\n";
-                    a += d_k_on * (d_cb_max - q_sf) * JxW[qp];
-                    g -= d_k_off * q_sf * JxW[qp];
-                    plog << "New a value: " << a << " and g: " << g << "\n";
+//                    plog << "q_sf at quadrature point: " << q_sf << "\n";
+                    a += d_k_on * (d_cb_max - q_sf) * q_fl * JxW[qp];
+                    g += d_k_off * q_sf * JxW[qp];
+//                    plog << "New a value: " << a << " and g: " << g << "\n";
                 }
 
                 double area = (*area_data)(i_c);
@@ -332,8 +347,12 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                     plog << "Ignoring contribution.\n";
                     continue;
                 }
-                (*R_data)(i_c) += pre_fac * g * area / cell_volume;
-                (*R_data)(i_c) -= pre_fac * a * (*Q_data)(i_c)*area / cell_volume;
+//                plog << "Final a value: " << a << " and g value: " << g << "\n";
+//                plog << "Final values after dividing by area: \n";
+//                plog << "a = " << a / area << "   g = " << g / area << "\n";
+//                plog << "\n";
+                (*R_data)(i_c) += pre_fac * g / cell_volume;
+                (*R_data)(i_c) -= pre_fac * a /** (*Q_data)(i_c)*/ / cell_volume;
 #endif
             }
 
@@ -364,7 +383,7 @@ SurfaceBoundaryReactions::updateSurfaceConcentration(const int fl_idx,
     EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
     System& q_fl_system = eq_sys->get_system(s_fluid_sys_name);
     DofMap& q_fl_dof_map = q_fl_system.get_dof_map();
-    System& q_sf_system = eq_sys->get_system(s_surface_sys_name);
+    TransientExplicitSystem& q_sf_system = eq_sys->get_system<TransientExplicitSystem>(s_surface_sys_name);
     DofMap& q_sf_dof_map = q_sf_system.get_dof_map();
 
     // Get underlying solution data
@@ -399,12 +418,8 @@ SurfaceBoundaryReactions::updateSurfaceConcentration(const int fl_idx,
         }
     }
     q_sf_vec->close();
+    q_sf_system.update();
     q_fl_petsc_vec->restore_array();
-}
-
-void
-SurfaceBoundaryReactions::spreadToFluid(Pointer<PatchHierarchy<NDIM>> hierarchy)
-{
 }
 
 void
@@ -695,4 +710,64 @@ SurfaceBoundaryReactions::reconstructRBF(const VectorNd& x_loc,
     }
     val += poly_coefs.dot(poly_vec);
     return val;
+}
+
+void SurfaceBoundaryReactions::fillInitialCondition()
+{
+    EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
+    TransientExplicitSystem& q_sys = eq_sys->get_system<TransientExplicitSystem>(s_surface_sys_name);
+    NumericVector<double>& Q_soln = *q_sys.current_local_solution;
+    NumericVector<double>& Q_soln_ = *q_sys.solution;
+    auto it = d_mesh->local_nodes_begin();
+    const auto it_end = d_mesh->local_nodes_end();
+    for (; it != it_end; ++it)
+    {
+        Node* n = *it;
+        const int dof_index = n->dof_number(q_sys.number(), 0, 0);
+        Q_soln.set(dof_index, d_cb_initial);
+        Q_soln_.set(dof_index, d_cb_initial);
+    }
+    Q_soln.close();
+    Q_soln_.close();
+}
+
+void SurfaceBoundaryReactions::beginTimestepping(const double /*current_time*/, const double /*new_time*/)
+{
+    // Overwrite old surface concentration
+    EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
+    TransientExplicitSystem& q_sys = eq_sys->get_system<TransientExplicitSystem>(s_surface_sys_name);
+    *q_sys.older_local_solution = *q_sys.old_local_solution;
+    *q_sys.old_local_solution = *q_sys.current_local_solution;
+}
+
+void SurfaceBoundaryReactions::endTimestepping(const double /*current_time*/, const double /*new_time*/)
+{
+    EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
+    TransientExplicitSystem& q_sys = eq_sys->get_system<TransientExplicitSystem>(s_surface_sys_name);
+    q_sys.update();
+}
+
+void SurfaceBoundaryReactions::fillExactSolution(const double time)
+{
+    auto exact_fcn = [this](double t) -> double {
+        return d_cb_max * d_k_on / (d_k_on + d_k_off) + (d_cb_initial - d_cb_max * d_k_on / (d_k_on + d_k_off)) * std::exp(-(d_k_on + d_k_off) * t);
+    };
+    EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
+    ExplicitSystem& exact_sys = eq_sys->get_system<ExplicitSystem>("EXACT");
+    ExplicitSystem& error_sys = eq_sys->get_system<ExplicitSystem>("ERROR");
+    TransientExplicitSystem& q_sys = eq_sys->get_system<TransientExplicitSystem>(s_surface_sys_name);
+    NumericVector<double>& exact_soln = *exact_sys.solution;
+    NumericVector<double>& error_soln = *error_sys.solution;
+    NumericVector<double>& Q_soln = *q_sys.current_local_solution;
+    auto it = d_mesh->local_nodes_begin();
+    const auto it_end = d_mesh->local_nodes_end();
+    for (; it != it_end; ++it)
+    {
+        Node* n = *it;
+        const int dof_index = n->dof_number(q_sys.number(), 0, 0);
+        exact_soln.set(dof_index, exact_fcn(time));
+        error_soln.set(dof_index, std::abs(exact_fcn(time) - Q_soln(dof_index)));
+    }
+    exact_soln.close();
+    error_soln.close();
 }

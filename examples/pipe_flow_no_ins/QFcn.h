@@ -136,6 +136,7 @@ private:
     VectorNd d_channel_center;
     double d_y_low = 0.0, d_y_up = 0.0;
     double d_D = 0.0;
+    double d_initial = 0.0;
 };
 
 } // namespace LS
