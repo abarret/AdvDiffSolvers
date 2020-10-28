@@ -1101,6 +1101,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     // We assume scratch context is already filled correctly.
     const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
     const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+    const int Q_rhs_scratch_idx = var_db->mapVariableAndContextToIndex(d_Q_Q_rhs_map[Q_var], getScratchContext());
     const size_t l = distance(d_Q_var.begin(), std::find(d_Q_var.begin(), d_Q_var.end(), Q_var));
 
     const size_t ls_l =
@@ -1118,6 +1119,19 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     rhs_oper->setLSIndices(ls_idx, ls_var, vol_idx, vol_var, area_idx, area_var);
     rhs_oper->setSolutionTime(current_time);
     rhs_oper->apply(*d_sol_ls_vecs[l], *d_rhs_ls_vecs[l]);
+
+    if (d_Q_F_map[Q_var])
+    {
+        Pointer<CellVariable<NDIM, double>> F_var = d_Q_F_map[Q_var];
+        const int F_scratch_idx = var_db->mapVariableAndContextToIndex(F_var, getScratchContext());
+        const int F_current_idx = var_db->mapVariableAndContextToIndex(F_var, getCurrentContext());
+        const int F_new_idx = var_db->mapVariableAndContextToIndex(F_var, getNewContext());
+        TBOX_ASSERT(d_F_fcn[F_var]);
+        d_F_fcn[F_var]->setDataOnPatchHierarchy(F_scratch_idx, F_var, d_hierarchy, 0.5 * (current_time + new_time));
+        d_hier_cc_data_ops->axpy(Q_rhs_scratch_idx, 1.0, F_scratch_idx, Q_rhs_scratch_idx);
+        d_hier_cc_data_ops->copyData(F_new_idx, F_scratch_idx);
+        d_F_fcn[F_var]->setDataOnPatchHierarchy(F_new_idx, F_var, d_hierarchy, 0.5 * (current_time + new_time));
+    }
 
     Pointer<PETScKrylovPoissonSolver> Q_helmholtz_solver = d_helmholtz_solvers[l];
 #if !defined(NDEBUG)
