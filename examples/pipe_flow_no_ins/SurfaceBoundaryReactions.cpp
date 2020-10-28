@@ -212,7 +212,53 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
 
                 // An element may have zero, one, or two intersections with a cell.
                 TBOX_ASSERT(intersection_points.size() <= 2);
-                if (intersection_points.size() == 0) continue;
+                // TODO: If we have zero intersections, either the element is completely contained in the cell, or isn't
+                // in the cell at all. Determine if each node is within the index, if so, we need to add the element
+                // contribution. This is potentially expensive since we don't know which index this element could belong
+                // to, so we have to check the entire bounding box. We should only use this option in the case that
+                // there are elements that are shorter than sqrt(dx[0]^2 * dx[1]^2).
+                if (intersection_points.size() == 0)
+                {
+                    int num_nodes_interior = 0;
+                    for (unsigned int node_num = 0; node_num < elem->n_nodes(); ++node_num)
+                    {
+                        const Node& node = elem->node_ref(node_num);
+                        const hier::Index<NDIM>& idx_node =
+                            IndexUtilities::getCellIndex(&node(0), grid_geom, level->getRatio());
+                        if (idx_node == i_c) ++num_nodes_interior;
+                    }
+                    if (num_nodes_interior == elem->n_nodes())
+                    {
+                        // Add contribution to g
+                        double a = 0.0, g = 0.0;
+                        fe->reinit(elem);
+                        for (unsigned int qp = 0; qp < JxW.size(); ++qp)
+                        {
+                            double q_sf = 0.0, q_fl = 0.0;
+                            for (int n = 0; n < 2; ++n)
+                            {
+                                q_sf += q_st_node[n] * phi[n][qp];
+                                q_fl += q_fl_node[n] * phi[n][qp];
+                            }
+                            a -= d_k_on * (d_cb_max - q_sf) * q_fl * JxW[qp];
+                            g += d_k_off * q_sf * JxW[qp];
+                        }
+
+                        double area = (*area_data)(i_c);
+                        double cell_volume = dx[0] * dx[1] * (*vol_data)(i_c);
+                        if (cell_volume <= 0.0)
+                        {
+                            plog << "Found intersection with zero cell volume.\n";
+                            plog << "On index: " << i_c << "with intersection points:\n";
+                            plog << "P0: " << intersection_points[0] << " and P1: " << intersection_points[1] << "\n";
+                            plog << "Ignoring contribution.\n";
+                            continue;
+                        }
+                        if (!d_homogeneous_bdry) (*R_data)(i_c) += pre_fac * g / cell_volume;
+                        (*R_data)(i_c) += pre_fac * a /** (*Q_data)(i_c)*/ / cell_volume;
+                    }
+                    continue;
+                }
 #if (NDIM > 2)
                 // We've found an intersection point. We need to find distances from these intersections to the nodes
                 // Note that ElemCutter only works in > 1 spatial dimensions, so we only use it for NDIM = 3
@@ -310,7 +356,6 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                     new_elem->set_id(0);
                     new_elem->set_node(i) = new_nodes_for_elem[i].get();
                 }
-//                plog << "On index: " << i_c << "\n";
                 // We need to interpolate our solution to the new element's nodes
                 std::array<double, 2> q_sf_soln_on_new_elem, q_fl_soln_on_new_elem;
                 fe->reinit(elem, &intersection_points);
@@ -318,7 +363,6 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                 {
                     q_sf_soln_on_new_elem[l] = IBTK::interpolate(l, q_st_node, phi);
                     q_fl_soln_on_new_elem[l] = IBTK::interpolate(l, q_fl_node, phi);
-//                    plog << "Value on new node: " << q_sf_soln_on_new_elem[l] << "\n";
                 }
                 // Then we need to integrate
                 fe->reinit(new_elem.get());
@@ -331,10 +375,8 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                         q_sf += q_sf_soln_on_new_elem[n] * phi[n][qp];
                         q_fl += q_fl_soln_on_new_elem[n] * phi[n][qp];
                     }
-//                    plog << "q_sf at quadrature point: " << q_sf << "\n";
                     a += d_k_on * (d_cb_max - q_sf) * q_fl * JxW[qp];
                     g += d_k_off * q_sf * JxW[qp];
-//                    plog << "New a value: " << a << " and g: " << g << "\n";
                 }
 
                 double area = (*area_data)(i_c);
@@ -347,11 +389,7 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                     plog << "Ignoring contribution.\n";
                     continue;
                 }
-//                plog << "Final a value: " << a << " and g value: " << g << "\n";
-//                plog << "Final values after dividing by area: \n";
-//                plog << "a = " << a / area << "   g = " << g / area << "\n";
-//                plog << "\n";
-                (*R_data)(i_c) += pre_fac * g / cell_volume;
+                if (!d_homogeneous_bdry) (*R_data)(i_c) += pre_fac * g / cell_volume;
                 (*R_data)(i_c) -= pre_fac * a /** (*Q_data)(i_c)*/ / cell_volume;
 #endif
             }
