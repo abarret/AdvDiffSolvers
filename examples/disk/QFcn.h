@@ -132,11 +132,9 @@ private:
     int d_ls_idx = IBTK::invalid_index;
     int d_vol_idx = IBTK::invalid_index;
 
-    double d_theta = 0.0;
-    VectorNd d_channel_center;
-    double d_y_low = 0.0, d_y_up = 0.0;
     double d_D = 0.0;
-    double d_initial = 0.0;
+    double d_k_off = 0.0;
+    double d_k_on = 0.0;
 };
 
 } // namespace LS

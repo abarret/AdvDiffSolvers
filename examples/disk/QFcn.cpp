@@ -54,7 +54,10 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
 
     auto integrator = IntegrateFunction::getIntegrator();
 
-    auto fcn = [this](VectorNd X, double t) -> double { return 1.0 + 0.5 * X.squaredNorm() / d_D; };
+    auto fcn = [this](VectorNd X, double t) -> double {
+        return 1.0 + X.squaredNorm() * (d_k_on * (1.0 - t * (1.0 - t)) - d_k_off * t * (1.0 - t)) /
+                         (-2.0 * d_D - d_k_on * (1.0 - t * (1.0 - t)));
+    };
     integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
 
     // Divide by total volume to get cell average
@@ -104,12 +107,9 @@ QFcn::setDataOnPatch(const int data_idx,
 void
 QFcn::getFromInput(Pointer<Database> db)
 {
-    d_theta = db->getDouble("theta");
-    db->getDoubleArray("channel_center", d_channel_center.data(), NDIM);
-    d_y_low = db->getDouble("y_low");
-    d_y_up = db->getDouble("y_up");
     d_D = db->getDouble("d");
-    d_initial = db->getDouble("initial");
+    d_k_off = db->getDouble("k_off");
+    d_k_on = db->getDouble("k_on");
     return;
 } // getFromInput
 

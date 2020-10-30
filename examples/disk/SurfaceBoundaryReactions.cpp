@@ -393,7 +393,6 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                     continue;
                 }
                 if (!d_homogeneous_bdry) (*R_data)(i_c) += pre_fac * g / cell_volume;
-                if (!d_homogeneous_bdry) g_data(i_c) += g;
                 (*R_data)(i_c) += pre_fac * a /** (*Q_data)(i_c)*/ / cell_volume;
 #endif
             }
@@ -422,7 +421,12 @@ SurfaceBoundaryReactions::updateSurfaceConcentration(const int fl_idx,
         return k_on * (c_sf_max - c_sf) * c_fl - k_off * c_sf;
     };
 
-    auto force = []() -> double { return 1.0; };
+    auto force = [](double k_on, double k_off, double D, double t) -> double {
+        double val = (4.0 * D * D * k_off + 4.0 * D * D * k_on + 2.0 * D * k_off * k_on) /
+                         (k_on * (2.0 * D + k_on - k_on * t + k_on * t * t)) -
+                     2.0 * t - (2.0 * D * k_off - k_on + 2.0 * D * k_on) / k_on;
+        return val;
+    };
     // Solve ODE on surface
     EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
     System& q_fl_system = eq_sys->get_system(s_fluid_sys_name);
@@ -456,9 +460,11 @@ SurfaceBoundaryReactions::updateSurfaceConcentration(const int fl_idx,
             dof_id_type q_fl_local_dof = q_fl_petsc_vec->map_global_to_local_index(q_fl_dofs[0]);
             q_sf_vec->get(q_sf_dofs, q_sf_vals);
             double q_sf_star =
-                q_sf_vals[0] +
-                0.5 * dt * (f(q_fl_local_soln[q_fl_local_dof], q_sf_vals[0], d_cb_max, d_k_on, d_k_off) + force());
-            q_sf_vals[0] += dt * (f(q_fl_local_soln[q_fl_local_dof], q_sf_star, d_cb_max, d_k_on, d_k_off) + force());
+                q_sf_vals[0] + 0.5 * dt *
+                                   (f(q_fl_local_soln[q_fl_local_dof], q_sf_vals[0], d_cb_max, d_k_on, d_k_off) +
+                                    force(d_k_on, d_k_off, d_D_coef, current_time));
+            q_sf_vals[0] += dt * (f(q_fl_local_soln[q_fl_local_dof], q_sf_star, d_cb_max, d_k_on, d_k_off) +
+                                  force(d_k_on, d_k_off, d_D_coef, current_time + 0.5 * dt));
             q_sf_vec->set(q_sf_dofs[0], q_sf_vals[0]);
         }
     }

@@ -11,7 +11,7 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 128                                    // coarsest grid spacing
+N = 4*128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = 2.0*LY/NFINEST
 H = DX
@@ -60,7 +60,7 @@ NORMALIZE_PRESSURE         = FALSE                  // whether to explicitly for
 CFL_MAX                    = 0.1                    // maximum CFL number
 DT                         = CFL_MAX*DX/U_MAX       // maximum timestep size
 START_TIME                 = 0.0e0                  // initial simulation time
-END_TIME                   = 15.0                 // final simulation time
+END_TIME                   = 1.0                 // final simulation time
 ERROR_ON_DT_CHANGE         = TRUE                  // whether to emit an error message if the time step size changes
 VORTICITY_TAGGING          = TRUE                   // whether to tag cells for refinement based on vorticity thresholds
 TAG_BUFFER                 = 1                      // size of tag buffer used by grid generation algorithm
@@ -94,13 +94,15 @@ UFcn
 
 ForcingFcn {
    d = D_coef
+   k_on = 1.0
+   k_off = 1.0
 }
 
 SurfaceBoundaryReactions {
    k_on = 1.0
    cb_max = 1.0
    k_off = 1.0
-   initial = 1.0
+   initial = 0.0
    D = D_coef
    perturb_nodes = TRUE
    use_rbfs = USE_RBFS
@@ -212,12 +214,9 @@ InsideLSFcn {
 }
 
 QInitial {
-   initial = 1.0
-   y_low = Y_LOW
-   y_up = Y_UP
-   theta = THETA
    d = D_coef
-   channel_center = 1.5,0.26
+   k_on = 1.0
+   k_off = 1.0
 }
 
 PoissonSolver {

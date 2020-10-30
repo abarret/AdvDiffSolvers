@@ -99,6 +99,8 @@ private:
     ForcingFcn& operator=(const ForcingFcn& that);
 
     double d_D = 0.0;
+    double d_k_on = 0.0;
+    double d_k_off = 0.0;
 };
 
 } // namespace LS

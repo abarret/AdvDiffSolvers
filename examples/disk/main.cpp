@@ -142,6 +142,15 @@ void checkConservation(FEDataManager* fe_data_manager,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
                        const double time);
 
+void computeErrors(Pointer<CellVariable<NDIM, double>> Q_var,
+                   const int Q_idx,
+                   const int Q_error_idx,
+                   const int Q_exact_idx,
+                   const int vol_idx,
+                   Pointer<PatchHierarchy<NDIM>> hierarchy,
+                   Pointer<QFcn> qfcn,
+                   const double time);
+
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
  * be given on the command line.  For non-restarted case, command line is:     *
@@ -384,6 +393,20 @@ main(int argc, char* argv[])
         ib_method_ops->initializeFEData();
         // Initialize hierarchy configuration and data on all patches.
         adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
+
+        // Exact and error terms
+        const int Q_exact_idx = var_db->registerVariableAndContext(Q_in_var, var_db->getContext("Exact"));
+        const int Q_error_idx = var_db->registerVariableAndContext(Q_in_var, var_db->getContext("Error"));
+        // Allocate exact and error data
+        for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
+        {
+            Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
+            level->allocatePatchData(Q_exact_idx);
+            level->allocatePatchData(Q_error_idx);
+        }
+        visit_data_writer->registerPlotQuantity("Error", "SCALAR", Q_error_idx);
+        visit_data_writer->registerPlotQuantity("Exact", "SCALAR", Q_exact_idx);
+
         const int Q_idx = var_db->mapVariableAndContextToIndex(Q_in_var, adv_diff_integrator->getCurrentContext());
 
         surface_bdry_reactions->fillInitialCondition();
@@ -433,6 +456,7 @@ main(int argc, char* argv[])
                               vol_idx,
                               patch_hierarchy,
                               loop_time);
+            computeErrors(Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, patch_hierarchy, Q_in_init, loop_time);
         }
 
         // Main time step loop.
@@ -460,6 +484,7 @@ main(int argc, char* argv[])
             surface_bdry_reactions->endTimestepping(loop_time, loop_time + dt);
             adv_diff_integrator->advanceHierarchy(dt);
             loop_time += dt;
+            computeErrors(Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, patch_hierarchy, Q_in_init, loop_time);
 
             pout << "\n";
             pout << "At end       of timestep # " << iteration_num << "\n";
@@ -667,4 +692,29 @@ updateVolumeMesh(Mesh& vol_mesh, EquationSystems* vol_eq_sys, FEDataManager* vol
     X_vec->close();
     X_map_vec->close();
     vol_mesh.prepare_for_use();
+}
+
+void
+computeErrors(Pointer<CellVariable<NDIM, double>> Q_var,
+              const int Q_idx,
+              const int Q_error_idx,
+              const int Q_exact_idx,
+              const int vol_idx,
+              Pointer<PatchHierarchy<NDIM>> hierarchy,
+              Pointer<QFcn> qfcn,
+              double time)
+{
+    qfcn->setDataOnPatchHierarchy(Q_exact_idx, Q_var, hierarchy, time, false);
+    HierarchyMathOps hier_math_ops("HierarchyMathOps", hierarchy);
+    hier_math_ops.setPatchHierarchy(hierarchy);
+    hier_math_ops.resetLevels(0, hierarchy->getFinestLevelNumber());
+    const int wgt_cc_idx = hier_math_ops.getCellWeightPatchDescriptorIndex();
+    HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
+    hier_cc_data_ops.setToScalar(Q_error_idx, 0.0);
+    hier_cc_data_ops.subtract(Q_error_idx, Q_exact_idx, Q_idx);
+    hier_cc_data_ops.multiply(wgt_cc_idx, wgt_cc_idx, vol_idx);
+    pout << "Error at time: " << time << "\n";
+    pout << "  L1-norm:   " << std::setprecision(10) << hier_cc_data_ops.L1Norm(Q_error_idx, wgt_cc_idx) << "\n";
+    pout << "  L2-norm:   " << std::setprecision(10) << hier_cc_data_ops.L2Norm(Q_error_idx, wgt_cc_idx) << "\n";
+    pout << "  max-norm:  " << std::setprecision(10) << hier_cc_data_ops.maxNorm(Q_error_idx, wgt_cc_idx) << "\n";
 }
