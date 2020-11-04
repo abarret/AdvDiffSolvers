@@ -41,15 +41,15 @@ area_fraction(const double reg_area, const double phi_ll, const double phi_lu, c
     // Find list of vertices
     std::vector<IBTK::Vector2d> vertices;
     // Start at bottom left
-    if (phi_ll < 0.0) vertices.push_back({0.0, 0.0});
+    if (phi_ll < 0.0) vertices.push_back({ 0.0, 0.0 });
     // Go clockwise towards top
-    if (phi_ll * phi_lu < 0.0) vertices.push_back({ 0.0, -phi_ll / (phi_lu - phi_ll)});
-    if (phi_lu < 0.0) vertices.push_back({0.0, 1.0});
-    if (phi_lu * phi_uu < 0.0) vertices.push_back({ -phi_lu / (phi_uu - phi_lu), 1.0});
-    if (phi_uu < 0.0) vertices.push_back({1.0, 1.0});
-    if (phi_uu * phi_ul < 0.0) vertices.push_back({1.0, 1.0 - phi_uu / (phi_ul - phi_uu)});
-    if (phi_ul < 0.0) vertices.push_back({1.0, 0.0});
-    if (phi_ul * phi_ll < 0.0) vertices.push_back({1.0 - phi_ul / (phi_ll - phi_ul), 0.0});
+    if (phi_ll * phi_lu < 0.0) vertices.push_back({ 0.0, -phi_ll / (phi_lu - phi_ll) });
+    if (phi_lu < 0.0) vertices.push_back({ 0.0, 1.0 });
+    if (phi_lu * phi_uu < 0.0) vertices.push_back({ -phi_lu / (phi_uu - phi_lu), 1.0 });
+    if (phi_uu < 0.0) vertices.push_back({ 1.0, 1.0 });
+    if (phi_uu * phi_ul < 0.0) vertices.push_back({ 1.0, 1.0 - phi_uu / (phi_ul - phi_uu) });
+    if (phi_ul < 0.0) vertices.push_back({ 1.0, 0.0 });
+    if (phi_ul * phi_ll < 0.0) vertices.push_back({ 1.0 - phi_ul / (phi_ll - phi_ul), 0.0 });
 
     // We have vertices, now use shoelace formula to find area
     double A = 0.0;
@@ -163,8 +163,7 @@ find_cell_centroid_slow(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>
     if ((num_n == NDIM * NDIM) || (num_p == NDIM * NDIM))
     {
         // Grid cell is interior or exterior, cell centroid is idx + 0.5
-        for (int d = 0; d < NDIM; ++d)
-            center[d] = static_cast<double>(idx(d)) + 0.5;
+        for (int d = 0; d < NDIM; ++d) center[d] = static_cast<double>(idx(d)) + 0.5;
         return center;
     }
 
@@ -279,17 +278,16 @@ find_cell_centroid_slow(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>
         // Centroid of tetrahedron is average of vertices
         IBTK::VectorNd tet_cent;
         tet_cent.setZero();
-        for (const auto& vertex : simplex)
-            tet_cent += vertex;
+        for (const auto& vertex : simplex) tet_cent += vertex;
         tet_cent /= static_cast<double>(simplex.size());
         center += tet_cent;
     }
-    for (int d = 0; d < NDIM; ++d)
-        center(d) /= static_cast<double>(final_simplices.size());
+    for (int d = 0; d < NDIM; ++d) center(d) /= static_cast<double>(final_simplices.size());
     return center;
 }
 // Fast, but possibly wrong computation of cell centroid
-inline VectorNd find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_data)
+inline VectorNd
+find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<NDIM, double>& ls_data)
 {
     VectorNd centroid;
     std::vector<VectorNd> vertices;
@@ -328,8 +326,7 @@ inline VectorNd find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<ND
                     x_l(d) = static_cast<double>(ni(d));
                     x_u(d) = static_cast<double>(ni(d) + dir(d));
                 }
-                if (phi_l * phi_u < 0.0)
-                    vertices.push_back(midpoint_value(x_l, phi_l, x_u, phi_u));
+                if (phi_l * phi_u < 0.0) vertices.push_back(midpoint_value(x_l, phi_l, x_u, phi_u));
             }
         }
     }
@@ -343,14 +340,14 @@ inline VectorNd find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<ND
                 IntVector<NDIM> node(x, y, z);
                 const NodeIndex<NDIM> ni(idx, node);
                 if (ls_data(ni) < 0.0)
-                    vertices.push_back({ static_cast<double>(ni(0)), static_cast<double>(ni(1)), static_cast<double>(ni(2))});
+                    vertices.push_back(
+                        { static_cast<double>(ni(0)), static_cast<double>(ni(1)), static_cast<double>(ni(2)) });
             }
         }
     }
     if (vertices.size() == 0)
     {
-        for (int d = 0; d < NDIM; ++d)
-            centroid[d] = static_cast<double>(idx(d)) + 0.5;
+        for (int d = 0; d < NDIM; ++d) centroid[d] = static_cast<double>(idx(d)) + 0.5;
         return centroid;
     }
 
@@ -359,8 +356,7 @@ inline VectorNd find_cell_centroid(const CellIndex<NDIM>& idx, const NodeData<ND
     {
         centroid += vertex;
     }
-    for (int d = 0; d < NDIM; ++d)
-        centroid(d) /= static_cast<double>(vertices.size());
+    for (int d = 0; d < NDIM; ++d) centroid(d) /= static_cast<double>(vertices.size());
     return centroid;
 }
 #endif
@@ -392,6 +388,12 @@ node_to_cell(const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data)
     }
     return val / 6.0;
 #endif
+}
+
+double
+rbf(double r)
+{
+    return r * r * r;
 }
 
 /*!

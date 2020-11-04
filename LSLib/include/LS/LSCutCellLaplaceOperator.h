@@ -9,6 +9,7 @@
 
 #include "LS/LSCutCellBoundaryConditions.h"
 #include "LS/LSFindCellVolume.h"
+#include "LS/RBFReconstructCache.h"
 #include "LS/SetLSValue.h"
 #include "LS/utility_functions.h"
 
@@ -110,10 +111,6 @@ public:
      */
     void deallocateOperatorState() override;
 
-    void cacheLeastSquaresData();
-
-    void cacheRBFData();
-
     inline void setLSIndices(int ls_idx,
                              Pointer<NodeVariable<NDIM, double>> ls_var,
                              int vol_idx,
@@ -127,7 +124,7 @@ public:
         d_vol_var = vol_var;
         d_area_idx = area_idx;
         d_area_var = area_var;
-        d_update_weights = true;
+        d_rbf_reconstruct.setLSData(ls_idx, vol_idx, d_hierarchy);
     }
 
     inline void setBoundaryConditionOperator(SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> bdry_conds)
@@ -180,18 +177,6 @@ private:
 
     void extrapolateToCellCenters(int Q_idx, int R_idx);
 
-    void extrapolateToCellCentersRBF(int Q_idx, int R_idx);
-
-    inline double weight(const double r)
-    {
-        return std::exp(-r * r);
-    }
-
-    inline double rbf(const double r)
-    {
-        return r * r * r;
-    }
-
     // Operator parameters.
     int d_ncomp = 0;
 
@@ -220,11 +205,9 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_var;
     int d_Q_scr_idx = IBTK::invalid_index, d_Q_extrap_idx = IBTK::invalid_index;
 
-    std::vector<std::map<PatchIndexPair, Eigen::FullPivHouseholderQR<MatrixXd>>> d_qr_matrix_vec;
-    bool d_update_weights = true;
-    bool d_cache_bdry;
     bool d_using_rbf = true;
-    int d_stencil_size = 2;
+
+    RBFReconstructCache d_rbf_reconstruct;
 
     DiffusionTimeIntegrationMethod d_ts_type = DiffusionTimeIntegrationMethod::UNKNOWN_METHOD;
 };
