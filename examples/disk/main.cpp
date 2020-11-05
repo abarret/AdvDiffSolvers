@@ -41,6 +41,7 @@
 #include <libmesh/mesh.h>
 #include <libmesh/mesh_generation.h>
 #include <libmesh/numeric_vector.h>
+#include <libmesh/transient_system.h>
 
 // Set up application namespace declarations
 #include <ibamr/app_namespaces.h>
@@ -142,14 +143,14 @@ void checkConservation(FEDataManager* fe_data_manager,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
                        const double time);
 
-void computeErrors(Pointer<CellVariable<NDIM, double>> Q_var,
-                   const int Q_idx,
-                   const int Q_error_idx,
-                   const int Q_exact_idx,
-                   const int vol_idx,
-                   Pointer<PatchHierarchy<NDIM>> hierarchy,
-                   Pointer<QFcn> qfcn,
-                   const double time);
+void computeFluidErrors(Pointer<CellVariable<NDIM, double>> Q_var,
+                        const int Q_idx,
+                        const int Q_error_idx,
+                        const int Q_exact_idx,
+                        const int vol_idx,
+                        Pointer<PatchHierarchy<NDIM>> hierarchy,
+                        Pointer<QFcn> qfcn,
+                        const double time);
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -456,7 +457,9 @@ main(int argc, char* argv[])
                               vol_idx,
                               patch_hierarchy,
                               loop_time);
-            computeErrors(Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, patch_hierarchy, Q_in_init, loop_time);
+            computeFluidErrors(
+                Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, patch_hierarchy, Q_in_init, loop_time);
+            surface_bdry_reactions->fillExactSolution(loop_time);
         }
 
         // Main time step loop.
@@ -484,7 +487,9 @@ main(int argc, char* argv[])
             surface_bdry_reactions->endTimestepping(loop_time, loop_time + dt);
             adv_diff_integrator->advanceHierarchy(dt);
             loop_time += dt;
-            computeErrors(Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, patch_hierarchy, Q_in_init, loop_time);
+            computeFluidErrors(
+                Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, patch_hierarchy, Q_in_init, loop_time);
+            surface_bdry_reactions->fillExactSolution(loop_time);
 
             pout << "\n";
             pout << "At end       of timestep # " << iteration_num << "\n";
@@ -695,14 +700,29 @@ updateVolumeMesh(Mesh& vol_mesh, EquationSystems* vol_eq_sys, FEDataManager* vol
 }
 
 void
-computeErrors(Pointer<CellVariable<NDIM, double>> Q_var,
-              const int Q_idx,
-              const int Q_error_idx,
-              const int Q_exact_idx,
-              const int vol_idx,
-              Pointer<PatchHierarchy<NDIM>> hierarchy,
-              Pointer<QFcn> qfcn,
-              double time)
+computeSurfaceErrors(const MeshBase& mesh,
+                     FEDataManager* fe_data_manager,
+                     const std::string& sys_name,
+                     const std::string& err_name,
+                     double time)
+{
+    EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
+    TransientExplicitSystem& q_system = eq_sys->get_system<TransientExplicitSystem>(sys_name);
+    NumericVector<double>* q_vec = q_system.solution.get();
+
+    // exact solution
+    auto exact = [](double time) -> double { return time * (1.0 - time); };
+}
+
+void
+computeFluidErrors(Pointer<CellVariable<NDIM, double>> Q_var,
+                   const int Q_idx,
+                   const int Q_error_idx,
+                   const int Q_exact_idx,
+                   const int vol_idx,
+                   Pointer<PatchHierarchy<NDIM>> hierarchy,
+                   Pointer<QFcn> qfcn,
+                   double time)
 {
     qfcn->setDataOnPatchHierarchy(Q_exact_idx, Q_var, hierarchy, time, false);
     HierarchyMathOps hier_math_ops("HierarchyMathOps", hierarchy);
@@ -713,7 +733,7 @@ computeErrors(Pointer<CellVariable<NDIM, double>> Q_var,
     hier_cc_data_ops.setToScalar(Q_error_idx, 0.0);
     hier_cc_data_ops.subtract(Q_error_idx, Q_exact_idx, Q_idx);
     hier_cc_data_ops.multiply(wgt_cc_idx, wgt_cc_idx, vol_idx);
-    pout << "Error at time: " << time << "\n";
+    pout << "Error in fluid at time: " << time << "\n";
     pout << "  L1-norm:   " << std::setprecision(10) << hier_cc_data_ops.L1Norm(Q_error_idx, wgt_cc_idx) << "\n";
     pout << "  L2-norm:   " << std::setprecision(10) << hier_cc_data_ops.L2Norm(Q_error_idx, wgt_cc_idx) << "\n";
     pout << "  max-norm:  " << std::setprecision(10) << hier_cc_data_ops.maxNorm(Q_error_idx, wgt_cc_idx) << "\n";

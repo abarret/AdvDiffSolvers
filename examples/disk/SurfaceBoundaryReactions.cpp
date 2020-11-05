@@ -142,7 +142,48 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
             IBTK::get_values_for_interpolation(q_st_node, *Q_st_vec, Q_st_dof_indices);
             IBTK::get_values_for_interpolation(q_fl_node, *Q_fl_vec, Q_fl_dof_indices);
 
+            // Simple check if element is completely within grid cell.
             const unsigned int n_node = elem->n_nodes();
+            std::vector<hier::Index<NDIM>> elem_idx_nodes(n_node);
+            for (unsigned int k = 0; k < n_node; ++k)
+            {
+                const Node& node = elem->node_ref(k);
+                elem_idx_nodes[k] = IndexUtilities::getCellIndex(&node(0), grid_geom, level->getRatio());
+            }
+            // Check if all indices are the same
+            if (std::adjacent_find(elem_idx_nodes.begin(), elem_idx_nodes.end(), std::not_equal_to<>()) ==
+                elem_idx_nodes.end())
+            {
+                // Add contribution to g
+                double a = 0.0, g = 0.0;
+                fe->reinit(elem);
+                for (unsigned int qp = 0; qp < JxW.size(); ++qp)
+                {
+                    double q_sf = 0.0, q_fl = 0.0;
+                    for (int n = 0; n < 2; ++n)
+                    {
+                        q_sf += q_st_node[n] * phi[n][qp];
+                        q_fl += q_fl_node[n] * phi[n][qp];
+                    }
+                    a -= d_k_on * (d_cb_max - q_sf) * q_fl * JxW[qp];
+                    g += d_k_off * q_sf * JxW[qp];
+                }
+
+                double area = (*area_data)(elem_idx_nodes[0]);
+                double cell_volume = dx[0] * dx[1] * (*vol_data)(elem_idx_nodes[0]);
+                if (cell_volume <= 0.0)
+                {
+                    plog << "Found intersection with zero cell volume.\n";
+                    plog << "On index: " << elem_idx_nodes[0] << "with intersection points:\n";
+                    plog << "P0: " << elem->node_ref(0) << " and P1: " << elem->node_ref(1) << "\n";
+                    plog << "Ignoring contribution.\n";
+                    continue;
+                }
+                if (!d_homogeneous_bdry) (*R_data)(elem_idx_nodes[0]) += pre_fac * g / cell_volume;
+                (*R_data)(elem_idx_nodes[0]) += pre_fac * a /** (*Q_data)(i_c)*/ / cell_volume;
+                continue;
+            }
+
             std::vector<libMesh::Point> X_node_cache(n_node), x_node_cache(n_node);
             x_min = IBTK::Point::Constant(std::numeric_limits<double>::max());
             x_max = IBTK::Point::Constant(std::numeric_limits<double>::min());
@@ -211,54 +252,8 @@ SurfaceBoundaryReactions::applyBoundaryCondition(Pointer<CellVariable<NDIM, doub
                 }
 
                 // An element may have zero, one, or two intersections with a cell.
+                // Note we've already accounted for when an element is contained within a cell.
                 TBOX_ASSERT(intersection_points.size() <= 2);
-                // TODO: If we have zero intersections, either the element is completely contained in the cell, or isn't
-                // in the cell at all. Determine if each node is within the index, if so, we need to add the element
-                // contribution. This is potentially expensive since we don't know which index this element could belong
-                // to, so we have to check the entire bounding box. We should only use this option in the case that
-                // there are elements that are shorter than sqrt(dx[0]^2 * dx[1]^2).
-                if (intersection_points.size() == 0)
-                {
-                    int num_nodes_interior = 0;
-                    for (unsigned int node_num = 0; node_num < elem->n_nodes(); ++node_num)
-                    {
-                        const Node& node = elem->node_ref(node_num);
-                        const hier::Index<NDIM>& idx_node =
-                            IndexUtilities::getCellIndex(&node(0), grid_geom, level->getRatio());
-                        if (idx_node == i_c) ++num_nodes_interior;
-                    }
-                    if (num_nodes_interior == elem->n_nodes())
-                    {
-                        // Add contribution to g
-                        double a = 0.0, g = 0.0;
-                        fe->reinit(elem);
-                        for (unsigned int qp = 0; qp < JxW.size(); ++qp)
-                        {
-                            double q_sf = 0.0, q_fl = 0.0;
-                            for (int n = 0; n < 2; ++n)
-                            {
-                                q_sf += q_st_node[n] * phi[n][qp];
-                                q_fl += q_fl_node[n] * phi[n][qp];
-                            }
-                            a -= d_k_on * (d_cb_max - q_sf) * q_fl * JxW[qp];
-                            g += d_k_off * q_sf * JxW[qp];
-                        }
-
-                        double area = (*area_data)(i_c);
-                        double cell_volume = dx[0] * dx[1] * (*vol_data)(i_c);
-                        if (cell_volume <= 0.0)
-                        {
-                            plog << "Found intersection with zero cell volume.\n";
-                            plog << "On index: " << i_c << "with intersection points:\n";
-                            plog << "P0: " << intersection_points[0] << " and P1: " << intersection_points[1] << "\n";
-                            plog << "Ignoring contribution.\n";
-                            continue;
-                        }
-                        if (!d_homogeneous_bdry) (*R_data)(i_c) += pre_fac * g / cell_volume;
-                        (*R_data)(i_c) += pre_fac * a /** (*Q_data)(i_c)*/ / cell_volume;
-                    }
-                    continue;
-                }
 #if (NDIM > 2)
                 // We've found an intersection point. We need to find distances from these intersections to the nodes
                 // Note that ElemCutter only works in > 1 spatial dimensions, so we only use it for NDIM = 3
@@ -804,26 +799,60 @@ SurfaceBoundaryReactions::endTimestepping(const double /*current_time*/, const d
 void
 SurfaceBoundaryReactions::fillExactSolution(const double time)
 {
-    auto exact_fcn = [this](double t) -> double {
-        return d_cb_max * d_k_on / (d_k_on + d_k_off) +
-               (d_cb_initial - d_cb_max * d_k_on / (d_k_on + d_k_off)) * std::exp(-(d_k_on + d_k_off) * t);
-    };
+    auto exact_fcn = [](double t) -> double { return t * (1.0 - t); };
     EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
     ExplicitSystem& exact_sys = eq_sys->get_system<ExplicitSystem>("EXACT");
     ExplicitSystem& error_sys = eq_sys->get_system<ExplicitSystem>("ERROR");
     TransientExplicitSystem& q_sys = eq_sys->get_system<TransientExplicitSystem>(s_surface_sys_name);
+    FEType Q_fe_type = q_sys.get_dof_map().variable_type(0);
     NumericVector<double>& exact_soln = *exact_sys.solution;
     NumericVector<double>& error_soln = *error_sys.solution;
+    DofMap& error_dof_map = error_sys.get_dof_map();
     NumericVector<double>& Q_soln = *q_sys.current_local_solution;
+
+    std::unique_ptr<FEBase> fe = FEBase::build(d_mesh->mesh_dimension(), Q_fe_type);
+    std::unique_ptr<QBase> qrule = QBase::build(QGAUSS, d_mesh->mesh_dimension(), THIRD);
+    fe->attach_quadrature_rule(qrule.get());
+    const std::vector<std::vector<double>>& phi = fe->get_phi();
+    const std::vector<double>& JxW = fe->get_JxW();
+
     auto it = d_mesh->local_nodes_begin();
     const auto it_end = d_mesh->local_nodes_end();
+    double l1_norm = 0.0, l2_norm = 0.0, max_norm = 0.0;
     for (; it != it_end; ++it)
     {
         Node* n = *it;
         const int dof_index = n->dof_number(q_sys.number(), 0, 0);
         exact_soln.set(dof_index, exact_fcn(time));
         error_soln.set(dof_index, std::abs(exact_fcn(time) - Q_soln(dof_index)));
+        max_norm = std::max(max_norm, error_soln(dof_index));
     }
+    auto it_e = d_mesh->local_elements_begin();
+    const auto& it_e_end = d_mesh->local_elements_end();
+    for (; it_e != it_e_end; ++it_e)
+    {
+        Elem* el = *it_e;
+        fe->reinit(el);
+        boost::multi_array<double, 1> err_node;
+        std::vector<dof_id_type> err_dof_indices;
+        error_dof_map.dof_indices(el, err_dof_indices);
+        IBTK::get_values_for_interpolation(err_node, error_soln, err_dof_indices);
+        for (unsigned int qp = 0; qp < JxW.size(); ++qp)
+        {
+            for (unsigned int n = 0; n < phi.size(); ++n)
+            {
+                l1_norm += err_node[n] * phi[n][qp] * JxW[qp];
+                l2_norm += std::pow(err_node[n] * phi[n][qp], 2.0) * JxW[qp];
+            }
+        }
+    }
+    l2_norm = std::sqrt(l2_norm);
+
+    pout << "Error at surface at time: " << time << "\n";
+    pout << " L1-norm:  " << l1_norm << "\n";
+    pout << " L2-norm:  " << l2_norm << "\n";
+    pout << " max-norm: " << max_norm << "\n";
+
     exact_soln.close();
     error_soln.close();
 }
