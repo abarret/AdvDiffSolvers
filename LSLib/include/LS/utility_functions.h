@@ -390,7 +390,7 @@ node_to_cell(const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data)
 #endif
 }
 
-double
+static inline double
 rbf(double r)
 {
     return r * r * r;

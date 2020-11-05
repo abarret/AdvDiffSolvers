@@ -129,7 +129,6 @@ public:
 
     inline void setBoundaryConditionOperator(SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> bdry_conds)
     {
-        d_update_weights = true;
         d_bdry_conds = bdry_conds;
     }
 

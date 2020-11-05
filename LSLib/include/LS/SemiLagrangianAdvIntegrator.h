@@ -185,8 +185,6 @@ private:
 
     double weight(double r);
 
-    double rbf(const double r);
-
     // patch data for particle trajectories
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_path_var;
     int d_path_idx = IBTK::invalid_index;
