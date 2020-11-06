@@ -313,6 +313,14 @@ SemiLagrangianAdvIntegrator::getVolumeVariable(Pointer<CellVariable<NDIM, double
 }
 
 void
+SemiLagrangianAdvIntegrator::registerSBIntegrator(Pointer<SBIntegrator> sb_integrator,
+                                                  Pointer<CellVariable<NDIM, double>> ls_var)
+{
+    TBOX_ASSERT(std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_var) != d_ls_cell_vars.end());
+    d_sb_integrator_ls_map[sb_integrator] = ls_var;
+}
+
+void
 SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<NDIM>> hierarchy,
                                                            Pointer<GriddingAlgorithm<NDIM>> gridding_alg)
 {
@@ -618,6 +626,21 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         }
         l++;
     }
+
+    for (auto& sb_ls_pair : d_sb_integrator_ls_map)
+    {
+        const Pointer<CellVariable<NDIM, double>>& ls_var = sb_ls_pair.second;
+        const unsigned int l =
+            std::distance(d_ls_cell_vars.begin(), std::find(d_ls_cell_vars.begin(), d_ls_cell_vars.end(), ls_var));
+        const Pointer<NodeVariable<NDIM, double>>& ls_n_var = d_ls_node_vars[l];
+        const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        const int ls_idx = var_db->mapVariableAndContextToIndex(ls_n_var, getCurrentContext());
+        const int vol_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
+        Pointer<SBIntegrator> sb_integrator = sb_ls_pair.first;
+        sb_integrator->setLSData(ls_idx, vol_idx, d_hierarchy);
+        sb_integrator->beginTimestepping(current_time, new_time);
+    }
     LS_TIMER_STOP(t_preprocess);
 }
 
@@ -629,6 +652,10 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
     LS_TIMER_START(t_integrate_hierarchy);
     const double half_time = current_time + 0.5 * (new_time - current_time);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
+
+    for (auto& sb_ls_pair : d_sb_integrator_ls_map)
+        sb_ls_pair.first->integrateHierarchy(getCurrentContext(), current_time, new_time);
+
     for (const auto& Q_var : d_Q_var)
     {
         const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
@@ -835,6 +862,8 @@ SemiLagrangianAdvIntegrator::postprocessIntegrateHierarchy(const double current_
     LS_TIMER_START(t_postprocess);
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
         d_hierarchy->getPatchLevel(ln)->deallocatePatchData(d_adv_data);
+
+    for (auto& sb_ls_pair : d_sb_integrator_ls_map) sb_ls_pair.first->endTimestepping(current_time, new_time);
 
     AdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(
         current_time, new_time, skip_synchronize_new_state_data, num_cycles);

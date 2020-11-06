@@ -11,6 +11,7 @@
 
 #include "LS/LSCutCellLaplaceOperator.h"
 #include "LS/LSFindCellVolume.h"
+#include "LS/SBIntegrator.h"
 #include "LS/utility_functions.h"
 
 namespace LS
@@ -62,6 +63,9 @@ public:
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
     getVolumeVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_c_var);
+
+    void registerSBIntegrator(SAMRAI::tbox::Pointer<SBIntegrator> sb_integrator,
+                              SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_var);
 
     /*!
      * Initialize the variables, basic communications algorithms, solvers, and
@@ -127,63 +131,30 @@ protected:
     void addWorkloadEstimate(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                              const int workload_data_idx) override;
 
-private:
-    void advectionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
-                         double current_time,
-                         double new_time);
+    virtual void advectionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+                                 double current_time,
+                                 double new_time);
 
-    void diffusionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
-                         int ls_idx,
-                         SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
-                         int vol_idx,
-                         SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> vol_var,
-                         int area_idx,
-                         SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> area_var,
-                         double current_time,
-                         double new_time);
+    virtual void diffusionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+                                 int ls_idx,
+                                 SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
+                                 int vol_idx,
+                                 SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> vol_var,
+                                 int area_idx,
+                                 SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> area_var,
+                                 double current_time,
+                                 double new_time);
 
-    void integratePaths(int path_idx, int u_new_idx, int u_half_idx, double dt);
-    void integratePaths(int path_idx, int u_new_idx, int u_half_idx, int vol_idx, int ls_idx, double dt);
+    virtual void integratePaths(int path_idx, int u_new_idx, int u_half_idx, double dt);
+    virtual void integratePaths(int path_idx, int u_new_idx, int u_half_idx, int vol_idx, int ls_idx, double dt);
 
-    void evaluateMappingOnHierarchy(int xstar_idx,
-                                    int Q_cur_idx,
-                                    int vol_cur_idx,
-                                    int Q_new_idx,
-                                    int vol_new_idx,
-                                    int ls_idx,
-                                    int order);
-
-    void evaluateMappingOnHierarchy(int xstar_idx, int Q_cur_idx, int Q_new_idx, int order);
-
-    double sumOverZSplines(const IBTK::VectorNd& x_loc,
-                           const SAMRAI::pdat::CellIndex<NDIM>& idx,
-                           const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
-                           const int order);
-
-    bool indexWithinWidth(int stencil_width,
-                          const CellIndex<NDIM>& idx,
-                          const SAMRAI::pdat::CellData<NDIM, double>& vol_data);
-
-    double radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
-                                             const CellIndex<NDIM>& idx,
-                                             const CellData<NDIM, double>& Q_data,
-                                             const CellData<NDIM, double>& vol_data,
-                                             const NodeData<NDIM, double>& ls_data,
-                                             const Pointer<Patch<NDIM>>& patch);
-
-    double leastSquaresReconstruction(IBTK::VectorNd x_loc,
-                                      const CellIndex<NDIM>& idx,
-                                      const CellData<NDIM, double>& Q_data,
-                                      const CellData<NDIM, double>& vol_data,
-                                      const NodeData<NDIM, double>& ls_data,
-                                      const Pointer<Patch<NDIM>>& patch);
-
-    double evaluateZSpline(const IBTK::VectorNd x, const int order);
-
-    int getSplineWidth(int order);
-    double ZSpline(double x, int order);
-
-    double weight(double r);
+    virtual void evaluateMappingOnHierarchy(int xstar_idx,
+                                            int Q_cur_idx,
+                                            int vol_cur_idx,
+                                            int Q_new_idx,
+                                            int vol_new_idx,
+                                            int ls_idx,
+                                            int order);
 
     // patch data for particle trajectories
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_path_var;
@@ -231,6 +202,42 @@ private:
     int d_rbf_stencil_size = 2;
 
     SAMRAI::tbox::Pointer<SAMRAI::math::HierarchyFaceDataOpsReal<NDIM, double>> d_hier_fc_data_ops;
+
+    std::map<SAMRAI::tbox::Pointer<SBIntegrator>, SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>
+        d_sb_integrator_ls_map;
+
+private:
+    void evaluateMappingOnHierarchy(int xstar_idx, int Q_cur_idx, int Q_new_idx, int order);
+
+    double sumOverZSplines(const IBTK::VectorNd& x_loc,
+                           const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                           const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
+                           const int order);
+
+    bool indexWithinWidth(int stencil_width,
+                          const CellIndex<NDIM>& idx,
+                          const SAMRAI::pdat::CellData<NDIM, double>& vol_data);
+
+    double radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
+                                             const CellIndex<NDIM>& idx,
+                                             const CellData<NDIM, double>& Q_data,
+                                             const CellData<NDIM, double>& vol_data,
+                                             const NodeData<NDIM, double>& ls_data,
+                                             const Pointer<Patch<NDIM>>& patch);
+
+    double leastSquaresReconstruction(IBTK::VectorNd x_loc,
+                                      const CellIndex<NDIM>& idx,
+                                      const CellData<NDIM, double>& Q_data,
+                                      const CellData<NDIM, double>& vol_data,
+                                      const NodeData<NDIM, double>& ls_data,
+                                      const Pointer<Patch<NDIM>>& patch);
+
+    double evaluateZSpline(const IBTK::VectorNd x, const int order);
+
+    int getSplineWidth(int order);
+    double ZSpline(double x, int order);
+
+    double weight(double r);
 
 }; // Class SemiLagrangianAdvIntegrator
 } // Namespace LS

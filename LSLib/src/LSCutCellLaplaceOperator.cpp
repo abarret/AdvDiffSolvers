@@ -170,10 +170,7 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
             if (d_robin_bdry)
             {
                 TBOX_ASSERT(d_bdry_conds);
-                d_bdry_conds->setTimeStepType(d_ts_type);
-                d_bdry_conds->setLSData(d_ls_var, d_ls_idx, d_vol_var, d_vol_idx, d_area_var, d_area_idx);
                 d_bdry_conds->setHomogeneousBdry(d_homogeneous_bc);
-                d_bdry_conds->setDiffusionCoefficient(d_poisson_spec.getDConstant());
                 d_bdry_conds->applyBoundaryCondition(
                     d_Q_var, d_Q_scr_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
             }
@@ -238,7 +235,13 @@ LSCutCellLaplaceOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, d
     d_hier_bdry_fill = new HierarchyGhostCellInterpolation();
     d_hier_bdry_fill->initializeOperatorState(d_transaction_comps, d_hierarchy, d_coarsest_ln, d_finest_ln);
 
-    if (d_bdry_conds) d_bdry_conds->allocateOperatorState(d_hierarchy, d_current_time);
+    if (d_bdry_conds)
+    {
+        d_bdry_conds->setDiffusionCoefficient(d_poisson_spec.getDConstant());
+        d_bdry_conds->setTimeStepType(d_ts_type);
+        d_bdry_conds->setLSData(d_ls_var, d_ls_idx, d_vol_var, d_vol_idx, d_area_var, d_area_idx);
+        d_bdry_conds->allocateOperatorState(d_hierarchy, d_current_time);
+    }
 
     // Indicate the operator is initialized.
     d_is_initialized = true;
