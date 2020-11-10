@@ -14,10 +14,17 @@ SBIntegrator::SBIntegrator(std::string object_name,
                            Pointer<Database> input_db,
                            Mesh* mesh,
                            FEDataManager* fe_data_manager)
-    : d_object_name(std::move(object_name)), d_mesh(mesh), d_fe_data_manager(fe_data_manager)
+    : d_object_name(std::move(object_name)),
+      d_mesh(mesh),
+      d_fe_data_manager(fe_data_manager),
+      d_scr_var(new CellVariable<NDIM, double>(d_object_name + "::SCR"))
 {
     d_perturb_nodes = input_db->getBool("perturb_nodes");
     d_rbf_reconstruct.setStencilWidth(input_db->getInteger("stencil_width"));
+
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    d_scr_idx = var_db->registerVariableAndContext(
+        d_scr_var, var_db->getContext(d_object_name + "::SCR"), d_rbf_reconstruct.getStencilWidth());
 }
 
 void
@@ -91,9 +98,7 @@ void
 SBIntegrator::initializeFEEquationSystems()
 {
     const bool from_restart = RestartManager::getManager()->isFromRestart();
-    // Create fe data
-    const std::string manager_name = "SBIntegrator FEData::" + d_object_name;
-    EquationSystems& eq_sys = *d_fe_data_manager->getEquationSystems();
+    EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
 
     if (from_restart)
     {
@@ -103,13 +108,13 @@ SBIntegrator::initializeFEEquationSystems()
     {
         for (const auto& sf_name : d_sf_names)
         {
-            auto& surface_sys = eq_sys.add_system<TransientExplicitSystem>(sf_name);
+            auto& surface_sys = eq_sys->add_system<TransientExplicitSystem>(sf_name);
             surface_sys.add_variable(sf_name, FEType());
         }
 
         for (const auto& fl_name : d_fl_names)
         {
-            auto& fluid_sys = eq_sys.add_system<ExplicitSystem>(fl_name);
+            auto& fluid_sys = eq_sys->add_system<ExplicitSystem>(fl_name);
             fluid_sys.add_variable(fl_name, FEType());
         }
     }
@@ -118,8 +123,11 @@ SBIntegrator::initializeFEEquationSystems()
 void
 SBIntegrator::setLSData(const int ls_idx, const int vol_idx, Pointer<PatchHierarchy<NDIM>> hierarchy)
 {
+    d_ls_idx = ls_idx;
+    d_vol_idx = vol_idx;
     d_hierarchy = hierarchy;
-    d_rbf_reconstruct.setLSData(ls_idx, vol_idx, d_hierarchy);
+    d_rbf_reconstruct.setLSData(ls_idx, vol_idx);
+    d_rbf_reconstruct.setPatchHierarchy(hierarchy);
 }
 
 void
@@ -188,6 +196,8 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
                 IBTK::get_nodal_dof_indices(sf_base_dof_map, node, 0, sf_base_dofs);
                 const double sf_old_val = (*sf_base_old_vec)(sf_base_dofs[0]);
                 double sf_cur_val = (*sf_base_cur_vec)(sf_base_dofs[0]);
+                //                sf_cur_val += dt * d_sf_reaction_fcn_map[sf_name](sf_cur_val, fl_vals, sf_cur_vals,
+                //                current_time, d_sf_ctx_map[sf_name]);
                 sf_cur_val +=
                     dt * (1.5 * d_sf_reaction_fcn_map[sf_name](
                                     sf_cur_val, fl_vals, sf_cur_vals, current_time, d_sf_ctx_map[sf_name]) -
@@ -203,6 +213,8 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
 void
 SBIntegrator::beginTimestepping(const double /*current_time*/, const double /*new_time*/)
 {
+    plog << d_object_name + "::beginTimestepping: \n"
+         << "  Preparing for timestep.\n";
     // Overwrite old surface concentration
     EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
     for (const auto& sf_name : d_sf_names)
@@ -210,18 +222,34 @@ SBIntegrator::beginTimestepping(const double /*current_time*/, const double /*ne
         TransientExplicitSystem& sf_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
         *sf_sys.older_local_solution = *sf_sys.old_local_solution;
         *sf_sys.old_local_solution = *sf_sys.current_local_solution;
+        sf_sys.update();
+    }
+
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        if (!level->checkAllocated(d_scr_idx)) level->allocatePatchData(d_scr_idx);
     }
 }
 
 void
 SBIntegrator::endTimestepping(const double /*current_time*/, const double /*new_time*/)
 {
+    plog << d_object_name + "::endTimestepping: \n"
+         << "  Finishing timestep.\n";
     EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
     for (const auto& sf_name : d_sf_names)
     {
         TransientExplicitSystem& sf_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
         sf_sys.update();
     }
+
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        if (level->checkAllocated(d_scr_idx)) level->deallocatePatchData(d_scr_idx);
+    }
+
     d_rbf_reconstruct.clearCache();
 }
 
@@ -240,7 +268,8 @@ SBIntegrator::interpolateToBoundary(Pointer<CellVariable<NDIM, double>> fl_var,
     // First ensure we've filled ghost cells
     using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
     std::vector<ITC> ghost_cell_comp(1);
-    ghost_cell_comp[0] = ITC(fl_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR");
+    ghost_cell_comp[0] =
+        ITC(d_scr_idx, fl_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR", false, nullptr);
     HierarchyGhostCellInterpolation hier_ghost_cell;
     hier_ghost_cell.initializeOperatorState(ghost_cell_comp, d_hierarchy);
     hier_ghost_cell.fillData(time);
@@ -318,7 +347,7 @@ SBIntegrator::interpolateToBoundary(Pointer<CellVariable<NDIM, double>> fl_var,
         if (fl_node.empty()) continue;
 
         // Now we can interpolate from the fluid to the structure.
-        Pointer<CellData<NDIM, double>> fl_data = patch->getPatchData(fl_idx);
+        Pointer<CellData<NDIM, double>> fl_data = patch->getPatchData(d_scr_idx);
         Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_ls_idx);
         Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
         for (size_t i = 0; i < fl_node.size(); ++i)

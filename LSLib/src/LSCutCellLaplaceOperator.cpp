@@ -96,6 +96,7 @@ LSCutCellLaplaceOperator::~LSCutCellLaplaceOperator()
 void
 LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorReal<NDIM, double>& y)
 {
+    d_rbf_reconstruct.setLSData(d_ls_idx, d_vol_idx);
     LS_TIMER_START(t_apply);
 #if !defined(NDEBUG)
     TBOX_ASSERT(d_is_initialized);
@@ -171,6 +172,9 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
             {
                 TBOX_ASSERT(d_bdry_conds);
                 d_bdry_conds->setHomogeneousBdry(d_homogeneous_bc);
+                d_bdry_conds->setDiffusionCoefficient(d_poisson_spec.getDConstant());
+                d_bdry_conds->setTimeStepType(d_ts_type);
+                d_bdry_conds->setLSData(d_ls_var, d_ls_idx, d_vol_var, d_vol_idx, d_area_var, d_area_idx);
                 d_bdry_conds->applyBoundaryCondition(
                     d_Q_var, d_Q_scr_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
             }
@@ -187,6 +191,9 @@ LSCutCellLaplaceOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, d
     // Deallocate the operator state if the operator is already initialized.
     if (d_is_initialized) deallocateOperatorState();
 
+    plog << d_object_name << "::initializeOperatorState:\n";
+    plog << "D_coef: " << d_poisson_spec.getDConstant() << "\n";
+    plog << "C_coef: " << d_poisson_spec.getCConstant() << "\n";
     // Setup solution and rhs vectors.
     d_x = in.cloneVector(in.getName());
     d_b = out.cloneVector(out.getName());
@@ -243,6 +250,8 @@ LSCutCellLaplaceOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, d
         d_bdry_conds->allocateOperatorState(d_hierarchy, d_current_time);
     }
 
+    d_rbf_reconstruct.setPatchHierarchy(d_hierarchy);
+
     // Indicate the operator is initialized.
     d_is_initialized = true;
     return;
@@ -284,6 +293,23 @@ LSCutCellLaplaceOperator::deallocateOperatorState()
     return;
 } // deallocateOperatorState
 
+void
+LSCutCellLaplaceOperator::setLSIndices(int ls_idx,
+                                       Pointer<NodeVariable<NDIM, double>> ls_var,
+                                       int vol_idx,
+                                       Pointer<CellVariable<NDIM, double>> vol_var,
+                                       int area_idx,
+                                       Pointer<CellVariable<NDIM, double>> area_var)
+{
+    d_ls_idx = ls_idx;
+    d_ls_var = ls_var;
+    d_vol_idx = vol_idx;
+    d_vol_var = vol_var;
+    d_area_idx = area_idx;
+    d_area_var = area_var;
+    d_rbf_reconstruct.setLSData(ls_idx, vol_idx);
+}
+
 /////////////////////////////// PRIVATE //////////////////////////////////////
 
 void
@@ -315,7 +341,8 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
     for (CellIterator<NDIM> ci(box); ci; ci++)
     {
         const CellIndex<NDIM>& idx = ci();
-        double cell_volume = (*vol_data)(idx)*dx[0] * dx[1];
+        double cell_volume = (*vol_data)(idx);
+        for (int d = 0; d < NDIM; ++d) cell_volume *= dx[d];
         if (MathUtilities<double>::equalEps(cell_volume, 0.0))
         {
             for (unsigned int l = 0; l < d_bc_coefs.size(); ++l) R_data(idx, l) = 0.0;
@@ -415,6 +442,11 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
             Pointer<CellData<NDIM, double>> R_data = patch->getPatchData(R_idx);
             Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
 
+            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+            const double* const dx = pgeom->getDx();
+            const double* const xlow = pgeom->getXLower();
+            const hier::Index<NDIM>& idx_low = box.lower();
+
             R_data->copy(*Q_data);
 
             for (CellIterator<NDIM> ci(box); ci; ci++)
@@ -424,7 +456,8 @@ LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_
                 {
                     // We are on a cut cell. We need to interpolate to cell center
                     VectorNd x_loc;
-                    for (int d = 0; d < NDIM; ++d) x_loc(d) = static_cast<double>(idx(d)) + 0.5;
+                    for (int d = 0; d < NDIM; ++d)
+                        x_loc[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
                     (*R_data)(idx) = d_rbf_reconstruct.reconstructOnIndex(x_loc, idx, *Q_data, patch);
                 }
             }

@@ -54,9 +54,18 @@ public:
 
     void initializeFEEquationSystems();
 
-    IBTK::FEDataManager* getFEDataManager();
-    const std::vector<std::string>& getSFNames();
-    const std::vector<std::string>& getFLNames();
+    inline IBTK::FEDataManager* getFEDataManager()
+    {
+        return d_fe_data_manager;
+    }
+    inline const std::vector<std::string>& getSFNames()
+    {
+        return d_sf_names;
+    }
+    inline const std::vector<std::string>& getFLNames()
+    {
+        return d_fl_names;
+    }
 
     void setLSData(int ls_idx, int vol_idx, SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
 
@@ -109,6 +118,8 @@ private:
     bool d_perturb_nodes = false;
 
     int d_vol_idx = IBTK::invalid_index, d_ls_idx = IBTK::invalid_index;
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_scr_var;
+    int d_scr_idx = IBTK::invalid_index;
 };
 
 } // namespace LS

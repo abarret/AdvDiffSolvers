@@ -25,17 +25,27 @@
 #include <ibamr/IBFESurfaceMethod.h>
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
 #include <ibamr/RelaxationLSMethod.h>
+#include <ibamr/app_namespaces.h>
 
 #include "ibtk/CartGridFunctionSet.h"
 #include "ibtk/PETScKrylovPoissonSolver.h"
 #include "ibtk/muParserCartGridFunction.h"
 #include "ibtk/muParserRobinBcCoefs.h"
 #include <ibtk/AppInitializer.h>
+#include <ibtk/IBTKInit.h>
 
 #include "LS/LSCutCellLaplaceOperator.h"
 #include "LS/QInitial.h"
+#include "LS/SBBoundaryConditions.h"
+#include "LS/SBIntegrator.h"
+#include "LS/SemiLagrangianAdvIntegrator.h"
+
+#include "ForcingFcn.h"
+#include "InsideLSFcn.h"
+#include "QFcn.h"
 
 #include <libmesh/boundary_mesh.h>
+#include <libmesh/communicator.h>
 #include <libmesh/equation_systems.h>
 #include <libmesh/exodusII_io.h>
 #include <libmesh/mesh.h>
@@ -43,62 +53,7 @@
 #include <libmesh/numeric_vector.h>
 #include <libmesh/transient_system.h>
 
-// Set up application namespace declarations
-#include <ibamr/app_namespaces.h>
-
-#include <ibtk/IBTKInit.h>
-
-#include "LS/SemiLagrangianAdvIntegrator.h"
-
-#include "ForcingFcn.h"
-#include "InsideLSFcn.h"
-#include "QFcn.h"
-#include "SurfaceBoundaryReactions.h"
-
 using namespace LS;
-
-struct LocateInterface
-{
-public:
-    LocateInterface(Pointer<CellVariable<NDIM, double>> ls_var,
-                    Pointer<AdvDiffHierarchyIntegrator> integrator,
-                    Pointer<CartGridFunction> ls_fcn)
-        : d_ls_var(ls_var), d_integrator(integrator), d_ls_fcn(ls_fcn)
-    {
-        // intentionally blank
-    }
-    void resetData(const int D_idx, Pointer<HierarchyMathOps> hier_math_ops, const double time, const bool initial_time)
-    {
-        Pointer<PatchHierarchy<NDIM>> hierarchy = hier_math_ops->getPatchHierarchy();
-        if (initial_time)
-        {
-            d_ls_fcn->setDataOnPatchHierarchy(D_idx, d_ls_var, hierarchy, time, initial_time);
-        }
-        else
-        {
-            auto var_db = VariableDatabase<NDIM>::getDatabase();
-            const int ls_cur_idx = var_db->mapVariableAndContextToIndex(d_ls_var, d_integrator->getCurrentContext());
-            HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
-            hier_cc_data_ops.copyData(D_idx, ls_cur_idx);
-        }
-    }
-
-private:
-    Pointer<CellVariable<NDIM, double>> d_ls_var;
-    Pointer<AdvDiffHierarchyIntegrator> d_integrator;
-    Pointer<CartGridFunction> d_ls_fcn;
-};
-
-void
-locateInterface(const int D_idx,
-                SAMRAI::tbox::Pointer<IBTK::HierarchyMathOps> hier_math_ops,
-                const double time,
-                const bool initial_time,
-                void* ctx)
-{
-    auto interface = (static_cast<LocateInterface*>(ctx));
-    interface->resetData(D_idx, hier_math_ops, time, initial_time);
-}
 
 void postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
                       Pointer<SemiLagrangianAdvIntegrator> integrator,
@@ -106,42 +61,6 @@ void postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
                       int iteration_num,
                       double loop_time,
                       const std::string& dirname);
-
-void
-synchFluidConcentration(const int Q_in_idx,
-                        Pointer<CellVariable<NDIM, double>> Q_in_var,
-                        Pointer<HierarchyIntegrator> integrator,
-                        Pointer<PatchHierarchy<NDIM>> hierarchy)
-{
-    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        if (!level->checkAllocated(Q_in_idx)) level->allocatePatchData(Q_in_idx);
-    }
-
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
-    const int Q_true_idx = var_db->mapVariableAndContextToIndex(Q_in_var, integrator->getCurrentContext());
-    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-        {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            Pointer<CellData<NDIM, double>> Q_in_data = patch->getPatchData(Q_in_idx);
-            Pointer<CellData<NDIM, double>> Q_true_data = patch->getPatchData(Q_true_idx);
-            Q_in_data->copy(*Q_true_data);
-        }
-    }
-}
-
-static std::map<std::pair<Elem*, int>, libMesh::Point> s_elem_point_cache;
-
-void checkConservation(FEDataManager* fe_data_manager,
-                       const std::string& sys_name,
-                       const int Q_idx,
-                       const int vol_idx,
-                       Pointer<PatchHierarchy<NDIM>> hierarchy,
-                       const double time);
 
 void computeFluidErrors(Pointer<CellVariable<NDIM, double>> Q_var,
                         const int Q_idx,
@@ -152,6 +71,36 @@ void computeFluidErrors(Pointer<CellVariable<NDIM, double>> Q_var,
                         Pointer<QFcn> qfcn,
                         const double time);
 
+void computeSurfaceErrors(const MeshBase& mesh,
+                          FEDataManager* fe_data_manager,
+                          const std::string& sys_name,
+                          const std::string& err_name,
+                          double time);
+
+static double k_on, k_off, sf_max, D_coef;
+double
+a_fcn(double Q_bdry, const std::vector<double>& fl_vals, const std::vector<double>& sf_vals, double time, void* ctx)
+{
+    plog << "sf_vals[0]: " << sf_vals[0] << "\n";
+    plog << "Q_bdry:     " << Q_bdry << "\n";
+    return k_on * (sf_max - sf_vals[0]) * Q_bdry;
+}
+
+double
+g_fcn(double Q_bdry, const std::vector<double>& fl_vals, const std::vector<double>& sf_vals, double time, void* ctx)
+{
+    return k_off * sf_vals[0];
+}
+
+double
+sf_ode(double q, const std::vector<double>& fl_vals, const std::vector<double>& sf_vals, double time, void* ctx)
+{
+    double ode_val = k_on * (sf_max - q) * fl_vals[0] - k_off * q;
+    double force = (4.0 * D_coef * D_coef * k_off + 4.0 * D_coef * D_coef * k_on + 2.0 * D_coef * k_off * k_on) /
+                       (k_on * (2.0 * D_coef + k_on - k_on * time + k_on * time * time)) -
+                   2.0 * time - (2.0 * D_coef * k_off - k_on + 2.0 * D_coef * k_on) / k_on;
+    return ode_val + force;
+}
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
  * be given on the command line.  For non-restarted case, command line is:     *
@@ -208,19 +157,17 @@ main(int argc, char* argv[])
         // Create a simple FE mesh.
         const double dx = input_db->getDouble("DX");
         const double ds = input_db->getDouble("MFAC") * dx;
-        double theta = input_db->getDouble("THETA"); // channel angle
-        double L = input_db->getDouble("LX");
-        double y_low = input_db->getDouble("Y_LOW");
-        double y_up = input_db->getDouble("Y_UP");
+        sf_max = input_db->getDouble("SF_MAX");
+        k_on = input_db->getDouble("K_ON");
+        k_off = input_db->getDouble("K_OFF");
+        D_coef = input_db->getDouble("D_COEF");
 
         string IB_delta_function = input_db->getString("IB_DELTA_FUNCTION");
         string elem_type = input_db->getString("ELEM_TYPE");
         const int second_order_mesh = (input_db->getString("elem_order") == "SECOND");
         string bdry_elem_type = second_order_mesh ? "EDGE3" : "EDGE2";
-        static const bool use_boundary_mesh = true;
 
         Mesh solid_mesh(init.comm(), NDIM);
-        const double reaction_fraction = input_db->getDouble("REACT_FRAC");
         const double R = 1.0;
         const int r = log2(0.25 * 2.0 * M_PI * R / ds);
         MeshTools::Generation::build_sphere(solid_mesh, R, r, Utility::string_to_enum<ElemType>(bdry_elem_type));
@@ -304,19 +251,6 @@ main(int argc, char* argv[])
                                                       ib_method_ops->getFEDataManager(REACTION_MESH_ID));
         adv_diff_integrator->registerLevelSetFunction(ls_in_cell_var, ls_fcn);
         adv_diff_integrator->useLevelSetFunction(ls_in_cell_var, use_ls_fcn);
-        LocateInterface interface_in(ls_in_cell_var, adv_diff_integrator, ls_fcn);
-        Pointer<RelaxationLSMethod> ls_in_ops =
-            new RelaxationLSMethod("RelaxationLSMethod", app_initializer->getComponentDatabase("RelaxationLSMethod"));
-        ls_in_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface, static_cast<void*>(&interface_in));
-        std::vector<RobinBcCoefStrategy<NDIM>*> ls_bcs(1);
-        if (!periodic_domain)
-        {
-            const std::string ls_bcs_name = "LSBcCoefs";
-            ls_bcs[0] = new muParserRobinBcCoefs(
-                ls_bcs_name, app_initializer->getComponentDatabase(ls_bcs_name), grid_geometry);
-            ls_in_ops->registerPhysicalBoundaryCondition(ls_bcs[0]);
-        }
-        adv_diff_integrator->registerLevelSetResetFunction(ls_in_cell_var, ls_in_ops);
         Pointer<NodeVariable<NDIM, double>> ls_in_node_var =
             adv_diff_integrator->getLevelSetNodeVariable(ls_in_cell_var);
 
@@ -338,6 +272,18 @@ main(int argc, char* argv[])
         adv_diff_integrator->setDiffusionCoefficient(Q_in_var, input_db->getDoubleWithDefault("D_coef", 0.0));
         adv_diff_integrator->restrictToLevelSet(Q_in_var, ls_in_cell_var);
 
+        Pointer<SBIntegrator> sb_integrator = new SBIntegrator("SBIntegrator",
+                                                               app_initializer->getComponentDatabase("SBIntegrator"),
+                                                               &reaction_mesh,
+                                                               ib_method_ops->getFEDataManager(REACTION_MESH_ID));
+        sb_integrator->registerFluidConcentration(Q_in_var);
+        std::string sf_name = "SurfaceConcentration";
+        sb_integrator->registerSurfaceConcentration(sf_name);
+        sb_integrator->registerFluidSurfaceDependence(sf_name, Q_in_var);
+        sb_integrator->registerSurfaceReactionFunction(sf_name, sf_ode, nullptr);
+        sb_integrator->initializeFEEquationSystems();
+        adv_diff_integrator->registerSBIntegrator(sb_integrator, ls_in_cell_var);
+
         // Forcing term
         Pointer<CellVariable<NDIM, double>> F_var = new CellVariable<NDIM, double>("F");
         Pointer<ForcingFcn> forcing_fcn =
@@ -352,23 +298,22 @@ main(int argc, char* argv[])
         Pointer<LSCutCellLaplaceOperator> sol_in_oper = new LSCutCellLaplaceOperator(
             "LSCutCellInOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         // Create boundary operators
-        Pointer<SurfaceBoundaryReactions> surface_bdry_reactions =
-            new SurfaceBoundaryReactions("SurfaceBoundaryReactions",
-                                         app_initializer->getComponentDatabase("SurfaceBoundaryReactions"),
-                                         &reaction_mesh,
-                                         ib_method_ops->getFEDataManager(REACTION_MESH_ID));
-        rhs_in_oper->setBoundaryConditionOperator(surface_bdry_reactions);
-        sol_in_oper->setBoundaryConditionOperator(surface_bdry_reactions);
+        Pointer<SBBoundaryConditions> bdry_conditions =
+            new SBBoundaryConditions("SBBoundaryConditions",
+                                     app_initializer->getComponentDatabase("SBBoundaryConditions"),
+                                     &reaction_mesh,
+                                     ib_method_ops->getFEDataManager(REACTION_MESH_ID));
+        bdry_conditions->registerFluidSurfaceInteraction(sf_name);
+        bdry_conditions->setReactionFunction(&a_fcn, &g_fcn, nullptr);
+        bdry_conditions->setFluidContext(adv_diff_integrator->getCurrentContext());
+        rhs_in_oper->setBoundaryConditionOperator(bdry_conditions);
+        sol_in_oper->setBoundaryConditionOperator(bdry_conditions);
+
         adv_diff_integrator->setHelmholtzRHSOperator(Q_in_var, rhs_in_oper);
         Pointer<PETScKrylovPoissonSolver> Q_in_helmholtz_solver = new PETScKrylovPoissonSolver(
             "PoissonSolver", app_initializer->getComponentDatabase("PoissonSolver"), "poisson_solve_");
         Q_in_helmholtz_solver->setOperator(sol_in_oper);
         adv_diff_integrator->setHelmholtzSolver(Q_in_var, Q_in_helmholtz_solver);
-
-        // Create scratch index for SurfaceBoundaryReactions
-        auto var_db = VariableDatabase<NDIM>::getDatabase();
-        const int Q_in_idx =
-            var_db->registerVariableAndContext(Q_in_var, var_db->getContext("Scratch"), IntVector<NDIM>(2));
 
         // Set up visualization plot file writer.
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
@@ -379,10 +324,7 @@ main(int argc, char* argv[])
         libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[REACTION_MESH_ID]) :
                                                                          NULL);
 
-        // Register a drawing variable with the data writer
-        const int Q_scr_idx =
-            var_db->registerVariableAndContext(Q_in_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
-
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
         Pointer<CellVariable<NDIM, double>> dist_var = new CellVariable<NDIM, double>("distance");
         Pointer<CellVariable<NDIM, double>> n_var = new CellVariable<NDIM, double>("num_elements");
         const int dist_idx =
@@ -390,6 +332,12 @@ main(int argc, char* argv[])
         const int n_idx = var_db->registerVariableAndContext(n_var, var_db->getContext("Scratch"), IntVector<NDIM>(1));
         visit_data_writer->registerPlotQuantity("num_elements", "SCALAR", n_idx);
         visit_data_writer->registerPlotQuantity("distance", "SCALAR", dist_idx);
+
+        const std::string err_sys_name = "ERROR";
+        ExplicitSystem& sys = ib_method_ops->getFEDataManager(REACTION_MESH_ID)
+                                  ->getEquationSystems()
+                                  ->add_system<ExplicitSystem>(err_sys_name);
+        sys.add_variable("Error");
 
         ib_method_ops->initializeFEData();
         // Initialize hierarchy configuration and data on all patches.
@@ -409,8 +357,6 @@ main(int argc, char* argv[])
         visit_data_writer->registerPlotQuantity("Exact", "SCALAR", Q_exact_idx);
 
         const int Q_idx = var_db->mapVariableAndContextToIndex(Q_in_var, adv_diff_integrator->getCurrentContext());
-
-        surface_bdry_reactions->fillInitialCondition();
 
         for (unsigned int part = 0; part < meshes.size(); ++part)
         {
@@ -443,7 +389,6 @@ main(int argc, char* argv[])
             adv_diff_integrator->setupPlotData();
 
             visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-            surface_bdry_reactions->fillExactSolution(loop_time);
             if (uses_exodus)
             {
                 reaction_exodus_io->write_timestep(
@@ -451,15 +396,13 @@ main(int argc, char* argv[])
             }
             const int vol_idx = var_db->mapVariableAndContextToIndex(
                 adv_diff_integrator->getVolumeVariable(ls_in_cell_var), adv_diff_integrator->getCurrentContext());
-            checkConservation(ib_method_ops->getFEDataManager(REACTION_MESH_ID),
-                              SurfaceBoundaryReactions::s_surface_sys_name,
-                              Q_idx,
-                              vol_idx,
-                              patch_hierarchy,
-                              loop_time);
             computeFluidErrors(
                 Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, patch_hierarchy, Q_in_init, loop_time);
-            surface_bdry_reactions->fillExactSolution(loop_time);
+            computeSurfaceErrors(reaction_mesh,
+                                 ib_method_ops->getFEDataManager(REACTION_MESH_ID),
+                                 sb_integrator->getSFNames()[0],
+                                 err_sys_name,
+                                 loop_time);
         }
 
         // Main time step loop.
@@ -475,21 +418,15 @@ main(int argc, char* argv[])
             pout << "Simulation time is " << loop_time << "\n";
 
             dt = adv_diff_integrator->getMaximumTimeStepSize();
-            synchFluidConcentration(Q_in_idx, Q_in_var, adv_diff_integrator, patch_hierarchy);
-            surface_bdry_reactions->beginTimestepping(loop_time, loop_time + dt);
-            surface_bdry_reactions->setLSData(adv_diff_integrator->getLevelSetNodeVariable(ls_in_cell_var),
-                                              ls_idx,
-                                              adv_diff_integrator->getVolumeVariable(ls_in_cell_var),
-                                              vol_idx,
-                                              nullptr,
-                                              -1);
-            surface_bdry_reactions->updateSurfaceConcentration(Q_in_idx, loop_time, loop_time + dt, patch_hierarchy);
-            surface_bdry_reactions->endTimestepping(loop_time, loop_time + dt);
             adv_diff_integrator->advanceHierarchy(dt);
             loop_time += dt;
             computeFluidErrors(
                 Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, patch_hierarchy, Q_in_init, loop_time);
-            surface_bdry_reactions->fillExactSolution(loop_time);
+            computeSurfaceErrors(reaction_mesh,
+                                 ib_method_ops->getFEDataManager(REACTION_MESH_ID),
+                                 sb_integrator->getSFNames()[0],
+                                 err_sys_name,
+                                 loop_time);
 
             pout << "\n";
             pout << "At end       of timestep # " << iteration_num << "\n";
@@ -506,18 +443,11 @@ main(int argc, char* argv[])
                 pout << "\nWriting visualization files...\n\n";
                 adv_diff_integrator->setupPlotData();
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-                surface_bdry_reactions->fillExactSolution(loop_time);
                 if (uses_exodus)
                 {
                     reaction_exodus_io->write_timestep(
                         reaction_exodus_filename, *reaction_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
                 }
-                checkConservation(ib_method_ops->getFEDataManager(REACTION_MESH_ID),
-                                  SurfaceBoundaryReactions::s_surface_sys_name,
-                                  Q_idx,
-                                  vol_idx,
-                                  patch_hierarchy,
-                                  loop_time);
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
             {
@@ -532,15 +462,6 @@ main(int argc, char* argv[])
             }
             if (dump_postproc_data && (iteration_num % dump_postproc_interval == 0 || last_step))
             {
-                auto var_db = VariableDatabase<NDIM>::getDatabase();
-                const int Q_in_idx =
-                    var_db->mapVariableAndContextToIndex(Q_in_var, adv_diff_integrator->getCurrentContext());
-                const int ls_in_n_idx =
-                    var_db->mapVariableAndContextToIndex(ls_in_node_var, adv_diff_integrator->getCurrentContext());
-                const int vol_in_idx = var_db->mapVariableAndContextToIndex(
-                    adv_diff_integrator->getVolumeVariable(ls_in_cell_var), adv_diff_integrator->getCurrentContext());
-                const int area_in_idx = var_db->mapVariableAndContextToIndex(
-                    adv_diff_integrator->getAreaVariable(ls_in_cell_var), adv_diff_integrator->getCurrentContext());
                 postprocess_data(patch_hierarchy,
                                  adv_diff_integrator,
                                  Q_in_var,
@@ -579,139 +500,69 @@ postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
 }
 
 void
-checkConservation(FEDataManager* fe_data_manager,
-                  const std::string& sys_name,
-                  const int Q_idx,
-                  const int vol_idx,
-                  Pointer<PatchHierarchy<NDIM>> hierarchy,
-                  const double time)
-{
-    double surface_amount = 0.0, fluid_amount = 0.0;
-    EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
-    System& Q_sys = eq_sys->get_system(sys_name);
-    DofMap& Q_dof_map = Q_sys.get_dof_map();
-    NumericVector<double>* Q_vec = Q_sys.solution.get();
-
-    const MeshBase& mesh = eq_sys->get_mesh();
-    std::unique_ptr<FEBase> fe = FEBase::build(mesh.mesh_dimension(), Q_dof_map.variable_type(0));
-    std::unique_ptr<QBase> qrule = QBase::build(QGAUSS, mesh.mesh_dimension(), THIRD);
-    fe->attach_quadrature_rule(qrule.get());
-    const std::vector<std::vector<double>>& phi = fe->get_phi();
-    const std::vector<double>& JxW = fe->get_JxW();
-
-    std::vector<dof_id_type> Q_dof_indices;
-    boost::multi_array<double, 1> Q_nodes;
-    auto it = mesh.local_elements_begin();
-    const auto& it_end = mesh.local_elements_end();
-    for (; it != it_end; ++it)
-    {
-        const auto elem = *it;
-        Q_dof_map.dof_indices(elem, Q_dof_indices);
-        IBTK::get_values_for_interpolation(Q_nodes, *Q_vec, Q_dof_indices);
-        fe->reinit(elem);
-        for (int qp = 0; qp < JxW.size(); ++qp)
-        {
-            double Q = 0.0;
-            for (int n = 0; n < 2; ++n) Q += Q_nodes[n] * phi[n][qp];
-            surface_amount += Q * JxW[qp];
-        }
-    }
-
-    Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(hierarchy->getFinestLevelNumber());
-    for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-    {
-        Pointer<Patch<NDIM>> patch = level->getPatch(p());
-        const Box<NDIM>& box = patch->getBox();
-        Pointer<CellData<NDIM, double>> q_data = patch->getPatchData(Q_idx);
-        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
-
-        Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-        const double* const dx = pgeom->getDx();
-
-        for (CellIterator<NDIM> ci(box); ci; ci++)
-        {
-            const CellIndex<NDIM>& idx = ci();
-            fluid_amount += (*q_data)(idx) * (*vol_data)(idx)*dx[0] * dx[1];
-        }
-    }
-
-    fluid_amount = SAMRAI_MPI::sumReduction(fluid_amount);
-    surface_amount = SAMRAI_MPI::sumReduction(surface_amount);
-
-    if (SAMRAI_MPI::getRank() == 0)
-    {
-        plog << "Total amount on surface: " << surface_amount << "\n";
-        plog << "Total amount in fluid:   " << fluid_amount << "\n";
-        plog << "Total amount total:      " << surface_amount + fluid_amount << "\n";
-        std::ofstream output;
-        output.open("TotalAmount", time == 0.0 ? std::ofstream::out : std::ofstream::app);
-        output << time << " " << surface_amount << " " << fluid_amount << " " << surface_amount + fluid_amount << "\n";
-    }
-}
-
-void
-updateVolumeMesh(Mesh& vol_mesh, EquationSystems* vol_eq_sys, FEDataManager* vol_fe_manager)
-{
-    System& X_sys = vol_eq_sys->get_system(vol_fe_manager->COORDINATES_SYSTEM_NAME);
-    System& X_mapping_sys = vol_eq_sys->get_system("IB coordinate mapping system");
-    DofMap& X_dof_map = X_sys.get_dof_map();
-    DofMap& X_mapping_map = X_mapping_sys.get_dof_map();
-    NumericVector<double>* X_vec = X_sys.solution.get();
-    NumericVector<double>* X_map_vec = X_mapping_sys.solution.get();
-    // Loop through lower and upper mesh
-    const MeshBase::const_element_iterator end_el = vol_mesh.elements_end();
-    for (MeshBase::const_element_iterator el = vol_mesh.elements_begin(); el != end_el; ++el)
-    {
-        Elem* const elem = *el;
-        for (unsigned int side = 0; side < elem->n_sides(); ++side)
-        {
-            BoundaryInfo* boundary_info = vol_mesh.boundary_info.get();
-            std::vector<dof_id_type> X_dofs;
-            if (boundary_info->has_boundary_id(elem, side, 0))
-            {
-                Node* node = elem->node_ptr(side);
-                for (int d = 0; d < NDIM; ++d)
-                {
-                    IBTK::get_nodal_dof_indices(X_dof_map, node, d, X_dofs);
-                    X_vec->set(X_dofs[0], s_elem_point_cache[std::make_pair(elem, side)](d));
-                    IBTK::get_nodal_dof_indices(X_mapping_map, node, d, X_dofs);
-                    X_map_vec->set(X_dofs[0], 0.0);
-                }
-            }
-            else
-            {
-                Node* node = elem->node_ptr(side);
-                libMesh::Point& p = elem->point(side);
-                for (int d = 0; d < NDIM; ++d)
-                {
-                    IBTK::get_nodal_dof_indices(X_dof_map, node, d, X_dofs);
-                    double X_val;
-                    X_vec->get(X_dofs, &X_val);
-                    p(d) = X_val;
-                    IBTK::get_nodal_dof_indices(X_mapping_map, node, d, X_dofs);
-                    X_map_vec->set(X_dofs[0], 0.0);
-                }
-            }
-        }
-    }
-    X_vec->close();
-    X_map_vec->close();
-    vol_mesh.prepare_for_use();
-}
-
-void
 computeSurfaceErrors(const MeshBase& mesh,
                      FEDataManager* fe_data_manager,
                      const std::string& sys_name,
                      const std::string& err_name,
                      double time)
 {
-    EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
-    TransientExplicitSystem& q_system = eq_sys->get_system<TransientExplicitSystem>(sys_name);
-    NumericVector<double>* q_vec = q_system.solution.get();
-
     // exact solution
     auto exact = [](double time) -> double { return time * (1.0 - time); };
+
+    EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
+    TransientExplicitSystem& q_system = eq_sys->get_system<TransientExplicitSystem>(sys_name);
+    ExplicitSystem& err_sys = eq_sys->get_system<ExplicitSystem>(err_name);
+    NumericVector<double>* q_vec = q_system.solution.get();
+    NumericVector<double>* err_vec = err_sys.solution.get();
+
+    const DofMap& q_dof_map = q_system.get_dof_map();
+    const FEType& q_fe_type = q_dof_map.variable_type(0);
+
+    std::unique_ptr<FEBase> fe = FEBase::build(mesh.mesh_dimension(), q_fe_type);
+    std::unique_ptr<QBase> qrule = QBase::build(QGAUSS, mesh.mesh_dimension(), THIRD);
+    fe->attach_quadrature_rule(qrule.get());
+    const std::vector<std::vector<double>>& phi = fe->get_phi();
+    const std::vector<double>& JxW = fe->get_JxW();
+
+    auto it = mesh.local_nodes_begin();
+    const auto it_end = mesh.local_nodes_end();
+    double l1_norm = 0.0, l2_norm = 0.0, max_norm = 0.0;
+    for (; it != it_end; ++it)
+    {
+        Node* n = *it;
+        const int dof_index = n->dof_number(q_system.number(), 0, 0);
+        err_vec->set(dof_index, std::abs(exact(time) - (*q_vec)(dof_index)));
+        max_norm = std::max(max_norm, (*err_vec)(dof_index));
+    }
+
+    auto it_e = mesh.local_elements_begin();
+    const auto& it_e_end = mesh.local_elements_end();
+    for (; it_e != it_e_end; ++it_e)
+    {
+        Elem* el = *it_e;
+        fe->reinit(el);
+        boost::multi_array<double, 1> err_node;
+        std::vector<dof_id_type> err_dof_indices;
+        q_dof_map.dof_indices(el, err_dof_indices);
+        IBTK::get_values_for_interpolation(err_node, *err_vec, err_dof_indices);
+        for (unsigned int qp = 0; qp < JxW.size(); ++qp)
+        {
+            for (unsigned int n = 0; n < phi.size(); ++n)
+            {
+                l1_norm += err_node[n] * phi[n][qp] * JxW[qp];
+                l2_norm += std::pow(err_node[n] * phi[n][qp], 2.0) * JxW[qp];
+            }
+        }
+    }
+    l2_norm = std::sqrt(l2_norm);
+
+    pout << "Error at surface at time: " << time << "\n";
+    pout << " L1-norm:  " << l1_norm << "\n";
+    pout << " L2-norm:  " << l2_norm << "\n";
+    pout << " max-norm: " << max_norm << "\n";
+
+    err_vec->close();
+    q_vec->close();
 }
 
 void

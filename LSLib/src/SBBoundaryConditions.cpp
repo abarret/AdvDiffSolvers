@@ -17,13 +17,18 @@ SBBoundaryConditions::SBBoundaryConditions(const std::string& object_name,
     : LSCutCellBoundaryConditions(object_name),
       d_mesh(mesh),
       d_fe_data_manager(fe_data_manager),
-      d_eq_sys(new EquationSystems(*mesh)),
-      d_sys_name(d_object_name + "::System")
+      d_sys_name(d_object_name),
+      d_scr_var(new CellVariable<NDIM, double>(d_object_name + "::SCR"))
 {
     d_perturb_nodes = input_db->getBool("perturb_nodes");
-    ExplicitSystem& fl_sys = d_eq_sys->add_system<ExplicitSystem>(d_sys_name);
+    ExplicitSystem& fl_sys = d_fe_data_manager->getEquationSystems()->add_system<ExplicitSystem>(d_sys_name);
+    fl_sys.add_variable(d_object_name + "::scratch");
     fl_sys.assemble_before_solve = false;
     fl_sys.assemble();
+
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    d_scr_idx =
+        var_db->registerVariableAndContext(d_scr_var, var_db->getContext(d_object_name + "::SCR"), IntVector<NDIM>(2));
 }
 
 void
@@ -34,7 +39,7 @@ SBBoundaryConditions::registerFluidFluidInteraction(Pointer<CellVariable<NDIM, d
     d_fl_vars.push_back(fl_var);
     std::string fl_sys_name = d_object_name + "::" + fl_var->getName();
     d_fl_names.push_back(fl_sys_name);
-    ExplicitSystem& fl_sys = d_eq_sys->add_system<ExplicitSystem>(fl_sys_name);
+    ExplicitSystem& fl_sys = d_fe_data_manager->getEquationSystems()->add_system<ExplicitSystem>(fl_sys_name);
     fl_sys.assemble_before_solve = false;
     fl_sys.assemble();
 }
@@ -56,12 +61,18 @@ void
 SBBoundaryConditions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierarchy, double time)
 {
     LSCutCellBoundaryConditions::allocateOperatorState(hierarchy, time);
-    d_rbf_reconstruct.setLSData(d_ls_idx, d_vol_idx, hierarchy);
-    d_eq_sys->reinit();
 
     TBOX_ASSERT(d_ctx);
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
+
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        if (!level->checkAllocated(d_scr_idx)) level->allocatePatchData(d_scr_idx);
+    }
     // Interpolate to boundary
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    d_rbf_reconstruct.setLSData(d_ls_idx, d_vol_idx);
+    d_rbf_reconstruct.setPatchHierarchy(hierarchy);
     for (int l = 0; l < d_fl_names.size(); ++l)
     {
         const int fl_idx = var_db->mapVariableAndContextToIndex(d_fl_vars[l], d_ctx);
@@ -73,6 +84,12 @@ void
 SBBoundaryConditions::deallocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierarchy, double time)
 {
     LSCutCellBoundaryConditions::deallocateOperatorState(hierarchy, time);
+
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        if (level->checkAllocated(d_scr_idx)) level->deallocatePatchData(d_scr_idx);
+    }
     d_rbf_reconstruct.clearCache();
 }
 
@@ -109,7 +126,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
     std::vector<DofMap*> fl_dof_maps, sf_dof_maps;
     for (const auto& fl_name : d_fl_names)
     {
-        System& fl_sys = d_eq_sys->get_system(fl_name);
+        System& fl_sys = eq_sys->get_system(fl_name);
         fl_dof_maps.push_back(&fl_sys.get_dof_map());
         fl_vecs.push_back(fl_sys.solution.get());
     }
@@ -122,7 +139,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
     }
 
     // Get base system
-    System& Q_sys = d_eq_sys->get_system(d_sys_name);
+    System& Q_sys = eq_sys->get_system(d_sys_name);
     DofMap& Q_dof_map = Q_sys.get_dof_map();
     FEType Q_fe_type = Q_dof_map.variable_type(0);
     NumericVector<double>* Q_vec = Q_sys.solution.get();
@@ -200,15 +217,15 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                 for (unsigned int qp = 0; qp < JxW.size(); ++qp)
                 {
                     double Q_val = 0.0;
-                    sf_vals.resize(d_sf_names.size(), 0.0);
-                    fl_vals.resize(d_fl_names.size(), 0.0);
+                    std::fill(sf_vals.begin(), sf_vals.end(), 0.0);
+                    std::fill(fl_vals.begin(), fl_vals.end(), 0.0);
                     for (int n = 0; n < 2; ++n)
                     {
                         Q_val += Q_node[n] * phi[n][qp];
                         for (unsigned int l = 0; l < d_fl_names.size(); ++l) fl_vals[l] += fl_node[l][n] * phi[n][qp];
                         for (unsigned int l = 0; l < d_sf_names.size(); ++l) sf_vals[l] += sf_node[l][n] * phi[n][qp];
                     }
-                    a -= d_a_fcn(Q_val, fl_vals, sf_vals, time, d_fcn_ctx) * JxW[qp];
+                    a += d_a_fcn(Q_val, fl_vals, sf_vals, time, d_fcn_ctx) * JxW[qp];
                     if (!d_homogeneous_bdry) g += d_g_fcn(Q_val, fl_vals, sf_vals, time, d_fcn_ctx) * JxW[qp];
                 }
 
@@ -222,13 +239,13 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                     continue;
                 }
                 (*R_data)(elem_idx_nodes[0]) += pre_fac * g / cell_volume;
-                (*R_data)(elem_idx_nodes[0]) += pre_fac * a / cell_volume;
+                (*R_data)(elem_idx_nodes[0]) -= pre_fac * a / cell_volume;
                 continue;
             }
 
             std::vector<libMesh::Point> X_node_cache(n_node), x_node_cache(n_node);
             x_min = IBTK::Point::Constant(std::numeric_limits<double>::max());
-            x_max = IBTK::Point::Constant(std::numeric_limits<double>::min());
+            x_max = IBTK::Point::Constant(-std::numeric_limits<double>::max());
             for (unsigned int k = 0; k < n_node; ++k)
             {
                 X_node_cache[k] = elem->point(k);
@@ -295,6 +312,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
 
                 // An element may have zero, one, or two intersections with a cell.
                 // Note we've already accounted for when an element is contained within a cell.
+                if (intersection_points.size() == 0) continue;
                 TBOX_ASSERT(intersection_points.size() <= 2);
 #if (NDIM > 2)
                 // We've found an intersection point. We need to find distances from these intersections to the nodes
@@ -428,15 +446,15 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                 for (unsigned int qp = 0; qp < JxW.size(); ++qp)
                 {
                     double Q_val = 0.0;
-                    sf_vals.resize(d_sf_names.size(), 0.0);
-                    fl_vals.resize(d_fl_names.size(), 0.0);
+                    std::fill(sf_vals.begin(), sf_vals.end(), 0.0);
+                    std::fill(fl_vals.begin(), fl_vals.end(), 0.0);
                     for (int n = 0; n < 2; ++n)
                     {
                         Q_val += Q_node[n] * phi[n][qp];
                         for (unsigned int l = 0; l < d_fl_names.size(); ++l) fl_vals[l] += fl_node[l][n] * phi[n][qp];
                         for (unsigned int l = 0; l < d_sf_names.size(); ++l) sf_vals[l] += sf_node[l][n] * phi[n][qp];
                     }
-                    a -= d_a_fcn(Q_val, fl_vals, sf_vals, time, d_fcn_ctx) * JxW[qp];
+                    a += d_a_fcn(Q_val, fl_vals, sf_vals, time, d_fcn_ctx) * JxW[qp];
                     if (!d_homogeneous_bdry) g += d_g_fcn(Q_val, fl_vals, sf_vals, time, d_fcn_ctx) * JxW[qp];
                 }
 
@@ -451,7 +469,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                     continue;
                 }
                 (*R_data)(i_c) += pre_fac * g / cell_volume;
-                (*R_data)(i_c) += pre_fac * a / cell_volume;
+                (*R_data)(i_c) -= pre_fac * a / cell_volume;
 #endif
             }
 
@@ -474,7 +492,8 @@ SBBoundaryConditions::interpolateToBoundary(const int Q_idx,
     // First ensure we've filled ghost cells
     using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
     std::vector<ITC> ghost_cell_comp(1);
-    ghost_cell_comp[0] = ITC(Q_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR");
+    ghost_cell_comp[0] =
+        ITC(d_scr_idx, Q_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR", false, nullptr);
     HierarchyGhostCellInterpolation hier_ghost_cell;
     hier_ghost_cell.initializeOperatorState(ghost_cell_comp, hierarchy);
     hier_ghost_cell.fillData(current_time);
@@ -552,7 +571,7 @@ SBBoundaryConditions::interpolateToBoundary(const int Q_idx,
         if (Q_node.empty()) continue;
 
         // Now we can interpolate from the fluid to the structure.
-        Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+        Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(d_scr_idx);
         for (size_t i = 0; i < Q_node.size(); ++i)
         {
             // Use a MLS linear approximation to evaluate data on structure

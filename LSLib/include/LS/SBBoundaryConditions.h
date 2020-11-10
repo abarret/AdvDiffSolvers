@@ -79,7 +79,6 @@ private:
 
     libMesh::Mesh* d_mesh = nullptr;
     IBTK::FEDataManager* d_fe_data_manager = nullptr;
-    std::unique_ptr<EquationSystems> d_eq_sys;
     std::vector<std::string> d_sf_names;
     std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>> d_fl_vars;
     std::vector<std::string> d_fl_names;
@@ -91,6 +90,9 @@ private:
     bool d_perturb_nodes = true;
 
     RBFReconstructCache d_rbf_reconstruct;
+
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_scr_var;
+    int d_scr_idx = IBTK::invalid_index;
 };
 
 } // namespace LS

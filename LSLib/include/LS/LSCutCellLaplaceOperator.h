@@ -111,21 +111,12 @@ public:
      */
     void deallocateOperatorState() override;
 
-    inline void setLSIndices(int ls_idx,
-                             Pointer<NodeVariable<NDIM, double>> ls_var,
-                             int vol_idx,
-                             Pointer<CellVariable<NDIM, double>> vol_var,
-                             int area_idx,
-                             Pointer<CellVariable<NDIM, double>> area_var)
-    {
-        d_ls_idx = ls_idx;
-        d_ls_var = ls_var;
-        d_vol_idx = vol_idx;
-        d_vol_var = vol_var;
-        d_area_idx = area_idx;
-        d_area_var = area_var;
-        d_rbf_reconstruct.setLSData(ls_idx, vol_idx, d_hierarchy);
-    }
+    void setLSIndices(int ls_idx,
+                      Pointer<NodeVariable<NDIM, double>> ls_var,
+                      int vol_idx,
+                      Pointer<CellVariable<NDIM, double>> vol_var,
+                      int area_idx,
+                      Pointer<CellVariable<NDIM, double>> area_var);
 
     inline void setBoundaryConditionOperator(SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> bdry_conds)
     {
@@ -135,6 +126,11 @@ public:
     inline void setTimeStepType(DiffusionTimeIntegrationMethod ts_type)
     {
         d_ts_type = ts_type;
+    }
+
+    inline SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> getBdryOperator()
+    {
+        return d_bdry_conds;
     }
 
     //\}

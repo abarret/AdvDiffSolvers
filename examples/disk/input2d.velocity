@@ -11,7 +11,7 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 4*128                                    // coarsest grid spacing
+N = 128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = 2.0*LY/NFINEST
 H = DX
@@ -41,7 +41,10 @@ Y_UP = 1.5
 KAPPA_S = 5.0e2
 ETA_S = 1.0e1
 
-D_coef = 0.1
+D_COEF = 0.1
+K_ON = 1.0
+K_OFF = 1.0
+SF_MAX = 1.0
 
 USE_IB_DELTA_FUNCTIONS     = TRUE                   // whether to use smoothed delta functions to mediate Lagrangian-Eulerian interaction
 IB_DELTA_FUNCTION          = "BSPLINE_3"         // the type of smoothed delta function to use for Lagrangian-Eulerian interaction
@@ -93,19 +96,18 @@ UFcn
 }
 
 ForcingFcn {
-   d = D_coef
-   k_on = 1.0
-   k_off = 1.0
+   d = D_COEF
+   k_on = K_ON
+   k_off = K_OFF
 }
 
-SurfaceBoundaryReactions {
-   k_on = 1.0
-   cb_max = 1.0
-   k_off = 1.0
-   initial = 0.0
-   D = D_coef
+SBIntegrator {
    perturb_nodes = TRUE
-   use_rbfs = USE_RBFS
+   stencil_width = 2
+}
+
+SBBoundaryConditions {
+   perturb_nodes = TRUE
 }
 
 LSBcCoefs {
@@ -214,9 +216,9 @@ InsideLSFcn {
 }
 
 QInitial {
-   d = D_coef
-   k_on = 1.0
-   k_off = 1.0
+   d = D_COEF
+   k_on = K_ON
+   k_off = K_OFF
 }
 
 PoissonSolver {

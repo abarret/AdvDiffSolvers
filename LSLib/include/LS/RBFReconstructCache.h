@@ -43,7 +43,8 @@ public:
 
     void clearCache();
 
-    void setLSData(int ls_idx, int vol_idx, SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
+    void setLSData(int ls_idx, int vol_idx);
+    void setPatchHierarchy(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
     inline void setStencilWidth(int stencil_size)
     {
         d_update_weights = true;
@@ -57,7 +58,7 @@ public:
 
     void cacheRBFData();
 
-    double reconstructOnIndex(const IBTK::VectorNd& x_loc,
+    double reconstructOnIndex(IBTK::VectorNd x_loc,
                               const hier::Index<NDIM>& idx,
                               const CellData<NDIM, double>& Q_data,
                               SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);

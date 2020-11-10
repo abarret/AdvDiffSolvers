@@ -17,10 +17,16 @@ RBFReconstructCache::clearCache()
 }
 
 void
-RBFReconstructCache::setLSData(const int ls_idx, const int vol_idx, Pointer<PatchHierarchy<NDIM>> hierarchy)
+RBFReconstructCache::setLSData(const int ls_idx, const int vol_idx)
 {
     d_vol_idx = vol_idx;
     d_ls_idx = ls_idx;
+    d_update_weights = true;
+}
+
+void
+RBFReconstructCache::setPatchHierarchy(Pointer<PatchHierarchy<NDIM>> hierarchy)
+{
     d_hierarchy = hierarchy;
     d_update_weights = true;
 }
@@ -114,7 +120,7 @@ RBFReconstructCache::cacheRBFData()
 }
 
 double
-RBFReconstructCache::reconstructOnIndex(const VectorNd& x_loc,
+RBFReconstructCache::reconstructOnIndex(VectorNd x_loc,
                                         const Index<NDIM>& idx,
                                         const CellData<NDIM, double>& Q_data,
                                         Pointer<Patch<NDIM>> patch)
@@ -130,8 +136,11 @@ RBFReconstructCache::reconstructOnIndex(const VectorNd& x_loc,
     TBOX_ASSERT(Q_data.getGhostBox().contains(box));
     TBOX_ASSERT(vol_data->getGhostBox().contains(box));
 #endif
-
-    const CellIndex<NDIM>& idx_low = patch->getBox().lower();
+    Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+    const double* const dx = pgeom->getDx();
+    const double* const xlow = pgeom->getXLower();
+    const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+    for (int d = 0; d < NDIM; ++d) x_loc[d] = idx_low(d) + (x_loc[d] - xlow[d]) / dx[d];
 
     std::vector<double> Q_vals;
     std::vector<VectorNd> X_vals;
