@@ -1146,13 +1146,11 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     {
         Pointer<CellVariable<NDIM, double>> F_var = d_Q_F_map[Q_var];
         const int F_scratch_idx = var_db->mapVariableAndContextToIndex(F_var, getScratchContext());
-        const int F_current_idx = var_db->mapVariableAndContextToIndex(F_var, getCurrentContext());
         const int F_new_idx = var_db->mapVariableAndContextToIndex(F_var, getNewContext());
         TBOX_ASSERT(d_F_fcn[F_var]);
         d_F_fcn[F_var]->setDataOnPatchHierarchy(F_scratch_idx, F_var, d_hierarchy, 0.5 * (current_time + new_time));
         d_hier_cc_data_ops->axpy(Q_rhs_scratch_idx, 1.0, F_scratch_idx, Q_rhs_scratch_idx);
         d_hier_cc_data_ops->copyData(F_new_idx, F_scratch_idx);
-        d_F_fcn[F_var]->setDataOnPatchHierarchy(F_new_idx, F_var, d_hierarchy, 0.5 * (current_time + new_time));
     }
 
     Pointer<PETScKrylovPoissonSolver> Q_helmholtz_solver = d_helmholtz_solvers[l];

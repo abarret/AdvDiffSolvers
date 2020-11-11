@@ -383,7 +383,6 @@ main(int argc, char* argv[])
         EquationSystems* reaction_eq_sys = ib_method_ops->getFEDataManager(REACTION_MESH_ID)->getEquationSystems();
         int iteration_num = adv_diff_integrator->getIntegratorStep();
         double loop_time = adv_diff_integrator->getIntegratorTime();
-        sf_bdry_reactions->fillInitialCondition(loop_time);
         if (dump_viz_data && uses_visit)
         {
             pout << "\n\nWriting visualization files...\n\n";

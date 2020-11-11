@@ -73,7 +73,7 @@ SBBoundaryConditions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierar
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_rbf_reconstruct.setLSData(d_ls_idx, d_vol_idx);
     d_rbf_reconstruct.setPatchHierarchy(hierarchy);
-    for (int l = 0; l < d_fl_names.size(); ++l)
+    for (size_t l = 0; l < d_fl_names.size(); ++l)
     {
         const int fl_idx = var_db->mapVariableAndContextToIndex(d_fl_vars[l], d_ctx);
         interpolateToBoundary(fl_idx, d_fl_names[l], hierarchy, time);
@@ -424,7 +424,6 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                     IBTK::get_values_for_interpolation(sf_node[l], *sf_vecs[l], sf_dofs);
                 }
                 // We need to interpolate our solution to the new element's nodes
-                std::array<double, 2> q_sf_soln_on_new_elem, q_fl_soln_on_new_elem;
                 std::array<double, 2> Q_soln_on_new_elem;
                 std::vector<std::array<double, 2>> sf_soln_on_new_elem(d_sf_names.size()),
                     fl_soln_on_new_elem(d_fl_names.size());
@@ -455,7 +454,6 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                     if (!d_homogeneous_bdry) g += d_g_fcn(Q_val, fl_vals, sf_vals, time, d_fcn_ctx) * JxW[qp];
                 }
 
-                double area = (*area_data)(i_c);
                 double cell_volume = dx[0] * dx[1] * (*vol_data)(i_c);
                 if (cell_volume <= 0.0)
                 {

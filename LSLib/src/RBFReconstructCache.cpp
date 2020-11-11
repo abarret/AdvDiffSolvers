@@ -3,7 +3,7 @@
 namespace LS
 {
 RBFReconstructCache::RBFReconstructCache(int ls_idx, int vol_idx, Pointer<PatchHierarchy<NDIM>> hierarchy)
-    : d_hierarchy(hierarchy), d_ls_idx(ls_idx), d_vol_idx(vol_idx)
+    : d_hierarchy(hierarchy), d_vol_idx(vol_idx), d_ls_idx(ls_idx)
 {
     // intentionally blank
 }

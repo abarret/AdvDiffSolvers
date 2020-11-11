@@ -63,7 +63,6 @@ ForcingFcn::setDataOnPatch(const int data_idx,
     Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
     const double* const dx = pgeom->getDx();
     const double* const xlow = pgeom->getXLower();
-    const hier::Index<NDIM>& idx_low = patch->getBox().lower();
 
     for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
     {
