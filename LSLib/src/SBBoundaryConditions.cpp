@@ -238,7 +238,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                     plog << "Ignoring contribution.\n";
                     continue;
                 }
-                (*R_data)(elem_idx_nodes[0]) += pre_fac * g / cell_volume;
+                if (!d_homogeneous_bdry) (*R_data)(elem_idx_nodes[0]) += pre_fac * g / cell_volume;
                 (*R_data)(elem_idx_nodes[0]) -= pre_fac * a / cell_volume;
                 continue;
             }
@@ -393,7 +393,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                     for (unsigned int k = 0; k < n_node; ++k)
                     {
                         libMesh::Point xn;
-                        for (int d = 0; d < NDIM; ++d) xn(d) = x_node_cache[k](d);
+                        for (int d = 0; d < NDIM; ++d) xn(d) = elem->point(k)(d);
                         const hier::Index<NDIM>& n_idx =
                             IndexUtilities::getCellIndex(&xn(0), grid_geom, level->getRatio());
                         if (n_idx == i_c)
@@ -401,9 +401,6 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                             intersection_points.push_back(xn);
                             break;
                         }
-                        for (int d = 0; d < NDIM; ++d) xn(d) = X_node_cache[k](d);
-                        const hier::Index<NDIM>& n_idx_perturbed =
-                            IndexUtilities::getCellIndex(&xn(0), grid_geom, level->getRatio());
                     }
                 }
                 TBOX_ASSERT(intersection_points.size() == 2);
@@ -468,7 +465,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                     plog << "Ignoring contribution.\n";
                     continue;
                 }
-                (*R_data)(i_c) += pre_fac * g / cell_volume;
+                if (!d_homogeneous_bdry) (*R_data)(i_c) += pre_fac * g / cell_volume;
                 (*R_data)(i_c) -= pre_fac * a / cell_volume;
 #endif
             }
