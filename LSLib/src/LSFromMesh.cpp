@@ -71,17 +71,10 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
     const Pointer<CartesianGridGeometry<NDIM>> grid_geom = level->getGridGeometry();
     EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
     System& X_sys = eq_sys->get_system(d_fe_data_manager->COORDINATES_SYSTEM_NAME);
-    DofMap& X_dof_map = X_sys.get_dof_map();
     FEDataManager::SystemDofMapCache& X_dof_map_cache =
         *d_fe_data_manager->getDofMapCache(d_fe_data_manager->COORDINATES_SYSTEM_NAME);
-    FEType X_fe_type = X_dof_map.variable_type(0);
     NumericVector<double>* X_vec = X_sys.solution.get();
 
-    std::unique_ptr<FEBase> fe = FEBase::build(d_mesh->mesh_dimension(), X_fe_type);
-    std::unique_ptr<QBase> qrule = QBase::build(QGAUSS, d_mesh->mesh_dimension(), THIRD);
-    fe->attach_quadrature_rule(qrule.get());
-    const std::vector<std::vector<double>>& phi = fe->get_phi();
-    const std::vector<double>& JxW = fe->get_JxW();
     IBTK::Point x_min, x_max;
     VectorValue<double> n;
 
@@ -199,22 +192,17 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
         // We have all the intersections for this patch. Loop through and determine length fractions, surface areas, and
         // cell volumes
         ElemCutter elem_cutter;
-        pout << "There are " << index_elem_map.size() << " pairs to go through.\n";
         for (const auto& index_elem_vec_pair : index_elem_map)
         {
             const hier::Index<NDIM>& idx = index_elem_vec_pair.first;
-            pout << "Finding stuff on index: " << idx << "\n";
             const std::vector<Elem*>& elem_vec = index_elem_vec_pair.second;
-            pout << "Parent element has points \n"
-                 << elem_vec[0]->point(0) << "\n and \n"
-                 << elem_vec[0]->point(1) << "\n\n";
             const std::vector<PointAxisSide>& pt_ax_si_vec = index_intersect_map[idx];
             // Determine the "interior point" on the element, if there is one (There should be zero or one)
             libMesh::Point int_pt;
             bool has_int_pt = false;
             for (const auto& elem : elem_vec)
             {
-                for (int node_num = 0; node_num < elem->n_nodes(); ++node_num)
+                for (unsigned int node_num = 0; node_num < elem->n_nodes(); ++node_num)
                 {
                     const libMesh::Point& pt = elem->point(node_num);
                     const hier::Index<NDIM>& pt_idx =
@@ -226,7 +214,6 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
                     }
                 }
             }
-            pout << "Does this index have an interior point? " << has_int_pt << "\n";
             // Build new elem, this will be useful for computing distances/volumes
             std::unique_ptr<Elem> new_elem = Elem::build(EDGE2);
             std::array<std::unique_ptr<Node>, 2> new_nodes_for_elem;
@@ -260,31 +247,27 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
                 }
             }
             (*area_data)(idx) = area;
-            pout << "Total area: " << area << "\n";
             // Determine sign of nodes
             std::array<std::array<double, 2>, 2> node_dist;
             // Determine normal for parent elements
             std::vector<Vector3d> elem_normals;
+            Vector3d e3 = Vector3d::UnitZ() * (d_use_inside ? 1.0 : -1.0);
             for (const auto& elem : elem_vec)
             {
-                Vector3d e3 = Vector3d::UnitZ();
                 Vector3d v, w;
                 v << elem->point(0)(0), elem->point(0)(1), 0.0;
                 w << elem->point(1)(0), elem->point(1)(1), 0.0;
                 Vector3d n = (w - v).cross(e3);
                 n.normalize();
                 elem_normals.push_back(n);
-                pout << "Point 1: \n" << v << "\n";
-                pout << "Point 2: \n" << w << "\n";
-                pout << "Surface normal: \n" << n << "\n";
             }
+            // Determine distance to nodes
             for (int x = 0; x < 2; ++x)
             {
                 for (int y = 0; y < 2; ++y)
                 {
                     Vector3d P = Vector3d::Zero();
-                    for (int d = 0; d < NDIM; ++d)
-                        P(d) = x_low[d] + dx[d] * static_cast<double>(idx(d) - idx_low(d) + (d == 0 ? x : y));
+                    for (int d = 0; d < NDIM; ++d) P(d) = static_cast<double>(idx(d) + (d == 0 ? x : y));
                     // Project P onto element
                     Vector3d avg_proj, avg_unit_normal;
                     avg_proj.setZero();
@@ -296,15 +279,13 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
                         const Elem* const elem = elem_vec[i];
                         const Vector3d& n = elem_normals[i];
                         Vector3d v, w;
-                        v << elem->point(0)(0), elem->point(0)(1), 0.0;
-                        w << elem->point(1)(0), elem->point(1)(1), 0.0;
+                        v << (elem->point(0)(0) - x_low[0]) / dx[0], (elem->point(0)(1) - x_low[1]) / dx[1], 0.0;
+                        w << (elem->point(1)(0) - x_low[0]) / dx[0], (elem->point(1)(1) - x_low[1]) / dx[1], 0.0;
                         const double t = std::max(0.0, std::min(1.0, (P - v).dot(w - v) / (v - w).squaredNorm()));
                         const Vector3d proj = v + t * (w - v);
                         const double dist = (proj - P).norm();
                         if (dist < min_dist)
                         {
-                            pout << "Found new minimum distance: \n";
-                            pout << "Old dist: " << min_dist << " new dist: " << dist << "\n";
                             min_dist = dist;
                             avg_proj = proj;
                             avg_unit_normal = n;
@@ -312,8 +293,6 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
                         }
                         else if (MathUtilities<double>::equalEps(dist, min_dist))
                         {
-                            pout << "Found another minimum distance: \n";
-                            pout << "dist: " << min_dist << "\n";
                             avg_proj += proj;
                             avg_unit_normal += n;
                             ++num_min;
@@ -324,11 +303,13 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
                     avg_unit_normal.normalize();
 
                     const double dist = (P - avg_proj).norm();
-                    node_dist[x][y] = dist * (avg_unit_normal.dot(P - avg_proj) <= 0.0 ? -1.0 : 1.0);
+                    Vector3d phys_vec;
+                    for (unsigned int d = 0; d < NDIM; ++d) phys_vec(d) = dx[d] * (P - avg_proj)[d];
+                    double dist_phys = phys_vec.norm();
+                    double sgn = (avg_unit_normal.dot(P - avg_proj) <= 0.0 ? -1.0 : 1.0);
+                    node_dist[x][y] = dist * sgn;
                     NodeIndex<NDIM> n_idx(idx, IntVector<NDIM>(x, y));
-                    (*phi_data)(n_idx) = node_dist[x][y];
-                    pout << "Node index: " << n_idx << " has sign: " << node_dist[x][y] << "\n";
-                    pout << "Projected point: \n" << avg_proj << "\n";
+                    (*phi_data)(n_idx) = dist_phys * sgn;
                 }
             }
             // We have signs of nodes, now we can compute length fractions
@@ -338,16 +319,14 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
                 const int& axis = pt_ax_si.second.first;
                 const int& upper_lower = pt_ax_si.second.second;
                 VectorNd pt_vec_1, pt_vec_2;
-                pt_vec_1 << pt(0), pt(1);
+                pt_vec_1 << (pt(0) - x_low[0]) / dx[0], (pt(1) - x_low[1]) / dx[1];
                 // Determine which side fraction to compute
                 int x = (axis == 0 ? upper_lower : (node_dist[0][upper_lower] < 0.0 ? 0 : 1));
                 int y = (axis == 1 ? upper_lower : (node_dist[upper_lower][0] < 0.0 ? 0 : 1));
-                pt_vec_2[0] = x_low[0] + dx[0] * static_cast<double>(idx(0) - idx_low(0) + x);
-                pt_vec_2[1] = x_low[1] + dx[1] * static_cast<double>(idx(1) - idx_low(1) + y);
+                pt_vec_2[0] = static_cast<double>(idx(0) - idx_low(0) + x);
+                pt_vec_2[1] = static_cast<double>(idx(1) - idx_low(1) + y);
                 SideIndex<NDIM> si(idx, axis, upper_lower);
-                (*side_data)(si) = (pt_vec_2 - pt_vec_1).norm() / dx[axis];
-                pout << "Intersect point: \n" << pt << " \nNode point: \n" << pt_vec_2 << "\n";
-                pout << "Side: " << axis << " and " << upper_lower << " has distance: " << (*side_data)(si) << "\n";
+                (*side_data)(si) = (pt_vec_2 - pt_vec_1).norm();
             }
             // And we can compute volumes
             // If there is a element with a node interior to a cell, calculate that volume first
@@ -357,8 +336,9 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
             // The level set sees the "average" distance, which should be good enough for volume.
             if (has_int_pt)
             {
-                std::array<libMesh::Point, 3> tri_pts = {pt_ax_si_vec[0].first, pt_ax_si_vec[1].first,
-                int_pt}; std::array<Vector3d, 3> tri_vecs; for (int ii = 0; ii < 3; ++ii)
+                std::array<libMesh::Point, 3> tri_pts = { pt_ax_si_vec[0].first, pt_ax_si_vec[1].first, int_pt };
+                std::array<Vector3d, 3> tri_vecs;
+                for (int ii = 0; ii < 3; ++ii)
                 {
                     for (int d = 0; d < NDIM; ++d)
                     {
@@ -366,8 +346,7 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
                     }
                     tri_vecs[ii](2) = 0.0;
                 }
-                vol += 0.5 * ((tri_vecs[1]-tri_vecs[0]).cross(tri_vecs[1]-tri_vecs[2])).norm();
-                pout << "volume from triangle: " << vol << "\n";
+                vol += 0.5 * ((tri_vecs[1] - tri_vecs[0]).cross(tri_vecs[1] - tri_vecs[2])).norm();
             }
 #endif
             // Use elemCutter to decompose a quad4 element into simplices
@@ -375,30 +354,95 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
             std::array<std::unique_ptr<Node>, 4> quad_nodes;
             std::vector<double> quad_dists(4);
             quad_elem->set_id(0);
-            int i = 0;
+            int num_neg = 0;
             for (int i = 0; i < 4; ++i)
             {
                 int x = (i == 1 || i == 2) ? 1 : 0;
                 int y = i / 2;
                 libMesh::Point node_pt;
-                node_pt(0) = x_low[0] + dx[0] * static_cast<double>(idx(0) - idx_low(0) + x);
-                node_pt(1) = x_low[1] + dx[1] * static_cast<double>(idx(1) - idx_low(1) + y);
+                node_pt(0) = static_cast<double>(idx(0) - idx_low(0) + x);
+                node_pt(1) = static_cast<double>(idx(1) - idx_low(1) + y);
                 quad_nodes[i] = Node::build(node_pt, i);
                 quad_elem->set_node(i) = quad_nodes[i].get();
                 quad_dists[i] = node_dist[x][y];
+                if (node_dist[x][y] < 0.0) ++num_neg;
             }
-            elem_cutter(*quad_elem, quad_dists);
-            const std::vector<Elem const*>& inside_elems = elem_cutter.inside_elements();
-            for (const auto& elem : inside_elems)
+            // ElemCutter does not treat intersections near nodes correctly!!
+            // We can compute volumes by sudividing our domain into triangles.
+            if (num_neg == 1)
             {
-                const double vol_elem = elem->volume();
-                vol += elem->volume();
-                pout << "Partial addition to volume: " << vol_elem / (dx[0] * dx[1])
-                     << " Total volume so far: " << vol / (dx[0] * dx[1]) << "\n";
+                // If there is only a single "negative node", then we have a triangle.
+                VectorNd pt0, pt1, pt2;
+                pt0 << ((pt_ax_si_vec[0].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[0].first)(1) - x_low[1]) / dx[1];
+                pt1 << ((pt_ax_si_vec[1].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[1].first)(1) - x_low[1]) / dx[1];
+                for (int x = 0; x < 2; ++x)
+                {
+                    for (int y = 0; y < 2; ++y)
+                    {
+                        if (node_dist[x][y] < 0.0)
+                        {
+                            pt2 << static_cast<double>(idx(0) + x), static_cast<double>(idx(1) + y);
+                        }
+                    }
+                }
+                vol += (pt2 - pt0).norm() * (pt2 - pt1).norm() * 0.5;
             }
-
-            pout << "Total volume: " << vol / (dx[0] * dx[1]) << "\n\n";
-            (*vol_data)(idx) = vol / (dx[0] * dx[1]);
+            else if (num_neg == 2)
+            {
+                // If there are two "negative nodes", then draw a line from one intersection to a negative node to get
+                // two triangles.
+                std::array<std::array<VectorNd, 3>, 2> simplices;
+                VectorNd pt0, pt1, pt2, pt3;
+                pt0 << ((pt_ax_si_vec[0].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[0].first)(1) - x_low[1]) / dx[1];
+                pt1 << ((pt_ax_si_vec[1].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[1].first)(1) - x_low[1]) / dx[1];
+                pt3.setZero();
+                for (int x = 0; x < 2; ++x)
+                {
+                    for (int y = 0; y < 2; ++y)
+                    {
+                        if (node_dist[x][y] < 0.0)
+                        {
+                            // pt3 is on the line with pt0 that is perpendicular to a coordinate axis.
+                            VectorNd pt;
+                            pt << static_cast<double>(idx(0) + x), static_cast<double>(idx(1) + y);
+                            if (MathUtilities<double>::equalEps((pt - pt0).dot(VectorNd::UnitX()), 0.0) ||
+                                MathUtilities<double>::equalEps((pt - pt0).dot(VectorNd::UnitY()), 0.0))
+                                pt3 = pt;
+                            else
+                                pt2 = pt;
+                        }
+                    }
+                }
+                simplices[0] = { pt0, pt3, pt2 };
+                simplices[1] = { pt1, pt0, pt2 };
+                for (const auto& simplex : simplices)
+                {
+                    const VectorNd &pt1 = simplex[0], pt2 = simplex[1], pt3 = simplex[2];
+                    double a = (pt1 - pt2).norm(), b = (pt2 - pt3).norm(), c = (pt1 - pt3).norm();
+                    double p = 0.5 * (a + b + c);
+                    vol += std::sqrt(p * (p - a) * (p - b) * (p - c));
+                }
+            }
+            else if (num_neg == 3)
+            {
+                // If there are three "negative nodes", then the "positive" nodes form a triangle, and the volume is 1 -
+                // vol(triangle).
+                VectorNd pt0, pt1, pt2;
+                pt0 << ((pt_ax_si_vec[0].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[0].first)(1) - x_low[1]) / dx[1];
+                pt1 << ((pt_ax_si_vec[1].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[1].first)(1) - x_low[1]) / dx[1];
+                for (int x = 0; x < 2; ++x)
+                {
+                    for (int y = 0; y < 2; ++y)
+                    {
+                        if (node_dist[x][y] > 0.0)
+                        {
+                            pt2 << static_cast<double>(idx(0) + x), static_cast<double>(idx(1) + y);
+                        }
+                    }
+                }
+                vol += 1.0 - (pt2 - pt0).norm() * (pt2 - pt1).norm() * 0.5;
+            }
+            (*vol_data)(idx) = vol;
         }
     }
     // Now we need to update the sign of phi_data.
@@ -406,7 +450,6 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
     ghost_fill_alg.registerRefine(phi_idx, phi_idx, phi_idx, nullptr);
     Pointer<RefineSchedule<NDIM>> ghost_fill_sched = ghost_fill_alg.createSchedule(level);
     unsigned int n_global_updates = 1;
-    int iteration_num = 0;
     while (n_global_updates > 0)
     {
         ghost_fill_sched->fillData(0.0);
@@ -455,12 +498,6 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
             }
         }
     }
-    plog << "Checking area for nans\n";
-    IBTK::DebuggingUtilities::checkCellDataForNaNs(area_idx, d_hierarchy);
-    plog << "Checking vol for nans\n";
-    IBTK::DebuggingUtilities::checkCellDataForNaNs(vol_idx, d_hierarchy);
-    plog << "Checking ls for nans\n";
-    IBTK::DebuggingUtilities::checkNodeDataForNaNs(phi_idx, d_hierarchy);
 }
 
 bool

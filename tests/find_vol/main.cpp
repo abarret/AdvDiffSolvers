@@ -82,7 +82,6 @@ main(int argc, char* argv[])
 
         // Get various standard options set in the input file.
         const bool dump_postproc_data = app_initializer->dumpPostProcessingData();
-        const int dump_postproc_interval = app_initializer->getPostProcessingDataDumpInterval();
         const std::string postproc_data_dump_dirname = app_initializer->getPostProcessingDataDumpDirectory();
         if (dump_postproc_data && !postproc_data_dump_dirname.empty())
         {
@@ -156,7 +155,6 @@ main(int argc, char* argv[])
         ib_method_ops->initializeFEData();
         // Create Eulerian boundary condition specification objects.
         vector<RobinBcCoefStrategy<NDIM>*> u_bc_coefs(NDIM, static_cast<RobinBcCoefStrategy<NDIM>*>(NULL));
-        const bool periodic_domain = grid_geometry->getPeriodicShift().min() > 0;
 
         Pointer<CellVariable<NDIM, double>> ls_c_var = new CellVariable<NDIM, double>("ls_c_var");
         Pointer<NodeVariable<NDIM, double>> ls_n_var = new NodeVariable<NDIM, double>("ls_n_var");
