@@ -1,3 +1,5 @@
+#include "ibtk/IndexUtilities.h"
+
 #include "LS/SBIntegrator.h"
 #include "LS/utility_functions.h"
 
@@ -213,8 +215,6 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
 void
 SBIntegrator::beginTimestepping(const double /*current_time*/, const double /*new_time*/)
 {
-    plog << d_object_name + "::beginTimestepping: \n"
-         << "  Preparing for timestep.\n";
     // Overwrite old surface concentration
     EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
     for (const auto& sf_name : d_sf_names)
@@ -235,8 +235,6 @@ SBIntegrator::beginTimestepping(const double /*current_time*/, const double /*ne
 void
 SBIntegrator::endTimestepping(const double /*current_time*/, const double /*new_time*/)
 {
-    plog << d_object_name + "::endTimestepping: \n"
-         << "  Finishing timestep.\n";
     EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
     for (const auto& sf_name : d_sf_names)
     {
@@ -369,53 +367,5 @@ SBIntegrator::interpolateToBoundary(Pointer<CellVariable<NDIM, double>> fl_var,
     }
     X_petsc_vec->restore_array();
     fl_vec->close();
-}
-
-bool
-SBIntegrator::findIntersection(libMesh::Point& p, Elem* elem, libMesh::Point r, libMesh::VectorValue<double> q)
-{
-    bool found_intersection = false;
-    switch (elem->type())
-    {
-    case libMesh::EDGE2:
-    {
-        // Use linear interpolation
-        // Plane through r in q direction:
-        // p = r + t * q
-        // Plane through two element points p0, p1
-        // p = 0.5*(1+u)*p0 + 0.5*(1-u)*p1
-        // Set equal and solve for u and t.
-        // Note that since q is aligned with a grid axis, we can solve for u first, then find t later
-        // Solve for u via a * u + b = 0
-        // with a = 0.5 * (p0 - p1)
-        //      b = 0.5 * (p0 + p1) - r
-        const libMesh::Point& p0 = elem->point(0);
-        const libMesh::Point& p1 = elem->point(1);
-        const int search_dir = q(0) == 0.0 ? 1 : 0;
-        const int trans_dir = (search_dir + 1) % NDIM;
-        double a = 0.5 * (p0(trans_dir) - p1(trans_dir));
-        double b = 0.5 * (p0(trans_dir) + p1(trans_dir)) - r(trans_dir);
-        const double u = -b / a;
-        // Determine if this intersection is on the interior of the element
-        // This means that u is between -1 and 1
-        if (u >= -1.0 && u <= 1.0)
-        {
-            // Now determine if intersection occurs on axis
-            // This amounts to t being between -0.5 and 0.5
-            double p_search = 0.5 * p0(search_dir) * (1.0 + u) + 0.5 * (1.0 - u) * p1(search_dir);
-            double t = (p_search - r(search_dir)) / q(search_dir);
-            if (t >= -0.5 && t <= 0.5)
-            {
-                // We've found an intersection on this axis
-                p = 0.5 * (1.0 + u) * p0 + 0.5 * (1.0 - u) * p1;
-                found_intersection = true;
-            }
-        }
-        break;
-    }
-    default:
-        TBOX_ERROR("Unknown element.\n");
-    }
-    return found_intersection;
 }
 } // namespace LS

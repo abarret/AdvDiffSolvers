@@ -35,37 +35,28 @@ public:
     void registerTransportedQuantity(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                      const bool Q_output = true) override;
 
-    void registerLevelSetVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_var);
+    void registerLevelSetVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
-    void registerLevelSetVelocity(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_var,
+    void registerLevelSetVelocity(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                   SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> u_var);
 
-    void registerLevelSetResetFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_var,
-                                       SAMRAI::tbox::Pointer<LSInitStrategy> ls_strategy);
-
-    void registerLevelSetFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_var,
-                                  SAMRAI::tbox::Pointer<IBTK::CartGridFunction> ls_fcn);
+    void registerLevelSetVolFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
+                                     SAMRAI::tbox::Pointer<LSFindCellVolume> vol_fcn);
 
     void restrictToLevelSet(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
-                            SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_var);
+                            SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
-    void useLevelSetFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_var,
-                             bool use_ls_function);
-
-    void useLevelSetForTagging(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_var,
+    void useLevelSetForTagging(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                bool use_ls_for_tagging);
 
-    SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>
-    getLevelSetNodeVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_c_var);
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
+    getAreaVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
-    getAreaVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_c_var);
-
-    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
-    getVolumeVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_c_var);
+    getVolumeVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
     void registerSBIntegrator(SAMRAI::tbox::Pointer<SBIntegrator> sb_integrator,
-                              SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> ls_var);
+                              SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
     /*!
      * Initialize the variables, basic communications algorithms, solvers, and
@@ -122,7 +113,6 @@ public:
 protected:
     void initializeCompositeHierarchyDataSpecialized(double current_time, bool initial_time) override;
     void regridHierarchyBeginSpecialized() override;
-    void regridHierarchyEndSpecialized() override;
     void resetTimeDependentHierarchyDataSpecialized(double new_time) override;
     void resetHierarchyConfigurationSpecialized(Pointer<BasePatchHierarchy<NDIM>> base_hierarchy,
                                                 int coarsest_ln,
@@ -142,6 +132,8 @@ protected:
                                  SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> vol_var,
                                  int area_idx,
                                  SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> area_var,
+                                 int side_idx,
+                                 SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> side_var,
                                  double current_time,
                                  double new_time);
 
@@ -164,25 +156,20 @@ protected:
     SAMRAI::hier::ComponentSelector d_adv_data;
 
     // Level set information
-    std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>> d_ls_node_vars;
-    std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>> d_ls_cell_vars;
+    std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>> d_ls_vars;
     std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>> d_vol_vars, d_area_vars,
         d_vol_wgt_vars;
+    std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>>> d_side_vars;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>, bool> d_ls_use_ls_for_tagging;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>,
-             SAMRAI::tbox::Pointer<IBTK::CartGridFunction>>
-        d_ls_fcn_map;
-    SAMRAI::tbox::Pointer<LSFindCellVolume> d_vol_fcn;
-    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, bool> d_ls_use_fcn;
-    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, bool> d_ls_use_ls_for_tagging;
-    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>,
-             SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>
+             SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>>
         d_Q_ls_map;
-
-    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, SAMRAI::tbox::Pointer<LSInitStrategy>>
-        d_ls_strategy_map;
-    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>,
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>, SAMRAI::tbox::Pointer<LSFindCellVolume>>
+        d_ls_vol_fcn_map;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>,
              SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>>>
         d_ls_u_map;
+
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_s_var;
 
     SAMRAI::hier::ComponentSelector d_ls_data;
@@ -203,7 +190,7 @@ protected:
 
     SAMRAI::tbox::Pointer<SAMRAI::math::HierarchyFaceDataOpsReal<NDIM, double>> d_hier_fc_data_ops;
 
-    std::map<SAMRAI::tbox::Pointer<SBIntegrator>, SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>
+    std::map<SAMRAI::tbox::Pointer<SBIntegrator>, SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>>
         d_sb_integrator_ls_map;
 
 private:

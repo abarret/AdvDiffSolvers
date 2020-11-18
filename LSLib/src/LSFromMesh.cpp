@@ -32,8 +32,7 @@ LSFromMesh::LSFromMesh(std::string object_name,
                        MeshBase* mesh,
                        FEDataManager* fe_data_manager,
                        bool use_inside /* = true*/)
-    : d_object_name(std::move(object_name)),
-      d_hierarchy(hierarchy),
+    : LSFindCellVolume(std::move(object_name), hierarchy),
       d_mesh(mesh),
       d_fe_data_manager(fe_data_manager),
       d_use_inside(use_inside),
@@ -47,7 +46,7 @@ LSFromMesh::LSFromMesh(std::string object_name,
 } // Constructor
 
 void
-LSFromMesh::updateVolumeAreaLength(int vol_idx,
+LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                                    Pointer<CellVariable<NDIM, double>> /*vol_var*/,
                                    int area_idx,
                                    Pointer<CellVariable<NDIM, double>> /*area_var*/,
@@ -55,6 +54,7 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
                                    Pointer<SideVariable<NDIM, double>> /*side_var*/,
                                    int phi_idx,
                                    Pointer<NodeVariable<NDIM, double>> phi_var,
+                                   double /*data_time*/,
                                    bool extended_box)
 {
     // Allocate data
@@ -63,6 +63,8 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         level->allocatePatchData(d_sgn_idx);
     }
+    TBOX_ASSERT(phi_idx != IBTK::invalid_index);
+    TBOX_ASSERT(phi_var);
     HierarchyNodeDataOpsReal<NDIM, double> hier_nc_data_ops(d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
     hier_nc_data_ops.setToScalar(phi_idx, s_eps, false);
 
@@ -224,29 +226,32 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
                 new_elem->set_node(i) = new_nodes_for_elem[i].get();
             }
             // Determine area contributions
-            // If there's only one element, then the two intersections correspond to the single element.
-            double area = 0.0;
-            if (elem_vec.size() == 1)
+            if (area_idx != IBTK::invalid_index)
             {
-                area = (new_elem->point(0) - new_elem->point(1)).norm();
-            }
-            else
-            {
-                // Take care of edge case when element has point exactly on a side
-                if (!has_int_pt)
+                // If there's only one element, then the two intersections correspond to the single element.
+                double area = 0.0;
+                if (elem_vec.size() == 1)
                 {
-                    area += (pt_ax_si_vec[0].first - pt_ax_si_vec[1].first).norm();
+                    area = (new_elem->point(0) - new_elem->point(1)).norm();
                 }
                 else
                 {
-                    for (unsigned int i = 0; i < pt_ax_si_vec.size(); ++i)
+                    // Take care of edge case when element has point exactly on a side
+                    if (!has_int_pt)
                     {
-                        std::vector<libMesh::Point> pts = { pt_ax_si_vec[i].first, int_pt };
-                        area += (pts[1] - pts[0]).norm();
+                        area += (pt_ax_si_vec[0].first - pt_ax_si_vec[1].first).norm();
+                    }
+                    else
+                    {
+                        for (unsigned int i = 0; i < pt_ax_si_vec.size(); ++i)
+                        {
+                            std::vector<libMesh::Point> pts = { pt_ax_si_vec[i].first, int_pt };
+                            area += (pts[1] - pts[0]).norm();
+                        }
                     }
                 }
+                (*area_data)(idx) = area;
             }
-            (*area_data)(idx) = area;
             // Determine sign of nodes
             std::array<std::array<double, 2>, 2> node_dist;
             // Determine normal for parent elements
@@ -313,136 +318,138 @@ LSFromMesh::updateVolumeAreaLength(int vol_idx,
                 }
             }
             // We have signs of nodes, now we can compute length fractions
-            for (const auto& pt_ax_si : pt_ax_si_vec)
+            if (side_idx != IBTK::invalid_index)
             {
-                const libMesh::Point& pt = pt_ax_si.first;
-                const int& axis = pt_ax_si.second.first;
-                const int& upper_lower = pt_ax_si.second.second;
-                VectorNd pt_vec_1, pt_vec_2;
-                pt_vec_1 << (pt(0) - x_low[0]) / dx[0], (pt(1) - x_low[1]) / dx[1];
-                // Determine which side fraction to compute
-                int x = (axis == 0 ? upper_lower : (node_dist[0][upper_lower] < 0.0 ? 0 : 1));
-                int y = (axis == 1 ? upper_lower : (node_dist[upper_lower][0] < 0.0 ? 0 : 1));
-                pt_vec_2[0] = static_cast<double>(idx(0) - idx_low(0) + x);
-                pt_vec_2[1] = static_cast<double>(idx(1) - idx_low(1) + y);
-                SideIndex<NDIM> si(idx, axis, upper_lower);
-                (*side_data)(si) = (pt_vec_2 - pt_vec_1).norm();
+                for (const auto& pt_ax_si : pt_ax_si_vec)
+                {
+                    const libMesh::Point& pt = pt_ax_si.first;
+                    const int& axis = pt_ax_si.second.first;
+                    const int& upper_lower = pt_ax_si.second.second;
+                    VectorNd pt_vec_1, pt_vec_2;
+                    pt_vec_1 << (pt(0) - x_low[0]) / dx[0], (pt(1) - x_low[1]) / dx[1];
+                    // Determine which side fraction to compute
+                    int x = (axis == 0 ? upper_lower : (node_dist[0][upper_lower] < 0.0 ? 0 : 1));
+                    int y = (axis == 1 ? upper_lower : (node_dist[upper_lower][0] < 0.0 ? 0 : 1));
+                    pt_vec_2[0] = static_cast<double>(idx(0) - idx_low(0) + x);
+                    pt_vec_2[1] = static_cast<double>(idx(1) - idx_low(1) + y);
+                    SideIndex<NDIM> si(idx, axis, upper_lower);
+                    (*side_data)(si) = (pt_vec_2 - pt_vec_1).norm();
+                }
             }
             // And we can compute volumes
-            // If there is a element with a node interior to a cell, calculate that volume first
-            double vol = 0.0;
+            if (vol_idx != IBTK::invalid_index)
+            {
+                // If there is a element with a node interior to a cell, calculate that volume first
+                double vol = 0.0;
 #if (0)
-            // This doesn't need to be used if level set is generated from original mesh.
-            // The level set sees the "average" distance, which should be good enough for volume.
-            if (has_int_pt)
-            {
-                std::array<libMesh::Point, 3> tri_pts = { pt_ax_si_vec[0].first, pt_ax_si_vec[1].first, int_pt };
-                std::array<Vector3d, 3> tri_vecs;
-                for (int ii = 0; ii < 3; ++ii)
+                // This doesn't need to be used if level set is generated from original mesh.
+                // The level set sees the "average" distance, which should be good enough for volume.
+                if (has_int_pt)
                 {
-                    for (int d = 0; d < NDIM; ++d)
+                    std::array<libMesh::Point, 3> tri_pts = { pt_ax_si_vec[0].first, pt_ax_si_vec[1].first, int_pt };
+                    std::array<Vector3d, 3> tri_vecs;
+                    for (int ii = 0; ii < 3; ++ii)
                     {
-                        tri_vecs[ii](d) = tri_pts[ii](d);
+                        for (int d = 0; d < NDIM; ++d)
+                        {
+                            tri_vecs[ii](d) = tri_pts[ii](d);
+                        }
+                        tri_vecs[ii](2) = 0.0;
                     }
-                    tri_vecs[ii](2) = 0.0;
+                    vol += 0.5 * ((tri_vecs[1] - tri_vecs[0]).cross(tri_vecs[1] - tri_vecs[2])).norm();
                 }
-                vol += 0.5 * ((tri_vecs[1] - tri_vecs[0]).cross(tri_vecs[1] - tri_vecs[2])).norm();
-            }
 #endif
-            // Use elemCutter to decompose a quad4 element into simplices
-            std::unique_ptr<Elem> quad_elem = Elem::build(QUAD4);
-            std::array<std::unique_ptr<Node>, 4> quad_nodes;
-            std::vector<double> quad_dists(4);
-            quad_elem->set_id(0);
-            int num_neg = 0;
-            for (int i = 0; i < 4; ++i)
-            {
-                int x = (i == 1 || i == 2) ? 1 : 0;
-                int y = i / 2;
-                libMesh::Point node_pt;
-                node_pt(0) = static_cast<double>(idx(0) - idx_low(0) + x);
-                node_pt(1) = static_cast<double>(idx(1) - idx_low(1) + y);
-                quad_nodes[i] = Node::build(node_pt, i);
-                quad_elem->set_node(i) = quad_nodes[i].get();
-                quad_dists[i] = node_dist[x][y];
-                if (node_dist[x][y] < 0.0) ++num_neg;
-            }
-            // ElemCutter does not treat intersections near nodes correctly!!
-            // We can compute volumes by sudividing our domain into triangles.
-            if (num_neg == 1)
-            {
-                // If there is only a single "negative node", then we have a triangle.
-                VectorNd pt0, pt1, pt2;
-                pt0 << ((pt_ax_si_vec[0].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[0].first)(1) - x_low[1]) / dx[1];
-                pt1 << ((pt_ax_si_vec[1].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[1].first)(1) - x_low[1]) / dx[1];
+                int num_neg = 0;
                 for (int x = 0; x < 2; ++x)
                 {
                     for (int y = 0; y < 2; ++y)
                     {
-                        if (node_dist[x][y] < 0.0)
-                        {
-                            pt2 << static_cast<double>(idx(0) + x), static_cast<double>(idx(1) + y);
-                        }
+                        if (node_dist[x][y] < 0.0) ++num_neg;
                     }
                 }
-                vol += (pt2 - pt0).norm() * (pt2 - pt1).norm() * 0.5;
-            }
-            else if (num_neg == 2)
-            {
-                // If there are two "negative nodes", then draw a line from one intersection to a negative node to get
-                // two triangles.
-                std::array<std::array<VectorNd, 3>, 2> simplices;
-                VectorNd pt0, pt1, pt2, pt3;
-                pt0 << ((pt_ax_si_vec[0].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[0].first)(1) - x_low[1]) / dx[1];
-                pt1 << ((pt_ax_si_vec[1].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[1].first)(1) - x_low[1]) / dx[1];
-                pt3.setZero();
-                for (int x = 0; x < 2; ++x)
+                // ElemCutter does not treat intersections near nodes correctly!!
+                // We can compute volumes by sudividing our domain into triangles.
+                if (num_neg == 1)
                 {
-                    for (int y = 0; y < 2; ++y)
+                    // If there is only a single "negative node", then we have a triangle.
+                    VectorNd pt0, pt1, pt2;
+                    pt0 << ((pt_ax_si_vec[0].first)(0) - x_low[0]) / dx[0],
+                        ((pt_ax_si_vec[0].first)(1) - x_low[1]) / dx[1];
+                    pt1 << ((pt_ax_si_vec[1].first)(0) - x_low[0]) / dx[0],
+                        ((pt_ax_si_vec[1].first)(1) - x_low[1]) / dx[1];
+                    for (int x = 0; x < 2; ++x)
                     {
-                        if (node_dist[x][y] < 0.0)
+                        for (int y = 0; y < 2; ++y)
                         {
-                            // pt3 is on the line with pt0 that is perpendicular to a coordinate axis.
-                            VectorNd pt;
-                            pt << static_cast<double>(idx(0) + x), static_cast<double>(idx(1) + y);
-                            if (MathUtilities<double>::equalEps((pt - pt0).dot(VectorNd::UnitX()), 0.0) ||
-                                MathUtilities<double>::equalEps((pt - pt0).dot(VectorNd::UnitY()), 0.0))
-                                pt3 = pt;
-                            else
-                                pt2 = pt;
+                            if (node_dist[x][y] < 0.0)
+                            {
+                                pt2 << static_cast<double>(idx(0) + x), static_cast<double>(idx(1) + y);
+                            }
                         }
                     }
+                    vol += (pt2 - pt0).norm() * (pt2 - pt1).norm() * 0.5;
                 }
-                simplices[0] = { pt0, pt3, pt2 };
-                simplices[1] = { pt1, pt0, pt2 };
-                for (const auto& simplex : simplices)
+                else if (num_neg == 2)
                 {
-                    const VectorNd &pt1 = simplex[0], pt2 = simplex[1], pt3 = simplex[2];
-                    double a = (pt1 - pt2).norm(), b = (pt2 - pt3).norm(), c = (pt1 - pt3).norm();
-                    double p = 0.5 * (a + b + c);
-                    vol += std::sqrt(p * (p - a) * (p - b) * (p - c));
-                }
-            }
-            else if (num_neg == 3)
-            {
-                // If there are three "negative nodes", then the "positive" nodes form a triangle, and the volume is 1 -
-                // vol(triangle).
-                VectorNd pt0, pt1, pt2;
-                pt0 << ((pt_ax_si_vec[0].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[0].first)(1) - x_low[1]) / dx[1];
-                pt1 << ((pt_ax_si_vec[1].first)(0) - x_low[0]) / dx[0], ((pt_ax_si_vec[1].first)(1) - x_low[1]) / dx[1];
-                for (int x = 0; x < 2; ++x)
-                {
-                    for (int y = 0; y < 2; ++y)
+                    // If there are two "negative nodes", then draw a line from one intersection to a negative node to
+                    // get two triangles.
+                    std::array<std::array<VectorNd, 3>, 2> simplices;
+                    VectorNd pt0, pt1, pt2, pt3;
+                    pt0 << ((pt_ax_si_vec[0].first)(0) - x_low[0]) / dx[0],
+                        ((pt_ax_si_vec[0].first)(1) - x_low[1]) / dx[1];
+                    pt1 << ((pt_ax_si_vec[1].first)(0) - x_low[0]) / dx[0],
+                        ((pt_ax_si_vec[1].first)(1) - x_low[1]) / dx[1];
+                    pt3.setZero();
+                    for (int x = 0; x < 2; ++x)
                     {
-                        if (node_dist[x][y] > 0.0)
+                        for (int y = 0; y < 2; ++y)
                         {
-                            pt2 << static_cast<double>(idx(0) + x), static_cast<double>(idx(1) + y);
+                            if (node_dist[x][y] < 0.0)
+                            {
+                                // pt3 is on the line with pt0 that is perpendicular to a coordinate axis.
+                                VectorNd pt;
+                                pt << static_cast<double>(idx(0) + x), static_cast<double>(idx(1) + y);
+                                if (MathUtilities<double>::equalEps((pt - pt0).dot(VectorNd::UnitX()), 0.0) ||
+                                    MathUtilities<double>::equalEps((pt - pt0).dot(VectorNd::UnitY()), 0.0))
+                                    pt3 = pt;
+                                else
+                                    pt2 = pt;
+                            }
                         }
                     }
+                    simplices[0] = { pt0, pt3, pt2 };
+                    simplices[1] = { pt1, pt0, pt2 };
+                    for (const auto& simplex : simplices)
+                    {
+                        const VectorNd &pt1 = simplex[0], pt2 = simplex[1], pt3 = simplex[2];
+                        double a = (pt1 - pt2).norm(), b = (pt2 - pt3).norm(), c = (pt1 - pt3).norm();
+                        double p = 0.5 * (a + b + c);
+                        vol += std::sqrt(p * (p - a) * (p - b) * (p - c));
+                    }
                 }
-                vol += 1.0 - (pt2 - pt0).norm() * (pt2 - pt1).norm() * 0.5;
+                else if (num_neg == 3)
+                {
+                    // If there are three "negative nodes", then the "positive" nodes form a triangle, and the volume is
+                    // 1 - vol(triangle).
+                    VectorNd pt0, pt1, pt2;
+                    pt0 << ((pt_ax_si_vec[0].first)(0) - x_low[0]) / dx[0],
+                        ((pt_ax_si_vec[0].first)(1) - x_low[1]) / dx[1];
+                    pt1 << ((pt_ax_si_vec[1].first)(0) - x_low[0]) / dx[0],
+                        ((pt_ax_si_vec[1].first)(1) - x_low[1]) / dx[1];
+                    for (int x = 0; x < 2; ++x)
+                    {
+                        for (int y = 0; y < 2; ++y)
+                        {
+                            if (node_dist[x][y] > 0.0)
+                            {
+                                pt2 << static_cast<double>(idx(0) + x), static_cast<double>(idx(1) + y);
+                            }
+                        }
+                    }
+                    vol += 1.0 - (pt2 - pt0).norm() * (pt2 - pt1).norm() * 0.5;
+                }
+                (*vol_data)(idx) = vol;
             }
-            (*vol_data)(idx) = vol;
         }
     }
     // Now we need to update the sign of phi_data.

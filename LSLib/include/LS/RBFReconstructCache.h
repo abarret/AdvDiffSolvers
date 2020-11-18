@@ -17,6 +17,7 @@
 
 #include <Eigen/Dense>
 
+#include <map>
 #include <string>
 #include <vector>
 

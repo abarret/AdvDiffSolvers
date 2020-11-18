@@ -80,12 +80,6 @@ public:
                                double time);
 
 private:
-    /*!
-     * Find an intersection between the element elem and the side defined by the point r and the search direction and
-     * magnitude q.
-     */
-    bool findIntersection(libMesh::Point& p, libMesh::Elem* elem, libMesh::Point r, libMesh::VectorValue<double> q);
-
     double reconstructRBF(const IBTK::VectorNd& x,
                           const SAMRAI::pdat::CellIndex<NDIM>& idx,
                           const SAMRAI::pdat::NodeData<NDIM, double>& ls_vals,

@@ -1,3 +1,5 @@
+#include "ibtk/IndexUtilities.h"
+
 #include "LS/SBBoundaryConditions.h"
 #include "LS/utility_functions.h"
 
@@ -40,6 +42,7 @@ SBBoundaryConditions::registerFluidFluidInteraction(Pointer<CellVariable<NDIM, d
     std::string fl_sys_name = d_object_name + "::" + fl_var->getName();
     d_fl_names.push_back(fl_sys_name);
     ExplicitSystem& fl_sys = d_fe_data_manager->getEquationSystems()->add_system<ExplicitSystem>(fl_sys_name);
+    fl_sys.add_variable(fl_var->getName());
     fl_sys.assemble_before_solve = false;
     fl_sys.assemble();
 }
@@ -171,6 +174,10 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
         Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
         Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(d_area_idx);
         Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
+        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_ls_idx);
+
+        CellData<NDIM, double> elem_area_data(patch->getBox(), 1, 0);
+        elem_area_data.fillAll(0.0);
 
         Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         const double* const x_lower = pgeom->getXLower();
@@ -262,7 +269,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                         {
                             const double x_s =
                                 x_lower[d] + dx[d] * (static_cast<double>(i_s - patch_lower[d]) + 0.5 * shift);
-                            const double tol = 1.0e-4 * dx[d];
+                            const double tol = 1.0e-8 * dx[d];
                             if (x(d) <= x_s) x(d) = std::min(x_s - tol, x(d));
                             if (x(d) >= x_s) x(d) = std::max(x_s + tol, x(d));
                         }
@@ -286,6 +293,11 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
             for (BoxIterator<NDIM> b(box); b; b++)
             {
                 const hier::Index<NDIM>& i_c = b();
+                if (!d_homogeneous_bdry)
+                {
+                    plog << "On index: " << i_c << "\n";
+                    plog << "With parent element: " << elem->point(0) << " and " << elem->point(1) << "\n";
+                }
                 // We have the index of the box. Each box should have zero or two intersections
                 std::vector<libMesh::Point> intersection_points(0);
                 for (int upper_lower = 0; upper_lower < 2; ++upper_lower)
@@ -306,6 +318,48 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                         if (findIntersection(p, elem, r, q))
                         {
                             intersection_points.push_back(p);
+                            // Compare this length fraction with LSCutCellLaplaceOperator length fraction
+                            NodeIndex<NDIM> idx_l, idx_u;
+                            if (axis == 0)
+                            {
+                                if (upper_lower == 0)
+                                {
+                                    idx_l = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::LowerLeft);
+                                    idx_u = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::UpperLeft);
+                                }
+                                else
+                                {
+                                    idx_l = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::LowerRight);
+                                    idx_u = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::UpperRight);
+                                }
+                            }
+                            else
+                            {
+                                if (upper_lower == 0)
+                                {
+                                    idx_l = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::LowerLeft);
+                                    idx_u = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::UpperRight);
+                                }
+                                else
+                                {
+                                    idx_l = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::UpperLeft);
+                                    idx_u = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::UpperRight);
+                                }
+                            }
+                            const double lf_laplace = LS::length_fraction(1.0, (*ls_data)(idx_l), (*ls_data)(idx_u));
+                            VectorNd x_corner;
+                            for (int d = 0; d < NDIM; ++d)
+                                x_corner[d] = x_lower[d] + dx[d] * static_cast<double>(idx_l(d) - patch_lower(d));
+                            if ((*ls_data)(idx_u) < 0.0) x_corner[axis] += dx[axis];
+                            VectorNd p_vec = { p(0), p(1) };
+                            VectorNd dist = x_corner - p_vec;
+                            for (int d = 0; d < NDIM; ++d) dist[d] /= dx[d];
+                            double lf_here = dist.norm();
+                            if (!d_homogeneous_bdry)
+                            {
+                                plog << "Length fraction from ls:  " << lf_laplace << "\n";
+                                plog << "Length fraction from mesh: " << lf_here << "\n";
+                            }
                         }
                     }
                 }
@@ -398,11 +452,17 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                             IndexUtilities::getCellIndex(&xn(0), grid_geom, level->getRatio());
                         if (n_idx == i_c)
                         {
+                            // Check if we already have this point accounted for. Note this can happend when a node is
+                            // EXACTLY on a cell face or node.
+                            if (intersection_points[0] == xn) continue;
                             intersection_points.push_back(xn);
                             break;
                         }
                     }
                 }
+                // At this point, if we still only have one intersection point, our node is on a face, and we can skip
+                // this index.
+                if (intersection_points.size() == 1) continue;
                 TBOX_ASSERT(intersection_points.size() == 2);
                 std::array<std::unique_ptr<Node>, 2> new_nodes_for_elem;
                 for (int i = 0; i < 2; ++i)
@@ -439,6 +499,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                 // Then we need to integrate
                 fe->reinit(new_elem.get());
                 double a = 0.0, g = 0.0;
+                double area = 0.0;
                 for (unsigned int qp = 0; qp < JxW.size(); ++qp)
                 {
                     double Q_val = 0.0;
@@ -446,12 +507,51 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                     std::fill(fl_vals.begin(), fl_vals.end(), 0.0);
                     for (int n = 0; n < 2; ++n)
                     {
-                        Q_val += Q_node[n] * phi[n][qp];
-                        for (unsigned int l = 0; l < d_fl_names.size(); ++l) fl_vals[l] += fl_node[l][n] * phi[n][qp];
-                        for (unsigned int l = 0; l < d_sf_names.size(); ++l) sf_vals[l] += sf_node[l][n] * phi[n][qp];
+                        Q_val += Q_soln_on_new_elem[n] * phi[n][qp];
+                        for (unsigned int l = 0; l < d_fl_names.size(); ++l)
+                            fl_vals[l] += fl_soln_on_new_elem[l][n] * phi[n][qp];
+                        for (unsigned int l = 0; l < d_sf_names.size(); ++l)
+                            sf_vals[l] += sf_soln_on_new_elem[l][n] * phi[n][qp];
                     }
                     a += d_a_fcn(Q_val, fl_vals, sf_vals, time, d_fcn_ctx) * JxW[qp];
+                    area += JxW[qp];
                     if (!d_homogeneous_bdry) g += d_g_fcn(Q_val, fl_vals, sf_vals, time, d_fcn_ctx) * JxW[qp];
+                }
+                elem_area_data(i_c) += area;
+
+                NodeIndex<NDIM> idx_neg;
+                bool done = false;
+                for (int x = 0; x < 2 && !done; ++x)
+                {
+                    for (int y = 0; y < 2 && !done; ++y)
+                    {
+                        idx_neg = NodeIndex<NDIM>(i_c, IntVector<NDIM>(x, y));
+                        double ls_val = (*ls_data)(idx_neg);
+                        if (ls_val < 0.0) done = true;
+                    }
+                }
+                VectorNd pt1 = { new_elem->point(0)(0), new_elem->point(0)(1) };
+                VectorNd pt2 = { new_elem->point(1)(0), new_elem->point(1)(1) };
+                VectorNd pt3;
+                for (int d = 0; d < NDIM; ++d)
+                    pt3[d] = x_lower[d] + dx[d] * (static_cast<double>(idx_neg(d) - patch_lower(d)));
+                double vol = 0.5 * (pt1 - pt3).norm() * (pt2 - pt3).norm() / (dx[0] * dx[1]);
+
+                if (!d_homogeneous_bdry)
+                {
+                    plog << "Found element with end points: " << new_elem->point(0) << " and " << new_elem->point(1)
+                         << "\n";
+                    plog << "a fcn value: " << a << "\n";
+                    plog << "g fcn value: " << g << "\n";
+                    plog << "Q_soln on new elem:  " << Q_soln_on_new_elem[0] << " and " << Q_soln_on_new_elem[1]
+                         << "\n";
+                    plog << "sf_soln on new elem: " << sf_soln_on_new_elem[0][0] << " and " << sf_soln_on_new_elem[0][1]
+                         << "\n";
+                    plog << "Level set has area: " << (*area_data)(i_c) << "\n";
+                    plog << "Total area of elem: " << area << "\n";
+                    plog << "Cumulative area of index: " << elem_area_data(i_c) << "\n";
+                    plog << "Elem volume from ls:   " << (*vol_data)(i_c) << "\n";
+                    plog << "Elem volume from mesh: " << vol << "\n\n";
                 }
 
                 double cell_volume = dx[0] * dx[1] * (*vol_data)(i_c);

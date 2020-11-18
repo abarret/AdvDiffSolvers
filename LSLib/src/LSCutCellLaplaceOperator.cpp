@@ -172,7 +172,7 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
                 TBOX_ASSERT(d_bdry_conds);
                 d_bdry_conds->setHomogeneousBdry(d_homogeneous_bc);
                 d_bdry_conds->applyBoundaryCondition(
-                    d_Q_var, d_Q_extrap_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
+                    d_Q_var, d_Q_scr_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
             }
         }
     }
@@ -295,7 +295,9 @@ LSCutCellLaplaceOperator::setLSIndices(int ls_idx,
                                        int vol_idx,
                                        Pointer<CellVariable<NDIM, double>> vol_var,
                                        int area_idx,
-                                       Pointer<CellVariable<NDIM, double>> area_var)
+                                       Pointer<CellVariable<NDIM, double>> area_var,
+                                       int side_idx,
+                                       Pointer<SideVariable<NDIM, double>> side_var)
 {
     d_ls_idx = ls_idx;
     d_ls_var = ls_var;
@@ -303,6 +305,8 @@ LSCutCellLaplaceOperator::setLSIndices(int ls_idx,
     d_vol_var = vol_var;
     d_area_idx = area_idx;
     d_area_var = area_var;
+    d_side_idx = side_idx;
+    d_side_var = side_var;
     d_rbf_reconstruct.setLSData(ls_idx, vol_idx);
 }
 
@@ -327,6 +331,7 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
         d_poisson_spec.dIsConstant() ? nullptr : patch.getPatchData(d_poisson_spec.getDPatchDataId());
     Pointer<CellData<NDIM, double>> area_data = patch.getPatchData(d_area_idx);
     Pointer<CellData<NDIM, double>> vol_data = patch.getPatchData(d_vol_idx);
+    Pointer<SideData<NDIM, double>> side_data = patch.getPatchData(d_side_idx);
 
 #if (NDIM == 2)
     IntVector<NDIM> xp(1, 0), yp(0, 1);
@@ -354,20 +359,7 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
             for (int f = 0; f < 2; ++f)
             {
                 const int sgn = f == 0 ? -1 : 1;
-#if (NDIM == 2)
-                double L = length_fraction(dx[1],
-                                           (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 0))),
-                                           (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 1))));
-#endif
-#if (NDIM == 3)
-                // Note the awkward ordering of indices. Needs to start at "bottom left" index and go clockwise
-                double L = area_fraction(dx[1] * dx[2],
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 0, 1))),
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 1, 1))),
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 1, 0))),
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 0, 0))));
-#endif
-
+                const double L = dx[1] * (*side_data)(SideIndex<NDIM>(idx, 0, f));
                 double Q_next = Q_data(idx + xp * sgn);
                 double vol_next = (*vol_data)(idx + xp * sgn);
                 if (MathUtilities<double>::equalEps(vol_next, 0.0)) continue;
@@ -378,19 +370,7 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
             for (int f = 0; f < 2; ++f)
             {
                 const int sgn = f == 0 ? -1 : 1;
-#if (NDIM == 2)
-                double L = length_fraction(dx[0],
-                                           (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, f))),
-                                           (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, f))));
-#endif
-#if (NDIM == 3)
-                // Note the awkward ordering of indices. Needs to start at "bottom left" index and go clockwise
-                double L = area_fraction(dx[0] * dx[2],
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, f, 0))),
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, f, 1))),
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, f, 0))),
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, f, 1))));
-#endif
+                const double L = dx[0] * (*side_data)(SideIndex<NDIM>(idx, 1, f));
                 double Q_next = Q_data(idx + yp * sgn);
                 double vol_next = (*vol_data)(idx + yp * sgn);
                 if (MathUtilities<double>::equalEps(vol_next, 0.0)) continue;
@@ -402,11 +382,7 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
             {
                 const int sgn = f == 0 ? -1 : 1;
                 // Note the awkward ordering of indices. Needs to start at "bottom left" index and go clockwise
-                double L = area_fraction(dx[0] * dx[1],
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 0, f))),
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, 1, f))),
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 0, f))),
-                                         (*phi_n_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, 1, f))));
+                const double L = (*side_data)(SideIndex<NDIM>(idx, 2, f));
                 double Q_next = Q_data(idx + zp * sgn);
                 double vol_next = (*vol_data)(idx + zp * sgn);
                 if (MathUtilities<double>::equalEps(vol_next, 0.0)) continue;

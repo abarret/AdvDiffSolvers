@@ -12,6 +12,8 @@
 #include "ibtk/app_namespaces.h"
 #include "ibtk/ibtk_macros.h"
 
+#include "LS/LSFindCellVolume.h"
+
 #include "Box.h"
 #include "CellData.h"
 #include "CellIndex.h"
@@ -34,7 +36,7 @@ IBTK_ENABLE_EXTRA_WARNINGS
 
 namespace LS
 {
-class LSFromMesh
+class LSFromMesh : LSFindCellVolume
 {
 public:
     LSFromMesh(std::string object_name,
@@ -43,9 +45,9 @@ public:
                IBTK::FEDataManager* fe_data_manager,
                bool use_inside = true);
 
-    ~LSFromMesh() = default;
+    virtual ~LSFromMesh() = default;
 
-    void updateVolumeAreaLength(int vol_idx,
+    void updateVolumeAreaSideLS(int vol_idx,
                                 SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> vol_var,
                                 int area_idx,
                                 SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> area_var,
@@ -53,12 +55,12 @@ public:
                                 SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> side_var,
                                 int phi_idx,
                                 SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> phi_var,
-                                bool extended_box = false);
+                                double data_time,
+                                bool extended_box = false) override;
 
 private:
     bool findIntersection(libMesh::Point& p, libMesh::Elem* elem, libMesh::Point r, libMesh::VectorValue<double> q);
-    std::string d_object_name;
-    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
+
     libMesh::MeshBase* d_mesh;
     IBTK::FEDataManager* d_fe_data_manager;
     bool d_use_inside = true;

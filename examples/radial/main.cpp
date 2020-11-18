@@ -20,6 +20,7 @@
 
 // Headers for application-specific algorithm/data structure objects
 #include <ibamr/RelaxationLSMethod.h>
+#include <ibamr/app_namespaces.h>
 
 #include "ibtk/CartGridFunctionSet.h"
 #include "ibtk/PETScKrylovPoissonSolver.h"
@@ -28,16 +29,12 @@
 #include <ibtk/AppInitializer.h>
 
 #include "LS/LSCutCellLaplaceOperator.h"
+#include "LS/LSFromLevelSet.h"
 #include "LS/QInitial.h"
-
-#include "RadialBoundaryCond.h"
-
-// Set up application namespace declarations
-#include <ibamr/app_namespaces.h>
-
 #include "LS/SemiLagrangianAdvIntegrator.h"
 
 #include "QFcn.h"
+#include "RadialBoundaryCond.h"
 
 #include <Eigen/Dense>
 
@@ -69,10 +66,9 @@ outputBdryInfo(const int Q_idx,
                const double current_time,
                const int iteration_num,
                Pointer<PatchHierarchy<NDIM>> hierarchy,
-               Pointer<SetLSValue> set_ls_val,
+               Pointer<LSFindCellVolume> set_ls_val,
                bool allocate_ls_data)
 {
-    Pointer<LSFindCellVolume> find_cell_vol = new LSFindCellVolume("vol", hierarchy);
     for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
@@ -90,8 +86,9 @@ outputBdryInfo(const int Q_idx,
     hier_ghost_cells.initializeOperatorState(ghost_cell_comps, hierarchy, 0, hierarchy->getFinestLevelNumber());
     hier_ghost_cells.fillData(current_time);
 
-    if (set_ls_val) set_ls_val->setDataOnPatchHierarchy(ls_idx, ls_var, hierarchy, current_time);
-    find_cell_vol->updateVolumeAndArea(vol_idx, vol_var, area_idx, area_var, ls_idx, ls_var, true);
+    if (set_ls_val)
+        set_ls_val->updateVolumeAreaSideLS(
+            vol_idx, vol_var, area_idx, area_var, IBTK::invalid_index, nullptr, ls_idx, ls_var, true);
     output_to_file(
         Q_scr_idx, area_idx, vol_idx, ls_idx, "bdry_info" + std::to_string(iteration_num), current_time, hierarchy);
 
@@ -103,52 +100,6 @@ outputBdryInfo(const int Q_idx,
         level->deallocatePatchData(area_idx);
         level->deallocatePatchData(Q_scr_idx);
     }
-}
-
-struct LocateInterface
-{
-public:
-    LocateInterface(Pointer<CellVariable<NDIM, double>> ls_var,
-                    Pointer<AdvDiffHierarchyIntegrator> integrator,
-                    Pointer<CartGridFunction> ls_fcn)
-        : d_ls_var(ls_var), d_integrator(integrator), d_ls_fcn(ls_fcn)
-    {
-        pout << "d_ls_var::name: " << d_ls_var->getName() << "\n";
-        pout << "Creating object.\n";
-        // intentionally blank
-    }
-    void resetData(const int D_idx, Pointer<HierarchyMathOps> hier_math_ops, const double time, const bool initial_time)
-    {
-        Pointer<PatchHierarchy<NDIM>> hierarchy = hier_math_ops->getPatchHierarchy();
-        pout << "d_ls_var::name: " << d_ls_var->getName() << "\n";
-        if (initial_time)
-        {
-            d_ls_fcn->setDataOnPatchHierarchy(D_idx, d_ls_var, hierarchy, time, initial_time);
-        }
-        else
-        {
-            auto var_db = VariableDatabase<NDIM>::getDatabase();
-            const int ls_cur_idx = var_db->mapVariableAndContextToIndex(d_ls_var, d_integrator->getCurrentContext());
-            HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
-            hier_cc_data_ops.copyData(D_idx, ls_cur_idx);
-        }
-    }
-
-private:
-    Pointer<CellVariable<NDIM, double>> d_ls_var;
-    Pointer<AdvDiffHierarchyIntegrator> d_integrator;
-    Pointer<CartGridFunction> d_ls_fcn;
-};
-
-void
-locateInterface(const int D_idx,
-                SAMRAI::tbox::Pointer<IBTK::HierarchyMathOps> hier_math_ops,
-                const double time,
-                const bool initial_time,
-                void* ctx)
-{
-    auto interface = (static_cast<LocateInterface*>(ctx));
-    interface->resetData(D_idx, hier_math_ops, time, initial_time);
 }
 
 /*******************************************************************************
@@ -248,23 +199,15 @@ main(int argc, char* argv[])
         time_integrator->setAdvectionVelocityFunction(u_var, u_fcn);
 
         // Setup the level set function
-        Pointer<CellVariable<NDIM, double>> ls_var = new CellVariable<NDIM, double>("LS");
-        Pointer<NodeVariable<NDIM, double>> ls_n_var = new NodeVariable<NDIM, double>("LS_NODE");
+        Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS");
         time_integrator->registerLevelSetVariable(ls_var);
         time_integrator->registerLevelSetVelocity(ls_var, u_var);
         bool use_ls_fcn = input_db->getBool("USING_LS_FCN");
         Pointer<SetLSValue> ls_fcn =
             new SetLSValue("SetLSValue", grid_geometry, app_initializer->getComponentDatabase("SetLSValue"));
-        time_integrator->registerLevelSetFunction(ls_var, ls_fcn);
-        time_integrator->useLevelSetFunction(ls_var, use_ls_fcn);
-        LocateInterface interface(ls_var, time_integrator, ls_fcn);
-        if (!use_ls_fcn)
-        {
-            Pointer<RelaxationLSMethod> ls_ops = new RelaxationLSMethod(
-                "RelaxationLSMethod", app_initializer->getComponentDatabase("RelaxationLSMethod"));
-            ls_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface, static_cast<void*>(&interface));
-            time_integrator->registerLevelSetResetFunction(ls_var, ls_ops);
-        }
+        Pointer<LSFromLevelSet> vol_fcn = new LSFromLevelSet("LSFromLevelSet", patch_hierarchy);
+        vol_fcn->registerLSFcn(ls_fcn);
+        time_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
 
         time_integrator->registerTransportedQuantity(Q_var);
         time_integrator->setAdvectionVelocity(Q_var, u_var);
@@ -293,15 +236,14 @@ main(int argc, char* argv[])
         // Create a scratch volume, area, and level set
         bool output_bdry_info = input_db->getBool("OUTPUT_BDRY_INFO");
         auto var_db = VariableDatabase<NDIM>::getDatabase();
-        const int ls_n_idx =
-            var_db->registerVariableAndContext(ls_n_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
+        const int ls_idx =
+            var_db->registerVariableAndContext(ls_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
         Pointer<CellVariable<NDIM, double>> vol_var = new CellVariable<NDIM, double>("vol");
         Pointer<CellVariable<NDIM, double>> area_var = new CellVariable<NDIM, double>("area");
         const int vol_idx =
             var_db->registerVariableAndContext(vol_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
         const int area_idx =
             var_db->registerVariableAndContext(area_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(4));
-        Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume("VolFcn", patch_hierarchy);
 
         // Set up visualization plot file writer.
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
@@ -317,7 +259,7 @@ main(int argc, char* argv[])
         const int Q_exact_idx = var_db->registerVariableAndContext(Q_var, var_db->getContext("Draw"));
         bool draw_exact = input_db->getBool("DRAW_EXACT");
         if (draw_exact) visit_data_writer->registerPlotQuantity("Exact", "SCALAR", Q_exact_idx);
-        if (draw_exact) visit_data_writer->registerPlotQuantity("Exact LS", "SCALAR", ls_n_idx);
+        if (draw_exact) visit_data_writer->registerPlotQuantity("Exact LS", "SCALAR", ls_idx);
 
         // Initialize hierarchy configuration and data on all patches.
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
@@ -352,9 +294,8 @@ main(int argc, char* argv[])
             {
                 outputBdryInfo(Q_idx,
                                Q_scr_idx,
-                               time_integrator->getLevelSetNodeVariable(ls_var),
-                               var_db->mapVariableAndContextToIndex(time_integrator->getLevelSetNodeVariable(ls_var),
-                                                                    time_integrator->getCurrentContext()),
+                               ls_var,
+                               var_db->mapVariableAndContextToIndex(ls_var, time_integrator->getCurrentContext()),
                                vol_var,
                                vol_idx,
                                area_var,
@@ -362,7 +303,7 @@ main(int argc, char* argv[])
                                loop_time,
                                iteration_num,
                                patch_hierarchy,
-                               nullptr,
+                               vol_fcn,
                                false);
             }
         }
@@ -401,11 +342,11 @@ main(int argc, char* argv[])
                 if (draw_exact)
                 {
                     time_integrator->allocatePatchData(Q_exact_idx, loop_time);
-                    time_integrator->allocatePatchData(ls_n_idx, loop_time);
+                    time_integrator->allocatePatchData(ls_idx, loop_time);
                     time_integrator->allocatePatchData(vol_idx, loop_time);
-                    ls_fcn->setDataOnPatchHierarchy(ls_n_idx, ls_n_var, patch_hierarchy, loop_time);
-                    vol_fcn->updateVolumeAndArea(vol_idx, vol_var, -1, nullptr, ls_n_idx, ls_n_var);
-                    Q_init->setLSIndex(ls_n_idx, vol_idx);
+                    vol_fcn->updateVolumeAreaSideLS(
+                        vol_idx, vol_var, -1, nullptr, -1, nullptr, ls_idx, ls_var, loop_time, false);
+                    Q_init->setLSIndex(ls_idx, vol_idx);
                     Q_init->setDataOnPatchHierarchy(Q_exact_idx, Q_var, patch_hierarchy, loop_time);
                 }
                 u_fcn->setDataOnPatchHierarchy(u_draw_idx, u_draw_var, patch_hierarchy, loop_time);
@@ -414,26 +355,24 @@ main(int argc, char* argv[])
                 if (draw_exact)
                 {
                     time_integrator->deallocatePatchData(Q_exact_idx);
-                    time_integrator->deallocatePatchData(ls_n_idx);
+                    time_integrator->deallocatePatchData(ls_idx);
                     time_integrator->deallocatePatchData(vol_idx);
                 }
                 if (output_bdry_info)
                 {
-                    outputBdryInfo(
-                        Q_idx,
-                        Q_scr_idx,
-                        time_integrator->getLevelSetNodeVariable(ls_var),
-                        var_db->mapVariableAndContextToIndex(time_integrator->getLevelSetNodeVariable(ls_var),
-                                                             time_integrator->getCurrentContext()),
-                        vol_var,
-                        vol_idx,
-                        area_var,
-                        area_idx,
-                        loop_time,
-                        iteration_num,
-                        patch_hierarchy,
-                        nullptr,
-                        false);
+                    outputBdryInfo(Q_idx,
+                                   Q_scr_idx,
+                                   ls_var,
+                                   var_db->mapVariableAndContextToIndex(ls_var, time_integrator->getCurrentContext()),
+                                   vol_var,
+                                   vol_idx,
+                                   area_var,
+                                   area_idx,
+                                   loop_time,
+                                   iteration_num,
+                                   patch_hierarchy,
+                                   vol_fcn,
+                                   false);
                 }
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
@@ -468,34 +407,18 @@ main(int argc, char* argv[])
         {
             Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
             level->allocatePatchData(Q_err_idx, loop_time);
-            level->allocatePatchData(ls_n_idx, loop_time);
+            level->allocatePatchData(ls_idx, loop_time);
             level->allocatePatchData(vol_idx, loop_time);
         }
 
-        ls_fcn->setDataOnPatchHierarchy(ls_n_idx, ls_n_var, patch_hierarchy, loop_time);
-        vol_fcn->updateVolumeAndArea(vol_idx, vol_var, -1, nullptr, ls_n_idx, ls_n_var);
-        Q_init->setLSIndex(ls_n_idx, vol_idx);
+        ls_fcn->setDataOnPatchHierarchy(ls_idx, ls_var, patch_hierarchy, loop_time);
+        vol_fcn->updateVolumeAreaSideLS(vol_idx, vol_var, -1, nullptr, -1, nullptr, ls_idx, ls_var, loop_time, false);
+        Q_init->setLSIndex(ls_idx, vol_idx);
 
         Q_init->setDataOnPatchHierarchy(Q_err_idx, Q_var, patch_hierarchy, loop_time);
 
         Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierarchyMathOps", patch_hierarchy);
         const int wgt_cc_idx = hier_math_ops->getCellWeightPatchDescriptorIndex();
-
-        const int ls_c_idx = var_db->mapVariableAndContextToIndex(ls_var, time_integrator->getCurrentContext());
-        const int ls_cloned_idx = var_db->registerClonedPatchDataIndex(ls_var, ls_c_idx);
-        for (int ln = 0; ln <= finest_ln; ++ln)
-        {
-            Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
-            level->allocatePatchData(ls_cloned_idx);
-        }
-        ls_fcn->setDataOnPatchHierarchy(ls_cloned_idx, ls_var, patch_hierarchy, loop_time, false, 0, finest_ln);
-
-        hier_cc_data_ops.subtract(ls_cloned_idx, ls_cloned_idx, ls_c_idx);
-        pout << "Error in " << ls_var->getName() << " at time " << loop_time << ":\n"
-             << "  L1-norm:  " << std::setprecision(10) << hier_cc_data_ops.L1Norm(ls_cloned_idx, wgt_cc_idx) << "\n"
-             << "  L2-norm:  " << hier_cc_data_ops.L2Norm(ls_cloned_idx, wgt_cc_idx) << "\n"
-             << "  max-norm: " << hier_cc_data_ops.maxNorm(ls_cloned_idx, wgt_cc_idx) << "\n"
-             << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
 
         for (int ln = 0; ln <= finest_ln; ++ln)
         {
@@ -568,7 +491,6 @@ main(int argc, char* argv[])
         {
             Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
             level->deallocatePatchData(Q_err_idx);
-            level->deallocatePatchData(ls_cloned_idx);
         }
 
         if (!periodic_domain) delete Q_bcs[0];

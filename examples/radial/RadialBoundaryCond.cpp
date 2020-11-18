@@ -32,7 +32,7 @@ RadialBoundaryCond::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>> Q
     TBOX_ASSERT(d_ls_idx > 0 && d_vol_idx > 0 && d_area_idx > 0);
 #if (NDIM == 2)
     double g = 5.0 * (d_a - d_R + 2.0 * d_a * time) /
-               (d_D_coef * std::exp(d_R * d_R / (2.0 * d_D_coef + 4.0 * d_D_coef * time)) * (1.0 + 2.0 * time) *
+               (d_D_coef * std::exp(d_R * d_R / (2.0 * d_D_coef + 4.0 * d_D_coef * time)) * M_PI * (1.0 + 2.0 * time) *
                 (1.0 + 2.0 * time));
 #endif
 #if (NDIM == 3)

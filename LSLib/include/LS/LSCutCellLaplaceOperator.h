@@ -116,7 +116,9 @@ public:
                       int vol_idx,
                       Pointer<CellVariable<NDIM, double>> vol_var,
                       int area_idx,
-                      Pointer<CellVariable<NDIM, double>> area_var);
+                      Pointer<CellVariable<NDIM, double>> area_var,
+                      int side_idx,
+                      Pointer<SideVariable<NDIM, double>> side_var);
 
     inline void setBoundaryConditionOperator(SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> bdry_conds)
     {
@@ -192,6 +194,9 @@ private:
 
     SAMRAI::tbox::Pointer<SAMRAI::hier::Variable<NDIM>> d_ls_var;
     int d_ls_idx = IBTK::invalid_index;
+
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_side_var;
+    int d_side_idx = IBTK::invalid_index;
 
     SAMRAI::tbox::Pointer<LSCutCellBoundaryConditions> d_bdry_conds;
 
