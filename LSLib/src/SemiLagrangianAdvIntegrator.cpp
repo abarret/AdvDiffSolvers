@@ -257,6 +257,12 @@ SemiLagrangianAdvIntegrator::registerLevelSetVolFunction(Pointer<NodeVariable<ND
 }
 
 void
+SemiLagrangianAdvIntegrator::setFEDataManagerNeedsInitialization(FEDataManager* fe_data_manager)
+{
+    d_fe_data_managers.push_back(fe_data_manager);
+}
+
+void
 SemiLagrangianAdvIntegrator::restrictToLevelSet(Pointer<CellVariable<NDIM, double>> Q_var,
                                                 Pointer<NodeVariable<NDIM, double>> ls_var)
 {
@@ -352,42 +358,6 @@ SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarch
         hier_ops_manager->getOperationsDouble(new FaceVariable<NDIM, double>("fc_var"), d_hierarchy, true);
 
     d_integrator_is_initialized = true;
-}
-
-void
-SemiLagrangianAdvIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHierarchy<NDIM>> hierarchy,
-                                                            const int ln,
-                                                            const double data_time,
-                                                            const bool can_be_refined,
-                                                            bool initial_time,
-                                                            Pointer<BasePatchLevel<NDIM>> old_level,
-                                                            bool allocate_data)
-{
-    AdvDiffHierarchyIntegrator::initializeLevelDataSpecialized(
-        hierarchy, ln, data_time, can_be_refined, initial_time, old_level, allocate_data);
-    // Initialize level set
-    Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-
-    if (initial_time)
-    {
-        pout << "Setting level set at initial time: " << initial_time << "\n";
-        auto var_db = VariableDatabase<NDIM>::getDatabase();
-        for (size_t l = 0; l < d_ls_vars.size(); ++l)
-        {
-            const Pointer<NodeVariable<NDIM, double>>& ls_var = d_ls_vars[l];
-            const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
-            const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
-            const Pointer<SideVariable<NDIM, double>>& side_var = d_side_vars[l];
-
-            const Pointer<LSFindCellVolume>& vol_fcn = d_ls_vol_fcn_map[ls_var];
-            const int ls_cur_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
-            const int area_cur_idx = var_db->mapVariableAndContextToIndex(area_var, getCurrentContext());
-            const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
-            const int side_cur_idx = var_db->mapVariableAndContextToIndex(side_var, getCurrentContext());
-            vol_fcn->updateVolumeAreaSideLS(
-                vol_cur_idx, vol_var, area_cur_idx, area_var, side_cur_idx, side_var, ls_cur_idx, ls_var, 0.0, false);
-        }
-    }
 }
 
 void
@@ -558,19 +528,6 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         helmholtz_solver->setTimeInterval(current_time, new_time);
         l++;
     }
-
-    for (auto& sb_ls_pair : d_sb_integrator_ls_map)
-    {
-        const Pointer<NodeVariable<NDIM, double>>& ls_var = sb_ls_pair.second;
-        const unsigned int l = std::distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
-        const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
-        auto var_db = VariableDatabase<NDIM>::getDatabase();
-        const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
-        const int vol_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
-        Pointer<SBIntegrator> sb_integrator = sb_ls_pair.first;
-        sb_integrator->setLSData(ls_idx, vol_idx, d_hierarchy);
-        sb_integrator->beginTimestepping(current_time, new_time);
-    }
     LS_TIMER_STOP(t_preprocess);
 }
 
@@ -584,7 +541,20 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
     auto var_db = VariableDatabase<NDIM>::getDatabase();
 
     for (auto& sb_ls_pair : d_sb_integrator_ls_map)
-        sb_ls_pair.first->integrateHierarchy(getCurrentContext(), current_time, new_time);
+    {
+        const Pointer<NodeVariable<NDIM, double>>& ls_var = sb_ls_pair.second;
+        const unsigned int l = std::distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
+        const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
+        const int vol_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
+        Pointer<SBIntegrator> sb_integrator = sb_ls_pair.first;
+        sb_integrator->setLSData(ls_idx, vol_idx, d_hierarchy);
+        sb_integrator->beginTimestepping(current_time, d_use_strang_splitting ? half_time : new_time);
+        sb_integrator->integrateHierarchy(
+            getCurrentContext(), current_time, d_use_strang_splitting ? half_time : new_time);
+        sb_integrator->endTimestepping(current_time, d_use_strang_splitting ? half_time : new_time);
+    }
 
     for (const auto& Q_var : d_Q_var)
     {
@@ -669,6 +639,21 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
 
     if (d_use_strang_splitting)
     {
+        for (auto& sb_ls_pair : d_sb_integrator_ls_map)
+        {
+            const Pointer<NodeVariable<NDIM, double>>& ls_var = sb_ls_pair.second;
+            const unsigned int l =
+                std::distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
+            const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
+            const int vol_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
+            Pointer<SBIntegrator> sb_integrator = sb_ls_pair.first;
+            sb_integrator->setLSData(ls_idx, vol_idx, d_hierarchy);
+            sb_integrator->beginTimestepping(half_time, new_time);
+            sb_integrator->integrateHierarchy(getCurrentContext(), half_time, new_time);
+            sb_integrator->endTimestepping(half_time, new_time);
+        }
         for (const auto& Q_var : d_Q_var)
         {
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
@@ -722,8 +707,6 @@ SemiLagrangianAdvIntegrator::postprocessIntegrateHierarchy(const double current_
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
         d_hierarchy->getPatchLevel(ln)->deallocatePatchData(d_adv_data);
 
-    for (auto& sb_ls_pair : d_sb_integrator_ls_map) sb_ls_pair.first->endTimestepping(current_time, new_time);
-
     AdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(
         current_time, new_time, skip_synchronize_new_state_data, num_cycles);
     LS_TIMER_STOP(t_postprocess);
@@ -737,6 +720,12 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
 
     if (initial_time)
     {
+        for (const auto& fe_data_manager : d_fe_data_managers)
+        {
+            fe_data_manager->setPatchHierarchy(d_hierarchy);
+            fe_data_manager->reinitElementMappings();
+        }
+
         auto var_db = VariableDatabase<NDIM>::getDatabase();
         // Set initial level set data
         for (size_t l = 0; l < d_ls_vars.size(); ++l)

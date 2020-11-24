@@ -1,5 +1,7 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
+#include "ibamr/ibamr_utilities.h"
+
 #include "ibtk/CellNoCornersFillPattern.h"
 #include "ibtk/DebuggingUtilities.h"
 #include "ibtk/HierarchyGhostCellInterpolation.h"
@@ -75,15 +77,15 @@ LSCutCellLaplaceOperator::LSCutCellLaplaceOperator(const std::string& object_nam
     d_Q_extrap_idx = var_db->registerVariableAndContext(
         d_Q_var, var_db->getContext(d_object_name + "::EXTRAPOLATE"), d_rbf_reconstruct.getStencilWidth());
 
-    IBAMR_DO_ONCE(
-        t_compute_helmholtz =
-            TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::computeHelmholtzAction()");
-        t_extrapolate =
-            TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::extrapolateToCellCenters()");
-        t_apply = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::apply()");
-        t_find_cell_centroid = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::find_cell_centroid");
-        t_find_system = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::find_system");
-        t_solve_system = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::solve_system"));
+    IBAMR_DO_ONCE(t_compute_helmholtz =
+                      TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::computeHelmholtzAction()");
+                  t_extrapolate =
+                      TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::extrapolateToCellCenters()");
+                  t_apply = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::apply()");
+                  t_find_cell_centroid =
+                      TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::find_cell_centroid");
+                  t_find_system = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::find_system");
+                  t_solve_system = TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::solve_system"););
     return;
 } // LSCutCellLaplaceOperator()
 
@@ -172,7 +174,7 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
                 TBOX_ASSERT(d_bdry_conds);
                 d_bdry_conds->setHomogeneousBdry(d_homogeneous_bc);
                 d_bdry_conds->applyBoundaryCondition(
-                    d_Q_var, d_Q_scr_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
+                    d_Q_var, d_Q_extrap_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
             }
         }
     }

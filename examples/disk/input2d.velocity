@@ -11,7 +11,7 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 128                                    // coarsest grid spacing
+N = 512                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = 2.0*LY/NFINEST
 H = DX
@@ -23,7 +23,7 @@ DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 2.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
-USE_STRANG_SPLITTING = TRUE
+USE_STRANG_SPLITTING = FALSE
 USE_OUTSIDE_LS_FOR_TAGGING = TRUE
 ADV_INT_METHOD = "MIDPOINT_RULE"
 DIF_INT_METHOD = "TRAPEZOIDAL_RULE"
@@ -32,7 +32,7 @@ RBF_STENCIL_SIZE = 2
 REACT_FRAC = 0.25
 
 ERROR_ON_MOVE = TRUE
-MFAC = 1.0
+MFAC = 1.5
 ELEM_TYPE = "EDGE2"
 elem_order = "FIRST"
 THETA = PI/18.0
@@ -40,6 +40,9 @@ Y_LOW = 0.5
 Y_UP = 1.5
 KAPPA_S = 5.0e2
 ETA_S = 1.0e1
+CENTER = 0.021,0.003
+XCOM = 0.021
+YCOM = 0.003
 
 D_COEF = 0.1
 K_ON = 1.0
@@ -99,15 +102,16 @@ ForcingFcn {
    d = D_COEF
    k_on = K_ON
    k_off = K_OFF
+   center = XCOM,YCOM
 }
 
 SBIntegrator {
-   perturb_nodes = TRUE
+   perturb_nodes = FALSE
    stencil_width = 2
 }
 
 SBBoundaryConditions {
-   perturb_nodes = TRUE
+   perturb_nodes = FALSE
 }
 
 LSBcCoefs {
@@ -219,6 +223,7 @@ QInitial {
    d = D_COEF
    k_on = K_ON
    k_off = K_OFF
+   center = XCOM,YCOM
 }
 
 PoissonSolver {

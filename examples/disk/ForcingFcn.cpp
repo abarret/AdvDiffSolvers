@@ -35,6 +35,7 @@ ForcingFcn::ForcingFcn(const string& object_name, Pointer<Database> input_db) : 
     d_D = input_db->getDouble("d");
     d_k_on = input_db->getDouble("k_on");
     d_k_off = input_db->getDouble("k_off");
+    input_db->getDoubleArray("center", d_cent.data(), NDIM);
     return;
 } // ForcingFcn
 
@@ -72,6 +73,7 @@ ForcingFcn::setDataOnPatch(const int data_idx,
             double denom = -2.0 * d_D - d_k_on * (1.0 + (time - 1.0) * time);
             VectorNd X = LS::find_cell_centroid(idx, *ls_data);
             for (int d = 0; d < NDIM; ++d) X[d] = xlow[d] + dx[d] * X[d];
+            X -= d_cent;
             const double r2 = X.squaredNorm();
             (*F_data)(idx) = r2 * d_k_on * (2.0 * time - 1.0) *
                                  (d_k_off * time * (time - 1.0) + d_k_on * (1.0 + (time - 1.0) * time)) /

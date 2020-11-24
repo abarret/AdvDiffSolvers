@@ -4,8 +4,6 @@
 #include "LS/LSFromMesh.h"
 #include "LS/utility_functions.h"
 
-#include "libmesh/elem_cutter.h"
-
 // FORTRAN ROUTINES
 #if (NDIM == 2)
 #define SIGN_SWEEP_FC IBAMR_FC_FUNC(signsweep2dn, SIGNSWEEP2D)
@@ -38,9 +36,6 @@ LSFromMesh::LSFromMesh(std::string object_name,
       d_use_inside(use_inside),
       d_sgn_var(new CellVariable<NDIM, double>(d_object_name + "SGN"))
 {
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_sgn_idx =
-        var_db->registerVariableAndContext(d_sgn_var, var_db->getContext(d_object_name + "::CTX"), IntVector<NDIM>(1));
     // intentionally blank
     return;
 } // Constructor
@@ -57,12 +52,6 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                                    double /*data_time*/,
                                    bool extended_box)
 {
-    // Allocate data
-    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        level->allocatePatchData(d_sgn_idx);
-    }
     TBOX_ASSERT(phi_idx != IBTK::invalid_index);
     TBOX_ASSERT(phi_var);
     HierarchyNodeDataOpsReal<NDIM, double> hier_nc_data_ops(d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
@@ -81,7 +70,6 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
     VectorValue<double> n;
 
     std::map<hier::Index<NDIM>, std::vector<libMesh::Point>> index_volume_pts_map;
-    std::map<hier::Index<NDIM>, int> index_volume_elems_map;
 
     for (PatchLevel<NDIM>::Iterator p(level); p; p++)
     {
@@ -151,7 +139,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
             Box<NDIM> box(IndexUtilities::getCellIndex(&x_min[0], grid_geom, level->getRatio()),
                           IndexUtilities::getCellIndex(&x_max[0], grid_geom, level->getRatio()));
             box.grow(1);
-            box = box * patch->getBox();
+            box = box * (extended_box ? vol_data->getGhostBox() : patch->getBox());
 
             // We have the bounding box of the element. Loop over coordinate directions and look for intersections with
             // the background grid.
@@ -193,7 +181,6 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
         }
         // We have all the intersections for this patch. Loop through and determine length fractions, surface areas, and
         // cell volumes
-        ElemCutter elem_cutter;
         for (const auto& index_elem_vec_pair : index_elem_map)
         {
             const hier::Index<NDIM>& idx = index_elem_vec_pair.first;
@@ -409,8 +396,8 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                                 // pt3 is on the line with pt0 that is perpendicular to a coordinate axis.
                                 VectorNd pt;
                                 pt << static_cast<double>(idx(0) + x), static_cast<double>(idx(1) + y);
-                                if (MathUtilities<double>::equalEps((pt - pt0).dot(VectorNd::UnitX()), 0.0) ||
-                                    MathUtilities<double>::equalEps((pt - pt0).dot(VectorNd::UnitY()), 0.0))
+                                if (std::abs((pt - pt0).dot(VectorNd::UnitX())) < sqrt(DBL_EPSILON) ||
+                                    std::abs((pt - pt0).dot(VectorNd::UnitY())) < sqrt(DBL_EPSILON))
                                     pt3 = pt;
                                 else
                                     pt2 = pt;
@@ -489,19 +476,40 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
         Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
         Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(area_idx);
         Pointer<NodeData<NDIM, double>> sgn_data = patch->getPatchData(phi_idx);
+        Pointer<SideData<NDIM, double>> side_data = patch->getPatchData(side_idx);
         for (CellIterator<NDIM> ci(box); ci; ci++)
         {
             const CellIndex<NDIM>& idx = ci();
             double phi_cc = LS::node_to_cell(idx, *sgn_data);
             if (phi_cc > (5.0 * dx[0]))
             {
-                (*vol_data)(idx) = 0.0;
-                (*area_data)(idx) = 0.0;
+                if (vol_data) (*vol_data)(idx) = 0.0;
+                if (area_data) (*area_data)(idx) = 0.0;
+                if (side_data)
+                {
+                    for (int axis = 0; axis < NDIM; ++axis)
+                    {
+                        for (int upper_lower = 0; upper_lower < 2; ++upper_lower)
+                        {
+                            (*side_data)(SideIndex<NDIM>(idx, axis, upper_lower)) = 0.0;
+                        }
+                    }
+                }
             }
             else if (phi_cc < (-5.0 * dx[0]))
             {
-                (*vol_data)(idx) = 1.0;
-                (*area_data)(idx) = 0.0;
+                if (vol_data) (*vol_data)(idx) = 1.0;
+                if (area_data) (*area_data)(idx) = 0.0;
+                if (side_data)
+                {
+                    for (int axis = 0; axis < NDIM; ++axis)
+                    {
+                        for (int upper_lower = 0; upper_lower < 2; ++upper_lower)
+                        {
+                            (*side_data)(SideIndex<NDIM>(idx, axis, upper_lower)) = 1.0;
+                        }
+                    }
+                }
             }
         }
     }

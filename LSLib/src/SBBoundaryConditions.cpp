@@ -136,9 +136,9 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
 
     for (const auto sf_name : d_sf_names)
     {
-        System& sf_sys = eq_sys->get_system(sf_name);
+        auto& sf_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
         sf_dof_maps.push_back(&sf_sys.get_dof_map());
-        sf_vecs.push_back(sf_sys.solution.get());
+        sf_vecs.push_back(sf_sys.old_local_solution.get());
     }
 
     // Get base system
@@ -293,11 +293,6 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
             for (BoxIterator<NDIM> b(box); b; b++)
             {
                 const hier::Index<NDIM>& i_c = b();
-                if (!d_homogeneous_bdry)
-                {
-                    plog << "On index: " << i_c << "\n";
-                    plog << "With parent element: " << elem->point(0) << " and " << elem->point(1) << "\n";
-                }
                 // We have the index of the box. Each box should have zero or two intersections
                 std::vector<libMesh::Point> intersection_points(0);
                 for (int upper_lower = 0; upper_lower < 2; ++upper_lower)
@@ -316,51 +311,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                         libMesh::Point p;
                         // An element may intersect zero or one times with a cell edge.
                         if (findIntersection(p, elem, r, q))
-                        {
                             intersection_points.push_back(p);
-                            // Compare this length fraction with LSCutCellLaplaceOperator length fraction
-                            NodeIndex<NDIM> idx_l, idx_u;
-                            if (axis == 0)
-                            {
-                                if (upper_lower == 0)
-                                {
-                                    idx_l = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::LowerLeft);
-                                    idx_u = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::UpperLeft);
-                                }
-                                else
-                                {
-                                    idx_l = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::LowerRight);
-                                    idx_u = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::UpperRight);
-                                }
-                            }
-                            else
-                            {
-                                if (upper_lower == 0)
-                                {
-                                    idx_l = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::LowerLeft);
-                                    idx_u = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::UpperRight);
-                                }
-                                else
-                                {
-                                    idx_l = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::UpperLeft);
-                                    idx_u = NodeIndex<NDIM>(i_c, NodeIndex<NDIM>::UpperRight);
-                                }
-                            }
-                            const double lf_laplace = LS::length_fraction(1.0, (*ls_data)(idx_l), (*ls_data)(idx_u));
-                            VectorNd x_corner;
-                            for (int d = 0; d < NDIM; ++d)
-                                x_corner[d] = x_lower[d] + dx[d] * static_cast<double>(idx_l(d) - patch_lower(d));
-                            if ((*ls_data)(idx_u) < 0.0) x_corner[axis] += dx[axis];
-                            VectorNd p_vec = { p(0), p(1) };
-                            VectorNd dist = x_corner - p_vec;
-                            for (int d = 0; d < NDIM; ++d) dist[d] /= dx[d];
-                            double lf_here = dist.norm();
-                            if (!d_homogeneous_bdry)
-                            {
-                                plog << "Length fraction from ls:  " << lf_laplace << "\n";
-                                plog << "Length fraction from mesh: " << lf_here << "\n";
-                            }
-                        }
                     }
                 }
 
@@ -529,29 +480,6 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                         double ls_val = (*ls_data)(idx_neg);
                         if (ls_val < 0.0) done = true;
                     }
-                }
-                VectorNd pt1 = { new_elem->point(0)(0), new_elem->point(0)(1) };
-                VectorNd pt2 = { new_elem->point(1)(0), new_elem->point(1)(1) };
-                VectorNd pt3;
-                for (int d = 0; d < NDIM; ++d)
-                    pt3[d] = x_lower[d] + dx[d] * (static_cast<double>(idx_neg(d) - patch_lower(d)));
-                double vol = 0.5 * (pt1 - pt3).norm() * (pt2 - pt3).norm() / (dx[0] * dx[1]);
-
-                if (!d_homogeneous_bdry)
-                {
-                    plog << "Found element with end points: " << new_elem->point(0) << " and " << new_elem->point(1)
-                         << "\n";
-                    plog << "a fcn value: " << a << "\n";
-                    plog << "g fcn value: " << g << "\n";
-                    plog << "Q_soln on new elem:  " << Q_soln_on_new_elem[0] << " and " << Q_soln_on_new_elem[1]
-                         << "\n";
-                    plog << "sf_soln on new elem: " << sf_soln_on_new_elem[0][0] << " and " << sf_soln_on_new_elem[0][1]
-                         << "\n";
-                    plog << "Level set has area: " << (*area_data)(i_c) << "\n";
-                    plog << "Total area of elem: " << area << "\n";
-                    plog << "Cumulative area of index: " << elem_area_data(i_c) << "\n";
-                    plog << "Elem volume from ls:   " << (*vol_data)(i_c) << "\n";
-                    plog << "Elem volume from mesh: " << vol << "\n\n";
                 }
 
                 double cell_volume = dx[0] * dx[1] * (*vol_data)(i_c);

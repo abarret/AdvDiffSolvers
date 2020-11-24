@@ -13,6 +13,8 @@
 
 #include <IBAMR_config.h>
 
+#include "LS/utility_functions.h"
+
 #include "QFcn.h"
 
 #include <SAMRAI_config.h>
@@ -55,10 +57,11 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
     auto integrator = IntegrateFunction::getIntegrator();
 
     auto fcn = [this](VectorNd X, double t) -> double {
+        X -= d_cent;
         return 1.0 + X.squaredNorm() * (d_k_on * (1.0 - t * (1.0 - t)) - d_k_off * t * (1.0 - t)) /
                          (-2.0 * d_D - d_k_on * (1.0 - t * (1.0 - t)));
     };
-    integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
+    //    integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
 
     // Divide by total volume to get cell average
     for (int ln = coarsest_ln; ln <= finest_ln; ln++)
@@ -69,14 +72,23 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
+            const double* const xlow = pgeom->getXLower();
             Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(data_idx);
+            Q_data->fillAll(0.0);
             Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
+            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_ls_idx);
             for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
                 if ((*vol_data)(idx) > 0.0)
                 {
-                    (*Q_data)(idx) /= (*vol_data)(idx)*dx[0] * dx[1];
+                    VectorNd cell_centroid = LS::find_cell_centroid(idx, *ls_data);
+                    for (int d = 0; d < NDIM; ++d)
+                    {
+                        cell_centroid[d] = xlow[d] + dx[d] * cell_centroid[d];
+                    }
+                    (*Q_data)(idx) = fcn(cell_centroid, data_time);
+                    //                    (*Q_data)(idx) /= (*vol_data)(idx)*dx[0] * dx[1];
                 }
             }
         }
@@ -110,6 +122,7 @@ QFcn::getFromInput(Pointer<Database> db)
     d_D = db->getDouble("d");
     d_k_off = db->getDouble("k_off");
     d_k_on = db->getDouble("k_on");
+    db->getDoubleArray("center", d_cent.data(), NDIM);
     return;
 } // getFromInput
 

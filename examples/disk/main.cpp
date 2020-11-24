@@ -35,13 +35,13 @@
 #include <ibtk/IBTKInit.h>
 
 #include "LS/LSCutCellLaplaceOperator.h"
+#include "LS/LSFromMesh.h"
 #include "LS/QInitial.h"
 #include "LS/SBBoundaryConditions.h"
 #include "LS/SBIntegrator.h"
 #include "LS/SemiLagrangianAdvIntegrator.h"
 
 #include "ForcingFcn.h"
-#include "InsideLSFcn.h"
 #include "QFcn.h"
 
 #include <libmesh/boundary_mesh.h>
@@ -50,6 +50,7 @@
 #include <libmesh/exodusII_io.h>
 #include <libmesh/mesh.h>
 #include <libmesh/mesh_generation.h>
+#include <libmesh/mesh_modification.h>
 #include <libmesh/numeric_vector.h>
 #include <libmesh/transient_system.h>
 
@@ -160,6 +161,8 @@ main(int argc, char* argv[])
         k_on = input_db->getDouble("K_ON");
         k_off = input_db->getDouble("K_OFF");
         D_coef = input_db->getDouble("D_COEF");
+        VectorNd cent;
+        input_db->getDoubleArray("CENTER", cent.data(), NDIM);
 
         string IB_delta_function = input_db->getString("IB_DELTA_FUNCTION");
         string elem_type = input_db->getString("ELEM_TYPE");
@@ -185,6 +188,7 @@ main(int argc, char* argv[])
                 }
             }
         }
+        MeshTools::Modification::translate(solid_mesh, cent(0), cent(1));
 
         solid_mesh.prepare_for_use();
         BoundaryMesh reaction_mesh(solid_mesh.comm(), solid_mesh.mesh_dimension() - 1);
@@ -240,19 +244,14 @@ main(int argc, char* argv[])
         adv_diff_integrator->setAdvectionVelocityFunction(u_var, u_fcn);
 
         // Setup the level set function
-        Pointer<CellVariable<NDIM, double>> ls_in_cell_var = new CellVariable<NDIM, double>("LS_In");
-        adv_diff_integrator->registerLevelSetVariable(ls_in_cell_var);
-        adv_diff_integrator->registerLevelSetVelocity(ls_in_cell_var, u_var);
-        bool use_ls_fcn = input_db->getBool("USING_LS_FCN");
-        Pointer<InsideLSFcn> ls_fcn = new InsideLSFcn("InsideLSFcn",
-                                                      app_initializer->getComponentDatabase("InsideLSFcn"),
-                                                      &reaction_mesh,
-                                                      &reaction_mesh,
-                                                      ib_method_ops->getFEDataManager(REACTION_MESH_ID));
-        adv_diff_integrator->registerLevelSetFunction(ls_in_cell_var, ls_fcn);
-        adv_diff_integrator->useLevelSetFunction(ls_in_cell_var, use_ls_fcn);
-        Pointer<NodeVariable<NDIM, double>> ls_in_node_var =
-            adv_diff_integrator->getLevelSetNodeVariable(ls_in_cell_var);
+        Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS_In");
+        adv_diff_integrator->registerLevelSetVariable(ls_var);
+        adv_diff_integrator->registerLevelSetVelocity(ls_var, u_var);
+
+        Pointer<LSFromMesh> vol_fcn = new LSFromMesh(
+            "LSFromMesh", patch_hierarchy, &reaction_mesh, ib_method_ops->getFEDataManager(REACTION_MESH_ID), true);
+        adv_diff_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
+        adv_diff_integrator->setFEDataManagerNeedsInitialization(ib_method_ops->getFEDataManager(REACTION_MESH_ID));
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_in_var = new CellVariable<NDIM, double>("Q_in");
@@ -270,7 +269,7 @@ main(int argc, char* argv[])
         adv_diff_integrator->setInitialConditions(Q_in_var, Q_in_init);
         adv_diff_integrator->setPhysicalBcCoef(Q_in_var, Q_in_bcs[0]);
         adv_diff_integrator->setDiffusionCoefficient(Q_in_var, input_db->getDouble("D_COEF"));
-        adv_diff_integrator->restrictToLevelSet(Q_in_var, ls_in_cell_var);
+        adv_diff_integrator->restrictToLevelSet(Q_in_var, ls_var);
 
         Pointer<SBIntegrator> sb_integrator = new SBIntegrator("SBIntegrator",
                                                                app_initializer->getComponentDatabase("SBIntegrator"),
@@ -282,7 +281,7 @@ main(int argc, char* argv[])
         sb_integrator->registerFluidSurfaceDependence(sf_name, Q_in_var);
         sb_integrator->registerSurfaceReactionFunction(sf_name, sf_ode, nullptr);
         sb_integrator->initializeFEEquationSystems();
-        adv_diff_integrator->registerSBIntegrator(sb_integrator, ls_in_cell_var);
+        adv_diff_integrator->registerSBIntegrator(sb_integrator, ls_var);
 
         // Forcing term
         Pointer<CellVariable<NDIM, double>> F_var = new CellVariable<NDIM, double>("F");
@@ -371,10 +370,9 @@ main(int argc, char* argv[])
         plog << "Input database:\n";
         input_db->printClassData(plog);
 
-        const int vol_idx = var_db->mapVariableAndContextToIndex(adv_diff_integrator->getVolumeVariable(ls_in_cell_var),
+        const int vol_idx = var_db->mapVariableAndContextToIndex(adv_diff_integrator->getVolumeVariable(ls_var),
                                                                  adv_diff_integrator->getCurrentContext());
-        const int ls_idx = var_db->mapVariableAndContextToIndex(
-            adv_diff_integrator->getLevelSetNodeVariable(ls_in_cell_var), adv_diff_integrator->getCurrentContext());
+        const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, adv_diff_integrator->getCurrentContext());
         forcing_fcn->setLSIndex(ls_idx, vol_idx);
 
         double dt = adv_diff_integrator->getMaximumTimeStepSize();
@@ -387,13 +385,6 @@ main(int argc, char* argv[])
         {
             pout << "\n\nWriting visualization files...\n\n";
             adv_diff_integrator->setupPlotData();
-
-            visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-            if (uses_exodus)
-            {
-                reaction_exodus_io->write_timestep(
-                    reaction_exodus_filename, *reaction_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
-            }
             computeFluidErrors(
                 Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
             computeSurfaceErrors(reaction_mesh,
@@ -401,6 +392,13 @@ main(int argc, char* argv[])
                                  sb_integrator->getSFNames()[0],
                                  err_sys_name,
                                  loop_time);
+
+            visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
+            if (uses_exodus)
+            {
+                reaction_exodus_io->write_timestep(
+                    reaction_exodus_filename, *reaction_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
+            }
         }
 
         // Main time step loop.
@@ -418,13 +416,6 @@ main(int argc, char* argv[])
             dt = adv_diff_integrator->getMaximumTimeStepSize();
             adv_diff_integrator->advanceHierarchy(dt);
             loop_time += dt;
-            computeFluidErrors(
-                Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
-            computeSurfaceErrors(reaction_mesh,
-                                 ib_method_ops->getFEDataManager(REACTION_MESH_ID),
-                                 sb_integrator->getSFNames()[0],
-                                 err_sys_name,
-                                 loop_time);
 
             pout << "\n";
             pout << "At end       of timestep # " << iteration_num << "\n";
@@ -440,6 +431,13 @@ main(int argc, char* argv[])
             {
                 pout << "\nWriting visualization files...\n\n";
                 adv_diff_integrator->setupPlotData();
+                computeFluidErrors(
+                    Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
+                computeSurfaceErrors(reaction_mesh,
+                                     ib_method_ops->getFEDataManager(REACTION_MESH_ID),
+                                     sb_integrator->getSFNames()[0],
+                                     err_sys_name,
+                                     loop_time);
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
                 if (uses_exodus)
                 {
@@ -582,8 +580,41 @@ computeFluidErrors(Pointer<CellVariable<NDIM, double>> Q_var,
     const int wgt_cc_idx = hier_math_ops.getCellWeightPatchDescriptorIndex();
     HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
     hier_cc_data_ops.subtract(Q_error_idx, Q_exact_idx, Q_idx);
-    hier_cc_data_ops.multiply(wgt_cc_idx, wgt_cc_idx, vol_idx);
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+            Pointer<CellData<NDIM, double>> wgt_data = patch->getPatchData(wgt_cc_idx);
+            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                (*wgt_data)(idx) = (*vol_data)(idx) > 0.0 ? (*wgt_data)(idx) : 0.0;
+            }
+        }
+    }
     pout << "Error in fluid at time: " << time << "\n";
+    pout << "  L1-norm:   " << std::setprecision(10) << hier_cc_data_ops.L1Norm(Q_error_idx, wgt_cc_idx) << "\n";
+    pout << "  L2-norm:   " << std::setprecision(10) << hier_cc_data_ops.L2Norm(Q_error_idx, wgt_cc_idx) << "\n";
+    pout << "  max-norm:  " << std::setprecision(10) << hier_cc_data_ops.maxNorm(Q_error_idx, wgt_cc_idx) << "\n";
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+            Pointer<CellData<NDIM, double>> wgt_data = patch->getPatchData(wgt_cc_idx);
+            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                (*wgt_data)(idx) = (*vol_data)(idx) < 1.0 ? 0.0 : (*wgt_data)(idx);
+            }
+        }
+    }
+    pout << "Error in fluid without cut cells at time: " << time << "\n";
     pout << "  L1-norm:   " << std::setprecision(10) << hier_cc_data_ops.L1Norm(Q_error_idx, wgt_cc_idx) << "\n";
     pout << "  L2-norm:   " << std::setprecision(10) << hier_cc_data_ops.L2Norm(Q_error_idx, wgt_cc_idx) << "\n";
     pout << "  max-norm:  " << std::setprecision(10) << hier_cc_data_ops.maxNorm(Q_error_idx, wgt_cc_idx) << "\n";

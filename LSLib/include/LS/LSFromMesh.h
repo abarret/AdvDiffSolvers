@@ -10,7 +10,7 @@
 #include "ibtk/FEDataManager.h"
 #include "ibtk/IndexUtilities.h"
 #include "ibtk/app_namespaces.h"
-#include "ibtk/ibtk_macros.h"
+#include "ibtk/config.h"
 
 #include "LS/LSFindCellVolume.h"
 
