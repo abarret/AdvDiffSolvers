@@ -1,11 +1,28 @@
 #include "LS/RBFReconstructCache.h"
 
+namespace
+{
+static Timer* t_cacheRBFData = nullptr;
+} // namespace
+
 namespace LS
 {
 RBFReconstructCache::RBFReconstructCache(int ls_idx, int vol_idx, Pointer<PatchHierarchy<NDIM>> hierarchy)
     : d_hierarchy(hierarchy), d_vol_idx(vol_idx), d_ls_idx(ls_idx)
 {
+    constructTimers();
     // intentionally blank
+}
+
+RBFReconstructCache::RBFReconstructCache()
+{
+    constructTimers();
+}
+
+void
+RBFReconstructCache::constructTimers()
+{
+    IBTK_DO_ONCE(t_cacheRBFData = TimerManager::getManager()->getTimer("LS::RBFReconstructCache::cacheRBFData()"););
 }
 
 void
@@ -34,6 +51,7 @@ RBFReconstructCache::setPatchHierarchy(Pointer<PatchHierarchy<NDIM>> hierarchy)
 void
 RBFReconstructCache::cacheRBFData()
 {
+    LS_TIMER_START(t_cacheRBFData);
     const int coarsest_ln = 0;
     const int finest_ln = d_hierarchy->getFinestLevelNumber();
     // Free any preallocated matrices
@@ -117,6 +135,7 @@ RBFReconstructCache::cacheRBFData()
         }
     }
     d_update_weights = false;
+    LS_TIMER_STOP(t_cacheRBFData);
 }
 
 double

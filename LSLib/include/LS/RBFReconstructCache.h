@@ -31,11 +31,13 @@ namespace LS
 class RBFReconstructCache
 {
 public:
-    RBFReconstructCache() = default;
+    RBFReconstructCache();
 
     RBFReconstructCache(int ls_idx, int vol_idx, SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
 
     ~RBFReconstructCache() = default;
+
+    void constructTimers();
 
     /*!
      * \brief Deleted copy constructor.

@@ -80,14 +80,6 @@ public:
                                double time);
 
 private:
-    double reconstructRBF(const IBTK::VectorNd& x,
-                          const SAMRAI::pdat::CellIndex<NDIM>& idx,
-                          const SAMRAI::pdat::NodeData<NDIM, double>& ls_vals,
-                          const SAMRAI::pdat::CellData<NDIM, double>& vol_vals,
-                          const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
-                          SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
-
-    void cacheRBFData();
 
     std::string d_object_name;
 

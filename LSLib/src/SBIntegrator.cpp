@@ -10,6 +10,12 @@
 
 #include <boost/multi_array.hpp>
 
+namespace
+{
+static Timer* t_integrateHierarchy = nullptr;
+static Timer* t_interpolateToBoundary = nullptr;
+} // namespace
+
 namespace LS
 {
 SBIntegrator::SBIntegrator(std::string object_name,
@@ -27,6 +33,10 @@ SBIntegrator::SBIntegrator(std::string object_name,
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_scr_idx = var_db->registerVariableAndContext(
         d_scr_var, var_db->getContext(d_object_name + "::SCR"), d_rbf_reconstruct.getStencilWidth());
+
+    IBTK_DO_ONCE(t_integrateHierarchy = TimerManager::getManager()->getTimer("LS::SBIntegrator::integrateHierarchy()");
+                 t_interpolateToBoundary =
+                     TimerManager::getManager()->getTimer("LS::SBIntegrator::interpolateToBoundary()"););
 }
 
 void
@@ -135,6 +145,7 @@ SBIntegrator::setLSData(const int ls_idx, const int vol_idx, Pointer<PatchHierar
 void
 SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double current_time, const double new_time)
 {
+    LS_TIMER_START(t_integrateHierarchy);
     for (unsigned int l = 0; l < d_fl_names.size(); ++l)
     {
         interpolateToBoundary(d_fl_vars[l], ctx, d_hierarchy);
@@ -210,6 +221,7 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
         }
         sf_base_cur_vec->close();
     }
+    LS_TIMER_STOP(t_integrateHierarchy);
 }
 
 void
@@ -256,6 +268,7 @@ SBIntegrator::interpolateToBoundary(Pointer<CellVariable<NDIM, double>> fl_var,
                                     Pointer<VariableContext> ctx,
                                     const double time)
 {
+    LS_TIMER_START(t_interpolateToBoundary);
     const auto& fl_it = std::find(d_fl_vars.begin(), d_fl_vars.end(), fl_var);
     TBOX_ASSERT(fl_it != d_fl_vars.end());
     auto var_db = VariableDatabase<NDIM>::getDatabase();
@@ -367,5 +380,6 @@ SBIntegrator::interpolateToBoundary(Pointer<CellVariable<NDIM, double>> fl_var,
     }
     X_petsc_vec->restore_array();
     fl_vec->close();
+    LS_TIMER_STOP(t_interpolateToBoundary);
 }
 } // namespace LS

@@ -21,6 +21,12 @@ extern "C"
                        int& n_updates);
 }
 
+namespace
+{
+static Timer* t_updateVolumeAreaSideLS = nullptr;
+static Timer* t_findIntersection = nullptr;
+} // namespace
+
 namespace LS
 {
 const double LSFromMesh::s_eps = 0.5;
@@ -36,7 +42,9 @@ LSFromMesh::LSFromMesh(std::string object_name,
       d_use_inside(use_inside),
       d_sgn_var(new CellVariable<NDIM, double>(d_object_name + "SGN"))
 {
-    // intentionally blank
+    IBAMR_DO_ONCE(t_updateVolumeAreaSideLS =
+                      TimerManager::getManager()->getTimer("LS::LSFromMesH::updateVolumeAreaSideLS()");
+                  t_findIntersection = TimerManager::getManager()->getTimer("LS::LSFromMesh::findIntersection()"););
     return;
 } // Constructor
 
@@ -52,6 +60,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                                    double /*data_time*/,
                                    bool extended_box)
 {
+    LS_TIMER_START(t_updateVolumeAreaSideLS);
     TBOX_ASSERT(phi_idx != IBTK::invalid_index);
     TBOX_ASSERT(phi_var);
     HierarchyNodeDataOpsReal<NDIM, double> hier_nc_data_ops(d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
@@ -513,11 +522,13 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
             }
         }
     }
+    LS_TIMER_STOP(t_updateVolumeAreaSideLS);
 }
 
 bool
 LSFromMesh::findIntersection(libMesh::Point& p, Elem* elem, libMesh::Point r, libMesh::VectorValue<double> q)
 {
+    LS_TIMER_START(t_findIntersection);
     bool found_intersection = false;
     switch (elem->type())
     {
@@ -560,6 +571,7 @@ LSFromMesh::findIntersection(libMesh::Point& p, Elem* elem, libMesh::Point r, li
     default:
         TBOX_ERROR("Unknown element.\n");
     }
+    LS_TIMER_STOP(t_findIntersection);
     return found_intersection;
 }
 } // namespace LS

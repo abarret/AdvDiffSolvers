@@ -10,6 +10,14 @@
 
 #include <boost/multi_array.hpp>
 
+namespace
+{
+static Timer* t_applyBoundaryCondition = nullptr;
+static Timer* t_interpolateToBoundary = nullptr;
+static Timer* t_allocateOperatorState = nullptr;
+static Timer* t_deallocateOperatorState = nullptr;
+} // namespace
+
 namespace LS
 {
 SBBoundaryConditions::SBBoundaryConditions(const std::string& object_name,
@@ -31,6 +39,15 @@ SBBoundaryConditions::SBBoundaryConditions(const std::string& object_name,
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_scr_idx =
         var_db->registerVariableAndContext(d_scr_var, var_db->getContext(d_object_name + "::SCR"), IntVector<NDIM>(2));
+
+    IBTK_DO_ONCE(t_applyBoundaryCondition =
+                     TimerManager::getManager()->getTimer("LS::SBBoundaryConditions::applyBoundaryCondition()");
+                 t_interpolateToBoundary =
+                     TimerManager::getManager()->getTimer("LS::SBBoundaryConditions::interpolateToBoundary()");
+                 t_allocateOperatorState =
+                     TimerManager::getManager()->getTimer("LS::SBBoundaryConditions::allocateOperatorState()");
+                 t_deallocateOperatorState =
+                     TimerManager::getManager()->getTimer("LS::SBBoundaryConditions::deallocateOperatorState()"););
 }
 
 void
@@ -63,6 +80,7 @@ SBBoundaryConditions::registerFluidSurfaceInteraction(const std::string& surface
 void
 SBBoundaryConditions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierarchy, double time)
 {
+    LS_TIMER_START(t_allocateOperatorState);
     LSCutCellBoundaryConditions::allocateOperatorState(hierarchy, time);
 
     TBOX_ASSERT(d_ctx);
@@ -81,11 +99,13 @@ SBBoundaryConditions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierar
         const int fl_idx = var_db->mapVariableAndContextToIndex(d_fl_vars[l], d_ctx);
         interpolateToBoundary(fl_idx, d_fl_names[l], hierarchy, time);
     }
+    LS_TIMER_STOP(t_allocateOperatorState);
 }
 
 void
 SBBoundaryConditions::deallocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierarchy, double time)
 {
+    LS_TIMER_START(t_deallocateOperatorState);
     LSCutCellBoundaryConditions::deallocateOperatorState(hierarchy, time);
 
     for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
@@ -94,6 +114,7 @@ SBBoundaryConditions::deallocateOperatorState(Pointer<PatchHierarchy<NDIM>> hier
         if (level->checkAllocated(d_scr_idx)) level->deallocatePatchData(d_scr_idx);
     }
     d_rbf_reconstruct.clearCache();
+    LS_TIMER_STOP(t_deallocateOperatorState);
 }
 
 void
@@ -104,6 +125,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                                              Pointer<PatchHierarchy<NDIM>> hierarchy,
                                              const double time)
 {
+    LS_TIMER_START(t_applyBoundaryCondition);
     TBOX_ASSERT(d_ls_var && d_vol_var && d_area_var);
     TBOX_ASSERT(d_ls_idx > 0 && d_vol_idx > 0 && d_area_idx > 0);
 
@@ -504,6 +526,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
         }
     }
     X_petsc_vec->restore_array();
+    LS_TIMER_STOP(t_applyBoundaryCondition);
 }
 
 void
@@ -512,6 +535,7 @@ SBBoundaryConditions::interpolateToBoundary(const int Q_idx,
                                             Pointer<PatchHierarchy<NDIM>> hierarchy,
                                             const double current_time)
 {
+    LS_TIMER_START(t_interpolateToBoundary);
     // First ensure we've filled ghost cells
     using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
     std::vector<ITC> ghost_cell_comp(1);
@@ -614,6 +638,7 @@ SBBoundaryConditions::interpolateToBoundary(const int Q_idx,
     }
     X_petsc_vec->restore_array();
     Q_vec->close();
+    LS_TIMER_STOP(t_interpolateToBoundary);
 }
 
 bool
