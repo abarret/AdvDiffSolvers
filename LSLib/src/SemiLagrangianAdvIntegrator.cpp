@@ -756,6 +756,8 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
             Q_init->setLSIndex(ls_node_cur_idx, vol_cur_idx);
             Q_init->setDataOnPatchHierarchy(Q_idx, Q_var, d_hierarchy, 0.0);
         }
+
+        d_rbf_reconstruct = new RBFReconstructCache();
     }
 }
 
@@ -967,6 +969,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     LS_TIMER_START(t_diffusion_step);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     // We assume scratch context is already filled correctly.
+    const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
     const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
     const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
     const int Q_rhs_scratch_idx = var_db->mapVariableAndContextToIndex(d_Q_Q_rhs_map[Q_var], getScratchContext());
@@ -977,6 +980,39 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     const int vol_wgt_idx = var_db->mapVariableAndContextToIndex(vol_wgt_var, getCurrentContext());
     const int wgt_idx = d_hier_math_ops->getCellWeightPatchDescriptorIndex();
     d_hier_cc_data_ops->multiply(vol_wgt_idx, vol_idx, wgt_idx);
+
+    // Interpolate from cell centroids to cell centers.
+    d_rbf_reconstruct->setPatchHierarchy(d_hierarchy);
+    d_rbf_reconstruct->setLSData(ls_idx, vol_idx);
+    d_rbf_reconstruct->setUseCentroids(true);
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+            const double* const dx = pgeom->getDx();
+            const double* const xlow = pgeom->getXLower();
+            const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+
+            Pointer<CellData<NDIM, double>> Q_cur_data = patch->getPatchData(Q_cur_idx);
+            Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(Q_scr_idx);
+            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
+                {
+                    // Reconstruct from cell centroids to cell centers
+                    VectorNd x_loc;
+                    for (int d = 0; d < NDIM; ++d)
+                        x_loc[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
+                    (*Q_scr_data)(idx) = d_rbf_reconstruct->reconstructOnIndex(x_loc, idx, *Q_cur_data, patch);
+                }
+            }
+        }
+    }
 
     Pointer<LSCutCellLaplaceOperator> rhs_oper = d_helmholtz_rhs_ops[l];
 #if !defined(NDEBUG)
@@ -1027,6 +1063,38 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     }
     Q_helmholtz_solver->solveSystem(*d_sol_ls_vecs[l], *d_rhs_ls_vecs[l]);
     d_hier_cc_data_ops->copyData(Q_new_idx, Q_scr_idx);
+    // Now interpolate from cell centers to cell centroids
+    d_rbf_reconstruct->clearCache();
+    d_rbf_reconstruct->setUseCentroids(false);
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+            const double* const dx = pgeom->getDx();
+            const double* const xlow = pgeom->getXLower();
+            const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+
+            Pointer<CellData<NDIM, double>> Q_new_data = patch->getPatchData(Q_new_idx);
+            Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(Q_scr_idx);
+            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
+                {
+                    // Reconstruct from cell center to cell centroid
+                    VectorNd x_loc = find_cell_centroid(idx, *ls_data);
+                    for (int d = 0; d < NDIM; ++d)
+                        x_loc[d] = xlow[d] + dx[d] * (x_loc(d) - static_cast<double>(idx_low(d)));
+                    (*Q_new_data)(idx) = d_rbf_reconstruct->reconstructOnIndex(x_loc, idx, *Q_scr_data, patch);
+                }
+            }
+        }
+    }
     if (d_enable_logging)
     {
         plog << d_object_name << "::integrateHierarchy(): diffusion solve number of iterations = "

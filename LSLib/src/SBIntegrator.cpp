@@ -188,13 +188,13 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
             const int patch_num = patch->getPatchNumber();
             const std::vector<Node*>& active_patch_nodes = active_patch_node_map[patch_num];
-            std::vector<dof_id_type> fl_dofs, sf_dofs, sf_base_dofs;
-            std::vector<double> fl_vals, sf_cur_vals, sf_old_vals;
-            std::vector<double> sf_base_cur_vals, sf_base_new_vals;
 
             for (const auto& node : active_patch_nodes)
             {
                 // Integrate solution to new value. Use Adams-Bashforth-2
+                std::vector<dof_id_type> fl_dofs, sf_dofs, sf_base_dofs;
+                std::vector<double> fl_vals, sf_cur_vals, sf_old_vals;
+                std::vector<double> sf_base_cur_vals, sf_base_new_vals;
                 for (unsigned int l = 0; l < sf_sf_vec.size(); ++l)
                 {
                     IBTK::get_nodal_dof_indices(*sf_dof_maps[l], node, 0, sf_dofs);

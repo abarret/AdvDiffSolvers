@@ -7,8 +7,11 @@ static Timer* t_cacheRBFData = nullptr;
 
 namespace LS
 {
-RBFReconstructCache::RBFReconstructCache(int ls_idx, int vol_idx, Pointer<PatchHierarchy<NDIM>> hierarchy)
-    : d_hierarchy(hierarchy), d_vol_idx(vol_idx), d_ls_idx(ls_idx)
+RBFReconstructCache::RBFReconstructCache(int ls_idx,
+                                         int vol_idx,
+                                         Pointer<PatchHierarchy<NDIM>> hierarchy,
+                                         bool use_centroids)
+    : d_hierarchy(hierarchy), d_vol_idx(vol_idx), d_ls_idx(ls_idx), d_use_centroids(use_centroids)
 {
     constructTimers();
     // intentionally blank
@@ -97,7 +100,15 @@ RBFReconstructCache::cacheRBFData()
                         if ((*vol_data)(idx_c) > 0.0)
                         {
                             // Use this point to calculate least squares reconstruction.
-                            VectorNd x_cent_c = find_cell_centroid(idx_c, *ls_data);
+                            VectorNd x_cent_c;
+                            if (d_use_centroids)
+                            {
+                                x_cent_c = find_cell_centroid(idx_c, *ls_data);
+                            }
+                            else
+                            {
+                                for (int d = 0; d < NDIM; ++d) x_cent_c[d] = static_cast<double>(idx_c[d]) + 0.5;
+                            }
                             X_vals.push_back(x_cent_c);
                         }
                     }
@@ -171,7 +182,15 @@ RBFReconstructCache::reconstructOnIndex(VectorNd x_loc,
         {
             // Use this point to calculate least squares reconstruction.
             // Find cell center
-            VectorNd x_cent_c = find_cell_centroid(idx_c, *ls_data);
+            VectorNd x_cent_c;
+            if (d_use_centroids)
+            {
+                x_cent_c = find_cell_centroid(idx_c, *ls_data);
+            }
+            else
+            {
+                for (int d = 0; d < NDIM; ++d) x_cent_c[d] = static_cast<double>(idx_c[d]) + 0.5;
+            }
             Q_vals.push_back(Q_data(idx_c));
             X_vals.push_back(x_cent_c);
         }

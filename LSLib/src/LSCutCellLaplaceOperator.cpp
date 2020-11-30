@@ -70,12 +70,10 @@ LSCutCellLaplaceOperator::LSCutCellLaplaceOperator(const std::string& object_nam
     setPhysicalBcCoef(nullptr);
 
     d_robin_bdry = input_db->getBoolWithDefault("robin_boundary", d_robin_bdry);
-    d_rbf_reconstruct.setStencilWidth(input_db->getInteger("stencil_size"));
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_var, var_db->getContext(d_object_name + "::SCRATCH"), 1);
-    d_Q_extrap_idx = var_db->registerVariableAndContext(
-        d_Q_var, var_db->getContext(d_object_name + "::EXTRAPOLATE"), d_rbf_reconstruct.getStencilWidth());
+    d_Q_scr_idx = var_db->registerVariableAndContext(
+        d_Q_var, var_db->getContext(d_object_name + "::SCRATCH"), input_db->getInteger("stencil_size"));
 
     IBAMR_DO_ONCE(t_compute_helmholtz =
                       TimerManager::getManager()->getTimer("LS::LSCutCellLaplaceOperator::computeHelmholtzAction()");
@@ -133,7 +131,7 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
             using InterpolationTransactionComponent =
                 HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
             std::vector<InterpolationTransactionComponent> transaction_comps;
-            InterpolationTransactionComponent x_component(d_Q_extrap_idx,
+            InterpolationTransactionComponent x_component(d_Q_scr_idx,
                                                           x.getComponentDescriptorIndex(comp),
                                                           DATA_REFINE_TYPE,
                                                           false,
@@ -147,10 +145,6 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
             hier_ghost_cell.setHomogeneousBc(d_homogeneous_bc);
             hier_ghost_cell.fillData(d_solution_time);
         }
-
-        extrapolateToCellCenters(d_Q_extrap_idx, d_Q_scr_idx);
-        d_hier_bdry_fill->setHomogeneousBc(d_homogeneous_bc);
-        d_hier_bdry_fill->fillData(d_solution_time);
 
         // Compute the action of the operator.
         for (int comp = 0; comp < d_ncomp; ++comp)
@@ -174,7 +168,7 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
                 TBOX_ASSERT(d_bdry_conds);
                 d_bdry_conds->setHomogeneousBdry(d_homogeneous_bc);
                 d_bdry_conds->applyBoundaryCondition(
-                    d_Q_var, d_Q_extrap_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
+                    d_Q_var, d_Q_scr_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
             }
         }
     }
@@ -233,7 +227,6 @@ LSCutCellLaplaceOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, d
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         if (!level->checkAllocated(d_Q_scr_idx)) level->allocatePatchData(d_Q_scr_idx);
-        if (!level->checkAllocated(d_Q_extrap_idx)) level->allocatePatchData(d_Q_extrap_idx);
     }
 
     // Initialize the interpolation operators.
@@ -247,8 +240,6 @@ LSCutCellLaplaceOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, d
         d_bdry_conds->setLSData(d_ls_var, d_ls_idx, d_vol_var, d_vol_idx, d_area_var, d_area_idx);
         d_bdry_conds->allocateOperatorState(d_hierarchy, d_current_time);
     }
-
-    d_rbf_reconstruct.setPatchHierarchy(d_hierarchy);
 
     // Indicate the operator is initialized.
     d_is_initialized = true;
@@ -264,7 +255,6 @@ LSCutCellLaplaceOperator::deallocateOperatorState()
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         if (level->checkAllocated(d_Q_scr_idx)) level->deallocatePatchData(d_Q_scr_idx);
-        if (level->checkAllocated(d_Q_extrap_idx)) level->deallocatePatchData(d_Q_extrap_idx);
     }
 
     // Deallocate the interpolation operators.
@@ -281,8 +271,6 @@ LSCutCellLaplaceOperator::deallocateOperatorState()
 
     d_b->freeVectorComponents();
     d_b.setNull();
-
-    d_rbf_reconstruct.clearCache();
 
     if (d_bdry_conds) d_bdry_conds->deallocateOperatorState(d_hierarchy, d_current_time);
 
@@ -309,7 +297,6 @@ LSCutCellLaplaceOperator::setLSIndices(int ls_idx,
     d_area_var = area_var;
     d_side_idx = side_idx;
     d_side_var = side_var;
-    d_rbf_reconstruct.setLSData(ls_idx, vol_idx);
 }
 
 /////////////////////////////// PRIVATE //////////////////////////////////////
@@ -399,47 +386,6 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
     LS_TIMER_STOP(t_compute_helmholtz);
     return;
 }
-
-void
-LSCutCellLaplaceOperator::extrapolateToCellCenters(const int Q_idx, const int R_idx)
-{
-    LS_TIMER_START(t_extrapolate);
-    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-        {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            const Box<NDIM>& box = patch->getBox();
-
-            Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
-            Pointer<CellData<NDIM, double>> R_data = patch->getPatchData(R_idx);
-            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
-
-            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-            const double* const xlow = pgeom->getXLower();
-            const hier::Index<NDIM>& idx_low = box.lower();
-
-            R_data->copy(*Q_data);
-
-            for (CellIterator<NDIM> ci(box); ci; ci++)
-            {
-                const CellIndex<NDIM>& idx = ci();
-                if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
-                {
-                    // We are on a cut cell. We need to interpolate to cell center
-                    VectorNd x_loc;
-                    for (int d = 0; d < NDIM; ++d)
-                        x_loc[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
-                    (*R_data)(idx) = d_rbf_reconstruct.reconstructOnIndex(x_loc, idx, *Q_data, patch);
-                }
-            }
-        }
-    }
-    LS_TIMER_STOP(t_extrapolate);
-}
-
 //////////////////////////////////////////////////////////////////////////////
 
 } // namespace LS

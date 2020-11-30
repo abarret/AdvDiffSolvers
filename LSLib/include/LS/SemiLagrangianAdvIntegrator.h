@@ -188,6 +188,8 @@ protected:
     std::map<SAMRAI::tbox::Pointer<SBIntegrator>, SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>>
         d_sb_integrator_ls_map;
 
+    SAMRAI::tbox::Pointer<RBFReconstructCache> d_rbf_reconstruct;
+
 private:
     void evaluateMappingOnHierarchy(int xstar_idx, int Q_cur_idx, int Q_new_idx, int order);
 

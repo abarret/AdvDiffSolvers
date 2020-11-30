@@ -94,6 +94,7 @@ SBBoundaryConditions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierar
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_rbf_reconstruct.setLSData(d_ls_idx, d_vol_idx);
     d_rbf_reconstruct.setPatchHierarchy(hierarchy);
+    d_rbf_reconstruct.setUseCentroids(false);
     for (size_t l = 0; l < d_fl_names.size(); ++l)
     {
         const int fl_idx = var_db->mapVariableAndContextToIndex(d_fl_vars[l], d_ctx);
@@ -332,8 +333,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
 
                         libMesh::Point p;
                         // An element may intersect zero or one times with a cell edge.
-                        if (findIntersection(p, elem, r, q))
-                            intersection_points.push_back(p);
+                        if (findIntersection(p, elem, r, q)) intersection_points.push_back(p);
                     }
                 }
 

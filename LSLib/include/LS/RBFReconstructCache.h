@@ -33,7 +33,10 @@ class RBFReconstructCache
 public:
     RBFReconstructCache();
 
-    RBFReconstructCache(int ls_idx, int vol_idx, SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
+    RBFReconstructCache(int ls_idx,
+                        int vol_idx,
+                        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                        bool use_centroids = true);
 
     ~RBFReconstructCache() = default;
 
@@ -59,6 +62,12 @@ public:
         return d_stencil_size;
     }
 
+    inline void setUseCentroids(bool use_centroids)
+    {
+        d_use_centroids = use_centroids;
+        d_update_weights = true;
+    }
+
     void cacheRBFData();
 
     double reconstructOnIndex(IBTK::VectorNd x_loc,
@@ -71,6 +80,7 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
     std::vector<std::map<PatchIndexPair, Eigen::FullPivHouseholderQR<MatrixXd>>> d_qr_matrix_vec;
     bool d_update_weights = true;
+    bool d_use_centroids = true;
     int d_vol_idx = IBTK::invalid_index, d_ls_idx = IBTK::invalid_index;
 };
 } // namespace LS

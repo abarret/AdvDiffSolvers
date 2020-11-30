@@ -172,8 +172,6 @@ private:
                                 CellData<NDIM, double>& R_data,
                                 const Patch<NDIM>& patch);
 
-    void extrapolateToCellCenters(int Q_idx, int R_idx);
-
     // Operator parameters.
     int d_ncomp = 0;
 
@@ -203,11 +201,7 @@ private:
     bool d_robin_bdry = false;
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_var;
-    int d_Q_scr_idx = IBTK::invalid_index, d_Q_extrap_idx = IBTK::invalid_index;
-
-    bool d_using_rbf = true;
-
-    RBFReconstructCache d_rbf_reconstruct;
+    int d_Q_scr_idx = IBTK::invalid_index;
 
     DiffusionTimeIntegrationMethod d_ts_type = DiffusionTimeIntegrationMethod::UNKNOWN_METHOD;
 };

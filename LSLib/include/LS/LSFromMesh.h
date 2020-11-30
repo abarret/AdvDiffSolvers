@@ -36,7 +36,7 @@ IBTK_ENABLE_EXTRA_WARNINGS
 
 namespace LS
 {
-class LSFromMesh : LSFindCellVolume
+class LSFromMesh : public LSFindCellVolume
 {
 public:
     LSFromMesh(std::string object_name,
