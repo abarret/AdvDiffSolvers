@@ -11,14 +11,14 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 128                                    // coarsest grid spacing
+N = 64                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = LY/NFINEST
 H = DX
 REGRID_INTERVAL = 1
 
 OUTPUT_BDRY_INFO = FALSE
-USING_LS_FCN = TRUE
+USING_LS_FCN = FALSE
 DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 2.0
@@ -32,7 +32,7 @@ RBF_STENCIL_SIZE = 2
 REACT_FRAC = 0.25
 
 ERROR_ON_MOVE = TRUE
-MFAC = 1.0
+MFAC = 1.5
 ELEM_TYPE = "EDGE2"
 elem_order = "FIRST"
 THETA = PI/18.0
@@ -40,6 +40,10 @@ Y_LOW = 0.5
 Y_UP = 1.5
 KAPPA_S = 5.0e2
 ETA_S = 1.0e1
+
+K_ON = 1.0
+K_OFF = 1.0
+SF_MAX = 1.0
 
 D_coef = 0.1
 
@@ -88,18 +92,17 @@ UFcn
    y_low = Y_LOW
    y_up = Y_UP
    theta = THETA
-   function_0 = "0.0"//U
-   function_1 = "0.0"//V
+   function_0 = U
+   function_1 = V
 }
 
-SurfaceBoundaryReactions {
-   k_on = 1.0
-   cb_max = 1.0
-   k_off = 0.0
-   initial = 0.0
-   D = D_coef
+SBIntegrator {
    perturb_nodes = FALSE
-   use_rbfs = USE_RBFS
+   stencil_width = 2
+}
+
+SBBoundaryConditions {
+   perturb_nodes = FALSE
 }
 
 LSBcCoefs {
@@ -210,13 +213,21 @@ InsideLSFcn {
 }
 
 QInitial {
-   initial = 1.0
+   initial = 0.0
    y_low = Y_LOW
    y_up = Y_UP
    theta = THETA
    d = D_coef
    channel_center = 1.5,0.26
 }
+
+LSPipeFlow {
+   y_low = Y_LOW
+   y_up = Y_UP
+   l = LX
+   theta = THETA
+}
+
 
 PoissonSolver {
 }
@@ -226,18 +237,18 @@ Q_bcs {
     yup = Y_UP
     D = 1.0
 
-    acoef_function_0 = "0.0"
+    acoef_function_0 = "1.0"
     acoef_function_1 = "0.0"
     acoef_function_2 = "0.0"
     acoef_function_3 = "0.0"
 
-    bcoef_function_0 = "1.0"
+    bcoef_function_0 = "0.0"
     bcoef_function_1 = "1.0"
     bcoef_function_2 = "1.0"
     bcoef_function_3 = "1.0"
 
-    //gcoef_function_0 = " (X_1 < ylow ? 0.0 : X_1 > yup ? 0.0 : 1.0)"
-    gcoef_function_0 = "0.0"
+    gcoef_function_0 = " (X_1 < ylow ? 0.0 : X_1 > yup ? 0.0 : 1.0)"
+    //gcoef_function_0 = "0.0"
     gcoef_function_1 = "0.0"
     gcoef_function_2 = "0.0"
     gcoef_function_3 = "0.0"

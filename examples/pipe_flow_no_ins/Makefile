@@ -1,8 +1,8 @@
 ######################################################################
 ## Here specify the location of the IBAMR source and the location
 ## where IBAMR has been built.
-IBAMR_SRC_DIR   = /scratch/sfw/ibamr/IBAMR
-IBAMR_BUILD_DIR = /scratch/sfw/ibamr/ibamr-objs-opt
+IBAMR_SRC_DIR   = ${HOME}/sfw/ibamr/IBAMR
+IBAMR_BUILD_DIR = ${HOME}/sfw/ibamr/ibamr-objs-opt
 export IBAMR_SRC_DIR
 export IBAMR_BUILD_DIR
 ######################################################################
@@ -14,7 +14,7 @@ CPPFLAGS+= -I../../LSLib/include/
 PDIM = 2
 export PDIM
 
-OBJS = InsideLSFcn.o QFcn.o SurfaceBoundaryReactions.o
+OBJS = InsideLSFcn.o QFcn.o LSPipeFlow.o
 
 default: check-opt main2d
 

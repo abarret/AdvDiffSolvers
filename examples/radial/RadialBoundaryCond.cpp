@@ -15,8 +15,8 @@ RadialBoundaryCond::RadialBoundaryCond(const std::string& object_name, Pointer<D
     input_db->getDoubleArray("Center", d_center.data(), NDIM);
     d_vel.resize(NDIM);
     input_db->getDoubleArray("velocity", d_vel.data(), NDIM);
-    IBAMR_DO_ONCE(s_apply_timer =
-                      TimerManager::getManager()->getTimer("LS::RadialBoundaryCond::applyBoundaryCondition"));
+    IBTK_DO_ONCE(s_apply_timer =
+                     TimerManager::getManager()->getTimer("LS::RadialBoundaryCond::applyBoundaryCondition"));
 }
 
 void
