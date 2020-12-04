@@ -96,9 +96,10 @@ double
 sf_ode(double q, const std::vector<double>& fl_vals, const std::vector<double>& sf_vals, double time, void* ctx)
 {
     double ode_val = k_on * (sf_max - q) * fl_vals[0] - k_off * q;
-    double force = (4.0 * D_coef * D_coef * k_off + 4.0 * D_coef * D_coef * k_on + 2.0 * D_coef * k_off * k_on) /
-                       (k_on * (2.0 * D_coef + k_on - k_on * time + k_on * time * time)) -
-                   2.0 * time - (2.0 * D_coef * k_off - k_on + 2.0 * D_coef * k_on) / k_on;
+    double t = time;
+    double denom = 2.0 * D_coef + k_on * (sf_max - t * (1 + t));
+    double force = 1.0 + 2.0 * t + k_off * t * (1.0 + t) -
+                   (k_on * (sf_max - t * (1.0 + t)) * (2.0 * D_coef + k_off * t * (1.0 + t))) / denom;
     return ode_val + force;
 }
 /*******************************************************************************
@@ -503,7 +504,7 @@ computeSurfaceErrors(const MeshBase& mesh,
                      double time)
 {
     // exact solution
-    auto exact = [](double time) -> double { return time * (1.0 - time); };
+    auto exact = [](double time) -> double { return time * (1.0 + time); };
 
     EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
     TransientExplicitSystem& q_system = eq_sys->get_system<TransientExplicitSystem>(sys_name);

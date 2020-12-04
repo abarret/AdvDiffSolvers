@@ -23,7 +23,7 @@ DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 2.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
-USE_STRANG_SPLITTING = FALSE
+USE_STRANG_SPLITTING = TRUE
 USE_OUTSIDE_LS_FOR_TAGGING = TRUE
 ADV_INT_METHOD = "MIDPOINT_RULE"
 DIF_INT_METHOD = "TRAPEZOIDAL_RULE"
@@ -47,7 +47,7 @@ YCOM = 0.003
 D_COEF = 0.1
 K_ON = 1.0
 K_OFF = 1.0
-SF_MAX = 1.0
+SF_MAX = 2.0
 
 USE_IB_DELTA_FUNCTIONS     = TRUE                   // whether to use smoothed delta functions to mediate Lagrangian-Eulerian interaction
 IB_DELTA_FUNCTION          = "BSPLINE_3"         // the type of smoothed delta function to use for Lagrangian-Eulerian interaction
@@ -102,6 +102,7 @@ ForcingFcn {
    d = D_COEF
    k_on = K_ON
    k_off = K_OFF
+   sf_max = SF_MAX
    center = XCOM,YCOM
 }
 
@@ -223,6 +224,7 @@ QInitial {
    d = D_COEF
    k_on = K_ON
    k_off = K_OFF
+   sf_max = SF_MAX
    center = XCOM,YCOM
 }
 
@@ -270,7 +272,7 @@ Main {
    data_dump_interval          = 0
    data_dump_dirname           = "hier_data_IB2d"
 
-   timer_dump_interval = 0
+   timer_dump_interval = 0//NFINEST/8
 }
 
 CartesianGeometry {

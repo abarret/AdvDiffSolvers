@@ -101,6 +101,7 @@ private:
     double d_D = 0.0;
     double d_k_on = 0.0;
     double d_k_off = 0.0;
+    double d_sf_max = 0.0;
     VectorNd d_cent = { 0.0, 0.0 };
 };
 

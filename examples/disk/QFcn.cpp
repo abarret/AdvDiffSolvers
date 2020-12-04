@@ -58,10 +58,9 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
 
     auto fcn = [this](VectorNd X, double t) -> double {
         X -= d_cent;
-        return 1.0 + X.squaredNorm() * (d_k_on * (1.0 - t * (1.0 - t)) - d_k_off * t * (1.0 - t)) /
-                         (-2.0 * d_D - d_k_on * (1.0 - t * (1.0 - t)));
+        return 1.0 + X.squaredNorm() * (-d_sf_max * d_k_on + (d_k_off + d_k_on) * t * (1.0 + t)) /
+                         (2.0 * d_D + d_k_on * (d_sf_max - t * (1.0 + t)));
     };
-    //    integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
 
     // Divide by total volume to get cell average
     for (int ln = coarsest_ln; ln <= finest_ln; ln++)
@@ -88,7 +87,6 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
                         cell_centroid[d] = xlow[d] + dx[d] * cell_centroid[d];
                     }
                     (*Q_data)(idx) = fcn(cell_centroid, data_time);
-                    //                    (*Q_data)(idx) /= (*vol_data)(idx)*dx[0] * dx[1];
                 }
             }
         }
@@ -122,6 +120,7 @@ QFcn::getFromInput(Pointer<Database> db)
     d_D = db->getDouble("d");
     d_k_off = db->getDouble("k_off");
     d_k_on = db->getDouble("k_on");
+    d_sf_max = db->getDouble("sf_max");
     db->getDoubleArray("center", d_cent.data(), NDIM);
     return;
 } // getFromInput
