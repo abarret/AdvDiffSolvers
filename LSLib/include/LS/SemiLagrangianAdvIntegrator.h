@@ -142,11 +142,6 @@ protected:
                                             int ls_idx,
                                             int order);
 
-    // patch data for particle trajectories
-    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_path_var;
-    int d_path_idx = IBTK::invalid_index;
-    int d_Q_scratch_idx = IBTK::invalid_index;
-
     SAMRAI::hier::ComponentSelector d_adv_data;
 
     // Level set information
@@ -166,6 +161,13 @@ protected:
     std::vector<IBTK::FEDataManager*> d_fe_data_managers;
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_s_var;
+
+    // patch data for particle trajectories
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_path_var;
+    int d_path_idx = IBTK::invalid_index;
+    // Scratch data for when we need more ghost cells.
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_big_scr_var;
+    int d_Q_big_scr_idx = IBTK::invalid_index;
 
     SAMRAI::hier::ComponentSelector d_ls_data;
 

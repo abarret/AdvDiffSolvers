@@ -360,7 +360,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                 {
                     for (int y = 0; y < 2; ++y)
                     {
-                        if (node_dist[x][y] < 0.0) ++num_neg;
+                        if (node_dist[x][y] <= 0.0) ++num_neg;
                     }
                 }
                 // ElemCutter does not treat intersections near nodes correctly!!
@@ -377,7 +377,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                     {
                         for (int y = 0; y < 2; ++y)
                         {
-                            if (node_dist[x][y] < 0.0)
+                            if (node_dist[x][y] <= 0.0)
                             {
                                 pt2 << static_cast<double>(idx(0) + x), static_cast<double>(idx(1) + y);
                             }
@@ -400,7 +400,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                     {
                         for (int y = 0; y < 2; ++y)
                         {
-                            if (node_dist[x][y] < 0.0)
+                            if (node_dist[x][y] <= 0.0)
                             {
                                 // pt3 is on the line with pt0 that is perpendicular to a coordinate axis.
                                 VectorNd pt;
@@ -444,6 +444,10 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                     }
                     vol += 1.0 - (pt2 - pt0).norm() * (pt2 - pt1).norm() * 0.5;
                 }
+                else if (num_neg == 4)
+                {
+                    vol = 1.0;
+                }
                 (*vol_data)(idx) = vol;
             }
         }
@@ -479,18 +483,20 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
     for (PatchLevel<NDIM>::Iterator p(level); p; p++)
     {
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
-        const Box<NDIM>& box = patch->getBox();
-        Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-        const double* const dx = pgeom->getDx();
         Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
         Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(area_idx);
         Pointer<NodeData<NDIM, double>> sgn_data = patch->getPatchData(phi_idx);
         Pointer<SideData<NDIM, double>> side_data = patch->getPatchData(side_idx);
+
+        const Box<NDIM>& box = vol_data->getGhostBox();
+        Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+        const double* const dx = pgeom->getDx();
+
         for (CellIterator<NDIM> ci(box); ci; ci++)
         {
             const CellIndex<NDIM>& idx = ci();
             double phi_cc = LS::node_to_cell(idx, *sgn_data);
-            if (phi_cc > (5.0 * dx[0]))
+            if (phi_cc > (1.5 * dx[0]))
             {
                 if (vol_data) (*vol_data)(idx) = 0.0;
                 if (area_data) (*area_data)(idx) = 0.0;
@@ -505,7 +511,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                     }
                 }
             }
-            else if (phi_cc < (-5.0 * dx[0]))
+            else if (phi_cc < (-1.5 * dx[0]))
             {
                 if (vol_data) (*vol_data)(idx) = 1.0;
                 if (area_data) (*area_data)(idx) = 0.0;
@@ -520,6 +526,27 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                     }
                 }
             }
+        }
+    }
+
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+    {
+        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(phi_idx);
+        Pointer<SideData<NDIM, double>> side_data = patch->getPatchData(side_idx);
+        for (CellIterator<NDIM> ci(vol_data->getGhostBox()); ci; ci++)
+        {
+            const CellIndex<NDIM>& idx = ci();
+            for (int axis = 0; axis < NDIM; ++axis)
+            {
+                SideIndex<NDIM> idx_lower(idx, axis, 0);
+                SideIndex<NDIM> idx_upper(idx, axis, 1);
+            }
+            NodeIndex<NDIM> idx_ll(idx, NodeIndex<NDIM>::LowerLeft);
+            NodeIndex<NDIM> idx_lr(idx, NodeIndex<NDIM>::LowerRight);
+            NodeIndex<NDIM> idx_ul(idx, NodeIndex<NDIM>::UpperLeft);
+            NodeIndex<NDIM> idx_ur(idx, NodeIndex<NDIM>::UpperRight);
         }
     }
     LS_TIMER_STOP(t_updateVolumeAreaSideLS);

@@ -172,11 +172,17 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
                                                          Pointer<Database> input_db,
                                                          bool register_for_restart)
     : AdvDiffHierarchyIntegrator(object_name, input_db, register_for_restart),
-      d_path_var(new CellVariable<NDIM, double>(d_object_name + "::PathVar", NDIM))
+      d_path_var(new CellVariable<NDIM, double>(d_object_name + "::PathVar", NDIM)),
+      d_Q_big_scr_var(new CellVariable<NDIM, double>(d_object_name + "::ExtrapVar"))
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_path_idx = var_db->registerVariableAndContext(d_path_var, var_db->getContext(d_object_name + "::PathContext"));
     d_adv_data.setFlag(d_path_idx);
+
+    // We need to register our own scratch variable since we need more ghost cells.
+    d_Q_big_scr_idx =
+        var_db->registerVariableAndContext(d_Q_big_scr_var, getScratchContext(), IntVector<NDIM>(GHOST_CELL_WIDTH));
+    d_scratch_data.setFlag(d_Q_big_scr_idx);
 
     if (input_db)
     {
@@ -219,11 +225,6 @@ void
 SemiLagrangianAdvIntegrator::registerTransportedQuantity(Pointer<CellVariable<NDIM, double>> Q_var, bool Q_output)
 {
     AdvDiffHierarchyIntegrator::registerTransportedQuantity(Q_var, Q_output);
-    // We need to register our own scratch variable since we need more ghost cells.
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_Q_scratch_idx = var_db->registerVariableAndContext(
-        Q_var, var_db->getContext(d_object_name + "::BiggerScratch"), IntVector<NDIM>(GHOST_CELL_WIDTH));
-    d_current_data.setFlag(d_Q_scratch_idx);
 }
 
 void
@@ -940,7 +941,7 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
         std::vector<ITC> ghost_cell_comps(2);
         ghost_cell_comps[0] =
-            ITC(d_Q_scratch_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
+            ITC(d_Q_big_scr_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "CONSTANT", true, nullptr);
         ghost_cell_comps[1] = ITC(ls_cur_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
         HierarchyGhostCellInterpolation hier_ghost_cells;
         hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
@@ -948,7 +949,7 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
 
         // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
         evaluateMappingOnHierarchy(
-            d_path_idx, d_Q_scratch_idx, vol_cur_idx, Q_new_idx, vol_new_idx, ls_cur_idx, /*order*/ 1);
+            d_path_idx, d_Q_big_scr_idx, vol_cur_idx, Q_new_idx, vol_new_idx, ls_cur_idx, /*order*/ 1);
     }
     LS_TIMER_STOP(t_advective_step);
 }
@@ -982,6 +983,15 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     d_hier_cc_data_ops->multiply(vol_wgt_idx, vol_idx, wgt_idx);
 
     // Interpolate from cell centroids to cell centers.
+    {
+        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<ITC> ghost_cell_comps(1);
+        ghost_cell_comps[0] =
+            ITC(d_Q_big_scr_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR", true, nullptr);
+        HierarchyGhostCellInterpolation hier_ghost_cell;
+        hier_ghost_cell.initializeOperatorState(ghost_cell_comps, d_hierarchy);
+        hier_ghost_cell.fillData(current_time);
+    }
     d_rbf_reconstruct->setPatchHierarchy(d_hierarchy);
     d_rbf_reconstruct->setLSData(ls_idx, vol_idx);
     d_rbf_reconstruct->setUseCentroids(true);
@@ -996,7 +1006,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
             const double* const xlow = pgeom->getXLower();
             const hier::Index<NDIM>& idx_low = patch->getBox().lower();
 
-            Pointer<CellData<NDIM, double>> Q_cur_data = patch->getPatchData(Q_cur_idx);
+            Pointer<CellData<NDIM, double>> Q_cur_data = patch->getPatchData(d_Q_big_scr_idx);
             Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(Q_scr_idx);
             Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
             for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
@@ -1064,6 +1074,15 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     Q_helmholtz_solver->solveSystem(*d_sol_ls_vecs[l], *d_rhs_ls_vecs[l]);
     d_hier_cc_data_ops->copyData(Q_new_idx, Q_scr_idx);
     // Now interpolate from cell centers to cell centroids
+    {
+        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<ITC> ghost_cell_comps(1);
+        ghost_cell_comps[0] =
+            ITC(d_Q_big_scr_idx, Q_scr_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR", true, nullptr);
+        HierarchyGhostCellInterpolation hier_ghost_cell;
+        hier_ghost_cell.initializeOperatorState(ghost_cell_comps, d_hierarchy);
+        hier_ghost_cell.fillData(current_time);
+    }
     d_rbf_reconstruct->clearCache();
     d_rbf_reconstruct->setUseCentroids(false);
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
@@ -1078,7 +1097,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
             const hier::Index<NDIM>& idx_low = patch->getBox().lower();
 
             Pointer<CellData<NDIM, double>> Q_new_data = patch->getPatchData(Q_new_idx);
-            Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(Q_scr_idx);
+            Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(d_Q_big_scr_idx);
             Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
             Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
             for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)

@@ -146,30 +146,25 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
             hier_ghost_cell.fillData(d_solution_time);
         }
 
-        // Compute the action of the operator.
-        for (int comp = 0; comp < d_ncomp; ++comp)
+        Pointer<CellVariable<NDIM, double>> y_cc_var = y.getComponentVariable(comp);
+        const int y_idx = y.getComponentDescriptorIndex(comp);
+        for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
         {
-            Pointer<CellVariable<NDIM, double>> y_cc_var = y.getComponentVariable(comp);
-            const int y_idx = y.getComponentDescriptorIndex(comp);
-            for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+            Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+            for (PatchLevel<NDIM>::Iterator p(level); p; p++)
             {
-                Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-                for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-                {
-                    Pointer<Patch<NDIM>> patch = level->getPatch(p());
-                    Pointer<CellData<NDIM, double>> x_data = patch->getPatchData(d_Q_scr_idx);
-                    Pointer<CellData<NDIM, double>> y_data = patch->getPatchData(y_idx);
-                    computeHelmholtzAction(*x_data, *y_data, *patch);
-                }
+                Pointer<Patch<NDIM>> patch = level->getPatch(p());
+                Pointer<CellData<NDIM, double>> x_data = patch->getPatchData(d_Q_scr_idx);
+                Pointer<CellData<NDIM, double>> y_data = patch->getPatchData(y_idx);
+                computeHelmholtzAction(*x_data, *y_data, *patch);
             }
+        }
 
-            if (d_robin_bdry)
-            {
-                TBOX_ASSERT(d_bdry_conds);
-                d_bdry_conds->setHomogeneousBdry(d_homogeneous_bc);
-                d_bdry_conds->applyBoundaryCondition(
-                    d_Q_var, d_Q_scr_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
-            }
+        if (d_robin_bdry)
+        {
+            TBOX_ASSERT(d_bdry_conds);
+            d_bdry_conds->setHomogeneousBdry(d_homogeneous_bc);
+            d_bdry_conds->applyBoundaryCondition(d_Q_var, d_Q_scr_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
         }
     }
     LS_TIMER_STOP(t_apply);
