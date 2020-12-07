@@ -1,0 +1,41 @@
+// grid spacing parameters
+LX = 8.0
+LY = 4.0
+MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
+REF_RATIO  = 2                            // refinement ratio between levels
+N = 64                                    // coarsest grid spacing
+
+SKIP_CUT_CELLS = 2
+
+Main {
+
+coarse_hier_dump_interval = 16
+fine_hier_dump_interval = 32
+coarse_hier_dump_dirname = "coarse/hier_data"
+fine_hier_dump_dirname = "medium/hier_data"
+
+// log file parameters
+   log_file_name               = "convergence.log"
+   log_all_nodes               = FALSE
+
+// visualization dump parameters
+   viz_writer                  = "VisIt"
+   viz_dump_interval           = 1
+   viz_dump_dirname            = "convergence_viz"
+   visit_number_procs_per_file = 1
+
+// restart dump parameters
+   restart_dump_interval       = 0
+   restart_dump_dirname        = "restart_adv_diff2d"
+
+   data_dump_interval          = 1
+   data_dump_dirname           = "hier_data_IB2d"
+
+}
+
+CartesianGeometry {
+   domain_boxes = [ (0,0),(2*N - 1,N - 1) ]
+   x_lo = 0.0,0.0
+   x_up = LX,LY
+   periodic_dimension = 1,1
+}

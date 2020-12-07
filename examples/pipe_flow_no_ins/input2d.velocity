@@ -11,7 +11,7 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 64                                    // coarsest grid spacing
+N = 512                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = LY/NFINEST
 H = DX
@@ -64,7 +64,7 @@ NORMALIZE_PRESSURE         = FALSE                  // whether to explicitly for
 CFL_MAX                    = 0.1                    // maximum CFL number
 DT                         = CFL_MAX*DX/U_MAX       // maximum timestep size
 START_TIME                 = 0.0e0                  // initial simulation time
-END_TIME                   = 15.0                 // final simulation time
+END_TIME                   = 6.0                 // final simulation time
 ERROR_ON_DT_CHANGE         = TRUE                  // whether to emit an error message if the time step size changes
 VORTICITY_TAGGING          = TRUE                   // whether to tag cells for refinement based on vorticity thresholds
 TAG_BUFFER                 = 1                      // size of tag buffer used by grid generation algorithm
@@ -262,7 +262,7 @@ Main {
 
 // visualization dump parameters
    viz_writer                  = "VisIt", "ExodusII"
-   viz_dump_interval           = NFINEST/8
+   viz_dump_interval           = NFINEST/4
    viz_dump_dirname            = "new_viz_adv_diff2d"
    visit_number_procs_per_file = 1
 
@@ -270,7 +270,7 @@ Main {
    restart_dump_interval       = 0
    restart_dump_dirname        = "restart_adv_diff2d"
 
-   data_dump_interval          = 0
+   data_dump_interval          = NFINEST/4
    data_dump_dirname           = "hier_data_IB2d"
 
    timer_dump_interval = 0

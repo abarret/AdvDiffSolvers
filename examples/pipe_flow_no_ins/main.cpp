@@ -25,17 +25,27 @@
 #include <ibamr/IBFESurfaceMethod.h>
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
 #include <ibamr/RelaxationLSMethod.h>
+#include <ibamr/app_namespaces.h>
 
 #include "ibtk/CartGridFunctionSet.h"
+#include "ibtk/IBTK_MPI.h"
 #include "ibtk/PETScKrylovPoissonSolver.h"
 #include "ibtk/muParserCartGridFunction.h"
 #include "ibtk/muParserRobinBcCoefs.h"
 #include <ibtk/AppInitializer.h>
+#include <ibtk/IBTKInit.h>
 
 #include "LS/LSCutCellLaplaceOperator.h"
+#include "LS/LSFromLevelSet.h"
+#include "LS/LSFromMesh.h"
 #include "LS/QInitial.h"
 #include "LS/SBBoundaryConditions.h"
 #include "LS/SBIntegrator.h"
+#include "LS/SemiLagrangianAdvIntegrator.h"
+
+#include "InsideLSFcn.h"
+#include "LSPipeFlow.h"
+#include "QFcn.h"
 
 #include <libmesh/boundary_mesh.h>
 #include <libmesh/equation_systems.h>
@@ -43,19 +53,6 @@
 #include <libmesh/mesh.h>
 #include <libmesh/mesh_generation.h>
 #include <libmesh/numeric_vector.h>
-
-// Set up application namespace declarations
-#include <ibamr/app_namespaces.h>
-
-#include <ibtk/IBTKInit.h>
-
-#include "LS/LSFromLevelSet.h"
-#include "LS/LSFromMesh.h"
-#include "LS/SemiLagrangianAdvIntegrator.h"
-
-#include "InsideLSFcn.h"
-#include "LSPipeFlow.h"
-#include "QFcn.h"
 
 using namespace LS;
 
@@ -164,6 +161,17 @@ void checkConservation(FEDataManager* fe_data_manager,
                        const int vol_idx,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
                        const double time);
+
+void output_data(Pointer<PatchHierarchy<NDIM>> patch_hierarchy,
+                 Pointer<CellVariable<NDIM, double>> Q_var,
+                 Pointer<CellVariable<NDIM, double>> vol_var,
+                 Pointer<NodeVariable<NDIM, double>> ls_var,
+                 Pointer<SemiLagrangianAdvIntegrator> adv_diff_integrator,
+                 Mesh& mesh,
+                 EquationSystems* eq_sys,
+                 const int iteration_num,
+                 const double loop_time,
+                 const std::string& data_dump_dirname);
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -617,12 +625,17 @@ main(int argc, char* argv[])
             }
             if (dump_postproc_data && (iteration_num % dump_postproc_interval == 0 || last_step))
             {
-                postprocess_data(patch_hierarchy,
-                                 adv_diff_integrator,
-                                 Q_in_var,
-                                 iteration_num,
-                                 loop_time,
-                                 postproc_data_dump_dirname);
+                pout << "\nWriting post processing data...\n\n";
+                output_data(patch_hierarchy,
+                            Q_in_var,
+                            adv_diff_integrator->getVolumeVariable(ls_var),
+                            ls_var,
+                            adv_diff_integrator,
+                            reaction_mesh,
+                            reaction_eq_sys,
+                            iteration_num,
+                            loop_time,
+                            postproc_data_dump_dirname);
             }
         }
 
@@ -630,29 +643,6 @@ main(int argc, char* argv[])
     } // cleanup dynamically allocated objects prior to shutdown
     return 0;
 } // main
-
-void
-postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
-                 Pointer<SemiLagrangianAdvIntegrator> integrator,
-                 Pointer<CellVariable<NDIM, double>> Q_in_var,
-                 const int iteration_num,
-                 const double loop_time,
-                 const std::string& dirname)
-{
-    std::string file_name = dirname + "/hier_data.";
-    char temp_buf[128];
-    sprintf(temp_buf, "%05d.samrai.%05d", iteration_num, SAMRAI_MPI::getRank());
-    file_name += temp_buf;
-    Pointer<HDFDatabase> hier_db = new HDFDatabase("hier_db");
-    hier_db->create(file_name);
-    ComponentSelector hier_data;
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
-    hier_data.setFlag(var_db->mapVariableAndContextToIndex(Q_in_var, integrator->getCurrentContext()));
-    hierarchy->putToDatabase(hier_db->putDatabase("PatchHierarchy"), hier_data);
-    hier_db->putDouble("loop_time", loop_time);
-    hier_db->putInteger("iteration_num", iteration_num);
-    hier_db->close();
-}
 
 void
 checkConservation(FEDataManager* fe_data_manager,
@@ -773,4 +763,49 @@ updateVolumeMesh(Mesh& vol_mesh, EquationSystems* vol_eq_sys, FEDataManager* vol
     X_vec->close();
     X_map_vec->close();
     vol_mesh.prepare_for_use();
+}
+
+void
+output_data(Pointer<PatchHierarchy<NDIM>> patch_hierarchy,
+            Pointer<CellVariable<NDIM, double>> Q_var,
+            Pointer<CellVariable<NDIM, double>> vol_var,
+            Pointer<NodeVariable<NDIM, double>> ls_var,
+            Pointer<SemiLagrangianAdvIntegrator> adv_diff_integrator,
+            Mesh& mesh,
+            EquationSystems* eq_sys,
+            const int iteration_num,
+            const double loop_time,
+            const std::string& data_dump_dirname)
+{
+    plog << "writing hierarchy data at iteration " << iteration_num << " to disk" << endl;
+    plog << "simulation time is " << loop_time << endl;
+
+    // Write Cartesian data.
+    string file_name = data_dump_dirname + "/" + "hier_data.";
+    char temp_buf[128];
+    sprintf(temp_buf, "%05d.samrai.%05d", iteration_num, IBTK_MPI::getRank());
+    file_name += temp_buf;
+    Pointer<HDFDatabase> hier_db = new HDFDatabase("hier_db");
+    hier_db->create(file_name);
+    VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
+    ComponentSelector hier_data;
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(Q_var, adv_diff_integrator->getCurrentContext()));
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(vol_var, adv_diff_integrator->getCurrentContext()));
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(ls_var, adv_diff_integrator->getCurrentContext()));
+    patch_hierarchy->putToDatabase(hier_db->putDatabase("PatchHierarchy"), hier_data);
+    hier_db->putDouble("loop_time", loop_time);
+    hier_db->putInteger("iteration_num", iteration_num);
+    hier_db->close();
+
+    // Write Lagrangian data.
+    file_name = data_dump_dirname + "/" + "fe_mesh.";
+    sprintf(temp_buf, "%05d", iteration_num);
+    file_name += temp_buf;
+    file_name += ".xda";
+    mesh.write(file_name);
+    file_name = data_dump_dirname + "/" + "fe_equation_systems.";
+    sprintf(temp_buf, "%05d", iteration_num);
+    file_name += temp_buf;
+    eq_sys->write(file_name, (EquationSystems::WRITE_DATA | EquationSystems::WRITE_ADDITIONAL_DATA));
+    return;
 }
