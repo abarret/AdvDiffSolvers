@@ -139,8 +139,9 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                 const hier::Index<NDIM>& idx = IndexUtilities::getCellIndex(&node(0), grid_geom, level->getRatio());
                 elem_idx_nodes[k] = idx;
             }
-            if (std::adjacent_find(elem_idx_nodes.begin(), elem_idx_nodes.end(), std::not_equal_to<>()) ==
-                elem_idx_nodes.end())
+            if (std::adjacent_find(elem_idx_nodes.begin(),
+                                   elem_idx_nodes.end(),
+                                   std::not_equal_to<hier::Index<NDIM>>()) == elem_idx_nodes.end())
                 TBOX_ERROR("Found an element completely contained within a grid cell.\n"
                            << "We are not currently equipped to handle these situations.\n");
 

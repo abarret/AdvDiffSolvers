@@ -151,7 +151,7 @@ RBFReconstructCache::cacheRBFData()
 
 double
 RBFReconstructCache::reconstructOnIndex(VectorNd x_loc,
-                                        const Index<NDIM>& idx,
+                                        const hier::Index<NDIM>& idx,
                                         const CellData<NDIM, double>& Q_data,
                                         Pointer<Patch<NDIM>> patch)
 {

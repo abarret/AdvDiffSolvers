@@ -226,8 +226,9 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                 elem_idx_nodes[k] = IndexUtilities::getCellIndex(&node(0), grid_geom, level->getRatio());
             }
             // Check if all indices are the same
-            if (std::adjacent_find(elem_idx_nodes.begin(), elem_idx_nodes.end(), std::not_equal_to<>()) ==
-                elem_idx_nodes.end())
+            if (std::adjacent_find(elem_idx_nodes.begin(),
+                                   elem_idx_nodes.end(),
+                                   std::not_equal_to<hier::Index<NDIM>>()) == elem_idx_nodes.end())
             {
                 Q_dof_map.dof_indices(elem, Q_dofs);
                 IBTK::get_values_for_interpolation(Q_node, *Q_vec, Q_dofs);
