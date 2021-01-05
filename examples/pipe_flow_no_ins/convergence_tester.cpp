@@ -27,6 +27,7 @@
 #include <libmesh/equation_systems.h>
 #include <libmesh/exact_solution.h>
 #include <libmesh/mesh.h>
+#include <libmesh/mesh_function.h>
 using namespace libMesh;
 
 // SAMRAI INCLUDES
@@ -436,6 +437,60 @@ main(int argc, char* argv[])
             tbox::pout << endl;
             tbox::pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
             tbox::pout << endl;
+
+            std::array<std::string, 2> strs = { "SurfaceConcentration", "Q_in" };
+            for (const auto& str : strs)
+            {
+                std::ofstream output;
+                output.open(str + "_" + std::to_string(coarse_iteration_num), std::ofstream::out);
+                output << std::setprecision(16) << loop_time << "\n";
+
+                const System& crs_sys = equation_systems_coarse.get_system(str);
+                MeshFunction coarse_fcn(equation_systems_coarse,
+                                        *crs_sys.solution.get(),
+                                        crs_sys.get_dof_map(),
+                                        crs_sys.variable_number(str));
+                coarse_fcn.init();
+
+                const System& fine_sys = equation_systems_fine.get_system(str);
+                const DofMap& dof_map = fine_sys.get_dof_map();
+                const FEType& fe_type = dof_map.variable_type(0);
+
+                std::unique_ptr<QBase> q_rule = QBase::build(QGAUSS, mesh_fine.mesh_dimension(), THIRD);
+                std::unique_ptr<FEBase> fe = FEBase::build(mesh_fine.mesh_dimension(), fe_type);
+                fe->attach_quadrature_rule(q_rule.get());
+
+                const std::vector<std::vector<double>>& phi = fe->get_phi();
+                const std::vector<double>& JxW = fe->get_JxW();
+                const std::vector<libMesh::Point>& q_point = fe->get_xyz();
+
+                std::vector<dof_id_type> dof_indices;
+
+                for (const auto& elem : mesh_fine.active_local_element_ptr_range())
+                {
+                    fe->reinit(elem);
+                    dof_map.dof_indices(elem, dof_indices, 0);
+
+                    const unsigned int n_qp = q_rule->n_points();
+                    const unsigned int n_sf = static_cast<unsigned int>(dof_indices.size());
+
+                    for (unsigned int qp = 0; qp < n_qp; ++qp)
+                    {
+                        double fine_val = 0.0;
+                        for (unsigned int i = 0; i < n_sf; ++i)
+                        {
+                            fine_val += phi[i][qp] * fine_sys.current_solution(dof_indices[i]);
+                        }
+                        double coarse_val = coarse_fcn(q_point[qp]);
+
+                        // Now print data to a file.
+                        // Data printed is x, y, coarse_val, fine_val
+                        output << std::setprecision(16) << q_point[qp](0) << " " << q_point[qp](1) << " " << coarse_val
+                               << " " << fine_val << "\n";
+                    }
+                }
+                output.close();
+            }
         }
     }
     return 0;
