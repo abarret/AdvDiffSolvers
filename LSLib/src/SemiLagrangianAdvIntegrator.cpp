@@ -195,6 +195,7 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
         d_dif_ts_type = string_to_enum<DiffusionTimeIntegrationMethod>(input_db->getString("diffusion_ts_type"));
         d_use_rbfs = input_db->getBool("use_rbfs");
         d_rbf_stencil_size = input_db->getInteger("rbf_stencil_size");
+        d_rbf_poly_order = string_to_enum<RBFPolyOrder>(input_db->getString("rbf_poly_order"));
     }
 
     IBAMR_DO_ONCE(
@@ -1520,29 +1521,68 @@ SemiLagrangianAdvIntegrator::radialBasisFunctionReconstruction(IBTK::VectorNd x_
     TBOX_ASSERT(vol_data.getGhostBox().contains(box));
 #endif
 
+    Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+    const double* const dx = pgeom->getDx();
+    const double* const xlow = pgeom->getXLower();
+
     const CellIndex<NDIM>& idx_low = patch->getBox().lower();
+
+    for (int d = 0; d < NDIM; ++d) x_loc[d] = xlow[d] + dx[d] * (x_loc[d] - static_cast<double>(idx_low(d)));
 
     std::vector<double> Q_vals;
     std::vector<VectorNd> X_vals;
 
+    // If we use a linear polynomial, include 6 closest points.
+    // If we use a quadratic polynomial, include 14 closest points.
+    int num_points;
+    int poly_size;
+    switch (d_rbf_poly_order)
+    {
+    case RBFPolyOrder::LINEAR:
+        num_points = 6;
+        poly_size = NDIM + 1;
+        break;
+    case RBFPolyOrder::QUADRATIC:
+        num_points = 14;
+        poly_size = 2 * NDIM + 2;
+        break;
+    default:
+        TBOX_ERROR("Unknown polynomial order: " << enum_to_string(d_rbf_poly_order) << "\n");
+    }
+    std::map<double, std::vector<CellIndex<NDIM>>> idx_map;
+    // First loop through box to determine distances
     for (CellIterator<NDIM> ci(box); ci; ci++)
     {
         const CellIndex<NDIM>& idx_c = ci();
         if (vol_data(idx_c) > 0.0)
         {
-            // Use this point to calculate least squares reconstruction.
-            // Find cell center
-            LS_TIMER_START(t_find_cell_centroid);
             VectorNd x_cent_c = find_cell_centroid(idx_c, ls_data);
-            LS_TIMER_STOP(t_find_cell_centroid);
-            Q_vals.push_back(Q_data(idx_c));
-            X_vals.push_back(x_cent_c);
+            for (int d = 0; d < NDIM; ++d)
+                x_cent_c[d] = xlow[d] + dx[d] * (x_cent_c[d] - static_cast<double>(idx_low(d)));
+            double dist = (x_cent_c - x_loc).norm();
+            idx_map[dist].push_back(idx_c);
         }
     }
+    // Now only use num_points closest points
+    int num_found = 0;
+    for (const auto& idx_vec : idx_map)
+    {
+        for (const auto& ii : idx_vec.second)
+        {
+            VectorNd x_cent_c = find_cell_centroid(ii, ls_data);
+            for (int d = 0; d < NDIM; ++d)
+                x_cent_c[d] = xlow[d] + dx[d] * (x_cent_c[d] - static_cast<double>(idx_low(d)));
+            X_vals.push_back(x_cent_c);
+            Q_vals.push_back(Q_data(ii));
+            if (++num_found >= num_points) goto theEnd;
+        }
+    }
+theEnd:
+
     const int m = Q_vals.size();
     MatrixXd A(MatrixXd::Zero(m, m));
-    MatrixXd B(MatrixXd::Zero(m, NDIM + 1));
-    VectorXd U(VectorXd::Zero(m + NDIM + 1));
+    MatrixXd B(MatrixXd::Zero(m, poly_size));
+    VectorXd U(VectorXd::Zero(m + poly_size));
     for (size_t i = 0; i < Q_vals.size(); ++i)
     {
         for (size_t j = 0; j < Q_vals.size(); ++j)
@@ -1552,20 +1592,32 @@ SemiLagrangianAdvIntegrator::radialBasisFunctionReconstruction(IBTK::VectorNd x_
         }
         B(i, 0) = 1.0;
         for (int d = 0; d < NDIM; ++d) B(i, d + 1) = X_vals[i](d);
+        if (d_rbf_poly_order == RBFPolyOrder::QUADRATIC)
+        {
+            B(i, NDIM + 1) = X_vals[i](0) * X_vals[i](0);
+            B(i, NDIM + 2) = X_vals[i](1) * X_vals[i](1);
+            B(i, NDIM + 3) = X_vals[i](0) * X_vals[i](1);
+        }
         U(i) = Q_vals[i];
     }
 
-    MatrixXd final_mat(MatrixXd::Zero(m + NDIM + 1, m + NDIM + 1));
+    MatrixXd final_mat(MatrixXd::Zero(m + poly_size, m + poly_size));
     final_mat.block(0, 0, m, m) = A;
-    final_mat.block(0, m, m, NDIM + 1) = B;
-    final_mat.block(m, 0, NDIM + 1, m) = B.transpose();
+    final_mat.block(0, m, m, poly_size) = B;
+    final_mat.block(m, 0, poly_size, m) = B.transpose();
 
     VectorXd x = final_mat.fullPivHouseholderQr().solve(U);
     double val = 0.0;
     VectorXd rbf_coefs = x.block(0, 0, m, 1);
-    VectorXd poly_coefs = x.block(m, 0, NDIM + 1, 1);
-    VectorXd poly_vec = VectorXd::Ones(NDIM + 1);
+    VectorXd poly_coefs = x.block(m, 0, poly_size, 1);
+    VectorXd poly_vec = VectorXd::Ones(poly_size);
     for (int d = 0; d < NDIM; ++d) poly_vec(d + 1) = x_loc(d);
+    if (d_rbf_poly_order == RBFPolyOrder::QUADRATIC)
+    {
+        poly_vec(NDIM + 1) = x_loc(0) * x_loc(0);
+        poly_vec(NDIM + 2) = x_loc(1) * x_loc(1);
+        poly_vec(NDIM + 3) = x_loc(0) * x_loc(1);
+    }
     for (size_t i = 0; i < X_vals.size(); ++i)
     {
         val += rbf_coefs[i] * rbf((X_vals[i] - x_loc).norm());
@@ -1591,23 +1643,23 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
     int box_size = 0;
     switch (d_least_squares_reconstruction_order)
     {
-    case CONSTANT:
+    case LeastSquaresOrder::CONSTANT:
         size = 1;
         box_size = 1;
         break;
-    case LINEAR:
+    case LeastSquaresOrder::LINEAR:
         size = 1 + NDIM;
         box_size = 2;
         break;
-    case QUADRATIC:
+    case LeastSquaresOrder::QUADRATIC:
         size = 3 * NDIM;
         box_size = 3;
         break;
-    case CUBIC:
+    case LeastSquaresOrder::CUBIC:
         size = 10;
         box_size = 4;
         break;
-    case UNKNOWN_ORDER:
+    case LeastSquaresOrder::UNKNOWN_ORDER:
         TBOX_ERROR("Unknown order.");
         break;
     }
@@ -1648,25 +1700,25 @@ SemiLagrangianAdvIntegrator::leastSquaresReconstruction(IBTK::VectorNd x_loc,
         Lambda(i, i) = std::sqrt(weight(static_cast<double>((X_vals[i] - x_loc).norm())));
         switch (d_least_squares_reconstruction_order)
         {
-        case CUBIC:
+        case LeastSquaresOrder::CUBIC:
             A(i, 9) = X[1] * X[1] * X[1];
             A(i, 8) = X[1] * X[1] * X[0];
             A(i, 7) = X[1] * X[0] * X[0];
             A(i, 6) = X[0] * X[0] * X[0];
             /* FALLTHROUGH */
-        case QUADRATIC:
+        case LeastSquaresOrder::QUADRATIC:
             A(i, 5) = X[1] * X[1];
             A(i, 4) = X[0] * X[1];
             A(i, 3) = X[0] * X[0];
             /* FALLTHROUGH */
-        case LINEAR:
+        case LeastSquaresOrder::LINEAR:
             A(i, 2) = X[1];
             A(i, 1) = X[0];
             /* FALLTHROUGH */
-        case CONSTANT:
+        case LeastSquaresOrder::CONSTANT:
             A(i, 0) = 1.0;
             break;
-        case UNKNOWN_ORDER:
+        case LeastSquaresOrder::UNKNOWN_ORDER:
             TBOX_ERROR("Unknown order.");
             break;
         }

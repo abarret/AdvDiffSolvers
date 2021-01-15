@@ -88,7 +88,7 @@ outputBdryInfo(const int Q_idx,
 
     if (set_ls_val)
         set_ls_val->updateVolumeAreaSideLS(
-            vol_idx, vol_var, area_idx, area_var, IBTK::invalid_index, nullptr, ls_idx, ls_var, true);
+            vol_idx, vol_var, area_idx, area_var, IBTK::invalid_index, nullptr, ls_idx, ls_var, current_time, true);
     output_to_file(
         Q_scr_idx, area_idx, vol_idx, ls_idx, "bdry_info" + std::to_string(iteration_num), current_time, hierarchy);
 

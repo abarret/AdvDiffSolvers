@@ -393,7 +393,7 @@ node_to_cell(const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data)
 static inline double
 rbf(double r)
 {
-    return r * r * r;
+    return r;
 }
 
 /*!
@@ -417,7 +417,7 @@ inline std::string enum_to_string(T /*val*/)
     return "UNKNOWN";
 }
 
-enum LeastSquaresOrder
+enum class LeastSquaresOrder
 {
     CONSTANT,
     LINEAR,
@@ -430,21 +430,21 @@ template <>
 inline LeastSquaresOrder
 string_to_enum<LeastSquaresOrder>(const std::string& val)
 {
-    if (strcasecmp(val.c_str(), "CONSTANT") == 0) return CONSTANT;
-    if (strcasecmp(val.c_str(), "LINEAR") == 0) return LINEAR;
-    if (strcasecmp(val.c_str(), "QUADRATIC") == 0) return QUADRATIC;
-    if (strcasecmp(val.c_str(), "CUBIC") == 0) return CUBIC;
-    return UNKNOWN_ORDER;
+    if (strcasecmp(val.c_str(), "CONSTANT") == 0) return LeastSquaresOrder::CONSTANT;
+    if (strcasecmp(val.c_str(), "LINEAR") == 0) return LeastSquaresOrder::LINEAR;
+    if (strcasecmp(val.c_str(), "QUADRATIC") == 0) return LeastSquaresOrder::QUADRATIC;
+    if (strcasecmp(val.c_str(), "CUBIC") == 0) return LeastSquaresOrder::CUBIC;
+    return LeastSquaresOrder::UNKNOWN_ORDER;
 }
 
 template <>
 inline std::string
 enum_to_string<LeastSquaresOrder>(LeastSquaresOrder val)
 {
-    if (val == CONSTANT) return "CONSTANT";
-    if (val == LINEAR) return "LINEAR";
-    if (val == QUADRATIC) return "QUADRATIC";
-    if (val == CUBIC) return "CUBIC";
+    if (val == LeastSquaresOrder::CONSTANT) return "CONSTANT";
+    if (val == LeastSquaresOrder::LINEAR) return "LINEAR";
+    if (val == LeastSquaresOrder::QUADRATIC) return "QUADRATIC";
+    if (val == LeastSquaresOrder::CUBIC) return "CUBIC";
     return "UNKNOWN_ORDER";
 }
 
@@ -496,6 +496,31 @@ enum_to_string<DiffusionTimeIntegrationMethod>(DiffusionTimeIntegrationMethod va
     if (val == DiffusionTimeIntegrationMethod::BACKWARD_EULER) return "BACKWARD_EULER";
     if (val == DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE) return "TRAPEZOIDAL_RULE";
     return "UNKNOWN_METHOD";
+}
+
+enum class RBFPolyOrder
+{
+    LINEAR,
+    QUADRATIC,
+    UNKNOWN_ORDER
+};
+
+template <>
+inline RBFPolyOrder
+string_to_enum<RBFPolyOrder>(const std::string& val)
+{
+    if (strcasecmp(val.c_str(), "LINEAR") == 0) return RBFPolyOrder::LINEAR;
+    if (strcasecmp(val.c_str(), "QUADRATIC") == 0) return RBFPolyOrder::QUADRATIC;
+    return RBFPolyOrder::UNKNOWN_ORDER;
+}
+
+template <>
+inline std::string
+enum_to_string<RBFPolyOrder>(RBFPolyOrder val)
+{
+    if (val == RBFPolyOrder::LINEAR) return "LINEAR";
+    if (val == RBFPolyOrder::QUADRATIC) return "QUADRATIC";
+    return "UNKNOWN_ORDER";
 }
 
 inline void

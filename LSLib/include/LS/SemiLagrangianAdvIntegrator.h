@@ -177,7 +177,7 @@ protected:
 
     double d_min_ls_refine_factor = std::numeric_limits<double>::quiet_NaN();
     double d_max_ls_refine_factor = std::numeric_limits<double>::quiet_NaN();
-    LeastSquaresOrder d_least_squares_reconstruction_order = UNKNOWN_ORDER;
+    LeastSquaresOrder d_least_squares_reconstruction_order = LeastSquaresOrder::UNKNOWN_ORDER;
     AdvectionTimeIntegrationMethod d_adv_ts_type = AdvectionTimeIntegrationMethod::UNKNOWN_METHOD;
     DiffusionTimeIntegrationMethod d_dif_ts_type = DiffusionTimeIntegrationMethod::UNKNOWN_METHOD;
     bool d_use_strang_splitting = false;
@@ -225,6 +225,7 @@ private:
 
     double weight(double r);
 
+    RBFPolyOrder d_rbf_poly_order = RBFPolyOrder::UNKNOWN_ORDER;
 }; // Class SemiLagrangianAdvIntegrator
 } // Namespace LS
 

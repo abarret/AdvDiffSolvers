@@ -68,7 +68,7 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
         double r = X.norm();
         return w(r, d_D, t);
     };
-    //    integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
+    integrator->integrateFcnOnPatchHierarchy(hierarchy, d_ls_idx, data_idx, fcn, data_time);
 
     // Divide by total volume to get cell average
     for (int ln = coarsest_ln; ln <= finest_ln; ln++)
@@ -79,7 +79,6 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
-            const double* const xlow = pgeom->getXLower();
             Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(data_idx);
             Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
             Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_ls_idx);
@@ -89,9 +88,7 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
                 if ((*vol_data)(idx) > 0.0)
                 {
                     VectorNd X = LS::find_cell_centroid(idx, *ls_data);
-                    for (int d = 0; d < NDIM; ++d) X[d] = xlow[d] + dx[d] * X[d];
-                    (*Q_data)(idx) = fcn(X, data_time);
-//                    (*Q_data)(idx) /= (*vol_data)(idx)*dx[0] * dx[1]
+                    (*Q_data)(idx) /= (*vol_data)(idx)*dx[0] * dx[1]
 #if (NDIM == 3)
                                       * dx[2]
 #endif

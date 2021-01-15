@@ -1,17 +1,17 @@
 // physical parameters
 PI = 3.14159265359
-L = 6.0
+L = 12.0
 BASE_NAME = "test1"
 
 // grid spacing parameters
-MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
+MAX_LEVELS = 3                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 2*64                                    // coarsest grid spacing
+N = 16                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
-CFL_MAX = 0.3
-DT_MAX = H * CFL_MAX / 2.0
-END_TIME = 2
+CFL_MAX = 0.5
+DT_MAX = H * CFL_MAX / 1.0
+END_TIME = 10.0
 REGRID_INTERVAL = 1
 
 OUTPUT_BDRY_INFO = TRUE
@@ -21,8 +21,11 @@ MIN_REFINE_FACTOR = -20.0
 MAX_REFINE_FACTOR = 2.0
 LEAST_SQUARES_ORDER = "QUADRATIC"
 USE_STRANG_SPLITTING = TRUE
-ADVECTION_TS_TYPE = "MIDPOINT_RULE"
-DIFFUSION_TS_TYPE = "TRAPEZOIDAL_RULE"
+ADV_INT_METHOD = "MIDPOINT_RULE"
+DIF_INT_METHOD = "TRAPEZOIDAL_RULE"
+USE_RBFS = TRUE
+RBF_STENCIL_SIZE = 3
+RBF_POLY_ORDER = "QUADRATIC"
 
 USING_CIRCLE = TRUE
 STATIONARY_INTERFACE = FALSE
@@ -32,10 +35,10 @@ XCOM = 1.521
 YCOM = 1.503
 R = 1.0
 
-D_coef = 0.05
+D_coef = 0.01
 
-U = "2.0*cos(PI/4.0)"
-V = "2.0*sin(PI/4.0)"
+U = "cos(PI/4.0)"
+V = "sin(PI/4.0)"
 //U = "0.0"
 //V = "0.0"
 
@@ -62,13 +65,15 @@ RelaxationLSMethod {
 LSCutCellOperator {
   robin_boundary = TRUE
   cache_boundary = TRUE
+  use_rbfs = USE_RBFS
+  stencil_size = RBF_STENCIL_SIZE
 }
 
 BdryOperator {
-    a_coef = 0.0
+    a_coef = 1.0
     D = D_coef
     R = R
-    velocity = 2.0*cos(PI/4.0), 2.0*sin(PI/4.0)
+    velocity = cos(PI/4.0), sin(PI/4.0)
 //    velocity = 0.0,0.0
     Center = XCOM,YCOM
     R1 = R
@@ -78,7 +83,7 @@ SetLSValue {
     interface_type = "DISK"
     R1 = R
     Center = XCOM,YCOM
-    Vel = 2.0*cos(PI/4.0), 2.0*sin(PI/4.0)
+    Vel = cos(PI/4.0), sin(PI/4.0)
 //    Vel = 0.0,0.0
 }
 
@@ -88,7 +93,7 @@ QInitial {
     D = D_coef
     R1 = 1.0
     Center = XCOM,YCOM
-    velocity = 2.0*cos(PI/4.0), 2.0*sin(PI/4.0)
+    velocity = cos(PI/4.0), sin(PI/4.0)
 //    velocity = 0.0,0.0
 }
 
@@ -197,8 +202,11 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     max_ls_refine_factor = MAX_REFINE_FACTOR
     least_squares_order = LEAST_SQUARES_ORDER
     use_strang_splitting = USE_STRANG_SPLITTING
-    advection_ts_type = ADVECTION_TS_TYPE
-    diffusion_ts_type = DIFFUSION_TS_TYPE
+    advection_ts_type = ADV_INT_METHOD
+    diffusion_ts_type = DIF_INT_METHOD
+    use_rbfs = USE_RBFS
+    rbf_stencil_size = RBF_STENCIL_SIZE
+    rbf_poly_order = RBF_POLY_ORDER
  
     convective_op_type                 = "PPM"//WAVE_PROP"
     convective_difference_form         = "CONSERVATIVE"
