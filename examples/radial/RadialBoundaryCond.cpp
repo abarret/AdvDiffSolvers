@@ -73,10 +73,32 @@ RadialBoundaryCond::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>> Q
                 if (area > 0.0)
                 {
                     TBOX_ASSERT(cell_volume > 0.0);
+                    NodeIndex<NDIM> idx_ll(idx, NodeIndex<NDIM>::LowerLeft);
+                    NodeIndex<NDIM> idx_lr(idx, NodeIndex<NDIM>::LowerRight);
+                    NodeIndex<NDIM> idx_ul(idx, NodeIndex<NDIM>::UpperLeft);
+                    NodeIndex<NDIM> idx_ur(idx, NodeIndex<NDIM>::UpperRight);
+                    double dphi_dx =
+                        ((*ls_data)(idx_ur) + (*ls_data)(idx_lr) - (*ls_data)(idx_ul) - (*ls_data)(idx_ll)) /
+                        (2.0 * dx[0]);
+                    double dphi_dy =
+                        ((*ls_data)(idx_ul) + (*ls_data)(idx_ur) - (*ls_data)(idx_ll) - (*ls_data)(idx_lr)) /
+                        (2.0 * dx[1]);
+                    double dist = LS::node_to_cell(idx, *ls_data) / std::sqrt(dphi_dx * dphi_dx + dphi_dy * dphi_dy);
                     for (int l = 0; l < Q_data->getDepth(); ++l)
                     {
-                        if (!d_homogeneous_bdry) (*R_data)(idx, l) += pre_fac * g * area / cell_volume;
-                        (*R_data)(idx, l) -= pre_fac * d_a * (*Q_data)(idx, l) * area / cell_volume;
+                        if (d_homogeneous_bdry)
+                        {
+                            (*R_data)(idx, l) -= pre_fac * d_a * area *
+                                                 ((*Q_data)(idx, l) * d_D_coef / (d_D_coef - d_a * dist)) / cell_volume;
+                        }
+                        else
+                        {
+                            (*R_data)(idx, l) += pre_fac * g * area / cell_volume;
+                            (*R_data)(idx, l) -= pre_fac * d_a * area *
+                                                 ((*Q_data)(idx, l) * d_D_coef / (d_D_coef - d_a * dist) -
+                                                  g * dist / (d_D_coef - d_a * dist)) /
+                                                 cell_volume;
+                        }
                     }
                 }
             }
