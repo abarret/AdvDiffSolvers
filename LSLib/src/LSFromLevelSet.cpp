@@ -45,6 +45,12 @@ LSFromLevelSet::updateVolumeAreaSideLS(int vol_idx,
     TBOX_ASSERT(phi_idx != invalid_index);
 
     d_ls_fcn->setDataOnPatchHierarchy(phi_idx, phi_var, d_hierarchy, data_time);
+    using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+    std::vector<ITC> ghost_cell_comp(1);
+    ghost_cell_comp[0] = ITC(phi_idx, "LINEAR_REFINE", false, "CONSTANT_COARSEN", "LINEAR");
+    HierarchyGhostCellInterpolation ghost_cells;
+    ghost_cells.initializeOperatorState(ghost_cell_comp, d_hierarchy, coarsest_ln, finest_ln);
+    ghost_cells.fillData(data_time);
 
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
