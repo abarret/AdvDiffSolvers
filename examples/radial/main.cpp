@@ -102,6 +102,53 @@ outputBdryInfo(const int Q_idx,
     }
 }
 
+struct LocateInterface
+{
+public:
+    LocateInterface() = default;
+    LocateInterface(Pointer<CellVariable<NDIM, double>> ls_var,
+                    Pointer<AdvDiffHierarchyIntegrator> integrator,
+                    Pointer<CartGridFunction> ls_fcn)
+        : d_ls_var(ls_var), d_integrator(integrator), d_ls_fcn(ls_fcn)
+    {
+        pout << "d_ls_var::name: " << d_ls_var->getName() << "\n";
+        pout << "Creating object.\n";
+        // intentionally blank
+    }
+    void resetData(const int D_idx, Pointer<HierarchyMathOps> hier_math_ops, const double time, const bool initial_time)
+    {
+        Pointer<PatchHierarchy<NDIM>> hierarchy = hier_math_ops->getPatchHierarchy();
+        pout << "d_ls_var::name: " << d_ls_var->getName() << "\n";
+        if (initial_time)
+        {
+            d_ls_fcn->setDataOnPatchHierarchy(D_idx, d_ls_var, hierarchy, time, initial_time);
+        }
+        else
+        {
+            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            const int ls_cur_idx = var_db->mapVariableAndContextToIndex(d_ls_var, d_integrator->getCurrentContext());
+            HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
+            hier_cc_data_ops.copyData(D_idx, ls_cur_idx);
+        }
+    }
+
+private:
+    Pointer<CellVariable<NDIM, double>> d_ls_var;
+    Pointer<AdvDiffHierarchyIntegrator> d_integrator;
+    Pointer<CartGridFunction> d_ls_fcn;
+};
+
+void
+locateInterface(const int D_idx,
+                SAMRAI::tbox::Pointer<IBTK::HierarchyMathOps> hier_math_ops,
+                const double time,
+                const bool initial_time,
+                void* ctx)
+{
+    auto interface = (static_cast<LocateInterface*>(ctx));
+    interface->resetData(D_idx, hier_math_ops, time, initial_time);
+}
+
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
  * be given on the command line.  For non-restarted case, command line is:     *
@@ -201,13 +248,23 @@ main(int argc, char* argv[])
         // Setup the level set function
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS");
         time_integrator->registerLevelSetVariable(ls_var);
-        time_integrator->registerLevelSetVelocity(ls_var, u_var);
         bool use_ls_fcn = input_db->getBool("USING_LS_FCN");
         Pointer<SetLSValue> ls_fcn =
             new SetLSValue("SetLSValue", grid_geometry, app_initializer->getComponentDatabase("SetLSValue"));
         Pointer<LSFromLevelSet> vol_fcn = new LSFromLevelSet("LSFromLevelSet", patch_hierarchy);
         vol_fcn->registerLSFcn(ls_fcn);
         time_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
+
+        LocateInterface interface;
+        if (!use_ls_fcn)
+        {
+            time_integrator->registerLevelSetVelocity(ls_var, u_var);
+            interface = LocateInterface(time_integrator->getLSCellVariable(ls_var), time_integrator, ls_fcn);
+            Pointer<RelaxationLSMethod> ls_ops = new RelaxationLSMethod(
+                "RelaxationLSMethod", app_initializer->getComponentDatabase("RelaxationLSMethod"));
+            ls_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface, static_cast<void*>(&interface));
+            time_integrator->registerLevelSetResetFunction(ls_var, ls_ops);
+        }
 
         time_integrator->registerTransportedQuantity(Q_var);
         time_integrator->setAdvectionVelocity(Q_var, u_var);

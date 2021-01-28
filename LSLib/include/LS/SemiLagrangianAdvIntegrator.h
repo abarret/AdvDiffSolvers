@@ -43,6 +43,9 @@ public:
     void registerLevelSetVolFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                      SAMRAI::tbox::Pointer<LSFindCellVolume> vol_fcn);
 
+    void registerLevelSetResetFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
+                                       SAMRAI::tbox::Pointer<LSInitStrategy> ls_strategy);
+
     void setFEDataManagerNeedsInitialization(IBTK::FEDataManager* fe_data_manager);
 
     void restrictToLevelSet(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
@@ -56,6 +59,9 @@ public:
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
     getVolumeVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
+
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
+    getLSCellVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
     void registerSBIntegrator(SAMRAI::tbox::Pointer<SBIntegrator> sb_integrator,
                               SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
@@ -79,6 +85,14 @@ public:
                                           int tag_index,
                                           bool initial_time,
                                           bool uses_richardson_extrapolation_too) override;
+
+    void initializeLevelDataSpecialized(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchHierarchy<NDIM>> hierarchy,
+                                        int level_number,
+                                        double init_data_time,
+                                        bool can_be_refined,
+                                        bool initial_time,
+                                        SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<NDIM>> old_level,
+                                        bool allocate_data) override;
 
     /*!
      * Returns the number of cycles to perform for the present time step.
@@ -158,6 +172,11 @@ protected:
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>,
              SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>>>
         d_ls_u_map;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>,
+             SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>
+        d_ls_ls_cell_map;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, SAMRAI::tbox::Pointer<LSInitStrategy>>
+        d_ls_strategy_map;
     std::vector<IBTK::FEDataManager*> d_fe_data_managers;
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_s_var;

@@ -27,9 +27,15 @@ public:
                                         double data_time,
                                         bool extended_box = false) = 0;
 
+    inline void setLS(bool set_ls)
+    {
+        d_set_ls = set_ls;
+    }
+
 protected:
     std::string d_object_name;
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
+    bool d_set_ls = true;
 };
 } // namespace LS
 
