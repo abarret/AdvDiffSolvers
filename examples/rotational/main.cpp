@@ -102,6 +102,7 @@ outputBdryInfo(const int Q_idx,
 struct LocateInterface
 {
 public:
+    LocateInterface() = default;
     LocateInterface(Pointer<CellVariable<NDIM, double>> ls_var,
                     Pointer<AdvDiffHierarchyIntegrator> integrator,
                     Pointer<CartGridFunction> ls_fcn)
@@ -245,12 +246,22 @@ main(int argc, char* argv[])
         // Setup the level set function
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS");
         time_integrator->registerLevelSetVariable(ls_var);
-        time_integrator->registerLevelSetVelocity(ls_var, u_var);
         bool use_ls_fcn = input_db->getBool("USING_LS_FCN");
         Pointer<CartGridFunction> ls_fcn = new LSFcn("SetLSValue", app_initializer->getComponentDatabase("LSFcn"));
         Pointer<LSFromLevelSet> vol_fcn = new LSFromLevelSet("VolFcn", patch_hierarchy);
         vol_fcn->registerLSFcn(ls_fcn);
         time_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
+
+        LocateInterface interface;
+        if (!use_ls_fcn)
+        {
+            time_integrator->registerLevelSetVelocity(ls_var, u_var);
+            interface = LocateInterface(time_integrator->getLSCellVariable(ls_var), time_integrator, ls_fcn);
+            Pointer<RelaxationLSMethod> ls_ops = new RelaxationLSMethod(
+                "RelaxationLSMethod", app_initializer->getComponentDatabase("RelaxationLSMethod"));
+            ls_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface, static_cast<void*>(&interface));
+            time_integrator->registerLevelSetResetFunction(ls_var, ls_ops);
+        }
 
         time_integrator->registerTransportedQuantity(Q_var);
         time_integrator->setAdvectionVelocity(Q_var, u_var);
