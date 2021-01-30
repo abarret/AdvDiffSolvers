@@ -11,6 +11,8 @@
 
 #include "LS/LSCutCellLaplaceOperator.h"
 #include "LS/LSFindCellVolume.h"
+#include "LS/MLSReconstructCache.h"
+#include "LS/RBFReconstructCache.h"
 #include "LS/SBIntegrator.h"
 #include "LS/utility_functions.h"
 
@@ -209,7 +211,7 @@ protected:
     std::map<SAMRAI::tbox::Pointer<SBIntegrator>, SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>>
         d_sb_integrator_ls_map;
 
-    SAMRAI::tbox::Pointer<RBFReconstructCache> d_rbf_reconstruct;
+    SAMRAI::tbox::Pointer<ReconstructCache> d_reconstruction_cache;
 
 private:
     void evaluateMappingOnHierarchy(int xstar_idx, int Q_cur_idx, int Q_new_idx, int order);

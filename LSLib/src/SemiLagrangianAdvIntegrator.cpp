@@ -959,7 +959,10 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
             Q_init->setDataOnPatchHierarchy(Q_idx, Q_var, d_hierarchy, 0.0);
         }
 
-        d_rbf_reconstruct = new RBFReconstructCache();
+        if (d_use_rbfs)
+            d_reconstruction_cache = new RBFReconstructCache();
+        else
+            d_reconstruction_cache = new MLSReconstructCache();
     }
 }
 
@@ -1201,9 +1204,9 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
         hier_ghost_cell.initializeOperatorState(ghost_cell_comps, d_hierarchy);
         hier_ghost_cell.fillData(current_time);
     }
-    d_rbf_reconstruct->setPatchHierarchy(d_hierarchy);
-    d_rbf_reconstruct->setLSData(ls_idx, vol_idx);
-    d_rbf_reconstruct->setUseCentroids(true);
+    d_reconstruction_cache->setPatchHierarchy(d_hierarchy);
+    d_reconstruction_cache->setLSData(ls_idx, vol_idx);
+    d_reconstruction_cache->setUseCentroids(true);
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -1227,7 +1230,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
                     VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d)
                         x_loc[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
-                    (*Q_scr_data)(idx) = d_rbf_reconstruct->reconstructOnIndex(x_loc, idx, *Q_cur_data, patch);
+                    (*Q_scr_data)(idx) = d_reconstruction_cache->reconstructOnIndex(x_loc, idx, *Q_cur_data, patch);
                 }
             }
         }
@@ -1292,8 +1295,8 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
         hier_ghost_cell.initializeOperatorState(ghost_cell_comps, d_hierarchy);
         hier_ghost_cell.fillData(current_time);
     }
-    d_rbf_reconstruct->clearCache();
-    d_rbf_reconstruct->setUseCentroids(false);
+    d_reconstruction_cache->clearCache();
+    d_reconstruction_cache->setUseCentroids(false);
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -1318,7 +1321,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
                     VectorNd x_loc = find_cell_centroid(idx, *ls_data);
                     for (int d = 0; d < NDIM; ++d)
                         x_loc[d] = xlow[d] + dx[d] * (x_loc(d) - static_cast<double>(idx_low(d)));
-                    (*Q_new_data)(idx) = d_rbf_reconstruct->reconstructOnIndex(x_loc, idx, *Q_scr_data, patch);
+                    (*Q_new_data)(idx) = d_reconstruction_cache->reconstructOnIndex(x_loc, idx, *Q_scr_data, patch);
                 }
             }
         }
