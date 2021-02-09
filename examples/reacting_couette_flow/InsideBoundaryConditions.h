@@ -1,6 +1,8 @@
 #ifndef included_InsideBoundaryConditions
 #define included_InsideBoundaryConditions
 
+#include "ibamr/AdvDiffHierarchyIntegrator.h"
+
 #include "LS/LSCutCellBoundaryConditions.h"
 
 class InsideBoundaryConditions : public LS::LSCutCellBoundaryConditions

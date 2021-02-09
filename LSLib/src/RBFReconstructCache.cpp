@@ -1,60 +1,19 @@
 #include "LS/RBFReconstructCache.h"
 
-namespace
-{
-static Timer* t_cacheRBFData = nullptr;
-} // namespace
-
 namespace LS
 {
 RBFReconstructCache::RBFReconstructCache(int ls_idx,
                                          int vol_idx,
                                          Pointer<PatchHierarchy<NDIM>> hierarchy,
                                          bool use_centroids)
-    : d_hierarchy(hierarchy), d_vol_idx(vol_idx), d_ls_idx(ls_idx), d_use_centroids(use_centroids)
+    : ReconstructCache(ls_idx, vol_idx, hierarchy, use_centroids)
 {
-    constructTimers();
     // intentionally blank
 }
 
-RBFReconstructCache::RBFReconstructCache()
-{
-    constructTimers();
-}
-
 void
-RBFReconstructCache::constructTimers()
+RBFReconstructCache::cacheData()
 {
-    IBTK_DO_ONCE(t_cacheRBFData = TimerManager::getManager()->getTimer("LS::RBFReconstructCache::cacheRBFData()"););
-}
-
-void
-RBFReconstructCache::clearCache()
-{
-    for (auto& qr_matrix_map : d_qr_matrix_vec) qr_matrix_map.clear();
-    d_qr_matrix_vec.clear();
-    d_update_weights = true;
-}
-
-void
-RBFReconstructCache::setLSData(const int ls_idx, const int vol_idx)
-{
-    d_vol_idx = vol_idx;
-    d_ls_idx = ls_idx;
-    d_update_weights = true;
-}
-
-void
-RBFReconstructCache::setPatchHierarchy(Pointer<PatchHierarchy<NDIM>> hierarchy)
-{
-    d_hierarchy = hierarchy;
-    d_update_weights = true;
-}
-
-void
-RBFReconstructCache::cacheRBFData()
-{
-    LS_TIMER_START(t_cacheRBFData);
     const int coarsest_ln = 0;
     const int finest_ln = d_hierarchy->getFinestLevelNumber();
     // Free any preallocated matrices
@@ -146,7 +105,6 @@ RBFReconstructCache::cacheRBFData()
         }
     }
     d_update_weights = false;
-    LS_TIMER_STOP(t_cacheRBFData);
 }
 
 double
@@ -155,7 +113,7 @@ RBFReconstructCache::reconstructOnIndex(VectorNd x_loc,
                                         const CellData<NDIM, double>& Q_data,
                                         Pointer<Patch<NDIM>> patch)
 {
-    if (d_update_weights) cacheRBFData();
+    if (d_update_weights) cacheData();
     const int ln = patch->getPatchLevelNumber();
     Box<NDIM> box(idx, idx);
     box.grow(d_stencil_size);

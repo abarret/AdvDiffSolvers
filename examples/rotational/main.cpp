@@ -1,25 +1,8 @@
-// Config files
 #include <IBAMR_config.h>
 #include <IBTK_config.h>
 
-#include <SAMRAI_config.h>
-
-// Headers for basic PETSc functions
-#include <petscsys.h>
-
-// Headers for basic SAMRAI objects
-#include "tbox/Pointer.h"
-
-#include <BergerRigoutsos.h>
-#include <CartesianGridGeometry.h>
-#include <LoadBalancer.h>
-#include <StandardTagAndInitialize.h>
-
-#include <memory>
-#include <utility>
-
-// Headers for application-specific algorithm/data structure objects
 #include <ibamr/RelaxationLSMethod.h>
+#include <ibamr/app_namespaces.h>
 
 #include "ibtk/CartGridFunctionSet.h"
 #include "ibtk/PETScKrylovPoissonSolver.h"
@@ -28,18 +11,26 @@
 #include <ibtk/AppInitializer.h>
 
 #include "LS/LSCutCellLaplaceOperator.h"
-#include "LS/QInitial.h"
-
-#include "RadialBoundaryCond.h"
-
-// Set up application namespace declarations
-#include <ibamr/app_namespaces.h>
-
 #include "LS/LSFromLevelSet.h"
+#include "LS/QInitial.h"
 #include "LS/SemiLagrangianAdvIntegrator.h"
 
+#include "BergerRigoutsos.h"
+#include "CartesianGridGeometry.h"
+#include "LoadBalancer.h"
+#include "SAMRAI_config.h"
+#include "StandardTagAndInitialize.h"
+#include "tbox/Pointer.h"
+
+#include <petscsys.h>
+
+#include <memory>
+#include <utility>
+
+// Local includes
 #include "LSFcn.h"
 #include "QFcn.h"
+#include "RadialBoundaryCond.h"
 
 using namespace LS;
 
@@ -102,6 +93,7 @@ outputBdryInfo(const int Q_idx,
 struct LocateInterface
 {
 public:
+    LocateInterface() = default;
     LocateInterface(Pointer<CellVariable<NDIM, double>> ls_var,
                     Pointer<AdvDiffHierarchyIntegrator> integrator,
                     Pointer<CartGridFunction> ls_fcn)
@@ -245,12 +237,22 @@ main(int argc, char* argv[])
         // Setup the level set function
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS");
         time_integrator->registerLevelSetVariable(ls_var);
-        time_integrator->registerLevelSetVelocity(ls_var, u_var);
         bool use_ls_fcn = input_db->getBool("USING_LS_FCN");
         Pointer<CartGridFunction> ls_fcn = new LSFcn("SetLSValue", app_initializer->getComponentDatabase("LSFcn"));
         Pointer<LSFromLevelSet> vol_fcn = new LSFromLevelSet("VolFcn", patch_hierarchy);
         vol_fcn->registerLSFcn(ls_fcn);
         time_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
+
+        LocateInterface interface;
+        if (!use_ls_fcn)
+        {
+            time_integrator->evolveLevelSet(ls_var, u_var);
+            interface = LocateInterface(time_integrator->getLSCellVariable(ls_var), time_integrator, ls_fcn);
+            Pointer<RelaxationLSMethod> ls_ops = new RelaxationLSMethod(
+                "RelaxationLSMethod", app_initializer->getComponentDatabase("RelaxationLSMethod"));
+            ls_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface, static_cast<void*>(&interface));
+            time_integrator->registerLevelSetResetFunction(ls_var, ls_ops);
+        }
 
         time_integrator->registerTransportedQuantity(Q_var);
         time_integrator->setAdvectionVelocity(Q_var, u_var);

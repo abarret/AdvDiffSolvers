@@ -26,14 +26,9 @@
 
 OutsideLSFcn::OutsideLSFcn(const string& object_name,
                            Pointer<HierarchyIntegrator> hierarchy_integrator,
-                           Pointer<CellVariable<NDIM, double>> in_c_var,
-                           Pointer<NodeVariable<NDIM, double>> in_n_var,
+                           Pointer<NodeVariable<NDIM, double>> in_var,
                            Pointer<Database> input_db)
-    : CartGridFunction(object_name),
-      d_object_name(object_name),
-      d_integrator(hierarchy_integrator),
-      d_in_ls_cell_var(in_c_var),
-      d_in_ls_node_var(in_n_var)
+    : CartGridFunction(object_name), d_integrator(hierarchy_integrator), d_in_ls_var(in_var)
 {
 #if !defined(NDEBUG)
     TBOX_ASSERT(!d_object_name.empty());
@@ -47,14 +42,9 @@ OutsideLSFcn::OutsideLSFcn(const string& object_name,
 
 OutsideLSFcn::OutsideLSFcn(Pointer<VariableContext> ctx,
                            const std::string& object_name,
-                           Pointer<CellVariable<NDIM, double>> in_c_var,
-                           Pointer<NodeVariable<NDIM, double>> in_n_var,
+                           Pointer<NodeVariable<NDIM, double>> in_var,
                            Pointer<Database> input_db)
-    : CartGridFunction(object_name),
-      d_object_name(object_name),
-      d_ctx(ctx),
-      d_in_ls_cell_var(in_c_var),
-      d_in_ls_node_var(in_n_var)
+    : CartGridFunction(object_name), d_ctx(ctx), d_in_ls_var(in_var)
 {
 #if !defined(NDEBUG)
     TBOX_ASSERT(!d_object_name.empty());
@@ -82,16 +72,14 @@ OutsideLSFcn::setDataOnPatch(const int data_idx,
                              const bool /*initial_time*/,
                              Pointer<PatchLevel<NDIM>> /*level*/)
 {
-    Pointer<CellData<NDIM, double>> ls_out_cell_data = patch->getPatchData(data_idx);
-    Pointer<NodeData<NDIM, double>> ls_out_node_data = patch->getPatchData(data_idx);
+    Pointer<NodeData<NDIM, double>> ls_out_data = patch->getPatchData(data_idx);
 
     Pointer<VariableContext> ctx;
     if (d_integrator)
     {
-        ctx = MathUtilities<double>::equalEps(
-                  data_time, d_integrator->getIntegratorTime() + d_integrator->getCurrentTimeStepSize()) ?
-                  d_integrator->getNewContext() :
-                  d_integrator->getCurrentContext();
+        ctx = MathUtilities<double>::equalEps(data_time, d_integrator->getIntegratorTime()) ?
+                  d_integrator->getCurrentContext() :
+                  d_integrator->getNewContext();
     }
     else if (d_ctx)
     {
@@ -102,10 +90,7 @@ OutsideLSFcn::setDataOnPatch(const int data_idx,
         TBOX_ERROR("SHOULD NOT REACH HERE.\n");
     }
 
-    Pointer<CellData<NDIM, double>> ls_in_cell_data =
-        d_in_ls_cell_var ? patch->getPatchData(d_in_ls_cell_var, ctx) : nullptr;
-    Pointer<NodeData<NDIM, double>> ls_in_node_data =
-        d_in_ls_node_var ? patch->getPatchData(d_in_ls_node_var, ctx) : nullptr;
+    Pointer<NodeData<NDIM, double>> ls_in_data = d_in_ls_var ? patch->getPatchData(d_in_ls_var, ctx) : nullptr;
 
     Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
     const double* const dx = pgeom->getDx();
@@ -114,35 +99,19 @@ OutsideLSFcn::setDataOnPatch(const int data_idx,
     const Box<NDIM>& box = patch->getBox();
     const hier::Index<NDIM>& idx_low = box.lower();
 
-    if (ls_out_cell_data)
-    {
-        for (CellIterator<NDIM> ci(box); ci; ci++)
-        {
-            const CellIndex<NDIM>& idx = ci();
-
-            const double ls_in = (*ls_in_cell_data)(idx);
-
-            VectorNd x_pt;
-            for (int d = 0; d < NDIM; ++d)
-                x_pt(d) = x_low[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
-            const double r = x_pt.norm();
-            const double ls_disk = std::max(r - d_R2, d_R1 - r);
-            (*ls_out_cell_data)(idx) = std::max(ls_disk, -ls_in);
-        }
-    }
-    else if (ls_out_node_data)
+    if (ls_out_data && ls_in_data)
     {
         for (NodeIterator<NDIM> ci(box); ci; ci++)
         {
             const NodeIndex<NDIM>& idx = ci();
 
-            const double ls_in = (*ls_in_node_data)(idx);
+            const double ls_in = (*ls_in_data)(idx);
 
             VectorNd x_pt;
             for (int d = 0; d < NDIM; ++d) x_pt(d) = x_low[d] + dx[d] * static_cast<double>(idx(d) - idx_low(d));
             const double r = x_pt.norm();
             const double ls_disk = std::max(r - d_R2, d_R1 - r);
-            (*ls_out_node_data)(idx) = std::max(ls_disk, -ls_in);
+            (*ls_out_data)(idx) = std::max(ls_disk, -ls_in);
         }
     }
     else

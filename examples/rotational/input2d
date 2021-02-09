@@ -23,6 +23,9 @@ LEAST_SQUARES_ORDER = "QUADRATIC"
 USE_STRANG_SPLITTING = TRUE
 ADV_INTEGRATION_METHOD = "MIDPOINT_RULE"
 DIF_INTEGRATION_METHOD = "TRAPEZOIDAL_RULE"
+USE_RBFS = TRUE
+RBF_STENCIL_SIZE = 3
+RBF_POLY_ORDER = "QUADRATIC"
 
 
 USING_CIRCLE = TRUE
@@ -63,6 +66,8 @@ RelaxationLSMethod {
 LSCutCellOperator {
   robin_boundary = TRUE
   cache_boundary = TRUE
+  use_rbfs = USE_RBFS
+  stencil_size = RBF_STENCIL_SIZE
 }
 
 BdryOperator {
@@ -194,6 +199,9 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     use_strang_splitting = USE_STRANG_SPLITTING
     advection_ts_type = ADV_INTEGRATION_METHOD
     diffusion_ts_type = DIF_INTEGRATION_METHOD
+    use_rbfs = USE_RBFS
+    rbf_stencil_size = RBF_STENCIL_SIZE
+    rbf_poly_order = RBF_POLY_ORDER
  
     convective_op_type                 = "PPM"//WAVE_PROP"
     convective_difference_form         = "CONSERVATIVE"

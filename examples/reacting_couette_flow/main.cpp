@@ -1,25 +1,8 @@
-// Config files
 #include <IBAMR_config.h>
 #include <IBTK_config.h>
 
-#include <SAMRAI_config.h>
-
-// Headers for basic PETSc functions
-#include <petscsys.h>
-
-// Headers for basic SAMRAI objects
-#include "tbox/Pointer.h"
-
-#include <BergerRigoutsos.h>
-#include <CartesianGridGeometry.h>
-#include <LoadBalancer.h>
-#include <StandardTagAndInitialize.h>
-
-#include <memory>
-#include <utility>
-
-// Headers for application-specific algorithm/data structure objects
 #include <ibamr/RelaxationLSMethod.h>
+#include <ibamr/app_namespaces.h>
 
 #include "ibtk/CartGridFunctionSet.h"
 #include "ibtk/PETScKrylovPoissonSolver.h"
@@ -28,15 +11,25 @@
 #include <ibtk/AppInitializer.h>
 
 #include "LS/LSCutCellLaplaceOperator.h"
-#include "LS/QInitial.h"
-
-// Set up application namespace declarations
-#include <ibamr/app_namespaces.h>
-
 #include "LS/LSFindCellVolume.h"
+#include "LS/LSFromLevelSet.h"
+#include "LS/QInitial.h"
 #include "LS/SemiLagrangianAdvIntegrator.h"
 #include "LS/utility_functions.h"
 
+#include "BergerRigoutsos.h"
+#include "CartesianGridGeometry.h"
+#include "LoadBalancer.h"
+#include "SAMRAI_config.h"
+#include "StandardTagAndInitialize.h"
+#include "tbox/Pointer.h"
+
+#include <petscsys.h>
+
+#include <memory>
+#include <utility>
+
+// Local includes
 #include "InsideBoundaryConditions.h"
 #include "InsideLSFcn.h"
 #include "OutsideBoundaryConditions.h"
@@ -156,49 +149,6 @@ calculateTotalAmounts(Pointer<PatchHierarchy<NDIM>> hierarchy,
     }
 }
 
-struct LocateInterface
-{
-public:
-    LocateInterface(Pointer<CellVariable<NDIM, double>> ls_var,
-                    Pointer<AdvDiffHierarchyIntegrator> integrator,
-                    Pointer<CartGridFunction> ls_fcn)
-        : d_ls_var(ls_var), d_integrator(integrator), d_ls_fcn(ls_fcn)
-    {
-        // intentionally blank
-    }
-    void resetData(const int D_idx, Pointer<HierarchyMathOps> hier_math_ops, const double time, const bool initial_time)
-    {
-        Pointer<PatchHierarchy<NDIM>> hierarchy = hier_math_ops->getPatchHierarchy();
-        if (initial_time)
-        {
-            d_ls_fcn->setDataOnPatchHierarchy(D_idx, d_ls_var, hierarchy, time, initial_time);
-        }
-        else
-        {
-            auto var_db = VariableDatabase<NDIM>::getDatabase();
-            const int ls_cur_idx = var_db->mapVariableAndContextToIndex(d_ls_var, d_integrator->getCurrentContext());
-            HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy, 0, hierarchy->getFinestLevelNumber());
-            hier_cc_data_ops.copyData(D_idx, ls_cur_idx);
-        }
-    }
-
-private:
-    Pointer<CellVariable<NDIM, double>> d_ls_var;
-    Pointer<AdvDiffHierarchyIntegrator> d_integrator;
-    Pointer<CartGridFunction> d_ls_fcn;
-};
-
-void
-locateInterface(const int D_idx,
-                SAMRAI::tbox::Pointer<IBTK::HierarchyMathOps> hier_math_ops,
-                const double time,
-                const bool initial_time,
-                void* ctx)
-{
-    auto interface = (static_cast<LocateInterface*>(ctx));
-    interface->resetData(D_idx, hier_math_ops, time, initial_time);
-}
-
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
  * be given on the command line.  For non-restarted case, command line is:     *
@@ -284,39 +234,24 @@ main(int argc, char* argv[])
         time_integrator->setAdvectionVelocityFunction(u_var, u_fcn);
 
         // Setup the level set function
-        Pointer<CellVariable<NDIM, double>> ls_in_cell_var = new CellVariable<NDIM, double>("LS_In");
-        time_integrator->registerLevelSetVariable(ls_in_cell_var);
-        time_integrator->registerLevelSetVelocity(ls_in_cell_var, u_var);
+        Pointer<NodeVariable<NDIM, double>> ls_in_var = new NodeVariable<NDIM, double>("LS_In");
+        time_integrator->registerLevelSetVariable(ls_in_var);
         bool use_ls_fcn = input_db->getBool("USING_LS_FCN");
-        Pointer<InsideLSFcn> ls_fcn =
+        Pointer<InsideLSFcn> ls_in_fcn =
             new InsideLSFcn("InsideLSFcn", app_initializer->getComponentDatabase("InsideLSFcn"));
-        time_integrator->registerLevelSetFunction(ls_in_cell_var, ls_fcn);
-        time_integrator->useLevelSetFunction(ls_in_cell_var, use_ls_fcn);
-        LocateInterface interface_in(ls_in_cell_var, time_integrator, ls_fcn);
-        Pointer<RelaxationLSMethod> ls_in_ops =
-            new RelaxationLSMethod("RelaxationLSMethod", app_initializer->getComponentDatabase("RelaxationLSMethod"));
-        ls_in_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface, static_cast<void*>(&interface_in));
-        time_integrator->registerLevelSetResetFunction(ls_in_cell_var, ls_in_ops);
-        Pointer<NodeVariable<NDIM, double>> ls_in_node_var = time_integrator->getLevelSetNodeVariable(ls_in_cell_var);
+        Pointer<LSFromLevelSet> vol_in_fcn = new LSFromLevelSet("VolInFcn", patch_hierarchy);
+        vol_in_fcn->registerLSFcn(ls_in_fcn);
+        time_integrator->registerLevelSetVolFunction(ls_in_var, vol_in_fcn);
 
         // Setup second level set
-        Pointer<CellVariable<NDIM, double>> ls_out_cell_var = new CellVariable<NDIM, double>("LS_Out");
-        time_integrator->registerLevelSetVariable(ls_out_cell_var);
-        time_integrator->registerLevelSetVelocity(ls_out_cell_var, u_var);
-        Pointer<OutsideLSFcn> ls_out_fcn = new OutsideLSFcn("LS_OUT_FCN",
-                                                            time_integrator,
-                                                            ls_in_cell_var,
-                                                            ls_in_node_var,
-                                                            app_initializer->getComponentDatabase("LS_Out"));
-        time_integrator->registerLevelSetFunction(ls_out_cell_var, ls_out_fcn);
-        time_integrator->useLevelSetFunction(ls_out_cell_var, true);
-        LocateInterface interface_out(ls_out_cell_var, time_integrator, ls_out_fcn);
-        Pointer<RelaxationLSMethod> ls_out_ops = new RelaxationLSMethod(
-            "RelaxationLSMethod_in", app_initializer->getComponentDatabase("RelaxationLSMethod"));
-        ls_out_ops->registerInterfaceNeighborhoodLocatingFcn(&locateInterface, static_cast<void*>(&interface_out));
-        time_integrator->registerLevelSetResetFunction(ls_out_cell_var, ls_out_ops);
-        time_integrator->useLevelSetForTagging(ls_out_cell_var, input_db->getBool("USE_OUT_LS_FOR_TAGGING"));
-        Pointer<NodeVariable<NDIM, double>> ls_out_node_var = time_integrator->getLevelSetNodeVariable(ls_out_cell_var);
+        Pointer<NodeVariable<NDIM, double>> ls_out_var = new NodeVariable<NDIM, double>("LS_Out");
+        time_integrator->registerLevelSetVariable(ls_out_var);
+        Pointer<OutsideLSFcn> ls_out_fcn =
+            new OutsideLSFcn("LS_OUT_FCN", time_integrator, ls_in_var, app_initializer->getComponentDatabase("LS_Out"));
+        Pointer<LSFromLevelSet> vol_out_fcn = new LSFromLevelSet("VolOutFcn", patch_hierarchy);
+        vol_out_fcn->registerLSFcn(ls_out_fcn);
+        time_integrator->registerLevelSetVolFunction(ls_out_var, vol_out_fcn);
+        time_integrator->useLevelSetForTagging(ls_out_var, input_db->getBool("USE_OUT_LS_FOR_TAGGING"));
 
         a = input_db->getDouble("A");
         b = input_db->getDouble("B");
@@ -338,7 +273,7 @@ main(int argc, char* argv[])
         time_integrator->setInitialConditions(Q_in_var, Q_in_init);
         time_integrator->setPhysicalBcCoef(Q_in_var, Q_in_bcs[0]);
         time_integrator->setDiffusionCoefficient(Q_in_var, input_db->getDoubleWithDefault("D_coef", 0.0));
-        time_integrator->restrictToLevelSet(Q_in_var, ls_in_cell_var);
+        time_integrator->restrictToLevelSet(Q_in_var, ls_in_var);
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_out_var = new CellVariable<NDIM, double>("Q_out");
@@ -357,7 +292,7 @@ main(int argc, char* argv[])
         time_integrator->setInitialConditions(Q_out_var, Q_out_init);
         time_integrator->setPhysicalBcCoef(Q_out_var, Q_out_bcs[0]);
         time_integrator->setDiffusionCoefficient(Q_out_var, input_db->getDoubleWithDefault("D_coef", 0.0));
-        time_integrator->restrictToLevelSet(Q_out_var, ls_out_cell_var);
+        time_integrator->restrictToLevelSet(Q_out_var, ls_out_var);
 
         // Set up diffusion operators
         Pointer<LSCutCellLaplaceOperator> rhs_in_oper = new LSCutCellLaplaceOperator(
@@ -411,19 +346,17 @@ main(int argc, char* argv[])
         const int Q_in_idx = var_db->mapVariableAndContextToIndex(Q_in_var, time_integrator->getCurrentContext());
         const int Q_in_scr_idx =
             var_db->registerVariableAndContext(Q_in_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(2));
-        const int ls_in_idx =
-            var_db->mapVariableAndContextToIndex(ls_in_node_var, time_integrator->getCurrentContext());
-        const int ls_out_idx =
-            var_db->mapVariableAndContextToIndex(ls_out_node_var, time_integrator->getCurrentContext());
-        const int area_in_idx = var_db->mapVariableAndContextToIndex(time_integrator->getAreaVariable(ls_in_cell_var),
+        const int ls_in_idx = var_db->mapVariableAndContextToIndex(ls_in_var, time_integrator->getCurrentContext());
+        const int ls_out_idx = var_db->mapVariableAndContextToIndex(ls_out_var, time_integrator->getCurrentContext());
+        const int area_in_idx = var_db->mapVariableAndContextToIndex(time_integrator->getAreaVariable(ls_in_var),
                                                                      time_integrator->getCurrentContext());
         out_bdry_oper->registerAreaAndLSInsideIndex(area_in_idx, ls_in_idx);
 
-        const int vol_in_idx = var_db->mapVariableAndContextToIndex(time_integrator->getVolumeVariable(ls_in_cell_var),
+        const int vol_in_idx = var_db->mapVariableAndContextToIndex(time_integrator->getVolumeVariable(ls_in_var),
                                                                     time_integrator->getCurrentContext());
-        const int vol_out_idx = var_db->mapVariableAndContextToIndex(
-            time_integrator->getVolumeVariable(ls_out_cell_var), time_integrator->getCurrentContext());
-        const int area_out_idx = var_db->mapVariableAndContextToIndex(time_integrator->getAreaVariable(ls_out_cell_var),
+        const int vol_out_idx = var_db->mapVariableAndContextToIndex(time_integrator->getVolumeVariable(ls_out_var),
+                                                                     time_integrator->getCurrentContext());
+        const int area_out_idx = var_db->mapVariableAndContextToIndex(time_integrator->getAreaVariable(ls_out_var),
                                                                       time_integrator->getCurrentContext());
 
         // Close the restart manager.

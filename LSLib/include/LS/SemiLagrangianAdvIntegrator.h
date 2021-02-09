@@ -11,6 +11,8 @@
 
 #include "LS/LSCutCellLaplaceOperator.h"
 #include "LS/LSFindCellVolume.h"
+#include "LS/MLSReconstructCache.h"
+#include "LS/RBFReconstructCache.h"
 #include "LS/SBIntegrator.h"
 #include "LS/utility_functions.h"
 
@@ -37,11 +39,11 @@ public:
 
     void registerLevelSetVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
-    void registerLevelSetVelocity(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
-                                  SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> u_var);
-
     void registerLevelSetVolFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                      SAMRAI::tbox::Pointer<LSFindCellVolume> vol_fcn);
+
+    void registerLevelSetResetFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
+                                       SAMRAI::tbox::Pointer<LSInitStrategy> ls_strategy);
 
     void setFEDataManagerNeedsInitialization(IBTK::FEDataManager* fe_data_manager);
 
@@ -51,11 +53,17 @@ public:
     void useLevelSetForTagging(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                bool use_ls_for_tagging);
 
+    void evolveLevelSet(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
+                        SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> u_var);
+
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
     getAreaVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
     getVolumeVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
+
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
+    getLSCellVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
     void registerSBIntegrator(SAMRAI::tbox::Pointer<SBIntegrator> sb_integrator,
                               SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
@@ -79,6 +87,14 @@ public:
                                           int tag_index,
                                           bool initial_time,
                                           bool uses_richardson_extrapolation_too) override;
+
+    void initializeLevelDataSpecialized(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchHierarchy<NDIM>> hierarchy,
+                                        int level_number,
+                                        double init_data_time,
+                                        bool can_be_refined,
+                                        bool initial_time,
+                                        SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<NDIM>> old_level,
+                                        bool allocate_data) override;
 
     /*!
      * Returns the number of cycles to perform for the present time step.
@@ -158,6 +174,11 @@ protected:
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>,
              SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>>>
         d_ls_u_map;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>,
+             SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>
+        d_ls_ls_cell_map;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, SAMRAI::tbox::Pointer<LSInitStrategy>>
+        d_ls_strategy_map;
     std::vector<IBTK::FEDataManager*> d_fe_data_managers;
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_s_var;
@@ -190,7 +211,7 @@ protected:
     std::map<SAMRAI::tbox::Pointer<SBIntegrator>, SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>>
         d_sb_integrator_ls_map;
 
-    SAMRAI::tbox::Pointer<RBFReconstructCache> d_rbf_reconstruct;
+    SAMRAI::tbox::Pointer<ReconstructCache> d_reconstruction_cache;
 
 private:
     void evaluateMappingOnHierarchy(int xstar_idx, int Q_cur_idx, int Q_new_idx, int order);
