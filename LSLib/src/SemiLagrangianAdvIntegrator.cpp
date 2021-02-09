@@ -244,8 +244,8 @@ SemiLagrangianAdvIntegrator::registerLevelSetVariable(Pointer<NodeVariable<NDIM,
 }
 
 void
-SemiLagrangianAdvIntegrator::registerLevelSetVelocity(Pointer<NodeVariable<NDIM, double>> ls_var,
-                                                      Pointer<FaceVariable<NDIM, double>> u_var)
+SemiLagrangianAdvIntegrator::evolveLevelSet(Pointer<NodeVariable<NDIM, double>> ls_var,
+                                            Pointer<FaceVariable<NDIM, double>> u_var)
 {
     TBOX_ASSERT(u_var);
     TBOX_ASSERT(std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var) != d_ls_vars.end());

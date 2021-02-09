@@ -39,9 +39,6 @@ public:
 
     void registerLevelSetVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
-    void registerLevelSetVelocity(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
-                                  SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> u_var);
-
     void registerLevelSetVolFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                      SAMRAI::tbox::Pointer<LSFindCellVolume> vol_fcn);
 
@@ -55,6 +52,9 @@ public:
 
     void useLevelSetForTagging(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                bool use_ls_for_tagging);
+
+    void evolveLevelSet(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
+                        SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> u_var);
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
     getAreaVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);

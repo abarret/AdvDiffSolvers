@@ -1,24 +1,6 @@
-// Config files
 #include <IBAMR_config.h>
 #include <IBTK_config.h>
 
-#include <SAMRAI_config.h>
-
-// Headers for basic PETSc functions
-#include <petscsys.h>
-
-// Headers for basic SAMRAI objects
-#include "tbox/Pointer.h"
-
-#include <BergerRigoutsos.h>
-#include <CartesianGridGeometry.h>
-#include <LoadBalancer.h>
-#include <StandardTagAndInitialize.h>
-
-#include <memory>
-#include <utility>
-
-// Headers for application-specific algorithm/data structure objects
 #include <ibamr/RelaxationLSMethod.h>
 #include <ibamr/app_namespaces.h>
 
@@ -33,10 +15,23 @@
 #include "LS/QInitial.h"
 #include "LS/SemiLagrangianAdvIntegrator.h"
 
-#include "QFcn.h"
-#include "RadialBoundaryCond.h"
+#include "BergerRigoutsos.h"
+#include "CartesianGridGeometry.h"
+#include "LoadBalancer.h"
+#include "SAMRAI_config.h"
+#include "StandardTagAndInitialize.h"
+#include "tbox/Pointer.h"
+
+#include <petscsys.h>
 
 #include <Eigen/Dense>
+
+#include <memory>
+#include <utility>
+
+// Local includes
+#include "QFcn.h"
+#include "RadialBoundaryCond.h"
 
 using namespace LS;
 
@@ -258,7 +253,7 @@ main(int argc, char* argv[])
         LocateInterface interface;
         if (!use_ls_fcn)
         {
-            time_integrator->registerLevelSetVelocity(ls_var, u_var);
+            time_integrator->evolveLevelSet(ls_var, u_var);
             interface = LocateInterface(time_integrator->getLSCellVariable(ls_var), time_integrator, ls_fcn);
             Pointer<RelaxationLSMethod> ls_ops = new RelaxationLSMethod(
                 "RelaxationLSMethod", app_initializer->getComponentDatabase("RelaxationLSMethod"));

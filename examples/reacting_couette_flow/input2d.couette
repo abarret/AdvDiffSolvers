@@ -27,8 +27,10 @@ USE_STRANG_SPLITTING = TRUE
 USE_OUT_LS_FOR_TAGGING = FALSE
 ADV_INT_METHOD = "MIDPOINT_RULE"
 DIF_INT_METHOD = "TRAPEZOIDAL_RULE"
-USE_RBFS = TRUE
+USE_RBFS = FALSE
 RBF_STENCIL_SIZE = 2
+RBF_POLY_ORDER = "QUADRATIC"
+DIFF_SOLVE_ITERS = 3
 
 XCOM = 1.521
 YCOM = 1.503
@@ -85,6 +87,7 @@ InsideLSFcn {
 
 BdryConds {
     k1 = 1.0
+    D_coef = D_coef
 }
 
 QFcnIn {
@@ -222,6 +225,8 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     diffusion_ts_type = DIF_INT_METHOD
     use_rbfs = USE_RBFS
     rbf_stencil_size = RBF_STENCIL_SIZE
+    rbf_poly_order = RBF_POLY_ORDER
+   diffusion_solve_iterations = DIFF_SOLVE_ITERS
 
     tag_buffer = TAG_BUFFER
     
