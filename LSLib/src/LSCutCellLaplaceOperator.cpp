@@ -178,9 +178,6 @@ LSCutCellLaplaceOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, d
     // Deallocate the operator state if the operator is already initialized.
     if (d_is_initialized) deallocateOperatorState();
 
-    plog << d_object_name << "::initializeOperatorState:\n";
-    plog << "D_coef: " << d_poisson_spec.getDConstant() << "\n";
-    plog << "C_coef: " << d_poisson_spec.getCConstant() << "\n";
     // Setup solution and rhs vectors.
     d_x = in.cloneVector(in.getName());
     d_b = out.cloneVector(out.getName());
@@ -311,7 +308,7 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
         d_poisson_spec.dIsConstant() ? d_poisson_spec.getDConstant() : std::numeric_limits<double>::quiet_NaN();
 
     Pointer<NodeData<NDIM, double>> phi_n_data = patch.getPatchData(d_ls_idx);
-    Pointer<FaceData<NDIM, double>> D_data =
+    Pointer<SideData<NDIM, double>> D_data =
         d_poisson_spec.dIsConstant() ? nullptr : patch.getPatchData(d_poisson_spec.getDPatchDataId());
     Pointer<CellData<NDIM, double>> area_data = patch.getPatchData(d_area_idx);
     Pointer<CellData<NDIM, double>> vol_data = patch.getPatchData(d_vol_idx);

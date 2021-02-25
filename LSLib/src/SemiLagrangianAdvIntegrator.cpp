@@ -277,6 +277,23 @@ SemiLagrangianAdvIntegrator::setFEDataManagerNeedsInitialization(FEDataManager* 
 }
 
 void
+SemiLagrangianAdvIntegrator::registerLevelSetSBDataManager(
+    Pointer<NodeVariable<NDIM, double>> ls_var,
+    std::shared_ptr<SBSurfaceFluidCouplingManager> sb_data_manager)
+{
+    TBOX_ASSERT(std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var) != d_ls_vars.end());
+    d_ls_sb_data_manager_map[ls_var] = sb_data_manager;
+}
+
+void
+SemiLagrangianAdvIntegrator::registerLevelSetCutCellMapping(Pointer<NodeVariable<NDIM, double>> ls_var,
+                                                            std::shared_ptr<CutCellMeshMapping> cut_cell_mesh_mapping)
+{
+    TBOX_ASSERT(std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var) != d_ls_vars.end());
+    d_ls_cut_cell_mapping_map[ls_var] = cut_cell_mesh_mapping;
+}
+
+void
 SemiLagrangianAdvIntegrator::restrictToLevelSet(Pointer<CellVariable<NDIM, double>> Q_var,
                                                 Pointer<NodeVariable<NDIM, double>> ls_var)
 {
@@ -555,6 +572,30 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
                                         true);
     }
 
+    for (const auto& ls_sb_data_manager_pair : d_ls_sb_data_manager_map)
+    {
+        const Pointer<NodeVariable<NDIM, double>>& ls_var = ls_sb_data_manager_pair.first;
+        const int l = std::distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
+        const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+        const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
+        const int vol_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
+        ls_sb_data_manager_pair.second->setLSData(ls_idx, vol_idx, d_hierarchy);
+    }
+
+    for (const auto& ls_cut_cell_mapping_pair : d_ls_cut_cell_mapping_map)
+    {
+        const Pointer<NodeVariable<NDIM, double>>& ls_var = ls_cut_cell_mapping_pair.first;
+        const int l = std::distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
+        const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+        const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
+        const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
+        const int vol_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
+        const int area_idx = var_db->mapVariableAndContextToIndex(area_var, getCurrentContext());
+        ls_cut_cell_mapping_pair.second->setLSData(ls_idx, vol_idx, area_idx);
+        ls_cut_cell_mapping_pair.second->initializeObjectState(d_hierarchy);
+        ls_cut_cell_mapping_pair.second->generateCutCellMappings();
+    }
+
     // Set velocities
     for (const auto& u_var : d_u_var)
     {
@@ -580,12 +621,6 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         const std::vector<RobinBcCoefStrategy<NDIM>*> Q_bc_coef = d_Q_bc_coef[Q_var];
 
         auto var_db = VariableDatabase<NDIM>::getDatabase();
-        const int D_cur_idx =
-            (D_var ? var_db->mapVariableAndContextToIndex(D_var, getCurrentContext()) : IBTK::invalid_index);
-        const int D_scr_idx =
-            (D_var ? var_db->mapVariableAndContextToIndex(D_var, getScratchContext()) : IBTK::invalid_index);
-        const int D_rhs_scr_idx =
-            (D_rhs_var ? var_db->mapVariableAndContextToIndex(D_rhs_var, getScratchContext()) : IBTK::invalid_index);
 
         // This should be changed for different time stepping for diffusion. Right now set at trapezoidal rule.
         double K = 0.0;
@@ -609,20 +644,9 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         const double dt_scale = d_use_strang_splitting ? 2.0 : 1.0;
         solv_spec.setCConstant(dt_scale / dt + K * lambda);
         rhs_spec.setCConstant(dt_scale / dt - (1.0 - K) * lambda);
-
-        if (isDiffusionCoefficientVariable(Q_var))
-        {
-            d_hier_sc_data_ops->scale(D_scr_idx, -K, D_cur_idx);
-            solv_spec.setDPatchDataId(D_scr_idx);
-            d_hier_sc_data_ops->scale(D_rhs_scr_idx, 1.0 - K, D_cur_idx);
-            rhs_spec.setDPatchDataId(D_rhs_scr_idx);
-        }
-        else
-        {
-            const double kappa = d_Q_diffusion_coef[Q_var];
-            solv_spec.setDConstant(-K * kappa);
-            rhs_spec.setDConstant((1.0 - K) * kappa);
-        }
+        const double kappa = d_Q_diffusion_coef[Q_var];
+        solv_spec.setDConstant(-K * kappa);
+        rhs_spec.setDConstant((1.0 - K) * kappa);
 
         // Initialize RHS Operator
         Pointer<LSCutCellLaplaceOperator> rhs_oper = d_helmholtz_rhs_ops[l];
@@ -822,6 +846,20 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
 
     if (d_use_strang_splitting)
     {
+        for (const auto& ls_cut_cell_mapping_pair : d_ls_cut_cell_mapping_map)
+        {
+            const Pointer<NodeVariable<NDIM, double>>& ls_var = ls_cut_cell_mapping_pair.first;
+            const int l = std::distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
+            const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+            const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
+            const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
+            const int vol_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
+            const int area_idx = var_db->mapVariableAndContextToIndex(area_var, getCurrentContext());
+            ls_cut_cell_mapping_pair.second->deinitializeObjectState();
+            ls_cut_cell_mapping_pair.second->setLSData(ls_idx, vol_idx, area_idx);
+            ls_cut_cell_mapping_pair.second->initializeObjectState(d_hierarchy);
+            ls_cut_cell_mapping_pair.second->generateCutCellMappings();
+        }
         for (auto& sb_ls_pair : d_sb_integrator_ls_map)
         {
             const Pointer<NodeVariable<NDIM, double>>& ls_var = sb_ls_pair.second;

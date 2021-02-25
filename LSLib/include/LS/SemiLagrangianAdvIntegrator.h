@@ -47,6 +47,12 @@ public:
 
     void setFEDataManagerNeedsInitialization(IBTK::FEDataManager* fe_data_manager);
 
+    void registerLevelSetSBDataManager(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
+                                       std::shared_ptr<SBSurfaceFluidCouplingManager> sb_data_manager);
+
+    void registerLevelSetCutCellMapping(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
+                                        std::shared_ptr<CutCellMeshMapping> cut_cell_mesh_mapping);
+
     void restrictToLevelSet(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                             SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
@@ -179,6 +185,11 @@ protected:
         d_ls_ls_cell_map;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, SAMRAI::tbox::Pointer<LSInitStrategy>>
         d_ls_strategy_map;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>,
+             std::shared_ptr<SBSurfaceFluidCouplingManager>>
+        d_ls_sb_data_manager_map;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>, std::shared_ptr<CutCellMeshMapping>>
+        d_ls_cut_cell_mapping_map;
     std::vector<IBTK::FEDataManager*> d_fe_data_managers;
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_s_var;

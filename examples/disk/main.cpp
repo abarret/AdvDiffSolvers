@@ -247,7 +247,6 @@ main(int argc, char* argv[])
         // Setup the level set function
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS_In");
         adv_diff_integrator->registerLevelSetVariable(ls_var);
-        adv_diff_integrator->registerLevelSetVelocity(ls_var, u_var);
 
         Pointer<LSFromMesh> vol_fcn = new LSFromMesh(
             "LSFromMesh", patch_hierarchy, &reaction_mesh, ib_method_ops->getFEDataManager(REACTION_MESH_ID), true);
@@ -272,17 +271,30 @@ main(int argc, char* argv[])
         adv_diff_integrator->setDiffusionCoefficient(Q_in_var, input_db->getDouble("D_COEF"));
         adv_diff_integrator->restrictToLevelSet(Q_in_var, ls_var);
 
-        Pointer<SBIntegrator> sb_integrator = new SBIntegrator("SBIntegrator",
-                                                               app_initializer->getComponentDatabase("SBIntegrator"),
-                                                               &reaction_mesh,
-                                                               ib_method_ops->getFEDataManager(REACTION_MESH_ID));
-        sb_integrator->registerFluidConcentration(Q_in_var);
+        auto sb_data_manager =
+            std::make_shared<SBSurfaceFluidCouplingManager>("SBDataManager",
+                                                            app_initializer->getComponentDatabase("SBDataManager"),
+                                                            ib_method_ops->getFEDataManager(REACTION_MESH_ID),
+                                                            &reaction_mesh);
+        sb_data_manager->registerFluidConcentration(Q_in_var);
         std::string sf_name = "SurfaceConcentration";
-        sb_integrator->registerSurfaceConcentration(sf_name);
-        sb_integrator->registerFluidSurfaceDependence(sf_name, Q_in_var);
-        sb_integrator->registerSurfaceReactionFunction(sf_name, sf_ode, nullptr);
-        sb_integrator->initializeFEEquationSystems();
+        sb_data_manager->registerSurfaceConcentration(sf_name);
+        sb_data_manager->registerFluidSurfaceDependence(sf_name, Q_in_var);
+        sb_data_manager->registerSurfaceReactionFunction(sf_name, sf_ode, nullptr);
+        sb_data_manager->registerFluidBoundaryCondition(Q_in_var, a_fcn, g_fcn, nullptr);
+        sb_data_manager->initializeFEEquationSystems();
+
+        auto cut_cell_mesh_mapping =
+            std::make_shared<CutCellMeshMapping>("CutCellMeshMapping",
+                                                 input_db->getDatabase("CutCellMeshMapping"),
+                                                 &reaction_mesh,
+                                                 ib_method_ops->getFEDataManager(REACTION_MESH_ID));
+
+        Pointer<SBIntegrator> sb_integrator = new SBIntegrator(
+            "SBIntegrator", app_initializer->getComponentDatabase("SBIntegrator"), sb_data_manager, &reaction_mesh);
         adv_diff_integrator->registerSBIntegrator(sb_integrator, ls_var);
+        adv_diff_integrator->registerLevelSetCutCellMapping(ls_var, cut_cell_mesh_mapping);
+        adv_diff_integrator->registerLevelSetSBDataManager(ls_var, sb_data_manager);
 
         // Forcing term
         Pointer<CellVariable<NDIM, double>> F_var = new CellVariable<NDIM, double>("F");
@@ -300,11 +312,11 @@ main(int argc, char* argv[])
         // Create boundary operators
         Pointer<SBBoundaryConditions> bdry_conditions =
             new SBBoundaryConditions("SBBoundaryConditions",
+                                     sb_data_manager->getFLName(Q_in_var),
                                      app_initializer->getComponentDatabase("SBBoundaryConditions"),
                                      &reaction_mesh,
-                                     ib_method_ops->getFEDataManager(REACTION_MESH_ID));
-        bdry_conditions->registerFluidSurfaceInteraction(sf_name);
-        bdry_conditions->setReactionFunction(&a_fcn, &g_fcn, nullptr);
+                                     sb_data_manager,
+                                     cut_cell_mesh_mapping);
         bdry_conditions->setFluidContext(adv_diff_integrator->getCurrentContext());
         rhs_in_oper->setBoundaryConditionOperator(bdry_conditions);
         sol_in_oper->setBoundaryConditionOperator(bdry_conditions);
@@ -390,7 +402,7 @@ main(int argc, char* argv[])
                 Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
             computeSurfaceErrors(reaction_mesh,
                                  ib_method_ops->getFEDataManager(REACTION_MESH_ID),
-                                 sb_integrator->getSFNames()[0],
+                                 sb_data_manager->getSFNames()[0],
                                  err_sys_name,
                                  loop_time);
 
@@ -436,7 +448,7 @@ main(int argc, char* argv[])
                     Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
                 computeSurfaceErrors(reaction_mesh,
                                      ib_method_ops->getFEDataManager(REACTION_MESH_ID),
-                                     sb_integrator->getSFNames()[0],
+                                     sb_data_manager->getSFNames()[0],
                                      err_sys_name,
                                      loop_time);
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);

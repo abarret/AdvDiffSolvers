@@ -7,6 +7,8 @@
 #include "Variable.h"
 #include "tbox/MathUtilities.h"
 
+#include "libmesh/elem.h"
+
 #include "Eigen/Dense"
 
 namespace LS
@@ -523,6 +525,11 @@ enum_to_string<RBFPolyOrder>(RBFPolyOrder val)
     return "UNKNOWN_ORDER";
 }
 
+using ReactionFcn =
+    std::function<double(double, const std::vector<double>&, const std::vector<double>&, double, void*)>;
+using ReactionFcnCtx = std::pair<ReactionFcn, void*>;
+using BdryConds = std::tuple<ReactionFcn, ReactionFcn, void*>;
+
 inline void
 copy_face_to_side(const int u_s_idx, const int u_f_idx, Pointer<PatchHierarchy<NDIM>> hierarchy)
 {
@@ -583,6 +590,27 @@ public:
     CellIndex<NDIM> d_idx;
     int d_patch_num = -1;
     int d_global_idx = -1;
+};
+
+struct CutCellElems
+{
+public:
+    CutCellElems(libMesh::Elem* parent_elem, std::vector<libMesh::Point> intersections)
+        : d_parent_elem(parent_elem), d_intersections(intersections)
+    {
+        d_elem = Elem::build(d_parent_elem->type());
+        for (size_t n = 0; n < d_intersections.size(); ++n)
+        {
+            d_nodes.push_back(libMesh::Node::build(d_intersections[n], n));
+            d_elem->set_id(0);
+            d_elem->set_node(n) = d_nodes[n].get();
+        }
+    }
+
+    libMesh::Elem* d_parent_elem;
+    std::unique_ptr<libMesh::Elem> d_elem;
+    std::vector<std::unique_ptr<libMesh::Node>> d_nodes;
+    std::vector<libMesh::Point> d_intersections;
 };
 
 } // namespace LS
