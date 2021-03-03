@@ -3,8 +3,12 @@
 
 #include "LS/SBSurfaceFluidCouplingManager.h"
 
+#include "libmesh/enum_preconditioner_type.h"
+#include "libmesh/enum_solver_type.h"
 #include "libmesh/equation_systems.h"
 #include "libmesh/explicit_system.h"
+#include "libmesh/petsc_linear_solver.h"
+#include "libmesh/petsc_matrix.h"
 #include "libmesh/transient_system.h"
 
 namespace
@@ -148,7 +152,12 @@ SBSurfaceFluidCouplingManager::initializeFEEquationSystems()
             auto& fluid_sys = eq_sys->add_system<ExplicitSystem>(fl_name);
             fluid_sys.add_variable(fl_name, FEType());
         }
+
+        auto& J_sys = eq_sys->add_system<ExplicitSystem>(d_J_sys_name);
+        J_sys.add_variable(d_J_sys_name, FEType());
     }
+
+    eq_sys->reinit();
 }
 
 void
@@ -289,7 +298,125 @@ SBSurfaceFluidCouplingManager::interpolateToBoundary(Pointer<CellVariable<NDIM, 
 const std::string&
 SBSurfaceFluidCouplingManager::updateJacobian()
 {
-    TBOX_ERROR("Not implemented currently.\n");
+    EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
+    auto& J_sys = eq_sys->get_system<ExplicitSystem>(d_J_sys_name);
+    DofMap& J_dof_map = J_sys.get_dof_map();
+    J_dof_map.compute_sparsity(*d_mesh);
+    auto J_vec = dynamic_cast<libMesh::PetscVector<double>*>(J_sys.solution.get());
+    std::unique_ptr<NumericVector<double>> F_n_vec(J_vec->clone());
+    auto F_vec = dynamic_cast<libMesh::PetscVector<double>*>(F_n_vec.get());
+    F_vec->scale(0.0);
+
+    auto& X_sys = eq_sys->get_system<System>(d_fe_data_manager->COORDINATES_SYSTEM_NAME);
+    FEType X_fe_type = X_sys.get_dof_map().variable_type(0);
+    NumericVector<double>* X_vec = X_sys.solution.get();
+    auto X_petsc_vec = dynamic_cast<PetscVector<double>*>(X_vec);
+    TBOX_ASSERT(X_petsc_vec != nullptr);
+    const double* const X_local_soln = X_petsc_vec->get_array_read();
+    FEDataManager::SystemDofMapCache& X_dof_map_cache =
+        *d_fe_data_manager->getDofMapCache(d_fe_data_manager->COORDINATES_SYSTEM_NAME);
+
+    std::vector<dof_id_type> J_dof_indices;
+
+    std::unique_ptr<FEBase> fe = FEBase::build(d_mesh->mesh_dimension(), X_fe_type);
+    std::unique_ptr<QBase> qrule = QBase::build(QGAUSS, d_mesh->mesh_dimension(), FIRST);
+    fe->attach_quadrature_rule(qrule.get());
+    const std::vector<std::vector<double>>& phi = fe->get_phi();
+    const std::vector<double>& JxW = fe->get_JxW();
+    std::array<const std::vector<std::vector<double>>*, NDIM - 1> dphi_dxi;
+    dphi_dxi[0] = &fe->get_dphidxi();
+#if (NDIM == 3)
+    dphi_dxi[1] = &fe->get_dphideta();
+#endif
+
+    std::unique_ptr<PetscLinearSolver<double>> solver(new PetscLinearSolver<double>(d_mesh->comm()));
+    std::unique_ptr<PetscMatrix<double>> M_mat(new PetscMatrix<double>(d_mesh->comm()));
+    M_mat->attach_dof_map(J_dof_map);
+    M_mat->init();
+
+    DenseMatrix<double> M_e;
+    DenseVector<double> F_e;
+
+    const MeshBase::const_element_iterator el_begin = d_mesh->active_elements_begin();
+    const MeshBase::const_element_iterator el_end = d_mesh->active_elements_end();
+    for (auto el_it = el_begin; el_it != el_end; ++el_it)
+    {
+        Elem* const elem = *el_it;
+        J_dof_map.dof_indices(elem, J_dof_indices);
+        const auto n_basis = static_cast<unsigned int>(J_dof_indices.size());
+        M_e.resize(n_basis, n_basis);
+        F_e.resize(n_basis);
+        boost::multi_array<double, NDIM> x_node;
+
+        const auto& X_dof_indices = X_dof_map_cache.dof_indices(elem);
+        IBTK::get_values_for_interpolation(x_node, *X_petsc_vec, X_local_soln, X_dof_indices);
+        boost::multi_array<double, NDIM> X_node = x_node;
+        for (unsigned int k = 0; k < elem->n_nodes(); ++k)
+        {
+            for (unsigned int d = 0; d < NDIM; ++d) X_node[k][d] = elem->point(k)(d);
+        }
+        fe->reinit(elem);
+        VectorValue<double> X;
+        F_e.zero();
+        M_e.zero();
+        for (unsigned int qp = 0; qp < phi[0].size(); ++qp)
+        {
+            X.zero();
+            IBTK::interpolate(X, qp, x_node, phi);
+            std::vector<VectorValue<double>> dx_dxi(2);
+            std::vector<VectorValue<double>> dX_dxi(2);
+            for (unsigned int l = 0; l < NDIM - 1; ++l)
+            {
+                IBTK::interpolate(dx_dxi[l], qp, x_node, *dphi_dxi[l]);
+                IBTK::interpolate(dX_dxi[l], qp, X_node, *dphi_dxi[l]);
+            }
+#if (NDIM == 2)
+            dx_dxi[1] = VectorValue<double>(0.0, 0.0, 1.0);
+            dX_dxi[1] = VectorValue<double>(0.0, 0.0, 1.0);
+#endif
+            VectorValue<double> n = dx_dxi[0].cross(dx_dxi[1]);
+            VectorValue<double> N = dX_dxi[0].cross(dX_dxi[1]);
+            double J = N.norm() / n.norm();
+
+            // We have Jacobian at quadrature point. Fill in system.
+            for (unsigned int i = 0; i < n_basis; ++i)
+            {
+                for (unsigned int j = 0; j < n_basis; ++j)
+                {
+                    M_e(i, j) += (phi[i][qp] * phi[j][qp]) * JxW[qp];
+                }
+                F_e(i) += phi[i][qp] * J * JxW[qp];
+            }
+            J_dof_map.constrain_element_matrix_and_vector(M_e, F_e, J_dof_indices);
+            M_mat->add_matrix(M_e, J_dof_indices);
+            F_vec->add_vector(F_e, J_dof_indices);
+        }
+    }
+
+    MatSetOption(M_mat->mat(), MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE);
+    MatSetOption(M_mat->mat(), MAT_SPD, PETSC_TRUE);
+    MatSetOption(M_mat->mat(), MAT_SYMMETRY_ETERNAL, PETSC_TRUE);
+    M_mat->close();
+
+    J_vec->print(plog);
+    M_mat->print(plog);
+    F_vec->print(plog);
+
+    solver->reuse_preconditioner(true);
+    solver->set_preconditioner_type(JACOBI_PRECOND);
+    solver->set_solver_type(MINRES);
+    solver->init();
+
+    solver->solve(*M_mat, *J_vec, *F_vec, 1.0e-8, 1000);
+    KSPConvergedReason reason;
+    int ierr = KSPGetConvergedReason(solver->ksp(), &reason);
+    IBTK_CHKERRQ(ierr);
+    bool converged = reason > 0;
+    plog << "Projection converged: " << converged << "\n";
+    J_vec->print(plog);
+
+    X_petsc_vec->restore_array();
+    J_vec->close();
     return d_J_sys_name;
 }
 } // namespace  LS
