@@ -11,7 +11,7 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 512                                    // coarsest grid spacing
+N = 128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = LY/NFINEST
 H = DX
@@ -27,6 +27,7 @@ USE_STRANG_SPLITTING = TRUE
 USE_OUTSIDE_LS_FOR_TAGGING = TRUE
 ADV_INT_METHOD = "MIDPOINT_RULE"
 DIF_INT_METHOD = "TRAPEZOIDAL_RULE"
+RBF_POLY_ORDER = "QUADRATIC"
 USE_RBFS = TRUE
 RBF_STENCIL_SIZE = 2
 REACT_FRAC = 0.25
@@ -103,6 +104,14 @@ SBIntegrator {
 
 SBBoundaryConditions {
    perturb_nodes = FALSE
+}
+
+SBDataManager {
+  stencil_width = RBF_STENCIL_SIZE
+}
+
+CutCellMeshMapping {
+  perturb_nodes = FALSE
 }
 
 LSBcCoefs {
@@ -339,6 +348,7 @@ AdvDiffSemiImplicitHierarchyIntegrator {
     diffusion_ts_type = DIF_INT_METHOD
     use_rbfs = USE_RBFS
     rbf_stencil_size = RBF_STENCIL_SIZE
+    rbf_poly_order = RBF_POLY_ORDER
 
     tag_buffer = TAG_BUFFER
     

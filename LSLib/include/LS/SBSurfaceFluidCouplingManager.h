@@ -96,6 +96,9 @@ public:
     /*!
      * \brief Initialize the equation system holding the surface and fluid concentrations. Note that all concentrations
      * should be registered before this function is called.
+     *
+     * Note: This function calls EquationSystems::reinit(), so any call to EquationSystems::init() MUST occur prior to
+     * this function call.
      */
     void initializeFEEquationSystems();
 

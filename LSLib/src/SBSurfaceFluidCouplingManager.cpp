@@ -157,6 +157,24 @@ SBSurfaceFluidCouplingManager::initializeFEEquationSystems()
         J_sys.add_variable(d_J_sys_name, FEType());
     }
 
+    for (const auto& sf_name : d_sf_names)
+    {
+        auto& surface_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
+        surface_sys.assemble_before_solve = false;
+        surface_sys.assemble();
+    }
+
+    for (const auto& fl_name : d_fl_names)
+    {
+        auto& fluid_sys = eq_sys->add_system<ExplicitSystem>(fl_name);
+        fluid_sys.assemble_before_solve = false;
+        fluid_sys.assemble();
+    }
+
+    auto& J_sys = eq_sys->add_system<ExplicitSystem>(d_J_sys_name);
+    J_sys.assemble_before_solve = false;
+    J_sys.assemble();
+
     eq_sys->reinit();
 }
 
@@ -303,9 +321,8 @@ SBSurfaceFluidCouplingManager::updateJacobian()
     DofMap& J_dof_map = J_sys.get_dof_map();
     J_dof_map.compute_sparsity(*d_mesh);
     auto J_vec = dynamic_cast<libMesh::PetscVector<double>*>(J_sys.solution.get());
-    std::unique_ptr<NumericVector<double>> F_n_vec(J_vec->clone());
+    std::unique_ptr<NumericVector<double>> F_n_vec(J_vec->zero_clone());
     auto F_vec = dynamic_cast<libMesh::PetscVector<double>*>(F_n_vec.get());
-    F_vec->scale(0.0);
 
     auto& X_sys = eq_sys->get_system<System>(d_fe_data_manager->COORDINATES_SYSTEM_NAME);
     FEType X_fe_type = X_sys.get_dof_map().variable_type(0);
@@ -398,10 +415,6 @@ SBSurfaceFluidCouplingManager::updateJacobian()
     MatSetOption(M_mat->mat(), MAT_SYMMETRY_ETERNAL, PETSC_TRUE);
     M_mat->close();
 
-    J_vec->print(plog);
-    M_mat->print(plog);
-    F_vec->print(plog);
-
     solver->reuse_preconditioner(true);
     solver->set_preconditioner_type(JACOBI_PRECOND);
     solver->set_solver_type(MINRES);
@@ -413,7 +426,6 @@ SBSurfaceFluidCouplingManager::updateJacobian()
     IBTK_CHKERRQ(ierr);
     bool converged = reason > 0;
     plog << "Projection converged: " << converged << "\n";
-    J_vec->print(plog);
 
     X_petsc_vec->restore_array();
     J_vec->close();
