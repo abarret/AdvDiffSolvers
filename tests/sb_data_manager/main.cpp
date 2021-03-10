@@ -41,9 +41,6 @@
 #include "LS/SBIntegrator.h"
 #include "LS/SemiLagrangianAdvIntegrator.h"
 
-#include "ForcingFcn.h"
-#include "QFcn.h"
-
 #include <libmesh/boundary_mesh.h>
 #include <libmesh/communicator.h>
 #include <libmesh/equation_systems.h>
@@ -56,14 +53,21 @@
 
 using namespace LS;
 
-void postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
-                      Pointer<SemiLagrangianAdvIntegrator> integrator,
-                      Pointer<CellVariable<NDIM, double>> Q_in_var,
-                      int iteration_num,
-                      double loop_time,
-                      const std::string& dirname);
-
 void update_mesh(MeshBase* mesh, FEDataManager* ib_data_manager, double time);
+
+void setInitialCondition(const std::string& sf_name,
+                         const std::shared_ptr<SBSurfaceFluidCouplingManager>& sb_data_manager,
+                         MeshBase* mesh);
+void updateExactAndError(const std::string& sf_name,
+                         const std::string& err_name,
+                         const std::string& exact_name,
+                         const std::string& J_exa_name,
+                         const std::string& J_err_name,
+                         const std::shared_ptr<SBSurfaceFluidCouplingManager>& sb_data_manager,
+                         MeshBase* mesh,
+                         const double time);
+
+static double lambda = 0.0;
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -195,6 +199,35 @@ main(int argc, char* argv[])
                                                             ib_method_ops->getFEDataManager(REACTION_MESH_ID),
                                                             static_cast<Mesh*>(meshes[REACTION_MESH_ID]));
 
+        const std::string sf_name = "Surface";
+        sb_data_manager->registerSurfaceConcentration(sf_name);
+        auto sb_integrator = std::make_shared<SBIntegrator>("SBIntegrator",
+                                                            app_initializer->getComponentDatabase("SBIntegrator"),
+                                                            sb_data_manager,
+                                                            static_cast<Mesh*>(meshes[REACTION_MESH_ID]));
+        sb_integrator->setLSData(-1, -1, patch_hierarchy);
+
+        lambda = input_db->getDouble("LAMBDA");
+        auto rhs_fcn = [](double Q,
+                          const std::vector<double>& fl_vals,
+                          const std::vector<double>& sf_vals,
+                          const double time,
+                          void* ctx) -> double { return lambda * Q; };
+        sb_data_manager->registerSurfaceReactionFunction(sf_name, rhs_fcn);
+
+        EquationSystems* reaction_eq_sys = ib_method_ops->getFEDataManager(REACTION_MESH_ID)->getEquationSystems();
+        const std::string err_name = "Error", exa_name = "Exact";
+        auto& err_sys = reaction_eq_sys->add_system<ExplicitSystem>(err_name);
+        err_sys.add_variable(err_name, FEType());
+        auto& exa_sys = reaction_eq_sys->add_system<ExplicitSystem>(exa_name);
+        exa_sys.add_variable(exa_name, FEType());
+
+        const std::string J_err_name = "J_Error", J_exa_name = "J_Exact";
+        auto& J_err_sys = reaction_eq_sys->add_system<ExplicitSystem>(J_err_name);
+        J_err_sys.add_variable(J_err_name, FEType());
+        auto& J_exa_sys = reaction_eq_sys->add_system<ExplicitSystem>(J_exa_name);
+        J_exa_sys.add_variable(J_exa_name, FEType());
+
         // Set up visualization plot file writer.
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
         libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[REACTION_MESH_ID]) :
@@ -222,9 +255,11 @@ main(int argc, char* argv[])
         plog << "Input database:\n";
         input_db->printClassData(plog);
 
+        // Set the initial condition
+        setInitialCondition(sf_name, sb_data_manager, meshes[REACTION_MESH_ID]);
+
         sb_data_manager->updateJacobian();
         // Write out initial visualization data.
-        EquationSystems* reaction_eq_sys = ib_method_ops->getFEDataManager(REACTION_MESH_ID)->getEquationSystems();
         if (dump_viz_data && uses_visit)
         {
             if (uses_exodus)
@@ -233,25 +268,45 @@ main(int argc, char* argv[])
             }
         }
 
-        double time = 0.0;
         double final_time = 4.0;
-        unsigned int num_ts = 100;
-        double dt = final_time / static_cast<double>(num_ts);
-        for (unsigned int i = 0; i < num_ts; ++i)
+        double current_time = 0.0, new_time;
+        double dt = input_db->getDouble("DT_MAX");
+        unsigned int i = 0;
+        while (current_time < final_time)
         {
-            time = dt * static_cast<double>(i + 1);
+            dt = std::min(dt, final_time - current_time);
+            new_time = current_time + dt;
 
             // Move structure to test Jacobian
-            update_mesh(meshes[0], ib_method_ops->getFEDataManager(REACTION_MESH_ID), time);
+            pout << "Timestepping at time: " << current_time << "\n";
+            pout << "dt is: " << dt << "\n";
+            update_mesh(meshes[0], ib_method_ops->getFEDataManager(REACTION_MESH_ID), current_time);
+            sb_integrator->beginTimestepping(current_time, new_time);
+            sb_integrator->integrateHierarchy(nullptr, current_time, new_time);
+            sb_integrator->endTimestepping(current_time, new_time);
+            current_time = new_time;
+            pout << "Finished stepping at time: " << current_time << "\n";
+            pout << "Updating mesh location at time: " << current_time << "\n";
+            update_mesh(meshes[0], ib_method_ops->getFEDataManager(REACTION_MESH_ID), current_time);
             sb_data_manager->updateJacobian();
+            pout << "Computing error at time: " << current_time << "\n\n\n";
+            updateExactAndError(sf_name,
+                                err_name,
+                                exa_name,
+                                J_exa_name,
+                                J_err_name,
+                                sb_data_manager,
+                                meshes[REACTION_MESH_ID],
+                                current_time);
 
             if (dump_viz_data && uses_visit)
             {
                 if (uses_exodus)
                 {
-                    reaction_exodus_io->write_timestep(reaction_exodus_filename, *reaction_eq_sys, i + 2, time);
+                    reaction_exodus_io->write_timestep(reaction_exodus_filename, *reaction_eq_sys, i + 2, current_time);
                 }
             }
+            ++i;
         }
     } // cleanup dynamically allocated objects prior to shutdown
     return 0;
@@ -286,7 +341,6 @@ update_mesh(MeshBase* mesh, FEDataManager* fe_data_manager, double time)
         const Node* const node = *it_iter;
         const libMesh::Point& pt = *node;
         VectorNd X;
-        double th = std::atan2(pt(1), pt(0));
         X[0] = std::exp(sin(2 * M_PI * time) / (2.0 * M_PI)) *
                (pt(0) * std::cos(0.5 * M_PI * time) - pt(1) * std::sin(0.5 * M_PI * time));
         X[1] = std::exp(sin(2 * M_PI * time) / (2.0 * M_PI)) *
@@ -301,4 +355,81 @@ update_mesh(MeshBase* mesh, FEDataManager* fe_data_manager, double time)
     }
     X_petsc_vec->restore_array();
     dX_petsc_vec->restore_array();
+}
+
+void
+setInitialCondition(const std::string& sf_name,
+                    const std::shared_ptr<SBSurfaceFluidCouplingManager>& sb_data_manager,
+                    MeshBase* mesh)
+{
+    EquationSystems* eq_sys = sb_data_manager->getFEDataManager()->getEquationSystems();
+    auto& sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
+    NumericVector<double>* soln = sys.solution.get();
+    const DofMap& sys_dof_map = sys.get_dof_map();
+    MeshBase::const_node_iterator node_it = mesh->active_nodes_begin();
+    MeshBase::const_node_iterator node_end = mesh->active_nodes_end();
+    for (; node_it != node_end; node_it++)
+    {
+        const Node* node = *node_it;
+        std::vector<dof_id_type> dof_indices;
+        sys_dof_map.dof_indices(node, dof_indices);
+        for (const auto dof_index : dof_indices)
+        {
+            soln->set(dof_index, 1.0);
+        }
+    }
+    soln->close();
+}
+
+void
+updateExactAndError(const std::string& sf_name,
+                    const std::string& err_name,
+                    const std::string& exact_name,
+                    const std::string& J_exa_name,
+                    const std::string& J_err_name,
+                    const std::shared_ptr<SBSurfaceFluidCouplingManager>& sb_data_manager,
+                    MeshBase* mesh,
+                    const double time)
+{
+    auto exact_fcn = [](double t, double l) -> double { return std::exp(l * t - std::sin(2.0 * M_PI * t) / M_PI); };
+
+    auto J_fcn = [](double t) -> double { return std::exp(-std::sin(2.0 * M_PI * t) / (2.0 * M_PI)); };
+    EquationSystems* eq_sys = sb_data_manager->getFEDataManager()->getEquationSystems();
+    auto& sf_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
+    auto& err_sys = eq_sys->get_system<ExplicitSystem>(err_name);
+    auto& exa_sys = eq_sys->get_system<ExplicitSystem>(exact_name);
+    auto& J_sys = eq_sys->get_system<ExplicitSystem>(sb_data_manager->getJacobianName());
+    auto& J_exa_sys = eq_sys->get_system<ExplicitSystem>(J_exa_name);
+    auto& J_err_sys = eq_sys->get_system<ExplicitSystem>(J_err_name);
+
+    const DofMap& sf_dof_map = sf_sys.get_dof_map();
+
+    NumericVector<double>* sf_vec = sf_sys.solution.get();
+    NumericVector<double>* err_vec = err_sys.solution.get();
+    NumericVector<double>* exa_vec = exa_sys.solution.get();
+    NumericVector<double>* J_vec = J_sys.solution.get();
+    NumericVector<double>* J_err_vec = J_err_sys.solution.get();
+    NumericVector<double>* J_exa_vec = J_exa_sys.solution.get();
+
+    MeshBase::const_node_iterator node_it = mesh->active_nodes_begin();
+    MeshBase::const_node_iterator node_end = mesh->active_nodes_end();
+    for (; node_it != node_end; node_it++)
+    {
+        const Node* node = *node_it;
+        std::vector<dof_id_type> dof_indices;
+        sf_dof_map.dof_indices(node, dof_indices);
+        for (const auto dof_index : dof_indices)
+        {
+            exa_vec->set(dof_index, exact_fcn(time, lambda));
+            err_vec->set(dof_index, std::abs((*exa_vec)(dof_index) - (*sf_vec)(dof_index) * (*J_vec)(dof_index)));
+            J_exa_vec->set(dof_index, J_fcn(time));
+            J_err_vec->set(dof_index, std::abs(J_fcn(time) - (*J_vec)(dof_index)));
+        }
+    }
+    J_vec->close();
+    sf_vec->close();
+    exa_vec->close();
+    err_vec->close();
+    J_exa_vec->close();
+    J_err_vec->close();
 }

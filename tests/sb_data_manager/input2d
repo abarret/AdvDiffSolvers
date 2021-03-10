@@ -16,6 +16,8 @@ NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = 2.0*LY/NFINEST
 H = DX
 REGRID_INTERVAL = 1
+LAMBDA = -0.0
+DT_MAX = 0.01
 
 OUTPUT_BDRY_INFO = FALSE
 USING_LS_FCN = TRUE
@@ -35,7 +37,7 @@ REACT_FRAC = 0.25
 ERROR_ON_MOVE = TRUE
 MFAC = 1.5
 ELEM_TYPE = "QUAD4"
-elem_order = "SECOND"
+elem_order = "FIRST"
 THETA = PI/18.0
 Y_LOW = 0.5
 Y_UP = 1.5

@@ -157,24 +157,6 @@ SBSurfaceFluidCouplingManager::initializeFEEquationSystems()
         J_sys.add_variable(d_J_sys_name, FEType());
     }
 
-    for (const auto& sf_name : d_sf_names)
-    {
-        auto& surface_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
-        surface_sys.assemble_before_solve = false;
-        surface_sys.assemble();
-    }
-
-    for (const auto& fl_name : d_fl_names)
-    {
-        auto& fluid_sys = eq_sys->add_system<ExplicitSystem>(fl_name);
-        fluid_sys.assemble_before_solve = false;
-        fluid_sys.assemble();
-    }
-
-    auto& J_sys = eq_sys->add_system<ExplicitSystem>(d_J_sys_name);
-    J_sys.assemble_before_solve = false;
-    J_sys.assemble();
-
     eq_sys->reinit();
 }
 
@@ -321,8 +303,8 @@ SBSurfaceFluidCouplingManager::updateJacobian()
     DofMap& J_dof_map = J_sys.get_dof_map();
     J_dof_map.compute_sparsity(*d_mesh);
     auto J_vec = dynamic_cast<libMesh::PetscVector<double>*>(J_sys.solution.get());
-    std::unique_ptr<NumericVector<double>> F_n_vec(J_vec->zero_clone());
-    auto F_vec = dynamic_cast<libMesh::PetscVector<double>*>(F_n_vec.get());
+    std::unique_ptr<NumericVector<double>> F_c_vec(J_vec->zero_clone());
+    auto F_vec = dynamic_cast<libMesh::PetscVector<double>*>(F_c_vec.get());
 
     auto& X_sys = eq_sys->get_system<System>(d_fe_data_manager->COORDINATES_SYSTEM_NAME);
     FEType X_fe_type = X_sys.get_dof_map().variable_type(0);
@@ -367,7 +349,7 @@ SBSurfaceFluidCouplingManager::updateJacobian()
 
         const auto& X_dof_indices = X_dof_map_cache.dof_indices(elem);
         IBTK::get_values_for_interpolation(x_node, *X_petsc_vec, X_local_soln, X_dof_indices);
-        boost::multi_array<double, NDIM> X_node = x_node;
+        boost::multi_array<double, NDIM> X_node(boost::extents[X_dof_indices[0].size()][X_dof_indices.size()]);
         for (unsigned int k = 0; k < elem->n_nodes(); ++k)
         {
             for (unsigned int d = 0; d < NDIM; ++d) X_node[k][d] = elem->point(k)(d);

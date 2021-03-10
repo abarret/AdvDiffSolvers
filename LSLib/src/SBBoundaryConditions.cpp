@@ -105,6 +105,14 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
     FEDataManager::SystemDofMapCache& X_dof_map_cache =
         *fe_data_manager->getDofMapCache(fe_data_manager->COORDINATES_SYSTEM_NAME);
 
+    System& J_sys = eq_sys->get_system(d_sb_data_manager->getJacobianName());
+    DofMap& J_dof_map = J_sys.get_dof_map();
+    FEType J_fe_type = J_dof_map.variable_type(0);
+    NumericVector<double>* J_vec = J_sys.solution.get();
+    auto J_petsc_vec = dynamic_cast<PetscVector<double>*>(J_vec);
+    TBOX_ASSERT(J_petsc_vec != nullptr);
+    const double* const J_local_soln = J_petsc_vec->get_array_read();
+
     std::vector<std::string> fl_names, sf_names;
     d_sb_data_manager->getFLCouplingLists(sys_name, sf_names, fl_names);
     std::vector<NumericVector<double>*> fl_vecs, sf_vecs;
@@ -172,9 +180,9 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
             const std::unique_ptr<Elem>& new_elem = cut_cell_elem.d_elem;
             const std::vector<libMesh::Point>& intersections = cut_cell_elem.d_intersections;
 
-            std::vector<dof_id_type> fl_dofs, sf_dofs, Q_dofs;
+            std::vector<dof_id_type> fl_dofs, sf_dofs, Q_dofs, J_dofs;
             boost::multi_array<double, 2> x_node;
-            boost::multi_array<double, 1> Q_node;
+            boost::multi_array<double, 1> Q_node, J_node;
             std::vector<boost::multi_array<double, 1>> fl_node(fl_names.size()), sf_node(sf_names.size());
             std::vector<double> sf_vals(sf_names.size()), fl_vals(fl_names.size());
 
@@ -183,6 +191,9 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
 
             Q_dof_map.dof_indices(old_elem, Q_dofs);
             IBTK::get_values_for_interpolation(Q_node, *Q_vec, Q_dofs);
+
+            J_dof_map.dof_indices(old_elem, J_dofs);
+            IBTK::get_values_for_interpolation(J_node, *J_petsc_vec, J_local_soln, J_dofs);
             for (unsigned int l = 0; l < fl_names.size(); ++l)
             {
                 fl_dof_maps[l]->dof_indices(old_elem, fl_dofs);
@@ -194,7 +205,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                 IBTK::get_values_for_interpolation(sf_node[l], *sf_vecs[l], sf_dofs);
             }
             // We need to interpolate our solution to the new element's nodes
-            std::array<double, 2> Q_soln_on_new_elem;
+            std::array<double, 2> Q_soln_on_new_elem, J_soln_on_new_elem;
             std::vector<std::array<double, 2>> sf_soln_on_new_elem(sf_names.size()),
                 fl_soln_on_new_elem(fl_names.size());
             fe->reinit(old_elem, &intersections);
@@ -205,6 +216,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                     sf_soln_on_new_elem[k][l] = IBTK::interpolate(l, sf_node[k], phi);
                 for (unsigned int k = 0; k < fl_names.size(); ++k)
                     fl_soln_on_new_elem[k][l] = IBTK::interpolate(l, fl_node[k], phi);
+                J_soln_on_new_elem[l] = IBTK::interpolate(l, J_node, phi);
             }
             // Then we need to integrate
             fe->reinit(new_elem.get());
@@ -212,20 +224,21 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
             double area = 0.0;
             for (unsigned int qp = 0; qp < JxW.size(); ++qp)
             {
-                double Q_val = 0.0;
+                double Q_val = 0.0, J_val = 0.0;
                 std::fill(sf_vals.begin(), sf_vals.end(), 0.0);
                 std::fill(fl_vals.begin(), fl_vals.end(), 0.0);
                 for (int n = 0; n < 2; ++n)
                 {
                     Q_val += Q_soln_on_new_elem[n] * phi[n][qp];
+                    J_val += J_soln_on_new_elem[n] * phi[n][qp];
                     for (unsigned int l = 0; l < fl_names.size(); ++l)
                         fl_vals[l] += fl_soln_on_new_elem[l][n] * phi[n][qp];
                     for (unsigned int l = 0; l < sf_names.size(); ++l)
                         sf_vals[l] += sf_soln_on_new_elem[l][n] * phi[n][qp];
                 }
-                a += a_fcn(Q_val, fl_vals, sf_vals, time, fcn_ctx) * JxW[qp];
+                a += a_fcn(Q_val, fl_vals, sf_vals, time, fcn_ctx) * J_val * JxW[qp];
                 area += JxW[qp];
-                if (!d_homogeneous_bdry) g += g_fcn(Q_val, fl_vals, sf_vals, time, fcn_ctx) * JxW[qp];
+                if (!d_homogeneous_bdry) g += g_fcn(Q_val, fl_vals, sf_vals, time, fcn_ctx) * J_val * JxW[qp];
             }
 
             double cell_volume = dx[0] * dx[1] * (*vol_data)(idx);
