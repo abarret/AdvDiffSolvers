@@ -260,6 +260,8 @@ main(int argc, char* argv[])
 
         sb_data_manager->updateJacobian();
         // Write out initial visualization data.
+        updateExactAndError(
+            sf_name, err_name, exa_name, J_exa_name, J_err_name, sb_data_manager, meshes[REACTION_MESH_ID], 0.0);
         if (dump_viz_data && uses_visit)
         {
             if (uses_exodus)
@@ -391,7 +393,9 @@ updateExactAndError(const std::string& sf_name,
                     MeshBase* mesh,
                     const double time)
 {
-    auto exact_fcn = [](double t, double l) -> double { return std::exp(l * t - std::sin(2.0 * M_PI * t) / M_PI); };
+    auto exact_fcn = [](double t, double l) -> double {
+        return std::exp(l * t - std::sin(2.0 * M_PI * t) / (2.0 * M_PI));
+    };
 
     auto J_fcn = [](double t) -> double { return std::exp(-std::sin(2.0 * M_PI * t) / (2.0 * M_PI)); };
     EquationSystems* eq_sys = sb_data_manager->getFEDataManager()->getEquationSystems();
