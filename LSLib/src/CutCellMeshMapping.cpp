@@ -85,6 +85,7 @@ CutCellMeshMapping::generateCutCellMappings()
         std::vector<dof_id_type> fl_dofs, sf_dofs, Q_dofs;
         boost::multi_array<double, 2> x_node;
         boost::multi_array<double, 1> Q_node;
+        unsigned int ij = 0;
         for (const auto& elem : patch_elems)
         {
             const auto& X_dof_indices = X_dof_map_cache.dof_indices(elem);
@@ -108,7 +109,7 @@ CutCellMeshMapping::generateCutCellMappings()
                 PatchIndexPair p_idx(patch, CellIndex<NDIM>(elem_idx_nodes[0]));
                 // Create copy of element
                 d_idx_cut_cell_elems_map_vec[level_num][p_idx].push_back(
-                    CutCellElems(elem, { elem->get_nodes()[0], elem->get_nodes()[1] }));
+                    CutCellElems(elem, { elem->point(0), elem->point(1) }));
                 continue;
             }
 
@@ -206,8 +207,11 @@ CutCellMeshMapping::generateCutCellMappings()
                 // Create a new element
                 d_idx_cut_cell_elems_map_vec[level_num][p_idx].push_back(CutCellElems(elem, intersection_points));
             }
+            // Restore element's original positions
+            for (unsigned int k = 0; k < n_node; ++k) elem->point(k) = X_node_cache[k];
         }
     }
+    X_petsc_vec->restore_array();
 }
 
 bool

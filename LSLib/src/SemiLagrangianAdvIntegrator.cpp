@@ -580,6 +580,7 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
         const int vol_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
         ls_sb_data_manager_pair.second->setLSData(ls_idx, vol_idx, d_hierarchy);
+        ls_sb_data_manager_pair.second->updateJacobian();
     }
 
     for (const auto& ls_cut_cell_mapping_pair : d_ls_cut_cell_mapping_map)
@@ -824,6 +825,11 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
 
         ls_fcn->updateVolumeAreaSideLS(
             vol_new_idx, vol_var, area_new_idx, area_var, side_new_idx, side_var, ls_new_idx, ls_var, new_time, true);
+        // Update Jacobian if applicable
+        for (const auto& ls_sb_data_manager_pair : d_ls_sb_data_manager_map)
+        {
+            ls_sb_data_manager_pair.second->updateJacobian();
+        }
     }
 
     // Now do advective update for each variable
