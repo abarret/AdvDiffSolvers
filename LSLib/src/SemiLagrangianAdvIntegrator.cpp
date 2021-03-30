@@ -339,6 +339,12 @@ SemiLagrangianAdvIntegrator::registerSBIntegrator(Pointer<SBIntegrator> sb_integ
 }
 
 void
+SemiLagrangianAdvIntegrator::registerReconstructionCache(Pointer<ReconstructCache> reconstruct_cache)
+{
+    d_reconstruction_cache = reconstruct_cache;
+}
+
+void
 SemiLagrangianAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<NDIM>> hierarchy,
                                                            Pointer<GriddingAlgorithm<NDIM>> gridding_alg)
 {
@@ -1003,10 +1009,13 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
             Q_init->setDataOnPatchHierarchy(Q_idx, Q_var, d_hierarchy, 0.0);
         }
 
-        if (d_use_rbfs)
-            d_reconstruction_cache = new RBFReconstructCache();
-        else
-            d_reconstruction_cache = new MLSReconstructCache();
+        if (!d_reconstruction_cache)
+        {
+            if (d_use_rbfs)
+                d_reconstruction_cache = new RBFReconstructCache();
+            else
+                d_reconstruction_cache = new MLSReconstructCache();
+        }
     }
 }
 
@@ -1162,6 +1171,12 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
     const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
     const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
     const Pointer<FaceVariable<NDIM, double>>& u_var = d_Q_u_map[Q_var];
+    if (!u_var)
+    {
+        // no advection. Copy data to new context
+        d_hier_cc_data_ops->copyData(Q_new_idx, Q_cur_idx);
+        return;
+    }
     const int u_new_idx = var_db->mapVariableAndContextToIndex(u_var, getNewContext());
     const int u_cur_idx = var_db->mapVariableAndContextToIndex(u_var, getCurrentContext());
     const int u_scr_idx = var_db->mapVariableAndContextToIndex(u_var, getScratchContext());

@@ -453,6 +453,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
             }
         }
     }
+    plog << "Finished processing cut cells. Updating sign of phi\n";
     // Now we need to update the sign of phi_data.
     RefineAlgorithm<NDIM> ghost_fill_alg;
     ghost_fill_alg.registerRefine(phi_idx, phi_idx, phi_idx, nullptr);
@@ -479,6 +480,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                           n_local_updates);
         }
         n_global_updates = IBTK_MPI::sumReduction(n_local_updates);
+        plog << "global_updates: " << n_global_updates << "\n";
     }
     // Finally, fill in volumes/areas of non cut cells
     for (PatchLevel<NDIM>::Iterator p(level); p; p++)

@@ -74,6 +74,8 @@ public:
     void registerSBIntegrator(SAMRAI::tbox::Pointer<SBIntegrator> sb_integrator,
                               SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
+    void registerReconstructionCache(SAMRAI::tbox::Pointer<LS::ReconstructCache> reconstruct_cache);
+
     /*!
      * Initialize the variables, basic communications algorithms, solvers, and
      * other data structures used by this time integrator object.
