@@ -453,7 +453,6 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
             }
         }
     }
-    plog << "Finished processing cut cells. Updating sign of phi\n";
     // Now we need to update the sign of phi_data.
     RefineAlgorithm<NDIM> ghost_fill_alg;
     ghost_fill_alg.registerRefine(phi_idx, phi_idx, phi_idx, nullptr);
@@ -480,7 +479,6 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                           n_local_updates);
         }
         n_global_updates = IBTK_MPI::sumReduction(n_local_updates);
-        plog << "global_updates: " << n_global_updates << "\n";
     }
     // Finally, fill in volumes/areas of non cut cells
     for (PatchLevel<NDIM>::Iterator p(level); p; p++)
@@ -529,27 +527,6 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                     }
                 }
             }
-        }
-    }
-
-    for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-    {
-        Pointer<Patch<NDIM>> patch = level->getPatch(p());
-        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
-        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(phi_idx);
-        Pointer<SideData<NDIM, double>> side_data = patch->getPatchData(side_idx);
-        for (CellIterator<NDIM> ci(vol_data->getGhostBox()); ci; ci++)
-        {
-            const CellIndex<NDIM>& idx = ci();
-            for (int axis = 0; axis < NDIM; ++axis)
-            {
-                SideIndex<NDIM> idx_lower(idx, axis, 0);
-                SideIndex<NDIM> idx_upper(idx, axis, 1);
-            }
-            NodeIndex<NDIM> idx_ll(idx, NodeIndex<NDIM>::LowerLeft);
-            NodeIndex<NDIM> idx_lr(idx, NodeIndex<NDIM>::LowerRight);
-            NodeIndex<NDIM> idx_ul(idx, NodeIndex<NDIM>::UpperLeft);
-            NodeIndex<NDIM> idx_ur(idx, NodeIndex<NDIM>::UpperRight);
         }
     }
     LS_TIMER_STOP(t_updateVolumeAreaSideLS);
