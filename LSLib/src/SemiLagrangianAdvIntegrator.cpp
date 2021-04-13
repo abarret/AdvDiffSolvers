@@ -451,8 +451,7 @@ SemiLagrangianAdvIntegrator::applyGradientDetectorSpecialized(Pointer<BasePatchH
             {
                 const CellIndex<NDIM>& idx = ci();
                 const double ls = node_to_cell(idx, *ls_data);
-                if (ls < d_max_ls_refine_factor * dx[0] && ls > d_min_ls_refine_factor * dx[0])
-                    (*tag_data)(idx) = 1;
+                if (ls < d_max_ls_refine_factor * dx[0] && ls > d_min_ls_refine_factor * dx[0]) (*tag_data)(idx) = 1;
             }
         }
     }
@@ -953,12 +952,13 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
     plog << d_object_name + ": initializing composite Hierarchy data\n";
     if (initial_time)
     {
+        plog << d_object_name + ": Initializing fe data managers\n";
         for (const auto& fe_data_manager : d_fe_data_managers)
         {
+            plog << "Reinitializing element mappings for " << fe_data_manager << "\n";
             fe_data_manager->setPatchHierarchy(d_hierarchy);
             fe_data_manager->reinitElementMappings();
         }
-
         auto var_db = VariableDatabase<NDIM>::getDatabase();
         // Set initial level set data
         for (size_t l = 0; l < d_ls_vars.size(); ++l)
@@ -972,6 +972,8 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
             const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
             const int area_cur_idx = var_db->mapVariableAndContextToIndex(area_var, getCurrentContext());
             const int side_cur_idx = var_db->mapVariableAndContextToIndex(side_var, getCurrentContext());
+
+            plog << d_object_name << ": initializing level set for: " << ls_var->getName() << "\n";
 
             d_ls_vol_fcn_map[ls_var]->updateVolumeAreaSideLS(
                 vol_cur_idx, vol_var, area_cur_idx, area_var, side_cur_idx, side_var, ls_cur_idx, ls_var, 0.0, false);
@@ -997,6 +999,7 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
         }
         for (const auto& Q_var : d_Q_var)
         {
+            plog << d_object_name << ": Initializing data for variable: " << Q_var->getName() << "\n";
             const Pointer<NodeVariable<NDIM, double>>& ls_var = d_Q_ls_map[Q_var];
             const size_t l = distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
             const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
@@ -1017,6 +1020,7 @@ SemiLagrangianAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const d
                 d_reconstruction_cache = new MLSReconstructCache();
         }
     }
+    plog << d_object_name << ": Finished initializing composite data\n";
 }
 
 void
@@ -1257,8 +1261,14 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     {
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
         std::vector<ITC> ghost_cell_comps(1);
-        ghost_cell_comps[0] =
-            ITC(d_Q_big_scr_idx, Q_cur_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR", true, nullptr);
+        ghost_cell_comps[0] = ITC(d_Q_big_scr_idx,
+                                  Q_cur_idx,
+                                  "CONSERVATIVE_LINEAR_REFINE",
+                                  false,
+                                  "NONE",
+                                  "LINEAR",
+                                  true,
+                                  d_Q_bc_coef[Q_var]);
         HierarchyGhostCellInterpolation hier_ghost_cell;
         hier_ghost_cell.initializeOperatorState(ghost_cell_comps, d_hierarchy);
         hier_ghost_cell.fillData(current_time);
@@ -1348,8 +1358,14 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     {
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
         std::vector<ITC> ghost_cell_comps(1);
-        ghost_cell_comps[0] =
-            ITC(d_Q_big_scr_idx, Q_scr_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR", true, nullptr);
+        ghost_cell_comps[0] = ITC(d_Q_big_scr_idx,
+                                  Q_scr_idx,
+                                  "CONSERVATIVE_LINEAR_REFINE",
+                                  false,
+                                  "NONE",
+                                  "LINEAR",
+                                  true,
+                                  d_Q_bc_coef[Q_var]);
         HierarchyGhostCellInterpolation hier_ghost_cell;
         hier_ghost_cell.initializeOperatorState(ghost_cell_comps, d_hierarchy);
         hier_ghost_cell.fillData(current_time);

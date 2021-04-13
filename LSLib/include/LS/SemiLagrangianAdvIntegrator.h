@@ -134,7 +134,7 @@ protected:
     void resetTimeDependentHierarchyDataSpecialized(double new_time) override;
     void resetHierarchyConfigurationSpecialized(Pointer<BasePatchHierarchy<NDIM>> base_hierarchy,
                                                 int coarsest_ln,
-                                                int finest_ln);
+                                                int finest_ln) override;
 
     void addWorkloadEstimate(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                              const int workload_data_idx) override;

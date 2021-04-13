@@ -9,7 +9,7 @@
 namespace LS
 {
 /*!
- * CutCellMeshMapping maintains a description of the Lagrangian mesh from a description of the background mesh. We
+ * CutCellMeshMapping maintains a description of the Lagrangian mesh from the point of view of the background mesh. We
  * maintain a mapping from each cut cell index to a vector of element and element parent pairs.
  */
 class CutCellMeshMapping
@@ -26,7 +26,7 @@ public:
     /*!
      * \brief Default deconstructor.
      */
-    ~CutCellMeshMapping() = default;
+    ~CutCellMeshMapping();
 
     /*!
      * \brief Deleted default constructor.
@@ -56,6 +56,13 @@ public:
         return d_idx_cut_cell_elems_map_vec[ln];
     }
 
+    using MappingFcn = std::function<void(libMesh::Node*, libMesh::Elem*, libMesh::Point& x_cur)>;
+
+    inline void registerMappingFcn(MappingFcn fcn)
+    {
+        d_mapping_fcn = fcn;
+    }
+
 private:
     bool findIntersection(libMesh::Point& p, libMesh::Elem* elem, libMesh::Point r, libMesh::VectorValue<double> q);
 
@@ -70,6 +77,8 @@ private:
     int d_ls_idx = IBTK::invalid_index, d_vol_idx = IBTK::invalid_index, d_area_idx = IBTK::invalid_index;
 
     std::vector<std::map<LS::PatchIndexPair, std::vector<CutCellElems>>> d_idx_cut_cell_elems_map_vec;
+
+    MappingFcn d_mapping_fcn = nullptr;
 };
 
 } // namespace LS

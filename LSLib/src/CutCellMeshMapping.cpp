@@ -13,6 +13,11 @@ CutCellMeshMapping::CutCellMeshMapping(std::string object_name,
     if (input_db) d_perturb_nodes = input_db->getBool("perturb_nodes");
 }
 
+CutCellMeshMapping::~CutCellMeshMapping()
+{
+    if (d_is_initialized) deinitializeObjectState();
+}
+
 void
 CutCellMeshMapping::setLSData(const int ls_idx, const int vol_idx, const int area_idx)
 {
@@ -138,6 +143,7 @@ CutCellMeshMapping::generateCutCellMappings()
                         }
                     }
                 }
+                if (d_mapping_fcn) d_mapping_fcn(elem->node_ptr(k), elem, x);
 
                 for (unsigned int d = 0; d < NDIM; ++d)
                 {
