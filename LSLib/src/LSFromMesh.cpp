@@ -2,7 +2,7 @@
 #include "ibtk/IBTK_MPI.h"
 
 #include "LS/LSFromMesh.h"
-#include "LS/utility_functions.h"
+#include "LS/ls_functions.h"
 
 // FORTRAN ROUTINES
 #if (NDIM == 2)

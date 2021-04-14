@@ -14,7 +14,7 @@
 #include "LS/MLSReconstructCache.h"
 #include "LS/RBFReconstructCache.h"
 #include "LS/SBIntegrator.h"
-#include "LS/utility_functions.h"
+#include "LS/ls_utilities.h"
 
 namespace LS
 {

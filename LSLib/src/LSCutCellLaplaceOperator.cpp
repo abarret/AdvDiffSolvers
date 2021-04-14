@@ -11,7 +11,7 @@
 #include "ibtk/namespaces.h" // IWYU pragma: keep
 
 #include "LS/LSCutCellLaplaceOperator.h"
-#include "LS/utility_functions.h"
+#include "LS/ls_functions.h"
 
 #include "CellDataFactory.h"
 #include "CellVariable.h"

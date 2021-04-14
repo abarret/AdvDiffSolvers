@@ -1,7 +1,9 @@
+#include "ibamr/app_namespaces.h"
+
 #include "ibtk/IndexUtilities.h"
 
 #include "LS/SBIntegrator.h"
-#include "LS/utility_functions.h"
+#include "LS/ls_functions.h"
 
 #include "libmesh/elem_cutter.h"
 #include "libmesh/explicit_system.h"
@@ -56,7 +58,6 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
         auto& sf_base_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
         DofMap& sf_base_dof_map = sf_base_sys.get_dof_map();
         NumericVector<double>* sf_base_cur_vec = sf_base_sys.solution.get();
-        NumericVector<double>* sf_base_old_vec = sf_base_sys.older_local_solution.get();
 
         // Get the NumericVector for all associated systems.
         // TODO: We should check that the dof_maps are all the same, otherwise we need to grab them.
@@ -105,7 +106,6 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
                     fl_vals.push_back((*fl_vecs[l])(fl_dofs[0]));
                 }
                 IBTK::get_nodal_dof_indices(sf_base_dof_map, node, 0, sf_base_dofs);
-                const double sf_old_val = (*sf_base_old_vec)(sf_base_dofs[0]);
                 double sf_cur_val = (*sf_base_cur_vec)(sf_base_dofs[0]);
                 sf_cur_val +=
                     dt * rcn_fcn_ctx.first(sf_cur_val, fl_vals, sf_cur_vals, current_time, rcn_fcn_ctx.second);

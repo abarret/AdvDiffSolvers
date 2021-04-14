@@ -1,4 +1,7 @@
+#include "ibamr/app_namespaces.h"
+
 #include "LS/RBFReconstructCache.h"
+#include "LS/ls_functions.h"
 
 namespace LS
 {

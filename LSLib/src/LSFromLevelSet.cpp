@@ -1,9 +1,9 @@
 #include "ibtk/DebuggingUtilities.h"
 #include "ibtk/app_namespaces.h"
-#include "ibtk/ibtk_macros.h"
+#include "ibtk/config.h"
 
 #include "LS/LSFromLevelSet.h"
-#include "LS/utility_functions.h"
+#include "LS/ls_functions.h"
 
 IBTK_DISABLE_EXTRA_WARNINGS
 #include <boost/multi_array.hpp>

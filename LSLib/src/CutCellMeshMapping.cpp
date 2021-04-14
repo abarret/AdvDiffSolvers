@@ -1,3 +1,5 @@
+#include "ibamr/app_namespaces.h"
+
 #include "ibtk/IndexUtilities.h"
 
 #include "LS/CutCellMeshMapping.h"
@@ -53,8 +55,6 @@ CutCellMeshMapping::generateCutCellMappings()
     EquationSystems* eq_sys = d_fe_data_manager->getEquationSystems();
 
     System& X_system = eq_sys->get_system(d_fe_data_manager->COORDINATES_SYSTEM_NAME);
-    DofMap& X_dof_map = X_system.get_dof_map();
-    FEType X_fe_type = X_dof_map.variable_type(0);
     NumericVector<double>* X_vec = X_system.solution.get();
     auto X_petsc_vec = dynamic_cast<PetscVector<double>*>(X_vec);
     TBOX_ASSERT(X_petsc_vec != nullptr);
@@ -90,7 +90,6 @@ CutCellMeshMapping::generateCutCellMappings()
         std::vector<dof_id_type> fl_dofs, sf_dofs, Q_dofs;
         boost::multi_array<double, 2> x_node;
         boost::multi_array<double, 1> Q_node;
-        unsigned int ij = 0;
         for (const auto& elem : patch_elems)
         {
             const auto& X_dof_indices = X_dof_map_cache.dof_indices(elem);

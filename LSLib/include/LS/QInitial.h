@@ -16,14 +16,11 @@
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-// IBTK INCLUDES
 #include <ibtk/CartGridFunction.h>
 #include <ibtk/ibtk_utilities.h>
 
-// SAMRAI INCLUDES
 #include <CartesianGridGeometry.h>
 
-// C++ namespace delcarations
 #include <ibamr/AdvDiffHierarchyIntegrator.h>
 #include <ibamr/app_namespaces.h>
 

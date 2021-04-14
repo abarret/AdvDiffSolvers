@@ -9,7 +9,7 @@
 
 #include "LS/LSFindCellVolume.h"
 #include "LS/SetLSValue.h"
-#include "LS/utility_functions.h"
+#include "LS/ls_utilities.h"
 
 #include "CellVariable.h"
 #include "IntVector.h"

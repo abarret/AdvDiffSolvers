@@ -1,7 +1,8 @@
 #include "ibamr/namespaces.h"
 
 #include "LS/IntegrateFunction.h"
-#include "LS/utility_functions.h"
+#include "LS/ls_functions.h"
+#include "LS/ls_utilities.h"
 
 #include "tbox/ShutdownRegistry.h"
 

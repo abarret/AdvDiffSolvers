@@ -1,3 +1,5 @@
+#include "ibamr/app_namespaces.h"
+
 #include "LS/LSCutCellBoundaryConditions.h"
 
 namespace LS

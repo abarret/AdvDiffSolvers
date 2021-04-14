@@ -12,6 +12,7 @@
 #include "ibtk/app_namespaces.h"
 #include "ibtk/config.h"
 
+#include "LS/CutCellMeshMapping.h"
 #include "LS/LSFindCellVolume.h"
 
 #include "Box.h"

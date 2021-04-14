@@ -1,7 +1,9 @@
+#include "ibamr/app_namespaces.h"
+
 #include "ibtk/IndexUtilities.h"
 
 #include "LS/SBBoundaryConditions.h"
-#include "LS/utility_functions.h"
+#include "LS/ls_functions.h"
 
 #include "libmesh/elem_cutter.h"
 #include "libmesh/explicit_system.h"
@@ -27,9 +29,9 @@ SBBoundaryConditions::SBBoundaryConditions(const std::string& object_name,
                                            const std::shared_ptr<CutCellMeshMapping>& cut_cell_mesh_mapping)
     : LSCutCellBoundaryConditions(object_name),
       d_mesh(mesh),
-      d_fl_name(fl_name),
       d_sb_data_manager(sb_data_manager),
-      d_cut_cell_mapping(cut_cell_mesh_mapping)
+      d_cut_cell_mapping(cut_cell_mesh_mapping),
+      d_fl_name(fl_name)
 {
 
     IBTK_DO_ONCE(t_applyBoundaryCondition =
@@ -107,7 +109,6 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
 
     System& J_sys = eq_sys->get_system(d_sb_data_manager->getJacobianName());
     DofMap& J_dof_map = J_sys.get_dof_map();
-    FEType J_fe_type = J_dof_map.variable_type(0);
     NumericVector<double>* J_vec = J_sys.solution.get();
     auto J_petsc_vec = dynamic_cast<PetscVector<double>*>(J_vec);
     TBOX_ASSERT(J_petsc_vec != nullptr);
@@ -143,7 +144,6 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
     fe->attach_quadrature_rule(qrule.get());
     const std::vector<std::vector<double>>& phi = fe->get_phi();
     const std::vector<double>& JxW = fe->get_JxW();
-    const vector<vector<VectorValue<double>>>& dphi = fe->get_dphi();
 
     // Only changes are needed where the structure lives
     const int level_num = fe_data_manager->getFinestPatchLevelNumber();
@@ -151,7 +151,6 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
     const Pointer<CartesianGridGeometry<NDIM>> grid_geom = level->getGridGeometry();
     VectorValue<double> n;
     IBTK::Point x_min, x_max;
-    const std::vector<std::vector<Elem*>>& active_patch_element_map = fe_data_manager->getActivePatchElementMap();
     const BdryConds& bdry_reac_fcns = d_sb_data_manager->getFLBdryConditionFcns(sys_name);
     ReactionFcn a_fcn = std::get<0>(bdry_reac_fcns);
     ReactionFcn g_fcn = std::get<1>(bdry_reac_fcns);
@@ -172,8 +171,6 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
 
         Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         const double* const dx = pgeom->getDx();
-        const double* const xlow = pgeom->getXLower();
-        const hier::Index<NDIM>& idx_low = patch->getBox().lower();
         for (const auto& cut_cell_elem : idx_cut_cell_elem_pair_vec.second)
         {
             const Elem* const old_elem = cut_cell_elem.d_parent_elem;

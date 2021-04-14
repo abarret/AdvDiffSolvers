@@ -1,3 +1,5 @@
+#include "ibamr/app_namespaces.h"
+
 #include "ibtk/IndexUtilities.h"
 #include "ibtk/ibtk_utilities.h"
 
@@ -23,8 +25,8 @@ SBSurfaceFluidCouplingManager::SBSurfaceFluidCouplingManager(std::string object_
                                                              FEDataManager* fe_data_manager,
                                                              Mesh* mesh)
     : d_object_name(std::move(object_name)),
-      d_fe_data_manager(fe_data_manager),
       d_mesh(mesh),
+      d_fe_data_manager(fe_data_manager),
       d_J_sys_name("Jacobian"),
       d_scr_var(new CellVariable<NDIM, double>(d_object_name + "::SCR"))
 {

@@ -6,7 +6,7 @@
 #include "LS/LSCartGridFunction.h"
 #include "LS/SBBoundaryConditions.h"
 #include "LS/SemiLagrangianAdvIntegrator.h"
-#include "LS/utility_functions.h"
+#include "LS/ls_functions.h"
 
 #include "HierarchyDataOpsManager.h"
 #include "SAMRAIVectorReal.h"
@@ -625,8 +625,6 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         Pointer<SideVariable<NDIM, double>> D_rhs_var = d_diffusion_coef_rhs_map[D_var];
         const double lambda = d_Q_damping_coef[Q_var];
         const std::vector<RobinBcCoefStrategy<NDIM>*> Q_bc_coef = d_Q_bc_coef[Q_var];
-
-        auto var_db = VariableDatabase<NDIM>::getDatabase();
 
         // This should be changed for different time stepping for diffusion. Right now set at trapezoidal rule.
         double K = 0.0;
@@ -1372,35 +1370,36 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
     }
     d_reconstruction_cache->clearCache();
     d_reconstruction_cache->setUseCentroids(false);
-    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-        {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-            const double* const xlow = pgeom->getXLower();
-            const hier::Index<NDIM>& idx_low = patch->getBox().lower();
-
-            Pointer<CellData<NDIM, double>> Q_new_data = patch->getPatchData(Q_new_idx);
-            Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(d_Q_big_scr_idx);
-            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
-            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
-            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
-            {
-                const CellIndex<NDIM>& idx = ci();
-                if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
-                {
-                    // Reconstruct from cell center to cell centroid
-                    VectorNd x_loc = find_cell_centroid(idx, *ls_data);
-                    for (int d = 0; d < NDIM; ++d)
-                        x_loc[d] = xlow[d] + dx[d] * (x_loc(d) - static_cast<double>(idx_low(d)));
-                    (*Q_new_data)(idx) = d_reconstruction_cache->reconstructOnIndex(x_loc, idx, *Q_scr_data, patch);
-                }
-            }
-        }
-    }
+    //    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    //    {
+    //        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+    //        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+    //        {
+    //            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+    //            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+    //            const double* const dx = pgeom->getDx();
+    //            const double* const xlow = pgeom->getXLower();
+    //            const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+    //
+    //            Pointer<CellData<NDIM, double>> Q_new_data = patch->getPatchData(Q_new_idx);
+    //            Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(d_Q_big_scr_idx);
+    //            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+    //            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+    //            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+    //            {
+    //                const CellIndex<NDIM>& idx = ci();
+    //                if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
+    //                {
+    //                    // Reconstruct from cell center to cell centroid
+    //                    VectorNd x_loc = find_cell_centroid(idx, *ls_data);
+    //                    for (int d = 0; d < NDIM; ++d)
+    //                        x_loc[d] = xlow[d] + dx[d] * (x_loc(d) - static_cast<double>(idx_low(d)));
+    //                    (*Q_new_data)(idx) = d_reconstruction_cache->reconstructOnIndex(x_loc, idx, *Q_scr_data,
+    //                    patch);
+    //                }
+    //            }
+    //        }
+    //    }
     if (d_enable_logging)
     {
         plog << d_object_name << "::integrateHierarchy(): diffusion solve number of iterations = "

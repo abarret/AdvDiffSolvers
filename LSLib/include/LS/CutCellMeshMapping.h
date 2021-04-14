@@ -2,7 +2,8 @@
 #define included_CutCellMeshMapping
 #include "ibtk/FEDataManager.h"
 
-#include "LS/utility_functions.h"
+#include "LS/ls_functions.h"
+#include "LS/ls_utilities.h"
 
 #include "libmesh/mesh.h"
 

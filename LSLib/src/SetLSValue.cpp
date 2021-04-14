@@ -11,11 +11,11 @@
 //
 // ---------------------------------------------------------------------
 
-#include "LS/SetLSValue.h"
-#include "LS/utility_functions.h"
-/////////////////////////////// INCLUDES /////////////////////////////////////
-
 #include <IBAMR_config.h>
+
+#include <ibamr/app_namespaces.h>
+
+#include "LS/SetLSValue.h"
 
 #include <SAMRAI_config.h>
 
@@ -26,7 +26,7 @@ namespace LS
 /////////////////////////////// PUBLIC ///////////////////////////////////////
 
 SetLSValue::SetLSValue(const string& object_name, Pointer<GridGeometry<NDIM>> grid_geom, Pointer<Database> input_db)
-    : CartGridFunction(object_name), d_object_name(object_name), d_grid_geom(grid_geom)
+    : CartGridFunction(object_name), d_grid_geom(grid_geom)
 {
 #if !defined(NDEBUG)
     TBOX_ASSERT(!d_object_name.empty());

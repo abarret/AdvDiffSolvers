@@ -13,8 +13,6 @@
 
 #include "LS/QInitial.h"
 
-/////////////////////////////// INCLUDES /////////////////////////////////////
-
 #include <IBAMR_config.h>
 
 #include <SAMRAI_config.h>

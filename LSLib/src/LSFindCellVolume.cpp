@@ -1,7 +1,9 @@
+#include "IBAMR_config.h"
+
 #include "ibtk/DebuggingUtilities.h"
+#include "ibtk/app_namespaces.h"
 
 #include "LS/LSFindCellVolume.h"
-#include "LS/utility_functions.h"
 
 namespace LS
 {
