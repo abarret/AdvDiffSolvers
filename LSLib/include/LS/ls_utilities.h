@@ -43,14 +43,16 @@ copy_face_to_side(const int u_s_idx,
     }
 }
 
-struct PatchIndexPair
+struct IndexList
 {
 public:
-    PatchIndexPair(const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch,
-                   const SAMRAI::pdat::CellIndex<NDIM>& idx)
+    IndexList(const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch, const SAMRAI::pdat::CellIndex<NDIM>& idx)
         : d_idx(idx)
+#if (NDEBUG)
+          ,
+          d_patch(patch)
+#endif
     {
-        d_patch_num = patch->getPatchNumber();
         const SAMRAI::hier::Box<NDIM>& box = patch->getBox();
         const SAMRAI::hier::Index<NDIM>& idx_low = box.lower();
         const SAMRAI::hier::Index<NDIM>& idx_up = box.upper();
@@ -62,25 +64,23 @@ public:
 #endif
     }
 
-    bool operator<(const PatchIndexPair& b) const
+    bool operator<(const IndexList& b) const
     {
+#if (NDEBUG)
+        TBOX_ASSERT(b.d_patch == d_patch);
+#endif
         bool less_than_b = false;
-        if (d_patch_num < b.d_patch_num)
+        if (d_global_idx < b.d_global_idx)
         {
-            // We're on a smaller patch
-            less_than_b = true;
-        }
-        else if (d_patch_num == b.d_patch_num && d_global_idx < b.d_global_idx)
-        {
-            // Our global index is smaller than b but on the same patch
             less_than_b = true;
         }
         return less_than_b;
     }
-
-    SAMRAI::pdat::CellIndex<NDIM> d_idx;
-    int d_patch_num = -1;
     int d_global_idx = -1;
+    SAMRAI::pdat::CellIndex<NDIM> d_idx;
+#if (NDEBUG)
+    SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> d_patch;
+#endif
 };
 
 struct CutCellElems

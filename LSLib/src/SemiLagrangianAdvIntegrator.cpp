@@ -590,14 +590,6 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
 
     for (const auto& ls_cut_cell_mapping_pair : d_ls_cut_cell_mapping_map)
     {
-        const Pointer<NodeVariable<NDIM, double>>& ls_var = ls_cut_cell_mapping_pair.first;
-        const int l = std::distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
-        const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
-        const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
-        const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
-        const int vol_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
-        const int area_idx = var_db->mapVariableAndContextToIndex(area_var, getCurrentContext());
-        ls_cut_cell_mapping_pair.second->setLSData(ls_idx, vol_idx, area_idx);
         ls_cut_cell_mapping_pair.second->initializeObjectState(d_hierarchy);
         ls_cut_cell_mapping_pair.second->generateCutCellMappings();
     }
@@ -857,15 +849,7 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
     {
         for (const auto& ls_cut_cell_mapping_pair : d_ls_cut_cell_mapping_map)
         {
-            const Pointer<NodeVariable<NDIM, double>>& ls_var = ls_cut_cell_mapping_pair.first;
-            const int l = std::distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
-            const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
-            const Pointer<CellVariable<NDIM, double>>& area_var = d_area_vars[l];
-            const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
-            const int vol_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
-            const int area_idx = var_db->mapVariableAndContextToIndex(area_var, getCurrentContext());
             ls_cut_cell_mapping_pair.second->deinitializeObjectState();
-            ls_cut_cell_mapping_pair.second->setLSData(ls_idx, vol_idx, area_idx);
             ls_cut_cell_mapping_pair.second->initializeObjectState(d_hierarchy);
             ls_cut_cell_mapping_pair.second->generateCutCellMappings();
         }

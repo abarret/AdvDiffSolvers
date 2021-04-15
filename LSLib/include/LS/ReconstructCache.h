@@ -76,7 +76,7 @@ public:
 protected:
     int d_stencil_size = 2;
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
-    std::vector<std::map<PatchIndexPair, Eigen::FullPivHouseholderQR<IBTK::MatrixXd>>> d_qr_matrix_vec;
+    std::vector<std::vector<std::map<LS::IndexList, Eigen::FullPivHouseholderQR<IBTK::MatrixXd>>>> d_qr_matrix_vec;
     bool d_update_weights = true;
     bool d_use_centroids = true;
     int d_vol_idx = IBTK::invalid_index, d_ls_idx = IBTK::invalid_index;

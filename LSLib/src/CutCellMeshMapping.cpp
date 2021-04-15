@@ -21,14 +21,6 @@ CutCellMeshMapping::~CutCellMeshMapping()
 }
 
 void
-CutCellMeshMapping::setLSData(const int ls_idx, const int vol_idx, const int area_idx)
-{
-    d_ls_idx = ls_idx;
-    d_vol_idx = vol_idx;
-    d_area_idx = area_idx;
-}
-
-void
 CutCellMeshMapping::initializeObjectState(Pointer<PatchHierarchy<NDIM>> hierarchy)
 {
     if (d_is_initialized) deinitializeObjectState();
@@ -70,17 +62,17 @@ CutCellMeshMapping::generateCutCellMappings()
     IBTK::Point x_min, x_max;
     const std::vector<std::vector<Elem*>>& active_patch_element_map = d_fe_data_manager->getActivePatchElementMap();
 
-    for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+    std::vector<std::map<IndexList, std::vector<CutCellElems>>>& idx_cut_cell_map_vec =
+        d_idx_cut_cell_elems_map_vec[level_num];
+    idx_cut_cell_map_vec.resize(level->getProcessorMapping().getNumberOfLocalIndices());
+
+    unsigned int local_patch_num = 0;
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
     {
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
-        const int patch_num = patch->getPatchNumber();
-        const std::vector<Elem*>& patch_elems = active_patch_element_map[patch_num];
+        const std::vector<Elem*>& patch_elems = active_patch_element_map[local_patch_num];
         const size_t num_active_patch_elems = patch_elems.size();
         if (num_active_patch_elems == 0) continue;
-
-        Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(d_area_idx);
-        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(d_vol_idx);
-        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_ls_idx);
 
         Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         const double* const x_lower = pgeom->getXLower();
@@ -110,9 +102,9 @@ CutCellMeshMapping::generateCutCellMappings()
             {
                 // Element is entirely contained in cell.
                 // Store element and continue to next element
-                PatchIndexPair p_idx(patch, CellIndex<NDIM>(elem_idx_nodes[0]));
+                IndexList p_idx(patch, CellIndex<NDIM>(elem_idx_nodes[0]));
                 // Create copy of element
-                d_idx_cut_cell_elems_map_vec[level_num][p_idx].push_back(
+                idx_cut_cell_map_vec[local_patch_num][p_idx].push_back(
                     CutCellElems(elem, { elem->point(0), elem->point(1) }));
                 continue;
             }
@@ -208,9 +200,9 @@ CutCellMeshMapping::generateCutCellMappings()
                 // this index.
                 if (intersection_points.size() == 1) continue;
                 TBOX_ASSERT(intersection_points.size() == 2);
-                PatchIndexPair p_idx(patch, CellIndex<NDIM>(i_c));
+                IndexList p_idx(patch, CellIndex<NDIM>(i_c));
                 // Create a new element
-                d_idx_cut_cell_elems_map_vec[level_num][p_idx].push_back(CutCellElems(elem, intersection_points));
+                idx_cut_cell_map_vec[local_patch_num][p_idx].push_back(CutCellElems(elem, intersection_points));
             }
             // Restore element's original positions
             for (unsigned int k = 0; k < n_node; ++k) elem->point(k) = X_node_cache[k];

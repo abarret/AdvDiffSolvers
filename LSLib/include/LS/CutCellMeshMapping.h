@@ -44,15 +44,13 @@ public:
      */
     CutCellMeshMapping& operator=(const CutCellMeshMapping& that) = delete;
 
-    void setLSData(int ls_idx, int vol_idx, int area_idx);
-
     void initializeObjectState(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
 
     void deinitializeObjectState();
 
     void generateCutCellMappings();
 
-    inline const std::map<LS::PatchIndexPair, std::vector<CutCellElems>>& getIdxCutCellElemsMap(const int ln)
+    inline const std::vector<std::map<LS::IndexList, std::vector<CutCellElems>>>& getIdxCutCellElemsMap(const int ln)
     {
         return d_idx_cut_cell_elems_map_vec[ln];
     }
@@ -75,9 +73,7 @@ private:
     IBTK::FEDataManager* d_fe_data_manager = nullptr;
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
 
-    int d_ls_idx = IBTK::invalid_index, d_vol_idx = IBTK::invalid_index, d_area_idx = IBTK::invalid_index;
-
-    std::vector<std::map<LS::PatchIndexPair, std::vector<CutCellElems>>> d_idx_cut_cell_elems_map_vec;
+    std::vector<std::vector<std::map<LS::IndexList, std::vector<CutCellElems>>>> d_idx_cut_cell_elems_map_vec;
 
     MappingFcn d_mapping_fcn = nullptr;
 };

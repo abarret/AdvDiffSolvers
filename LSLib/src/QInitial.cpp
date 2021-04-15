@@ -11,9 +11,9 @@
 //
 // ---------------------------------------------------------------------
 
-#include "LS/QInitial.h"
-
 #include <IBAMR_config.h>
+
+#include "LS/QInitial.h"
 
 #include <SAMRAI_config.h>
 

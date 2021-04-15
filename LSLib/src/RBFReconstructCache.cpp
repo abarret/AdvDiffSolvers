@@ -20,7 +20,7 @@ RBFReconstructCache::cacheData()
     const int coarsest_ln = 0;
     const int finest_ln = d_hierarchy->getFinestLevelNumber();
     // Free any preallocated matrices
-    for (std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>>& qr_matrix_map : d_qr_matrix_vec)
+    for (std::vector<std::map<IndexList, FullPivHouseholderQR<MatrixXd>>>& qr_matrix_map : d_qr_matrix_vec)
         qr_matrix_map.clear();
 
     // allocate matrix data
@@ -28,10 +28,12 @@ RBFReconstructCache::cacheData()
 
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
-        std::map<PatchIndexPair, FullPivHouseholderQR<MatrixXd>>& qr_map = d_qr_matrix_vec[ln];
+        std::vector<std::map<IndexList, FullPivHouseholderQR<MatrixXd>>>& qr_map_vec = d_qr_matrix_vec[ln];
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        unsigned int local_patch_num = 0;
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
         {
+            std::map<IndexList, FullPivHouseholderQR<MatrixXd>>& qr_map = qr_map_vec[local_patch_num];
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
 
             const Box<NDIM>& box = patch->getBox();
@@ -88,7 +90,7 @@ RBFReconstructCache::cacheData()
                         B(i, 0) = 1.0;
                         for (int d = 0; d < NDIM; ++d) B(i, d + 1) = X_vals[i](d);
                     }
-                    PatchIndexPair p_idx = PatchIndexPair(patch, idx);
+                    IndexList p_idx(patch, idx);
 
                     MatrixXd final_mat(MatrixXd::Zero(m + NDIM + 1, m + NDIM + 1));
                     final_mat.block(0, 0, m, m) = A;
@@ -136,6 +138,8 @@ RBFReconstructCache::reconstructOnIndex(VectorNd x_loc,
     std::vector<double> Q_vals;
     std::vector<VectorNd> X_vals;
 
+    std::map<IndexList, FullPivHouseholderQR<MatrixXd>>& qr_map = d_qr_matrix_vec[ln][patch->getPatchNumber()];
+
     for (CellIterator<NDIM> ci(box); ci; ci++)
     {
         const CellIndex<NDIM>& idx_c = ci();
@@ -160,8 +164,8 @@ RBFReconstructCache::reconstructOnIndex(VectorNd x_loc,
     VectorXd U(VectorXd::Zero(m + NDIM + 1));
     for (size_t i = 0; i < Q_vals.size(); ++i) U(i) = Q_vals[i];
 
-    PatchIndexPair pi_pair(patch, idx);
-    VectorXd x1 = d_qr_matrix_vec[ln][PatchIndexPair(patch, idx)].solve(U);
+    IndexList pi_pair(patch, idx);
+    VectorXd x1 = qr_map[pi_pair].solve(U);
     VectorXd rbf_coefs = x1.block(0, 0, m, 1);
     VectorXd poly_coefs = x1.block(m, 0, NDIM + 1, 1);
     VectorXd poly_vec = VectorXd::Ones(NDIM + 1);

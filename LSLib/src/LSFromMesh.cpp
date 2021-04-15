@@ -45,6 +45,8 @@ LSFromMesh::LSFromMesh(std::string object_name,
     IBAMR_DO_ONCE(t_updateVolumeAreaSideLS =
                       TimerManager::getManager()->getTimer("LS::LSFromMesH::updateVolumeAreaSideLS()");
                   t_findIntersection = TimerManager::getManager()->getTimer("LS::LSFromMesh::findIntersection()"););
+    d_cut_cell_mesh_mapping = libmesh_make_unique<CutCellMeshMapping>(
+        d_object_name + "::CutCellMapping", nullptr, static_cast<Mesh*>(d_mesh), d_fe_data_manager);
     return;
 } // Constructor
 
@@ -65,6 +67,9 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
     TBOX_ASSERT(phi_var);
     HierarchyNodeDataOpsReal<NDIM, double> hier_nc_data_ops(d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
     hier_nc_data_ops.setToScalar(phi_idx, s_eps, false);
+
+    d_cut_cell_mesh_mapping->initializeObjectState(d_hierarchy);
+    d_cut_cell_mesh_mapping->generateCutCellMappings();
 
     const std::vector<std::vector<Elem*>>& active_patch_elem_map = d_fe_data_manager->getActivePatchElementMap();
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(d_hierarchy->getFinestLevelNumber());

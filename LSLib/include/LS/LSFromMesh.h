@@ -70,6 +70,8 @@ private:
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_sgn_var;
     int d_sgn_idx = IBTK::invalid_index;
+
+    std::unique_ptr<CutCellMeshMapping> d_cut_cell_mesh_mapping;
 };
 } // namespace LS
 

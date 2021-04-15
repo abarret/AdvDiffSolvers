@@ -57,7 +57,6 @@ public:
                                 double time) override;
 
 private:
-
     double d_D_coef = std::numeric_limits<double>::quiet_NaN();
 
     libMesh::Mesh* d_mesh = nullptr;

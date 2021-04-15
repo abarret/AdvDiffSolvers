@@ -16,16 +16,16 @@
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include <ibtk/CartGridFunction.h>
-#include <ibtk/ibtk_utilities.h>
-
-#include <CartesianGridGeometry.h>
-
 #include <ibamr/AdvDiffHierarchyIntegrator.h>
 #include <ibamr/app_namespaces.h>
 
+#include <ibtk/CartGridFunction.h>
+#include <ibtk/ibtk_utilities.h>
+
 #include "LS/IntegrateFunction.h"
 #include "LS/LSCartGridFunction.h"
+
+#include <CartesianGridGeometry.h>
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
@@ -140,7 +140,7 @@ private:
     VectorNd d_center = { 1.509, 1.521 };
 #endif
 #if (NDIM == 3)
-    VectorNd d_center = {1.509, 1.521, 1.514};
+    VectorNd d_center = { 1.509, 1.521, 1.514 };
 #endif
     std::array<double, NDIM> d_vel;
 
