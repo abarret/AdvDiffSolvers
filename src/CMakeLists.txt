@@ -1,0 +1,64 @@
+ADD_LIBRARY(CCADLib2d)
+ADD_LIBRARY(CCADLib3d)
+
+SET(FORTRAN_SRC_BASE
+	fortran/advection_routines)
+
+FOREACH(_d ${CCAD_DIMENSIONS})
+  FOREACH(_fortran_root_name ${FORTRAN_SRC_BASE})
+    CCAD_PROCESS_M4(NAME ${_fortran_root_name}${_d}d.f)
+  ENDFOREACH()
+
+  SET("FORTRAN_GENERATED_SRC${_d}D" "")
+  FOREACH(_fortran_root_name ${FORTRAN_SRC_BASE})
+    LIST(APPEND "FORTRAN_GENERATED_SRC${_d}D" "${CMAKE_CURRENT_BINARY_DIR}/${_fortran_root_name}${_d}d.f")
+  ENDFOREACH()
+ENDFOREACH()
+
+
+SET(CXX_SRC
+    AdvectiveReconstructionOperator.cpp
+    CutCellMeshMapping.cpp
+    CutCellVolumeMeshMapping.cpp
+    FEMeshPartitioner.cpp
+    IntegrateFunction.cpp
+    LSCartGridFunction.cpp
+    LSCutCellBoundaryConditions.cpp
+    LSCutCellLaplaceOperator.cpp
+    LSFindCellVolume.cpp
+    LSFromLevelSet.cpp
+    LSFromMesh.cpp
+    ls_functions.cpp
+    MLSReconstructCache.cpp
+    QInitial.cpp
+    RBFReconstructCache.cpp
+    RBFReconstructions.cpp
+    ReconstructCache.cpp
+    reconstructions.cpp
+    SBBoundaryConditions.cpp
+    SBIntegrator.cpp
+    SBSurfaceFluidCouplingManager.cpp
+    SemiLagrangianAdvIntegrator.cpp
+    SetLSValue.cpp
+    VolumeBoundaryMeshMapping.cpp
+    ZSplineReconstructions.cpp
+    )
+
+TARGET_SOURCES(CCADLib2d PRIVATE ${FORTRAN_GENERATED_SRC2D} ${CXX_SRC})
+TARGET_SOURCES(CCADLib3d PRIVATE ${FORTRAN_GENERATED_SRC3D} ${CXX_SRC})
+
+TARGET_INCLUDE_DIRECTORIES(CCADLib2d PUBLIC
+	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include/>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>)
+TARGET_INCLUDE_DIRECTORIES(CCADLib3d PUBLIC
+	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include/>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>)
+
+TARGET_LINK_LIBRARIES(CCADLib2d PUBLIC CCADLibHeaders)
+TARGET_LINK_LIBRARIES(CCADLib3d PUBLIC CCADLibHeaders)
+
+CCADLIB_SETUP_TARGET_LIBRARY(CCADLib2d)
+CCADLIB_SETUP_TARGET_LIBRARY(CCADLib3d)
+
+INSTALL(TARGETS CCADLib2d EXPORT CCADTargets COMPONENT library)
+INSTALL(TARGETS CCADLib3d EXPORT CCADTargets COMPONENT library)
