@@ -1,9 +1,8 @@
 #include "ibamr/config.h"
 
+#include "CCAD/LSAdvDiffIntegrator.h"
 #include "CCAD/LSCutCellLaplaceOperator.h"
 #include "CCAD/LSFromLevelSet.h"
-#include "CCAD/QInitial.h"
-#include "CCAD/SemiLagrangianAdvIntegrator.h"
 
 #include <ibamr/RelaxationLSMethod.h>
 
@@ -30,6 +29,7 @@
 // Local includes
 #include "QFcn.h"
 #include "RadialBoundaryCond.h"
+#include "SetLSValue.h"
 
 void output_to_file(const int Q_idx,
                     const int area_idx,
@@ -40,7 +40,7 @@ void output_to_file(const int Q_idx,
                     Pointer<PatchHierarchy<NDIM>> hierarchy);
 
 void postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
-                      Pointer<SemiLagrangianAdvIntegrator> integrator,
+                      Pointer<LSAdvDiffIntegrator> integrator,
                       Pointer<CellVariable<NDIM, double>> Q_var,
                       int iteration_num,
                       double loop_time,
@@ -194,10 +194,8 @@ main(int argc, char* argv[])
         // and, if this is a restarted run, from the restart database.
         Pointer<CartesianGridGeometry<NDIM>> grid_geometry = new CartesianGridGeometry<NDIM>(
             "CartesianGeometry", app_initializer->getComponentDatabase("CartesianGeometry"));
-        Pointer<SemiLagrangianAdvIntegrator> time_integrator = new SemiLagrangianAdvIntegrator(
-            "SemiLagrangianAdvIntegrator",
-            app_initializer->getComponentDatabase("AdvDiffSemiImplicitHierarchyIntegrator"),
-            false);
+        Pointer<LSAdvDiffIntegrator> time_integrator = new LSAdvDiffIntegrator(
+            "LSAdvDiffIntegrator", app_initializer->getComponentDatabase("LSAdvDiffIntegrator"), false);
 
         Pointer<PatchHierarchy<NDIM>> patch_hierarchy = new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
         Pointer<StandardTagAndInitialize<NDIM>> error_detector =
@@ -249,6 +247,7 @@ main(int argc, char* argv[])
         LocateInterface interface;
         if (!use_ls_fcn)
         {
+            pout << "Evolving level set\n";
             time_integrator->evolveLevelSet(ls_var, u_var);
             interface = LocateInterface(time_integrator->getLSCellVariable(ls_var), time_integrator, ls_fcn);
             Pointer<RelaxationLSMethod> ls_ops = new RelaxationLSMethod(
@@ -718,7 +717,7 @@ output_to_file(const int Q_idx,
 
 void
 postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
-                 Pointer<SemiLagrangianAdvIntegrator> integrator,
+                 Pointer<LSAdvDiffIntegrator> integrator,
                  Pointer<CellVariable<NDIM, double>> Q_in_var,
                  const int iteration_num,
                  const double loop_time,

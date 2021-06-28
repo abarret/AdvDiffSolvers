@@ -22,6 +22,7 @@ SET(CXX_SRC
     CutCellVolumeMeshMapping.cpp
     FEMeshPartitioner.cpp
     IntegrateFunction.cpp
+    LSAdvDiffIntegrator.cpp
     LSCartGridFunction.cpp
     LSCutCellBoundaryConditions.cpp
     LSCutCellLaplaceOperator.cpp
@@ -30,16 +31,14 @@ SET(CXX_SRC
     LSFromMesh.cpp
     ls_functions.cpp
     MLSReconstructCache.cpp
-    QInitial.cpp
     RBFReconstructCache.cpp
     RBFReconstructions.cpp
     ReconstructCache.cpp
     reconstructions.cpp
+    SBAdvDiffIntegrator.cpp
     SBBoundaryConditions.cpp
     SBIntegrator.cpp
     SBSurfaceFluidCouplingManager.cpp
-    SemiLagrangianAdvIntegrator.cpp
-    SetLSValue.cpp
     VolumeBoundaryMeshMapping.cpp
     ZSplineReconstructions.cpp
     )
