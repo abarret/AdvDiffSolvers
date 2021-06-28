@@ -1,14 +1,14 @@
+#include "CCAD/LSCartGridFunction.h"
+#include "CCAD/RBFReconstructions.h"
+#include "CCAD/SBBoundaryConditions.h"
+#include "CCAD/SemiLagrangianAdvIntegrator.h"
+#include "CCAD/ZSplineReconstructions.h"
+#include "CCAD/ls_functions.h"
+
 #include "ibamr/AdvDiffCUIConvectiveOperator.h"
 #include "ibamr/AdvDiffPPMConvectiveOperator.h"
 #include "ibamr/AdvDiffWavePropConvectiveOperator.h"
 #include "ibamr/app_namespaces.h"
-
-#include "LS/LSCartGridFunction.h"
-#include "LS/RBFReconstructions.h"
-#include "LS/SBBoundaryConditions.h"
-#include "LS/SemiLagrangianAdvIntegrator.h"
-#include "LS/ZSplineReconstructions.h"
-#include "LS/ls_functions.h"
 
 #include "HierarchyDataOpsManager.h"
 #include "SAMRAIVectorReal.h"
@@ -148,7 +148,7 @@ extern "C"
 #endif
 }
 
-namespace LS
+namespace CCAD
 {
 namespace
 {
@@ -215,21 +215,21 @@ SemiLagrangianAdvIntegrator::SemiLagrangianAdvIntegrator(const std::string& obje
     }
 
     IBAMR_DO_ONCE(
-        t_advective_step = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::advective_step");
-        t_diffusion_step = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::diffusive_step");
-        t_preprocess = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::preprocess");
-        t_postprocess = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::postprocess");
-        t_find_velocity = TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::find_velocity");
+        t_advective_step = TimerManager::getManager()->getTimer("CCAD::SemiLagrangianAdvIntegrator::advective_step");
+        t_diffusion_step = TimerManager::getManager()->getTimer("CCAD::SemiLagrangianAdvIntegrator::diffusive_step");
+        t_preprocess = TimerManager::getManager()->getTimer("CCAD::SemiLagrangianAdvIntegrator::preprocess");
+        t_postprocess = TimerManager::getManager()->getTimer("CCAD::SemiLagrangianAdvIntegrator::postprocess");
+        t_find_velocity = TimerManager::getManager()->getTimer("CCAD::SemiLagrangianAdvIntegrator::find_velocity");
         t_evaluate_mapping_ls =
-            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::evaluate_mapping_ls");
+            TimerManager::getManager()->getTimer("CCAD::SemiLagrangianAdvIntegrator::evaluate_mapping_ls");
         t_integrate_path_vol =
-            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::integrage_path_vol");
+            TimerManager::getManager()->getTimer("CCAD::SemiLagrangianAdvIntegrator::integrage_path_vol");
         t_integrate_path_ls =
-            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::integrate_path_ls");
+            TimerManager::getManager()->getTimer("CCAD::SemiLagrangianAdvIntegrator::integrate_path_ls");
         t_integrate_hierarchy =
-            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::integrate_hierarchy");
+            TimerManager::getManager()->getTimer("CCAD::SemiLagrangianAdvIntegrator::integrate_hierarchy");
         t_find_cell_centroid =
-            TimerManager::getManager()->getTimer("LS::SemiLagrangianAdvIntegrator::find_cell_centroid"));
+            TimerManager::getManager()->getTimer("CCAD::SemiLagrangianAdvIntegrator::find_cell_centroid"));
 }
 
 void
@@ -532,7 +532,7 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
                                                           const double new_time,
                                                           const int num_cycles)
 {
-    LS_TIMER_START(t_preprocess)
+    CCAD_TIMER_START(t_preprocess)
     AdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(current_time, new_time, num_cycles);
     const double dt = new_time - current_time;
     const int coarsest_ln = 0;
@@ -717,14 +717,14 @@ SemiLagrangianAdvIntegrator::preprocessIntegrateHierarchy(const double current_t
         d_Q_adv_reconstruct_map[Q_var]->setLSData(ls_cur_idx, vol_cur_idx, ls_new_idx, vol_new_idx);
         d_Q_adv_reconstruct_map[Q_var]->allocateOperatorState(d_hierarchy, current_time, new_time);
     }
-    LS_TIMER_STOP(t_preprocess);
+    CCAD_TIMER_STOP(t_preprocess);
 }
 
 void
 SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
 {
     AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
-    LS_TIMER_START(t_integrate_hierarchy);
+    CCAD_TIMER_START(t_integrate_hierarchy);
     const double half_time = current_time + 0.5 * (new_time - current_time);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
 
@@ -990,7 +990,7 @@ SemiLagrangianAdvIntegrator::integrateHierarchy(const double current_time, const
             }
         }
     }
-    LS_TIMER_STOP(t_integrate_hierarchy);
+    CCAD_TIMER_STOP(t_integrate_hierarchy);
 }
 
 void
@@ -999,13 +999,13 @@ SemiLagrangianAdvIntegrator::postprocessIntegrateHierarchy(const double current_
                                                            const bool skip_synchronize_new_state_data,
                                                            const int num_cycles)
 {
-    LS_TIMER_START(t_postprocess);
+    CCAD_TIMER_START(t_postprocess);
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
         d_hierarchy->getPatchLevel(ln)->deallocatePatchData(d_adv_data);
 
     AdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(
         current_time, new_time, skip_synchronize_new_state_data, num_cycles);
-    LS_TIMER_STOP(t_postprocess);
+    CCAD_TIMER_STOP(t_postprocess);
 }
 
 void
@@ -1240,7 +1240,7 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
                                              const double new_time)
 {
     plog << d_object_name << ": advecting " << Q_var->getName() << "\n";
-    LS_TIMER_START(t_advective_step);
+    CCAD_TIMER_START(t_advective_step);
     const double dt = new_time - current_time;
     int finest_ln = d_hierarchy->getFinestLevelNumber();
     int coarsest_ln = 0;
@@ -1282,7 +1282,7 @@ SemiLagrangianAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>>
 
     // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
     d_Q_adv_reconstruct_map[Q_var]->applyReconstruction(Q_cur_idx, Q_new_idx, d_path_idx);
-    LS_TIMER_STOP(t_advective_step);
+    CCAD_TIMER_STOP(t_advective_step);
 }
 
 void
@@ -1299,7 +1299,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
                                              const double new_time)
 {
     plog << d_object_name << ": Starting diffusion update for variable " << Q_var->getName() << "\n";
-    LS_TIMER_START(t_diffusion_step);
+    CCAD_TIMER_START(t_diffusion_step);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     // We assume scratch context is already filled correctly.
     const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
@@ -1479,7 +1479,7 @@ SemiLagrangianAdvIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>>
         Q_helmholtz_solver->deallocateSolverState();
         d_helmholtz_solvers_need_init[l] = true;
     }
-    LS_TIMER_STOP(t_diffusion_step);
+    CCAD_TIMER_STOP(t_diffusion_step);
 }
 
 void
@@ -1488,7 +1488,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
                                             const int u_half_idx,
                                             const double dt)
 {
-    LS_TIMER_START(t_integrate_path_ls);
+    CCAD_TIMER_START(t_integrate_path_ls);
     // Integrate path to find \xx^{n+1}
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
@@ -1583,7 +1583,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             }
         }
     }
-    LS_TIMER_STOP(t_integrate_path_ls);
+    CCAD_TIMER_STOP(t_integrate_path_ls);
 }
 
 void
@@ -1594,7 +1594,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
                                             const int ls_idx,
                                             const double dt)
 {
-    LS_TIMER_START(t_integrate_path_vol);
+    CCAD_TIMER_START(t_integrate_path_vol);
     // Integrate path to find \xx^{n+1}
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
@@ -1621,9 +1621,9 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
-                LS_TIMER_START(t_find_cell_centroid);
+                CCAD_TIMER_START(t_find_cell_centroid);
                 VectorNd centroid = find_cell_centroid(idx, *ls_data);
-                LS_TIMER_STOP(t_find_cell_centroid);
+                CCAD_TIMER_STOP(t_find_cell_centroid);
                 for (int d = 0; d < NDIM; ++d) centroid_data(idx, d) = centroid[d];
             }
 #endif
@@ -1712,7 +1712,7 @@ SemiLagrangianAdvIntegrator::integratePaths(const int path_idx,
             }
         }
     }
-    LS_TIMER_STOP(t_integrate_path_vol);
+    CCAD_TIMER_STOP(t_integrate_path_vol);
 }
 
 void
@@ -1721,7 +1721,7 @@ SemiLagrangianAdvIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
                                                         const int Q_new_idx,
                                                         const int order)
 {
-    LS_TIMER_START(t_evaluate_mapping_ls)
+    CCAD_TIMER_START(t_evaluate_mapping_ls)
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -1746,6 +1746,6 @@ SemiLagrangianAdvIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
             }
         }
     }
-    LS_TIMER_STOP(t_evaluate_mapping_ls);
+    CCAD_TIMER_STOP(t_evaluate_mapping_ls);
 }
-} // namespace LS
+} // namespace CCAD

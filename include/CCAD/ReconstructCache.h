@@ -1,12 +1,12 @@
-#ifndef included_ReconstructCache
-#define included_ReconstructCache
+#ifndef included_CCAD_ReconstructCache
+#define included_CCAD_ReconstructCache
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
+#include "CCAD/ls_utilities.h"
+
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 #include "ibtk/ibtk_utilities.h"
-
-#include "LS/ls_utilities.h"
 
 #include "CellData.h"
 #include "CellIndex.h"
@@ -23,7 +23,7 @@
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace LS
+namespace CCAD
 {
 /*!
  * \brief Class ReconstructCache caches the data necessary to form RBF reconstructions of data.
@@ -74,12 +74,12 @@ public:
                                       SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) = 0;
 
 protected:
-    int d_stencil_size = 2;
+    unsigned int d_stencil_size = 2;
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
-    std::vector<std::vector<std::map<LS::IndexList, Eigen::FullPivHouseholderQR<IBTK::MatrixXd>>>> d_qr_matrix_vec;
+    std::vector<std::vector<std::map<IndexList, Eigen::FullPivHouseholderQR<IBTK::MatrixXd>>>> d_qr_matrix_vec;
     bool d_update_weights = true;
     bool d_use_centroids = true;
     int d_vol_idx = IBTK::invalid_index, d_ls_idx = IBTK::invalid_index;
 };
-} // namespace LS
+} // namespace CCAD
 #endif

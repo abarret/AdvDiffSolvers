@@ -1,16 +1,16 @@
-#ifndef included_SBBoundaryConditions
-#define included_SBBoundaryConditions
+#ifndef included_CCAD_SBBoundaryConditions
+#define included_CCAD_SBBoundaryConditions
+
+#include "CCAD/LSCutCellBoundaryConditions.h"
+#include "CCAD/RBFReconstructCache.h"
+#include "CCAD/SBSurfaceFluidCouplingManager.h"
 
 #include "ibtk/FEDataManager.h"
-
-#include "LS/LSCutCellBoundaryConditions.h"
-#include "LS/RBFReconstructCache.h"
-#include "LS/SBSurfaceFluidCouplingManager.h"
 
 #include "libmesh/equation_systems.h"
 #include <libmesh/mesh.h>
 
-namespace LS
+namespace CCAD
 {
 class SBBoundaryConditions : public LSCutCellBoundaryConditions
 {
@@ -64,5 +64,5 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> d_ctx;
 };
 
-} // namespace LS
+} // namespace CCAD
 #endif

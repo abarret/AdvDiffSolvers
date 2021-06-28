@@ -1,24 +1,25 @@
-#ifndef included_LS_SemiLagrangianAdvIntegrator
-#define included_LS_SemiLagrangianAdvIntegrator
+#ifndef included_CCAD_SemiLagrangianAdvIntegrator
+#define included_CCAD_SemiLagrangianAdvIntegrator
+
+#include "ibamr/config.h"
+
+#include "CCAD/AdvectiveReconstructionOperator.h"
+#include "CCAD/LSCutCellLaplaceOperator.h"
+#include "CCAD/LSFindCellVolume.h"
+#include "CCAD/MLSReconstructCache.h"
+#include "CCAD/RBFReconstructCache.h"
+#include "CCAD/SBIntegrator.h"
+#include "CCAD/VolumeBoundaryMeshMapping.h"
+#include "CCAD/ls_utilities.h"
+#include "CCAD/reconstructions.h"
 
 #include "ibamr/AdvDiffHierarchyIntegrator.h"
 #include "ibamr/LSInitStrategy.h"
-#include "ibamr/config.h"
 
 #include "ibtk/PETScKrylovPoissonSolver.h"
 #include "ibtk/PoissonSolver.h"
 
-#include "LS/AdvectiveReconstructionOperator.h"
-#include "LS/LSCutCellLaplaceOperator.h"
-#include "LS/LSFindCellVolume.h"
-#include "LS/MLSReconstructCache.h"
-#include "LS/RBFReconstructCache.h"
-#include "LS/SBIntegrator.h"
-#include "LS/VolumeBoundaryMeshMapping.h"
-#include "LS/ls_utilities.h"
-#include "LS/reconstructions.h"
-
-namespace LS
+namespace CCAD
 {
 class SemiLagrangianAdvIntegrator : public IBAMR::AdvDiffHierarchyIntegrator
 {
@@ -76,7 +77,7 @@ public:
     void registerSBIntegrator(SAMRAI::tbox::Pointer<SBIntegrator> sb_integrator,
                               SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
-    void registerReconstructionCache(SAMRAI::tbox::Pointer<LS::ReconstructCache> reconstruct_cache);
+    void registerReconstructionCache(SAMRAI::tbox::Pointer<CCAD::ReconstructCache> reconstruct_cache);
 
     void registerAdvectionReconstruction(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                          std::shared_ptr<AdvectiveReconstructionOperator> reconstruct_op);
@@ -238,6 +239,6 @@ private:
     unsigned int d_rbf_stencil_size = 2;
     Reconstruct::RBFPolyOrder d_rbf_poly_order = Reconstruct::RBFPolyOrder::UNKNOWN_ORDER;
 }; // Class SemiLagrangianAdvIntegrator
-} // Namespace LS
+} // namespace CCAD
 
 #endif

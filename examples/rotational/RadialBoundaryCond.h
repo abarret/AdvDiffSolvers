@@ -1,9 +1,9 @@
 #ifndef included_RadialBoundaryCond
 #define included_RadialBoundaryCond
 
-#include "LS/LSCutCellBoundaryConditions.h"
+#include "CCAD/LSCutCellBoundaryConditions.h"
 
-class RadialBoundaryCond : public LS::LSCutCellBoundaryConditions
+class RadialBoundaryCond : public CCAD::LSCutCellBoundaryConditions
 {
 public:
     RadialBoundaryCond(const std::string& object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);

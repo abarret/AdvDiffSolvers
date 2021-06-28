@@ -1,23 +1,10 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2020 - 2020 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include <ibamr/app_namespaces.h>
+#include "CCAD/ls_functions.h"
+#include "CCAD/ls_utilities.h"
+#include "CCAD/reconstructions.h"
 
-#include "LS/ls_functions.h"
-#include "LS/ls_utilities.h"
-#include "LS/reconstructions.h"
+#include <ibamr/app_namespaces.h>
 
 #include "CartesianPatchGeometry.h"
 #include "CellData.h"
@@ -143,7 +130,7 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
         poly_size = 2 * NDIM + 2;
         break;
     default:
-        TBOX_ERROR("Unknown polynomial order: " << LS::enum_to_string(order) << "\n");
+        TBOX_ERROR("Unknown polynomial order: " << CCAD::enum_to_string(order) << "\n");
     }
     // Use flooding to find points
     std::vector<CellIndex<NDIM>> new_idxs = { idx };
@@ -160,7 +147,7 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
         if (vol_data(new_idx) > 0.0)
         {
             Q_vals.push_back(Q_data(new_idx));
-            VectorNd x_cent_c = LS::find_cell_centroid(new_idx, ls_data);
+            VectorNd x_cent_c = CCAD::find_cell_centroid(new_idx, ls_data);
             for (int d = 0; d < NDIM; ++d)
                 x_cent_c[d] = xlow[d] + dx[d] * (x_cent_c[d] - static_cast<double>(idx_low(d)));
             X_vals.push_back(x_cent_c);
@@ -283,7 +270,7 @@ leastSquaresReconstruction(IBTK::VectorNd x_loc,
         {
             // Use this point to calculate least squares reconstruction.
             // Find cell center
-            VectorNd x_cent_c = LS::find_cell_centroid(idx_c, ls_data);
+            VectorNd x_cent_c = CCAD::find_cell_centroid(idx_c, ls_data);
             Q_vals.push_back(Q_data(idx_c));
             X_vals.push_back(x_cent_c);
         }

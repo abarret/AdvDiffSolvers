@@ -12,12 +12,10 @@
 // ---------------------------------------------------------------------
 
 #include "LS/utility_functions.h"
-
 #include "LSFcn.h"
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
 #include <IBAMR_config.h>
-
 #include <SAMRAI_config.h>
 
 #include <array>

@@ -1,3 +1,7 @@
+#include "ibamr/config.h"
+
+#include "CCAD/app_namespaces.h"
+
 #include "InsideBoundaryConditions.h"
 
 InsideBoundaryConditions::InsideBoundaryConditions(const std::string& object_name,

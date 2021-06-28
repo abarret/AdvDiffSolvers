@@ -11,12 +11,10 @@
 //
 // ---------------------------------------------------------------------
 
-#include <IBAMR_config.h>
-
+#include "InsideLSFcn.h"
 #include "LS/utility_functions.h"
 
-#include "InsideLSFcn.h"
-
+#include <IBAMR_config.h>
 #include <SAMRAI_config.h>
 
 #include <array>

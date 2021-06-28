@@ -1,19 +1,7 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2019 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
+#include "ibamr/config.h"
 
-#include <IBAMR_config.h>
-
-#include "LS/utility_functions.h"
+#include "CCAD/app_namespaces.h"
+#include "CCAD/ls_functions.h"
 
 #include "InsideLSFcn.h"
 
@@ -73,7 +61,7 @@ InsideLSFcn::setDataOnPatchHierarchy(const int data_idx,
                                      int coarsest_ln,
                                      int finest_ln)
 {
-    LS_TIMER_START(t_fill_ls);
+    CCAD_TIMER_START(t_fill_ls);
     d_hierarchy = hierarchy;
     coarsest_ln = coarsest_ln == -1 ? 0 : coarsest_ln;
     finest_ln = finest_ln == -1 ? hierarchy->getFinestLevelNumber() : finest_ln;
@@ -124,7 +112,7 @@ InsideLSFcn::setDataOnPatchHierarchy(const int data_idx,
         setDataOnPatchLevel(data_idx, var, level, data_time, initial_time);
     }
 
-    LS_TIMER_STOP(t_fill_ls);
+    CCAD_TIMER_STOP(t_fill_ls);
 }
 
 void

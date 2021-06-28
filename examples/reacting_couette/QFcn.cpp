@@ -1,27 +1,14 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2019 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
+#include "ibamr/config.h"
+
+#include "ibamr/app_namespaces.h"
 
 #include "QFcn.h"
-
-/////////////////////////////// INCLUDES /////////////////////////////////////
-
-#include <IBAMR_config.h>
 
 #include <SAMRAI_config.h>
 
 #include <array>
 
-namespace LS
+namespace CCAD
 {
 /////////////////////////////// PUBLIC ///////////////////////////////////////
 
@@ -127,4 +114,4 @@ QFcn::getFromInput(Pointer<Database> db)
     return;
 } // getFromInput
 
-} // namespace LS
+} // namespace CCAD

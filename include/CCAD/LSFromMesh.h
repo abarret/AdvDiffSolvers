@@ -1,5 +1,11 @@
-#ifndef included_LS_LSFromMesh
-#define included_LS_LSFromMesh
+#ifndef included_CCAD_LSFromMesh
+#define included_CCAD_LSFromMesh
+
+#include "ibtk/config.h"
+
+#include "CCAD/CutCellMeshMapping.h"
+#include "CCAD/FEMeshPartitioner.h"
+#include "CCAD/LSFindCellVolume.h"
 
 #include "ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h"
 #include "ibamr/ConvectiveOperator.h"
@@ -10,11 +16,6 @@
 #include "ibtk/FEDataManager.h"
 #include "ibtk/IndexUtilities.h"
 #include "ibtk/app_namespaces.h"
-#include "ibtk/config.h"
-
-#include "LS/CutCellMeshMapping.h"
-#include "LS/FEMeshPartitioner.h"
-#include "LS/LSFindCellVolume.h"
 
 #include "Box.h"
 #include "CellData.h"
@@ -38,7 +39,7 @@ IBTK_DISABLE_EXTRA_WARNINGS
 #include <boost/multi_array.hpp>
 IBTK_ENABLE_EXTRA_WARNINGS
 
-namespace LS
+namespace CCAD
 {
 class LSFromMesh : public LSFindCellVolume
 {
@@ -126,6 +127,6 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_sgn_var;
     int d_sgn_idx = IBTK::invalid_index;
 };
-} // namespace LS
+} // namespace CCAD
 
 #endif

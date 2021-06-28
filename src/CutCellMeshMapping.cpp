@@ -1,10 +1,10 @@
+#include "CCAD/CutCellMeshMapping.h"
+
 #include "ibamr/app_namespaces.h"
 
 #include "ibtk/IndexUtilities.h"
 
-#include "LS/CutCellMeshMapping.h"
-
-namespace LS
+namespace CCAD
 {
 CutCellMeshMapping::CutCellMeshMapping(std::string object_name, Pointer<Database> input_db)
     : d_object_name(std::move(object_name))
@@ -37,4 +37,4 @@ CutCellMeshMapping::deinitializeObjectState()
 
     d_is_initialized = false;
 }
-} // namespace LS
+} // namespace CCAD

@@ -1,14 +1,14 @@
-#include "ibamr/namespaces.h"
+#include "CCAD/IntegrateFunction.h"
+#include "CCAD/ls_functions.h"
+#include "CCAD/ls_utilities.h"
 
-#include "LS/IntegrateFunction.h"
-#include "LS/ls_functions.h"
-#include "LS/ls_utilities.h"
+#include "ibamr/namespaces.h"
 
 #include "tbox/ShutdownRegistry.h"
 
 #include "boost/multi_array.hpp"
 
-namespace LS
+namespace CCAD
 {
 /////////////////// STATIC /////////////////////////////
 
@@ -385,4 +385,4 @@ IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_
     return integral * J;
 #endif
 }
-} // namespace LS
+} // namespace CCAD

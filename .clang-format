@@ -54,11 +54,12 @@ UseTab: Never
 IncludeBlocks: Regroup
 IncludeCategories:
 # first our config files:
-  - Regex: "(IBTK|IBAMR)_config.h"
+  - Regex: "(ibamr|ibtk)/config.h"
     Priority: -1
-# then the library:
-  - Regex: "clotting/.*\\.h.$"
+# then CCAD
+  - Regex: "[<\"]CCAD/.*\\.h[<\"]$"
     Priority: 5
+# then IBAMR/IBTK library:
   - Regex: "ibamr/.*\\.h.$"
     Priority: 10
   - Regex: "ibtk/.*\\.h.$"
@@ -87,9 +88,6 @@ IncludeCategories:
 # standard library stuff
   - Regex: "[\"<][a-z_]*[\">]"
     Priority: 2000
-# LS stuff
-  - Regex: "[<\"]LS/.*\\.h[<\"]$"
-    Priority: 50
 # SAMRAI (which goes after IBAMR). This is last since we have headers that are
 # not in a folder starting with the library's name:
   - Regex: "[<\"][A-Z].*\\.h[>\"]$"

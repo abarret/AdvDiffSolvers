@@ -1,9 +1,9 @@
+#include "CCAD/SBIntegrator.h"
+#include "CCAD/ls_functions.h"
+
 #include "ibamr/app_namespaces.h"
 
 #include "ibtk/IndexUtilities.h"
-
-#include "LS/SBIntegrator.h"
-#include "LS/ls_functions.h"
 
 #include "libmesh/elem_cutter.h"
 #include "libmesh/explicit_system.h"
@@ -17,14 +17,14 @@ namespace
 static Timer* t_integrateHierarchy = nullptr;
 } // namespace
 
-namespace LS
+namespace CCAD
 {
 SBIntegrator::SBIntegrator(std::string object_name,
                            const std::shared_ptr<SBSurfaceFluidCouplingManager>& sb_data_manager)
     : d_object_name(std::move(object_name)), d_sb_data_manager(sb_data_manager)
 {
     IBTK_DO_ONCE(t_integrateHierarchy =
-                     TimerManager::getManager()->getTimer("LS::SBIntegrator::integrateHierarchy()"););
+                     TimerManager::getManager()->getTimer("CCAD::SBIntegrator::integrateHierarchy()"););
 }
 
 void
@@ -39,7 +39,7 @@ SBIntegrator::setLSData(const int ls_idx, const int vol_idx, Pointer<PatchHierar
 void
 SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double current_time, const double new_time)
 {
-    LS_TIMER_START(t_integrateHierarchy);
+    CCAD_TIMER_START(t_integrateHierarchy);
     for (unsigned int part = 0; part < d_sb_data_manager->getNumParts(); ++part)
     {
         const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner = d_sb_data_manager->getFEMeshPartitioner(part);
@@ -113,7 +113,7 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
             sf_base_cur_vec->close();
         }
     }
-    LS_TIMER_STOP(t_integrateHierarchy);
+    CCAD_TIMER_STOP(t_integrateHierarchy);
 }
 
 void
@@ -151,4 +151,4 @@ SBIntegrator::endTimestepping(const double /*current_time*/, const double /*new_
         }
     }
 }
-} // namespace LS
+} // namespace CCAD

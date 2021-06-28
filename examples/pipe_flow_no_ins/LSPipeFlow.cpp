@@ -1,7 +1,9 @@
-#include "ibtk/DebuggingUtilities.h"
-#include "ibtk/IBTK_MPI.h"
+#include "ibamr/config.h"
 
-#include "LS/utility_functions.h"
+#include "CCAD/app_namespaces.h"
+#include "CCAD/ls_functions.h"
+
+#include "ibtk/IBTK_MPI.h"
 
 #include "LSPipeFlow.h"
 
@@ -28,8 +30,6 @@ static Timer* t_updateVolumeAreaSideLS = nullptr;
 static Timer* t_findIntersection = nullptr;
 } // namespace
 
-namespace LS
-{
 double LSPipeFlow::s_large_val = std::numeric_limits<double>::max();
 
 LSPipeFlow::LSPipeFlow(std::string object_name,
@@ -69,7 +69,7 @@ LSPipeFlow::updateVolumeAreaSideLS(int vol_idx,
                                    double /*data_time*/,
                                    bool extended_box)
 {
-    LS_TIMER_START(t_updateVolumeAreaSideLS);
+    CCAD_TIMER_START(t_updateVolumeAreaSideLS);
     auto dist_up = [this](VectorNd x_pt, double y_p) -> double {
         VectorNd x_int;
         x_int(0) =
@@ -641,21 +641,13 @@ LSPipeFlow::updateVolumeAreaSideLS(int vol_idx,
             }
         }
     }
-    plog << "Checking volume data for NaNs\n";
-    DebuggingUtilities::checkCellDataForNaNs(vol_idx, d_hierarchy, true);
-    plog << "\nChecking area data for NaNs\n";
-    DebuggingUtilities::checkCellDataForNaNs(area_idx, d_hierarchy, true);
-    plog << "\nChecking side data for NaNs\n";
-    DebuggingUtilities::checkSideDataForNaNs(side_idx, d_hierarchy, true);
-    plog << "\nChecking LS data for NaNs\n";
-    DebuggingUtilities::checkNodeDataForNaNs(phi_idx, d_hierarchy, true);
-    LS_TIMER_STOP(t_updateVolumeAreaSideLS);
+    CCAD_TIMER_STOP(t_updateVolumeAreaSideLS);
 }
 
 bool
 LSPipeFlow::findIntersection(libMesh::Point& p, Elem* elem, libMesh::Point r, libMesh::VectorValue<double> q)
 {
-    LS_TIMER_START(t_findIntersection);
+    CCAD_TIMER_START(t_findIntersection);
     bool found_intersection = false;
     switch (elem->type())
     {
@@ -698,7 +690,7 @@ LSPipeFlow::findIntersection(libMesh::Point& p, Elem* elem, libMesh::Point r, li
     default:
         TBOX_ERROR("Unknown element.\n");
     }
-    LS_TIMER_STOP(t_findIntersection);
+    CCAD_TIMER_STOP(t_findIntersection);
     return found_intersection;
 }
 
@@ -969,4 +961,3 @@ LSPipeFlow::findVolume(const std::vector<Simplex>& simplices)
     }
     return volume;
 }
-} // namespace LS

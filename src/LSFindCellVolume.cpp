@@ -1,11 +1,11 @@
 #include "ibamr/config.h"
 
+#include "CCAD/LSFindCellVolume.h"
+
 #include "ibtk/DebuggingUtilities.h"
 #include "ibtk/app_namespaces.h"
 
-#include "LS/LSFindCellVolume.h"
-
-namespace LS
+namespace CCAD
 {
 LSFindCellVolume::LSFindCellVolume(std::string object_name, Pointer<PatchHierarchy<NDIM>> hierarchy)
     : d_object_name(std::move(object_name)), d_hierarchy(hierarchy)
@@ -13,4 +13,4 @@ LSFindCellVolume::LSFindCellVolume(std::string object_name, Pointer<PatchHierarc
     // intentionally blank
     return;
 } // Constructor
-} // namespace LS
+} // namespace CCAD

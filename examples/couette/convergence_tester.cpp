@@ -1,45 +1,28 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2019 - 2019 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
 // GENERAL CONFIGURATION
-#include <IBAMR_config.h>
-#include <IBTK_config.h>
+#include <ibamr/config.h>
 
-#include <petscsys.h>
+#include "CCAD/LSFindCellVolume.h"
+#include "CCAD/ls_functions.h"
 
-#include <SAMRAI_config.h>
-
-// IBAMR INCLUDES
-#include <ibamr/app_namespaces.h>
-
-// IBTK INCLUDES
 #include <ibtk/AppInitializer.h>
 #include <ibtk/CartExtrapPhysBdryOp.h>
 #include <ibtk/HierarchyGhostCellInterpolation.h>
 #include <ibtk/HierarchyMathOps.h>
 
-#include "LS/LSFindCellVolume.h"
-#include "LS/utility_functions.h"
-
 #include "BoxArray.h"
 #include "CartesianPatchGeometry.h"
 #include "CoarseFineBoundary.h"
-#include "InsideLSFcn.h"
-#include "OutsideLSFcn.h"
 #include "PatchGeometry.h"
 #include "RefineAlgorithm.h"
+#include <CCAD/app_namespaces.h>
 
-using namespace LS;
+#include <petscsys.h>
+
+#include <SAMRAI_config.h>
+
+// Local Includes
+#include "InsideLSFcn.h"
+#include "OutsideLSFcn.h"
 
 static double a = std::numeric_limits<double>::signaling_NaN();
 static double b = std::numeric_limits<double>::signaling_NaN();

@@ -27,8 +27,8 @@
 #include <ibamr/AdvDiffHierarchyIntegrator.h>
 #include <ibamr/app_namespaces.h>
 
-#include "LS/IntegrateFunction.h"
-#include "LS/LSCartGridFunction.h"
+#include "../../include/CCAD/IntegrateFunction.h"
+#include "../../include/CCAD/LSCartGridFunction.h"
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 

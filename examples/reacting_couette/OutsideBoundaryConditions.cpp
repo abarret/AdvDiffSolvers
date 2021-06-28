@@ -1,9 +1,13 @@
+#include "ibamr/config.h"
+
+#include "CCAD/app_namespaces.h"
+
 #include "OutsideBoundaryConditions.h"
 
 OutsideBoundaryConditions::OutsideBoundaryConditions(const std::string& object_name,
                                                      Pointer<Database> input_db,
                                                      Pointer<CellVariable<NDIM, double>> in_var,
-                                                     Pointer<LS::SemiLagrangianAdvIntegrator> integrator)
+                                                     Pointer<SemiLagrangianAdvIntegrator> integrator)
     : LSCutCellBoundaryConditions(object_name), d_in_var(in_var), d_integrator(integrator)
 {
     d_k1 = input_db->getDouble("k1");

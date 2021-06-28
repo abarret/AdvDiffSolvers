@@ -1,17 +1,6 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2021 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
 /////////////////////////////// INCLUDES /////////////////////////////////////
+
+#include "CCAD/FEMeshPartitioner.h"
 
 #include "ibtk/FECache.h"
 #include "ibtk/FEMappingCache.h"
@@ -22,8 +11,6 @@
 #include "ibtk/LEInteractor.h"
 #include "ibtk/ibtk_utilities.h"
 #include "ibtk/libmesh_utilities.h"
-
-#include "LS/FEMeshPartitioner.h"
 
 #include "BasePatchHierarchy.h"
 #include "Box.h"
@@ -118,7 +105,7 @@ IBTK_ENABLE_EXTRA_WARNINGS
 
 /////////////////////////////// NAMESPACE ////////////////////////////////////
 
-namespace LS
+namespace CCAD
 {
 /////////////////////////////// STATIC ///////////////////////////////////////
 
@@ -782,6 +769,6 @@ FEMeshPartitioner::reinitializeIBGhostedDOFs(const std::string& system_name)
 }
 /////////////////////////////// NAMESPACE ////////////////////////////////////
 
-} // namespace LS
+} // namespace CCAD
 
 //////////////////////////////////////////////////////////////////////////////

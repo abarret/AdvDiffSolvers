@@ -1,27 +1,14 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2020 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "ibamr/namespaces.h" // IWYU pragma: keep
+#include "CCAD/AdvectiveReconstructionOperator.h"
 
-#include "LS/AdvectiveReconstructionOperator.h"
+#include "ibamr/namespaces.h" // IWYU pragma: keep
 
 #include "SAMRAIVectorReal.h"
 
 #include <utility>
 
-namespace LS
+namespace CCAD
 {
 AdvectiveReconstructionOperator::AdvectiveReconstructionOperator(std::string object_name)
     : d_object_name(std::move(object_name))
@@ -78,6 +65,6 @@ AdvectiveReconstructionOperator::deallocateOperatorState()
 {
     d_is_allocated = false;
 }
-} // namespace LS
+} // namespace CCAD
 
 //////////////////////////////////////////////////////////////////////////////

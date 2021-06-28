@@ -1,5 +1,5 @@
-#ifndef included_LS_utilities
-#define included_LS_utilities
+#ifndef included_CCAD_utilities
+#define included_CCAD_utilities
 #include "ibamr/config.h"
 
 #include "CellData.h"
@@ -13,7 +13,7 @@
 
 #include <functional>
 
-namespace LS
+namespace CCAD
 {
 using ReactionFcn =
     std::function<double(double, const std::vector<double>&, const std::vector<double>&, double, void*)>;
@@ -174,5 +174,5 @@ enum_to_string<AdvReconstructType>(AdvReconstructType val)
     if (val == AdvReconstructType::RBF) return "RBF";
     return "UNKNOWN_TYPE";
 }
-} // namespace LS
+} // namespace CCAD
 #endif /* included_LS_utilities */

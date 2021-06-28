@@ -1,5 +1,9 @@
-#ifndef included_LS_LSPipeFlow
-#define included_LS_LSPipeFlow
+#ifndef included_LSPipeFlow
+#define included_LSPipeFlow
+
+#include "ibtk/config.h"
+
+#include "CCAD/LSFindCellVolume.h"
 
 #include "ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h"
 #include "ibamr/ConvectiveOperator.h"
@@ -10,9 +14,6 @@
 #include "ibtk/FEDataManager.h"
 #include "ibtk/IndexUtilities.h"
 #include "ibtk/app_namespaces.h"
-#include "ibtk/config.h"
-
-#include "LS/LSFindCellVolume.h"
 
 #include "Box.h"
 #include "CellData.h"
@@ -34,9 +35,7 @@ IBTK_DISABLE_EXTRA_WARNINGS
 #include <boost/multi_array.hpp>
 IBTK_ENABLE_EXTRA_WARNINGS
 
-namespace LS
-{
-class LSPipeFlow : public LSFindCellVolume
+class LSPipeFlow : public CCAD::LSFindCellVolume
 {
 public:
     LSPipeFlow(std::string object_name,
@@ -90,6 +89,4 @@ private:
     double d_y_up = 0.0;
     double d_y_low = 0.0;
 };
-} // namespace LS
-
 #endif

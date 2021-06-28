@@ -1,11 +1,11 @@
-#ifndef included_SBIntegrator
-#define included_SBIntegrator
+#ifndef included_CCAD_SBIntegrator
+#define included_CCAD_SBIntegrator
+
+#include "CCAD/CutCellMeshMapping.h"
+#include "CCAD/RBFReconstructCache.h"
+#include "CCAD/SBSurfaceFluidCouplingManager.h"
 
 #include "ibtk/FEDataManager.h"
-
-#include "LS/CutCellMeshMapping.h"
-#include "LS/RBFReconstructCache.h"
-#include "LS/SBSurfaceFluidCouplingManager.h"
 
 #include "CellData.h"
 #include "NodeData.h"
@@ -13,7 +13,7 @@
 #include "libmesh/equation_systems.h"
 #include <libmesh/mesh.h>
 
-namespace LS
+namespace CCAD
 {
 class SBIntegrator
 {
@@ -57,5 +57,5 @@ private:
     int d_vol_idx = IBTK::invalid_index, d_ls_idx = IBTK::invalid_index;
 };
 
-} // namespace LS
+} // namespace CCAD
 #endif

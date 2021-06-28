@@ -1,21 +1,20 @@
-#include <IBAMR_config.h>
-#include <IBTK_config.h>
+#include "ibamr/config.h"
+
+#include "CCAD/LSCutCellLaplaceOperator.h"
+#include "CCAD/LSFindCellVolume.h"
+#include "CCAD/LSFromLevelSet.h"
+#include "CCAD/QInitial.h"
+#include "CCAD/SemiLagrangianAdvIntegrator.h"
+#include "CCAD/app_namespaces.h"
+#include "CCAD/ls_functions.h"
 
 #include <ibamr/RelaxationLSMethod.h>
-#include <ibamr/app_namespaces.h>
 
 #include "ibtk/CartGridFunctionSet.h"
 #include "ibtk/PETScKrylovPoissonSolver.h"
 #include "ibtk/muParserCartGridFunction.h"
 #include "ibtk/muParserRobinBcCoefs.h"
 #include <ibtk/AppInitializer.h>
-
-#include "LS/LSCutCellLaplaceOperator.h"
-#include "LS/LSFindCellVolume.h"
-#include "LS/LSFromLevelSet.h"
-#include "LS/QInitial.h"
-#include "LS/SemiLagrangianAdvIntegrator.h"
-#include "LS/utility_functions.h"
 
 #include "BergerRigoutsos.h"
 #include "CartesianGridGeometry.h"
@@ -28,15 +27,12 @@
 
 #include <memory>
 #include <utility>
-
 // Local includes
 #include "InsideBoundaryConditions.h"
 #include "InsideLSFcn.h"
 #include "OutsideBoundaryConditions.h"
 #include "OutsideLSFcn.h"
 #include "QFcn.h"
-
-using namespace LS;
 
 static double a = std::numeric_limits<double>::signaling_NaN();
 static double b = std::numeric_limits<double>::signaling_NaN();
@@ -236,7 +232,6 @@ main(int argc, char* argv[])
         // Setup the level set function
         Pointer<NodeVariable<NDIM, double>> ls_in_var = new NodeVariable<NDIM, double>("LS_In");
         time_integrator->registerLevelSetVariable(ls_in_var);
-        bool use_ls_fcn = input_db->getBool("USING_LS_FCN");
         Pointer<InsideLSFcn> ls_in_fcn =
             new InsideLSFcn("InsideLSFcn", app_initializer->getComponentDatabase("InsideLSFcn"));
         Pointer<LSFromLevelSet> vol_in_fcn = new LSFromLevelSet("VolInFcn", patch_hierarchy);
@@ -356,8 +351,6 @@ main(int argc, char* argv[])
                                                                     time_integrator->getCurrentContext());
         const int vol_out_idx = var_db->mapVariableAndContextToIndex(time_integrator->getVolumeVariable(ls_out_var),
                                                                      time_integrator->getCurrentContext());
-        const int area_out_idx = var_db->mapVariableAndContextToIndex(time_integrator->getAreaVariable(ls_out_var),
-                                                                      time_integrator->getCurrentContext());
 
         // Close the restart manager.
         RestartManager::getManager()->closeRestartFile();

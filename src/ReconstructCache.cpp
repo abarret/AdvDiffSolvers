@@ -1,8 +1,8 @@
+#include "CCAD/ReconstructCache.h"
+
 #include "ibamr/app_namespaces.h"
 
-#include "LS/ReconstructCache.h"
-
-namespace LS
+namespace CCAD
 {
 ReconstructCache::ReconstructCache(int ls_idx, int vol_idx, Pointer<PatchHierarchy<NDIM>> hierarchy, bool use_centroids)
     : d_hierarchy(hierarchy), d_use_centroids(use_centroids), d_vol_idx(vol_idx), d_ls_idx(ls_idx)
@@ -34,4 +34,4 @@ ReconstructCache::setPatchHierarchy(Pointer<PatchHierarchy<NDIM>> hierarchy)
     clearCache();
     d_update_weights = true;
 }
-} // namespace LS
+} // namespace CCAD

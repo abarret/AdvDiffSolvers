@@ -1,33 +1,13 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2018 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
-#ifndef included_LS_LSFcn
-#define included_LS_LSFcn
+#ifndef included_LSFcn
+#define included_LSFcn
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-// IBTK INCLUDES
 #include <ibtk/CartGridFunction.h>
 #include <ibtk/ibtk_utilities.h>
 
-// SAMRAI INCLUDES
 #include <CartesianGridGeometry.h>
 
-// C++ namespace delcarations
-#include <ibamr/app_namespaces.h>
-
-namespace LS
-{
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
 /*!
@@ -39,7 +19,7 @@ public:
     /*!
      * \brief Constructor.
      */
-    LSFcn(const string& object_name, Pointer<Database> input_db);
+    LSFcn(const std::string& object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 
     /*!
      * \brief Destructor.
@@ -97,19 +77,12 @@ private:
     /*!
      * Read input values, indicated above, from given database.
      */
-    void getFromInput(Pointer<Database> db);
-
-    /*
-     * The object name is used as a handle to databases stored in restart files
-     * and for error reporting purposes.
-     */
-    string d_object_name;
+    void getFromInput(SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> db);
 
     IBTK::VectorNd d_com;
     double d_R;
 
     bool d_extended_box = false;
 };
-} // namespace LS
 
 #endif //#ifndef included_LS_LSFcn

@@ -1,31 +1,13 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2018 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
 #ifndef included_OutsideLSFcn
 #define included_OutsideLSFcn
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-// IBTK INCLUDES
 #include <ibtk/CartGridFunction.h>
 #include <ibtk/HierarchyIntegrator.h>
 #include <ibtk/ibtk_utilities.h>
 
-// SAMRAI INCLUDES
 #include <CartesianGridGeometry.h>
-
-// C++ namespace delcarations
-#include <ibamr/app_namespaces.h>
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
@@ -38,13 +20,13 @@ public:
     /*!
      * \brief Constructor.
      */
-    OutsideLSFcn(const string& object_name,
+    OutsideLSFcn(const std::string& object_name,
                  SAMRAI::tbox::Pointer<IBTK::HierarchyIntegrator> hierarchy_integrator,
                  SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> in_n_var,
                  SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 
     OutsideLSFcn(SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> ctx,
-                 const string& object_name,
+                 const std::string& object_name,
                  SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> in_n_var,
                  SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 

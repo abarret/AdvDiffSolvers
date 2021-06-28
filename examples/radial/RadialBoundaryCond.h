@@ -1,9 +1,9 @@
 #ifndef included_RadialBoundaryCond
 #define included_RadialBoundaryCond
 
-#include "LS/LSCutCellBoundaryConditions.h"
+#include "CCAD/LSCutCellBoundaryConditions.h"
 
-class RadialBoundaryCond : public LS::LSCutCellBoundaryConditions
+class RadialBoundaryCond : public CCAD::LSCutCellBoundaryConditions
 {
 public:
     RadialBoundaryCond(const std::string& object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
@@ -39,10 +39,10 @@ private:
 
     double d_R1 = 0.25;
 #if (NDIM == 2)
-    VectorNd d_center = { 1.509, 1.521 };
+    IBTK::VectorNd d_center = { 1.509, 1.521 };
 #endif
 #if (NDIM == 3)
-    VectorNd d_center = { 1.509, 1.521, 1.514 };
+    IBTK::VectorNd d_center = { 1.509, 1.521, 1.514 };
 #endif
     std::vector<double> d_vel;
 };

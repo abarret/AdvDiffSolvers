@@ -1,5 +1,5 @@
-#ifndef included_LS_reconstructions
-#define included_LS_reconstructions
+#ifndef included_CCAD_reconstructions
+#define included_CCAD_reconstructions
 
 #include <ibamr/config.h>
 

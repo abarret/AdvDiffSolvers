@@ -1,24 +1,9 @@
-// Config files
-#include <IBAMR_config.h>
-#include <IBTK_config.h>
+#include "ibamr/config.h"
 
-#include <SAMRAI_config.h>
+#include "CCAD/LSCutCellLaplaceOperator.h"
+#include "CCAD/QInitial.h"
+#include "CCAD/SemiLagrangianAdvIntegrator.h"
 
-// Headers for basic PETSc functions
-#include <petscsys.h>
-
-// Headers for basic SAMRAI objects
-#include "tbox/Pointer.h"
-
-#include <BergerRigoutsos.h>
-#include <CartesianGridGeometry.h>
-#include <LoadBalancer.h>
-#include <StandardTagAndInitialize.h>
-
-#include <memory>
-#include <utility>
-
-// Headers for application-specific algorithm/data structure objects
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
 #include <ibamr/IBFEMethod.h>
@@ -31,9 +16,10 @@
 #include "ibtk/muParserCartGridFunction.h"
 #include "ibtk/muParserRobinBcCoefs.h"
 #include <ibtk/AppInitializer.h>
+#include <ibtk/IBTKInit.h>
 
-#include "LS/LSCutCellLaplaceOperator.h"
-#include "LS/QInitial.h"
+#include "tbox/Pointer.h"
+#include <CCAD/app_namespaces.h>
 
 #include <libmesh/boundary_mesh.h>
 #include <libmesh/equation_systems.h>
@@ -44,18 +30,21 @@
 #include <libmesh/mesh_modification.h>
 #include <libmesh/numeric_vector.h>
 
-// Set up application namespace declarations
-#include <ibamr/app_namespaces.h>
+#include <petscsys.h>
 
-#include <ibtk/IBTKInit.h>
+#include <BergerRigoutsos.h>
+#include <CartesianGridGeometry.h>
+#include <LoadBalancer.h>
+#include <SAMRAI_config.h>
+#include <StandardTagAndInitialize.h>
 
-#include "LS/SemiLagrangianAdvIntegrator.h"
+#include <memory>
+#include <utility>
 
+// Local includes
 #include "InsideLSFcn.h"
 #include "QFcn.h"
 #include "SurfaceBoundaryReactions.h"
-
-using namespace LS;
 
 struct LocateInterface
 {

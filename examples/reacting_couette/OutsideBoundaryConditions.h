@@ -1,16 +1,16 @@
 #ifndef included_OutsideBoundaryConditions
 #define included_OutsideBoundaryConditions
 
-#include "LS/LSCutCellBoundaryConditions.h"
-#include "LS/SemiLagrangianAdvIntegrator.h"
+#include "CCAD/LSCutCellBoundaryConditions.h"
+#include "CCAD/SemiLagrangianAdvIntegrator.h"
 
-class OutsideBoundaryConditions : public LS::LSCutCellBoundaryConditions
+class OutsideBoundaryConditions : public CCAD::LSCutCellBoundaryConditions
 {
 public:
     OutsideBoundaryConditions(const std::string& object_name,
                               SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
                               SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> in_var,
-                              SAMRAI::tbox::Pointer<LS::SemiLagrangianAdvIntegrator> integrator);
+                              SAMRAI::tbox::Pointer<CCAD::SemiLagrangianAdvIntegrator> integrator);
 
     ~OutsideBoundaryConditions();
 
@@ -44,7 +44,7 @@ public:
 
 private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_in_var;
-    SAMRAI::tbox::Pointer<LS::SemiLagrangianAdvIntegrator> d_integrator;
+    SAMRAI::tbox::Pointer<CCAD::SemiLagrangianAdvIntegrator> d_integrator;
 
     int d_ls_in_idx = IBTK::invalid_index;
     int d_area_in_idx = IBTK::invalid_index;

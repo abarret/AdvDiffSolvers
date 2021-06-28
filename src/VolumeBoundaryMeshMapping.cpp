@@ -1,15 +1,15 @@
+#include "CCAD/VolumeBoundaryMeshMapping.h"
+
 #include "ibamr/app_namespaces.h"
 
 #include "ibtk/IBTK_MPI.h"
 #include "ibtk/IndexUtilities.h"
 #include "ibtk/libmesh_utilities.h"
 
-#include "LS/VolumeBoundaryMeshMapping.h"
-
 #include "libmesh/enum_xdr_mode.h"
 #include "libmesh/explicit_system.h"
 
-namespace LS
+namespace CCAD
 {
 VolumeBoundaryMeshMapping::VolumeBoundaryMeshMapping(std::string object_name,
                                                      Pointer<Database> input_db,
@@ -198,4 +198,4 @@ VolumeBoundaryMeshMapping::writeFEDataToRestartFile(const std::string& restart_d
         d_bdry_eq_sys_vec[part]->write(file_name, xdr_mode, write_mode, /*partition_agnostic*/ true);
     }
 }
-} // namespace LS
+} // namespace CCAD

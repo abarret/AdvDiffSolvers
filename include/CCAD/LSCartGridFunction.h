@@ -1,18 +1,5 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2018 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
-#ifndef included_LS_LSCartGridFunction
-#define included_LS_LSCartGridFunction
+#ifndef included_CCAD_LSCartGridFunction
+#define included_CCAD_LSCartGridFunction
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -24,7 +11,7 @@
 /*!
  * \brief Method to initialize the value of the advected scalar Q.
  */
-namespace LS
+namespace CCAD
 {
 class LSCartGridFunction : public IBTK::CartGridFunction
 {
@@ -78,6 +65,6 @@ protected:
     int d_vol_idx = IBTK::invalid_index;
 };
 
-} // namespace LS
+} // namespace CCAD
 
 #endif //#ifndef included_LS_LSCartGridFunction

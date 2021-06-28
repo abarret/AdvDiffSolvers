@@ -1,11 +1,11 @@
 #ifndef included_InsideBoundaryConditions
 #define included_InsideBoundaryConditions
 
+#include "CCAD/LSCutCellBoundaryConditions.h"
+
 #include "ibamr/AdvDiffHierarchyIntegrator.h"
 
-#include "LS/LSCutCellBoundaryConditions.h"
-
-class InsideBoundaryConditions : public LS::LSCutCellBoundaryConditions
+class InsideBoundaryConditions : public CCAD::LSCutCellBoundaryConditions
 {
 public:
     InsideBoundaryConditions(const std::string& object_name,

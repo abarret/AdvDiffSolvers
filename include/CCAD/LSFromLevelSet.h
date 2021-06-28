@@ -1,11 +1,11 @@
-#ifndef included_LS_LSFromLevelSet
-#define included_LS_LSFromLevelSet
+#ifndef included_CCAD_LSFromLevelSet
+#define included_CCAD_LSFromLevelSet
+
+#include "CCAD/LSFindCellVolume.h"
 
 #include "ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h"
 #include "ibamr/ConvectiveOperator.h"
 #include "ibamr/ibamr_utilities.h"
-
-#include "LS/LSFindCellVolume.h"
 
 #include "Box.h"
 #include "CellData.h"
@@ -16,7 +16,7 @@
 #include <array>
 #include <vector>
 
-namespace LS
+namespace CCAD
 {
 class LSFromLevelSet : public LSFindCellVolume
 {
@@ -57,6 +57,6 @@ private:
 
     SAMRAI::tbox::Pointer<IBTK::CartGridFunction> d_ls_fcn;
 };
-} // namespace LS
+} // namespace CCAD
 
 #endif

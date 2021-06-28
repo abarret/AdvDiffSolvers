@@ -1,34 +1,17 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2019 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
+#include "ibamr/config.h"
+
+#include "CCAD/app_namespaces.h"
+#include "CCAD/ls_functions.h"
 
 #include "QFcn.h"
-
-/////////////////////////////// INCLUDES /////////////////////////////////////
-
-#include <IBAMR_config.h>
-
-#include "LS/utility_functions.h"
 
 #include <SAMRAI_config.h>
 
 #include <array>
 
-namespace LS
-{
 /////////////////////////////// PUBLIC ///////////////////////////////////////
 
-QFcn::QFcn(const string& object_name, Pointer<GridGeometry<NDIM>> grid_geom, Pointer<Database> input_db)
-    : LSCartGridFunction(object_name)
+QFcn::QFcn(const string& object_name, Pointer<Database> input_db) : LSCartGridFunction(object_name)
 {
 #if !defined(NDEBUG)
     TBOX_ASSERT(!d_object_name.empty());
@@ -57,7 +40,7 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
     coarsest_ln = coarsest_ln < 0 ? 0 : coarsest_ln;
     finest_ln = finest_ln < 0 ? hierarchy->getFinestLevelNumber() : finest_ln;
 
-    auto integrator = IntegrateFunction::getIntegrator();
+    auto integrator = CCAD::IntegrateFunction::getIntegrator();
 
     auto fcn = [this](VectorNd X, double t) -> double {
         auto w = [](double r, double D, double t) -> double {
@@ -87,7 +70,6 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
                 const CellIndex<NDIM>& idx = ci();
                 if ((*vol_data)(idx) > 0.0)
                 {
-                    VectorNd X = LS::find_cell_centroid(idx, *ls_data);
                     (*Q_data)(idx) /= (*vol_data)(idx)*dx[0] * dx[1]
 #if (NDIM == 3)
                                       * dx[2]
@@ -134,5 +116,3 @@ QFcn::getFromInput(Pointer<Database> db)
     d_D = db->getDouble("D");
     return;
 } // getFromInput
-
-} // namespace LS

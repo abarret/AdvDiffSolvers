@@ -1,5 +1,5 @@
-#ifndef included_LS_LSFindCellVolume
-#define included_LS_LSFindCellVolume
+#ifndef included_CCAD_LSFindCellVolume
+#define included_CCAD_LSFindCellVolume
 
 #include "CellVariable.h"
 #include "NodeVariable.h"
@@ -7,7 +7,7 @@
 #include "SideVariable.h"
 #include "tbox/Pointer.h"
 
-namespace LS
+namespace CCAD
 {
 class LSFindCellVolume : public virtual SAMRAI::tbox::DescribedClass
 {
@@ -37,6 +37,6 @@ protected:
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
     bool d_set_ls = true;
 };
-} // namespace LS
+} // namespace CCAD
 
 #endif

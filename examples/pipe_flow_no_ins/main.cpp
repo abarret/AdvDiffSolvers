@@ -1,31 +1,19 @@
-// Config files
-#include <IBAMR_config.h>
-#include <IBTK_config.h>
+#include "ibamr/config.h"
 
-#include <SAMRAI_config.h>
+#include "CCAD/LSCutCellLaplaceOperator.h"
+#include "CCAD/LSFromLevelSet.h"
+#include "CCAD/LSFromMesh.h"
+#include "CCAD/QInitial.h"
+#include "CCAD/SBBoundaryConditions.h"
+#include "CCAD/SBIntegrator.h"
+#include "CCAD/SemiLagrangianAdvIntegrator.h"
 
-// Headers for basic PETSc functions
-#include <petscsys.h>
-
-// Headers for basic SAMRAI objects
-#include "tbox/Pointer.h"
-
-#include <BergerRigoutsos.h>
-#include <CartesianGridGeometry.h>
-#include <LoadBalancer.h>
-#include <StandardTagAndInitialize.h>
-
-#include <memory>
-#include <utility>
-
-// Headers for application-specific algorithm/data structure objects
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
 #include <ibamr/IBFEMethod.h>
 #include <ibamr/IBFESurfaceMethod.h>
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
 #include <ibamr/RelaxationLSMethod.h>
-#include <ibamr/app_namespaces.h>
 
 #include "ibtk/CartGridFunctionSet.h"
 #include "ibtk/IBTK_MPI.h"
@@ -35,17 +23,8 @@
 #include <ibtk/AppInitializer.h>
 #include <ibtk/IBTKInit.h>
 
-#include "LS/LSCutCellLaplaceOperator.h"
-#include "LS/LSFromLevelSet.h"
-#include "LS/LSFromMesh.h"
-#include "LS/QInitial.h"
-#include "LS/SBBoundaryConditions.h"
-#include "LS/SBIntegrator.h"
-#include "LS/SemiLagrangianAdvIntegrator.h"
-
-#include "InsideLSFcn.h"
-#include "LSPipeFlow.h"
-#include "QFcn.h"
+#include "tbox/Pointer.h"
+#include <CCAD/app_namespaces.h>
 
 #include <libmesh/boundary_mesh.h>
 #include <libmesh/equation_systems.h>
@@ -54,7 +33,21 @@
 #include <libmesh/mesh_generation.h>
 #include <libmesh/numeric_vector.h>
 
-using namespace LS;
+#include <petscsys.h>
+
+#include <BergerRigoutsos.h>
+#include <CartesianGridGeometry.h>
+#include <LoadBalancer.h>
+#include <SAMRAI_config.h>
+#include <StandardTagAndInitialize.h>
+
+#include <memory>
+#include <utility>
+
+// Local includes
+#include "InsideLSFcn.h"
+#include "LSPipeFlow.h"
+#include "QFcn.h"
 
 static double k_on, k_off, sf_max;
 double

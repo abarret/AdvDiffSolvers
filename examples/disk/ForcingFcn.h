@@ -1,49 +1,30 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2018 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
 #ifndef included_ForcingFcn
 #define included_ForcingFcn
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-// IBTK INCLUDES
+#include "CCAD/IntegrateFunction.h"
+#include "CCAD/LSCartGridFunction.h"
+
+#include <ibamr/AdvDiffHierarchyIntegrator.h>
+
 #include <ibtk/CartGridFunction.h>
 #include <ibtk/ibtk_utilities.h>
 
-// SAMRAI INCLUDES
 #include <CartesianGridGeometry.h>
-
-// C++ namespace delcarations
-#include <ibamr/AdvDiffHierarchyIntegrator.h>
-#include <ibamr/app_namespaces.h>
-
-#include "LS/IntegrateFunction.h"
-#include "LS/LSCartGridFunction.h"
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
 /*!
  * \brief Method to initialize the value of the advected scalar Q.
  */
-namespace LS
-{
-class ForcingFcn : public LS::LSCartGridFunction
+class ForcingFcn : public CCAD::LSCartGridFunction
 {
 public:
     /*!
      * \brief Constructor.
      */
-    ForcingFcn(const string& object_name, Pointer<Database> input_db);
+    ForcingFcn(const std::string& object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 
     /*!
      * \brief Destructor.
@@ -102,9 +83,7 @@ private:
     double d_k_on = 0.0;
     double d_k_off = 0.0;
     double d_sf_max = 0.0;
-    VectorNd d_cent = { 0.0, 0.0 };
+    IBTK::VectorNd d_cent = { 0.0, 0.0 };
 };
-
-} // namespace LS
 
 #endif //#ifndef included_ForcingFcn

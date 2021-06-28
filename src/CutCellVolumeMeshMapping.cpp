@@ -1,13 +1,13 @@
+#include "CCAD/CutCellVolumeMeshMapping.h"
+
 #include "ibamr/app_namespaces.h"
 
 #include "ibtk/IBTK_MPI.h"
 #include "ibtk/IndexUtilities.h"
 
-#include "LS/CutCellVolumeMeshMapping.h"
-
 #include "libmesh/explicit_system.h"
 
-namespace LS
+namespace CCAD
 {
 CutCellVolumeMeshMapping::CutCellVolumeMeshMapping(std::string object_name,
                                                    Pointer<Database> input_db,
@@ -86,7 +86,6 @@ CutCellVolumeMeshMapping::generateCutCellMappings()
             boost::multi_array<double, 1> Q_node;
             for (const auto& elem : patch_elems)
             {
-                const unsigned int bdry_id = elem->subdomain_id();
                 const auto& X_dof_indices = X_dof_map_cache.dof_indices(elem);
                 IBTK::get_values_for_interpolation(x_node, *X_petsc_vec, X_local_soln, X_dof_indices);
                 const unsigned int n_node = elem->n_nodes();
@@ -269,4 +268,4 @@ CutCellVolumeMeshMapping::findIntersection(libMesh::Point& p,
     }
     return found_intersection;
 }
-} // namespace LS
+} // namespace CCAD

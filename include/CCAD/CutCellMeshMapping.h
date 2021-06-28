@@ -1,13 +1,13 @@
-#ifndef included_CutCellMeshMapping
-#define included_CutCellMeshMapping
-#include "ibtk/FEDataManager.h"
+#ifndef included_CCAD_CutCellMeshMapping
+#define included_CCAD_CutCellMeshMapping
+#include "CCAD/ls_functions.h"
+#include "CCAD/ls_utilities.h"
 
-#include "LS/ls_functions.h"
-#include "LS/ls_utilities.h"
+#include "ibtk/FEDataManager.h"
 
 #include "libmesh/mesh.h"
 
-namespace LS
+namespace CCAD
 {
 /*!
  * CutCellMeshMapping maintains a description of the Lagrangian mesh from the point of view of the background mesh. We
@@ -47,7 +47,7 @@ public:
 
     virtual void generateCutCellMappings() = 0;
 
-    inline const std::vector<std::map<LS::IndexList, std::vector<CutCellElems>>>& getIdxCutCellElemsMap(const int ln)
+    inline const std::vector<std::map<IndexList, std::vector<CutCellElems>>>& getIdxCutCellElemsMap(const int ln)
     {
         return d_idx_cut_cell_elems_map_vec[ln];
     }
@@ -58,8 +58,8 @@ protected:
     bool d_perturb_nodes = false;
 
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
-    std::vector<std::vector<std::map<LS::IndexList, std::vector<CutCellElems>>>> d_idx_cut_cell_elems_map_vec;
+    std::vector<std::vector<std::map<IndexList, std::vector<CutCellElems>>>> d_idx_cut_cell_elems_map_vec;
 };
 
-} // namespace LS
+} // namespace CCAD
 #endif

@@ -1,4 +1,7 @@
-#include "LS/utility_functions.h"
+#include "ibamr/config.h"
+
+#include "CCAD/app_namespaces.h"
+#include "CCAD/ls_functions.h"
 
 #include "SurfaceBoundaryReactions.h"
 

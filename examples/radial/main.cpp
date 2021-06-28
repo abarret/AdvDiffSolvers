@@ -1,8 +1,11 @@
-#include <IBAMR_config.h>
-#include <IBTK_config.h>
+#include "ibamr/config.h"
+
+#include "CCAD/LSCutCellLaplaceOperator.h"
+#include "CCAD/LSFromLevelSet.h"
+#include "CCAD/QInitial.h"
+#include "CCAD/SemiLagrangianAdvIntegrator.h"
 
 #include <ibamr/RelaxationLSMethod.h>
-#include <ibamr/app_namespaces.h>
 
 #include "ibtk/CartGridFunctionSet.h"
 #include "ibtk/PETScKrylovPoissonSolver.h"
@@ -10,17 +13,13 @@
 #include "ibtk/muParserRobinBcCoefs.h"
 #include <ibtk/AppInitializer.h>
 
-#include "LS/LSCutCellLaplaceOperator.h"
-#include "LS/LSFromLevelSet.h"
-#include "LS/QInitial.h"
-#include "LS/SemiLagrangianAdvIntegrator.h"
-
 #include "BergerRigoutsos.h"
 #include "CartesianGridGeometry.h"
 #include "LoadBalancer.h"
 #include "SAMRAI_config.h"
 #include "StandardTagAndInitialize.h"
 #include "tbox/Pointer.h"
+#include <CCAD/app_namespaces.h>
 
 #include <petscsys.h>
 
@@ -28,12 +27,9 @@
 
 #include <memory>
 #include <utility>
-
 // Local includes
 #include "QFcn.h"
 #include "RadialBoundaryCond.h"
-
-using namespace LS;
 
 void output_to_file(const int Q_idx,
                     const int area_idx,
@@ -220,7 +216,7 @@ main(int argc, char* argv[])
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_var = new CellVariable<NDIM, double>("Q");
-        Pointer<QFcn> Q_init = new QFcn("QInit", grid_geometry, app_initializer->getComponentDatabase("QInitial"));
+        Pointer<QFcn> Q_init = new QFcn("QInit", app_initializer->getComponentDatabase("QInitial"));
         const bool periodic_domain = grid_geometry->getPeriodicShift().min() > 0;
         std::vector<RobinBcCoefStrategy<NDIM>*> Q_bcs(1);
         if (!periodic_domain)

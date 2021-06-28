@@ -1,8 +1,11 @@
-#include <IBAMR_config.h>
-#include <IBTK_config.h>
+#include "ibamr/config.h"
+
+#include "CCAD/LSCutCellLaplaceOperator.h"
+#include "CCAD/LSFromLevelSet.h"
+#include "CCAD/QInitial.h"
+#include "CCAD/SemiLagrangianAdvIntegrator.h"
 
 #include <ibamr/RelaxationLSMethod.h>
-#include <ibamr/app_namespaces.h>
 
 #include "ibtk/CartGridFunctionSet.h"
 #include "ibtk/PETScKrylovPoissonSolver.h"
@@ -10,17 +13,13 @@
 #include "ibtk/muParserRobinBcCoefs.h"
 #include <ibtk/AppInitializer.h>
 
-#include "LS/LSCutCellLaplaceOperator.h"
-#include "LS/LSFromLevelSet.h"
-#include "LS/QInitial.h"
-#include "LS/SemiLagrangianAdvIntegrator.h"
-
 #include "BergerRigoutsos.h"
 #include "CartesianGridGeometry.h"
 #include "LoadBalancer.h"
 #include "SAMRAI_config.h"
 #include "StandardTagAndInitialize.h"
 #include "tbox/Pointer.h"
+#include <CCAD/app_namespaces.h>
 
 #include <petscsys.h>
 
@@ -31,8 +30,6 @@
 #include "InsideLSFcn.h"
 #include "OutsideLSFcn.h"
 #include "QFcn.h"
-
-using namespace LS;
 
 static double a = std::numeric_limits<double>::signaling_NaN();
 static double b = std::numeric_limits<double>::signaling_NaN();
@@ -232,7 +229,6 @@ main(int argc, char* argv[])
         // Setup the level set function
         Pointer<NodeVariable<NDIM, double>> ls_in_var = new NodeVariable<NDIM, double>("LS_In");
         time_integrator->registerLevelSetVariable(ls_in_var);
-        bool use_ls_fcn = input_db->getBool("USING_LS_FCN");
         Pointer<InsideLSFcn> ls_fcn =
             new InsideLSFcn("InsideLSFcn", app_initializer->getComponentDatabase("InsideLSFcn"));
         Pointer<LSFromLevelSet> vol_in_fcn = new LSFromLevelSet("LSIn", patch_hierarchy);

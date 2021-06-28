@@ -1,27 +1,15 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2011 - 2021 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
 /////////////////////////////// INCLUDE GUARD ////////////////////////////////
 
-#ifndef included_LS_FEMeshPartitioner
-#define included_LS_FEMeshPartitioner
+#ifndef included_CCAD_FEMeshPartitioner
+#define included_CCAD_FEMeshPartitioner
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
+
+#include <ibtk/config.h>
 
 #include "ibtk/FEDataManager.h"
 #include "ibtk/ibtk_enums.h"
 #include "ibtk/ibtk_utilities.h"
-#include <ibtk/config.h>
 
 #include "CellVariable.h"
 #include "IntVector.h"
@@ -56,7 +44,7 @@ IBTK_ENABLE_EXTRA_WARNINGS
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace LS
+namespace CCAD
 {
 /*!
  * \brief Class FEMeshPartitioner coordinates data required for
@@ -445,7 +433,7 @@ private:
      */
     std::map<std::string, std::unique_ptr<libMesh::PetscVector<double>>> d_system_ib_ghost_vec;
 };
-} // namespace LS
+} // namespace CCAD
 
 //////////////////////////////////////////////////////////////////////////////
 

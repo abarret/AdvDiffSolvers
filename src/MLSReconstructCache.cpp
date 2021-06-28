@@ -1,9 +1,9 @@
+#include "CCAD/MLSReconstructCache.h"
+#include "CCAD/ls_functions.h"
+
 #include "ibamr/app_namespaces.h"
 
-#include "LS/MLSReconstructCache.h"
-#include "LS/ls_functions.h"
-
-namespace LS
+namespace CCAD
 {
 MLSReconstructCache::MLSReconstructCache(int ls_idx,
                                          int vol_idx,
@@ -82,4 +82,4 @@ MLSReconstructCache::reconstructOnIndex(VectorNd x_loc,
     VectorXd x = (Lambda * A).fullPivHouseholderQr().solve(Lambda * U);
     return x(0);
 }
-} // namespace LS
+} // namespace CCAD

@@ -1,20 +1,5 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2020 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
-/////////////////////////////// INCLUDE GUARD ////////////////////////////////
-
-#ifndef included_LS_AdvectiveReconstructionOperator
-#define included_LS_AdvectiveReconstructionOperator
+#ifndef included_CCAD_AdvectiveReconstructionOperator
+#define included_CCAD_AdvectiveReconstructionOperator
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -37,7 +22,7 @@ class SAMRAIVectorReal;
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace LS
+namespace CCAD
 {
 /*!
  * \brief Class AdvectiveReconstructionOperator is an abstract class for reconstructing solutions after a
@@ -54,7 +39,7 @@ public:
     /*!
      * \brief Destructor.
      */
-    ~AdvectiveReconstructionOperator();
+    virtual ~AdvectiveReconstructionOperator();
 
     /*!
      * \brief Deletec Operators
@@ -104,8 +89,8 @@ protected:
     double d_current_time = std::numeric_limits<double>::quiet_NaN(),
            d_new_time = std::numeric_limits<double>::quiet_NaN();
 };
-} // namespace LS
+} // namespace CCAD
 
 //////////////////////////////////////////////////////////////////////////////
 
-#endif //#ifndef included_LS_AdvectiveReconstructionOperator
+#endif //#ifndef included_CCAD_AdvectiveReconstructionOperator

@@ -1,8 +1,8 @@
+#include "CCAD/LSFromMesh.h"
+#include "CCAD/ls_functions.h"
+
 #include "ibtk/DebuggingUtilities.h"
 #include "ibtk/IBTK_MPI.h"
-
-#include "LS/LSFromMesh.h"
-#include "LS/ls_functions.h"
 
 #include "RefineAlgorithm.h"
 
@@ -32,7 +32,7 @@ namespace
 static Timer* t_updateVolumeAreaSideLS = nullptr;
 } // namespace
 
-namespace LS
+namespace CCAD
 {
 LSFromMesh::LSFromMesh(std::string object_name,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
@@ -76,7 +76,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                                    double /*data_time*/,
                                    bool extended_box)
 {
-    LS_TIMER_START(t_updateVolumeAreaSideLS);
+    CCAD_TIMER_START(t_updateVolumeAreaSideLS);
     TBOX_ASSERT(phi_idx != IBTK::invalid_index);
     TBOX_ASSERT(phi_var);
     const int finest_ln = d_hierarchy->getFinestLevelNumber();
@@ -461,7 +461,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
-                double phi_cc = LS::node_to_cell(idx, *sgn_data);
+                double phi_cc = node_to_cell(idx, *sgn_data);
                 if (phi_cc > 0.0)
                 {
                     if (vol_data && (*vol_data)(idx) == 0.0) (*vol_data)(idx) = 0.0;
@@ -497,14 +497,14 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
             }
         }
     }
-    LS_TIMER_STOP(t_updateVolumeAreaSideLS);
+    CCAD_TIMER_STOP(t_updateVolumeAreaSideLS);
 }
 
 void
 LSFromMesh::commonConstructor()
 {
     IBAMR_DO_ONCE(t_updateVolumeAreaSideLS =
-                      TimerManager::getManager()->getTimer("LS::LSFromMesH::updateVolumeAreaSideLS()"););
+                      TimerManager::getManager()->getTimer("CCAD::LSFromMesH::updateVolumeAreaSideLS()"););
     d_norm_reverse_domain_ids.resize(d_fe_mesh_partitioners.size());
     d_norm_reverse_elem_ids.resize(d_fe_mesh_partitioners.size());
 
@@ -915,4 +915,4 @@ LSFromMesh::floodFillForLS(const int ln, const double eps)
         num_negative_found = IBTK_MPI::sumReduction(num_negative_found);
     }
 }
-} // namespace LS
+} // namespace CCAD

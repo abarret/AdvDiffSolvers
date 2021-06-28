@@ -1,30 +1,17 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2020 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
 /////////////////////////////// INCLUDES /////////////////////////////////////
+
+#include "CCAD/RBFReconstructions.h"
+#include "CCAD/ls_functions.h"
 
 #include "ibamr/namespaces.h" // IWYU pragma: keep
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 
-#include "LS/RBFReconstructions.h"
-#include "LS/ls_functions.h"
-
 #include "SAMRAIVectorReal.h"
 
 #include <utility>
 
-namespace LS
+namespace CCAD
 {
 RBFReconstructions::RBFReconstructions(std::string object_name, Reconstruct::RBFPolyOrder rbf_order, int stencil_size)
     : AdvectiveReconstructionOperator(std::move(object_name)),
@@ -126,6 +113,6 @@ RBFReconstructions::deallocateOperatorState()
         if (level->checkAllocated(d_Q_scr_idx)) level->deallocatePatchData(d_Q_scr_idx);
     }
 }
-} // namespace LS
+} // namespace CCAD
 
 //////////////////////////////////////////////////////////////////////////////

@@ -1,7 +1,6 @@
 // Config files
 #include <IBAMR_config.h>
 #include <IBTK_config.h>
-
 #include <SAMRAI_config.h>
 
 // Headers for basic PETSc functions
@@ -34,13 +33,6 @@
 #include <ibtk/AppInitializer.h>
 #include <ibtk/IBTKInit.h>
 
-#include "LS/LSCutCellLaplaceOperator.h"
-#include "LS/LSFromMesh.h"
-#include "LS/QInitial.h"
-#include "LS/SBBoundaryConditions.h"
-#include "LS/SBIntegrator.h"
-#include "LS/SemiLagrangianAdvIntegrator.h"
-
 #include "InsideLSFcn.h"
 
 #include <libmesh/boundary_mesh.h>
@@ -50,6 +42,13 @@
 #include <libmesh/mesh_generation.h>
 #include <libmesh/numeric_vector.h>
 #include <libmesh/transient_system.h>
+
+#include "../../include/CCAD/LSCutCellLaplaceOperator.h"
+#include "../../include/CCAD/LSFromMesh.h"
+#include "../../include/CCAD/QInitial.h"
+#include "../../include/CCAD/SBBoundaryConditions.h"
+#include "../../include/CCAD/SBIntegrator.h"
+#include "../../include/CCAD/SemiLagrangianAdvIntegrator.h"
 
 using namespace LS;
 /*******************************************************************************

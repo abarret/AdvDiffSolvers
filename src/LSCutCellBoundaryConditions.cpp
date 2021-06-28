@@ -1,8 +1,8 @@
+#include "CCAD/LSCutCellBoundaryConditions.h"
+
 #include "ibamr/app_namespaces.h"
 
-#include "LS/LSCutCellBoundaryConditions.h"
-
-namespace LS
+namespace CCAD
 {
 LSCutCellBoundaryConditions::LSCutCellBoundaryConditions(const std::string& object_name) : d_object_name(object_name)
 {
@@ -48,4 +48,4 @@ LSCutCellBoundaryConditions::setDiffusionCoefficient(const double D)
 {
     d_D = D;
 }
-} // namespace LS
+} // namespace CCAD

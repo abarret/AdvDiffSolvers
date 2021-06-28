@@ -1,12 +1,12 @@
-#ifndef included_MLSReconstructCache
-#define included_MLSReconstructCache
+#ifndef included_CCAD_MLSReconstructCache
+#define included_CCAD_MLSReconstructCache
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
+#include "CCAD/ReconstructCache.h"
+
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 #include "ibtk/ibtk_utilities.h"
-
-#include "LS/ReconstructCache.h"
 
 #include "CellData.h"
 #include "CellIndex.h"
@@ -23,7 +23,7 @@
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace LS
+namespace CCAD
 {
 /*!
  * \brief Class MLSReconstructCache caches the data necessary to form RBF reconstructions of data.
@@ -52,5 +52,5 @@ public:
                               const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
                               SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
 };
-} // namespace LS
+} // namespace CCAD
 #endif

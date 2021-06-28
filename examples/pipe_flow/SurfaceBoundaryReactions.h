@@ -1,14 +1,14 @@
 #ifndef included_SurfaceBoundaryReactions
 #define included_SurfaceBoundaryReactions
 
-#include "ibtk/FEDataManager.h"
+#include "CCAD/LSCutCellBoundaryConditions.h"
 
-#include "LS/LSCutCellBoundaryConditions.h"
+#include "ibtk/FEDataManager.h"
 
 #include "libmesh/equation_systems.h"
 #include <libmesh/mesh.h>
 
-class SurfaceBoundaryReactions : public LS::LSCutCellBoundaryConditions
+class SurfaceBoundaryReactions : public CCAD::LSCutCellBoundaryConditions
 {
 public:
     SurfaceBoundaryReactions(const std::string& object_name,

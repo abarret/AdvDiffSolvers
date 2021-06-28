@@ -1,11 +1,11 @@
-#ifndef included_SBSurfaceFluidCouplingManager
-#define included_SBSurfaceFluidCouplingManager
+#ifndef included_CCAD_SBSurfaceFluidCouplingManager
+#define included_CCAD_SBSurfaceFluidCouplingManager
+
+#include "CCAD/CutCellMeshMapping.h"
+#include "CCAD/FEMeshPartitioner.h"
+#include "CCAD/RBFReconstructCache.h"
 
 #include "ibtk/FEDataManager.h"
-
-#include "LS/CutCellMeshMapping.h"
-#include "LS/FEMeshPartitioner.h"
-#include "LS/RBFReconstructCache.h"
 
 #include "CellData.h"
 #include "NodeData.h"
@@ -14,7 +14,7 @@
 #include <libmesh/boundary_mesh.h>
 #include <libmesh/mesh.h>
 
-namespace LS
+namespace CCAD
 {
 class SBSurfaceFluidCouplingManager : public SAMRAI::tbox::DescribedClass
 {
@@ -345,5 +345,5 @@ private:
     void commonConstructor(SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 };
 
-} // namespace LS
+} // namespace CCAD
 #endif

@@ -1,49 +1,30 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2018 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
-#ifndef included_LS_QFcn
-#define included_LS_QFcn
+#ifndef included_QFcn
+#define included_QFcn
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-// IBTK INCLUDES
+#include "CCAD/IntegrateFunction.h"
+#include "CCAD/LSCartGridFunction.h"
+
+#include <ibamr/AdvDiffHierarchyIntegrator.h>
+
 #include <ibtk/CartGridFunction.h>
 #include <ibtk/ibtk_utilities.h>
 
-// SAMRAI INCLUDES
 #include <CartesianGridGeometry.h>
-
-// C++ namespace delcarations
-#include <ibamr/AdvDiffHierarchyIntegrator.h>
-#include <ibamr/app_namespaces.h>
-
-#include "LS/IntegrateFunction.h"
-#include "LS/LSCartGridFunction.h"
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
 /*!
  * \brief Method to initialize the value of the advected scalar Q.
  */
-namespace LS
-{
-class QFcn : public LS::LSCartGridFunction
+class QFcn : public CCAD::LSCartGridFunction
 {
 public:
     /*!
      * \brief Constructor.
      */
-    QFcn(const string& object_name, Pointer<Database> input_db);
+    QFcn(const std::string& object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 
     /*!
      * \brief Destructor.
@@ -126,19 +107,17 @@ private:
     /*!
      * Read input values, indicated above, from given database.
      */
-    void getFromInput(Pointer<Database> db);
+    void getFromInput(SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> db);
 
     // Level set info
     int d_ls_idx = IBTK::invalid_index;
     int d_vol_idx = IBTK::invalid_index;
 
     double d_theta = 0.0;
-    VectorNd d_channel_center;
+    IBTK::VectorNd d_channel_center;
     double d_y_low = 0.0, d_y_up = 0.0;
     double d_D = 0.0;
     double d_initial = 0.0;
 };
-
-} // namespace LS
 
 #endif //#ifndef included_LS_QFcn

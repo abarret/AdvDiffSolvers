@@ -1,16 +1,16 @@
-#ifndef included_VolumeBoundaryMeshMapping
-#define included_VolumeBoundaryMeshMapping
-#include "ibtk/FEDataManager.h"
+#ifndef included_CCAD_VolumeBoundaryMeshMapping
+#define included_CCAD_VolumeBoundaryMeshMapping
+#include "CCAD/CutCellMeshMapping.h"
+#include "CCAD/FEMeshPartitioner.h"
+#include "CCAD/ls_functions.h"
+#include "CCAD/ls_utilities.h"
 
-#include "LS/CutCellMeshMapping.h"
-#include "LS/FEMeshPartitioner.h"
-#include "LS/ls_functions.h"
-#include "LS/ls_utilities.h"
+#include "ibtk/FEDataManager.h"
 
 #include "libmesh/boundary_mesh.h"
 #include "libmesh/mesh.h"
 
-namespace LS
+namespace CCAD
 {
 /*!
  * VolumeBoundaryMeshMapping maintains a description of the Lagrangian mesh from the point of view of the background
@@ -121,5 +121,5 @@ private:
     unsigned int d_libmesh_restart_restore_number;
 };
 
-} // namespace LS
+} // namespace CCAD
 #endif

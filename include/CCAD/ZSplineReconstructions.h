@@ -1,34 +1,19 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2020 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
-/////////////////////////////// INCLUDE GUARD ////////////////////////////////
-
-#ifndef included_LS_ZSplineReconstructions
-#define included_LS_ZSplineReconstructions
+#ifndef included_CCAD_ZSplineReconstructions
+#define included_CCAD_ZSplineReconstructions
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
 #include <ibamr/config.h>
 
-#include "LS/AdvectiveReconstructionOperator.h"
-#include "LS/ls_utilities.h"
-#include "LS/reconstructions.h"
+#include "CCAD/AdvectiveReconstructionOperator.h"
+#include "CCAD/ls_utilities.h"
+#include "CCAD/reconstructions.h"
 
 #include "CellVariable.h"
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace LS
+namespace CCAD
 {
 /*!
  * \brief Class ZSplineReconstructions is a abstract class for an implementation of
@@ -84,7 +69,7 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_scr_var;
     int d_Q_scr_idx = IBTK::invalid_index;
 };
-} // namespace LS
+} // namespace CCAD
 
 //////////////////////////////////////////////////////////////////////////////
 

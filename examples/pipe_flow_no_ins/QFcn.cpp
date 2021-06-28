@@ -1,17 +1,6 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2019 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
+#include "ibamr/config.h"
 
-#include <IBAMR_config.h>
+#include "CCAD/app_namespaces.h"
 
 #include "QFcn.h"
 
@@ -19,8 +8,6 @@
 
 #include <array>
 
-namespace LS
-{
 /////////////////////////////// PUBLIC ///////////////////////////////////////
 
 QFcn::QFcn(const string& object_name, Pointer<Database> input_db) : LSCartGridFunction(object_name)
@@ -112,5 +99,3 @@ QFcn::getFromInput(Pointer<Database> db)
     d_initial = db->getDouble("initial");
     return;
 } // getFromInput
-
-} // namespace LS

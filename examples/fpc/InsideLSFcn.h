@@ -1,22 +1,8 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2018 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
 #ifndef included_InsideLSFcn
 #define included_InsideLSFcn
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-// IBTK INCLUDES
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 
 #include <ibtk/CartGridFunction.h>
@@ -25,7 +11,6 @@
 
 #include <libmesh/boundary_mesh.h>
 
-// SAMRAI INCLUDES
 #include <CartesianGridGeometry.h>
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////

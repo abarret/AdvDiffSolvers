@@ -1,10 +1,10 @@
+#include "CCAD/RBFReconstructCache.h"
+#include "CCAD/ls_functions.h"
+#include "CCAD/reconstructions.h"
+
 #include "ibamr/app_namespaces.h"
 
-#include "LS/RBFReconstructCache.h"
-#include "LS/ls_functions.h"
-#include "LS/reconstructions.h"
-
-namespace LS
+namespace CCAD
 {
 RBFReconstructCache::RBFReconstructCache(int ls_idx,
                                          int vol_idx,
@@ -175,4 +175,4 @@ RBFReconstructCache::reconstructOnIndex(VectorNd x_loc,
     val += poly_coefs.dot(poly_vec);
     return val;
 }
-} // namespace LS
+} // namespace CCAD

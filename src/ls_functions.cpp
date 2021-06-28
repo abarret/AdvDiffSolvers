@@ -1,23 +1,10 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2020 - 2020 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
-
 /////////////////////////////// INCLUDES /////////////////////////////////////
+
+#include "CCAD/ls_functions.h"
 
 #include <ibamr/app_namespaces.h>
 
-#include "LS/ls_functions.h"
-
-namespace LS
+namespace CCAD
 {
 double
 area_fraction(const double reg_area, const double phi_ll, const double phi_lu, const double phi_uu, const double phi_ul)
@@ -64,4 +51,4 @@ length_fraction(const double dx, const double phi_l, const double phi_u)
     }
     return L * dx;
 }
-} // namespace LS
+} // namespace CCAD

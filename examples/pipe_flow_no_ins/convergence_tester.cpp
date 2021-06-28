@@ -1,43 +1,14 @@
-// ---------------------------------------------------------------------
-//
-// Copyright (c) 2014 - 2019 by the IBAMR developers
-// All rights reserved.
-//
-// This file is part of IBAMR.
-//
-// IBAMR is free software and is distributed under the 3-clause BSD
-// license. The full text of the license can be found in the file
-// COPYRIGHT at the top level directory of IBAMR.
-//
-// ---------------------------------------------------------------------
+#include "ibamr/config.h"
 
-// GENERAL CONFIGURATION
+#include "CCAD/SemiLagrangianAdvIntegrator.h"
 
-#include <SAMRAI_config.h>
-
-// PETSC INCLUDES
-#include <petsc.h>
-
-// IBTK INCLUDES
+#include "ibtk/AppInitializer.h"
+#include "ibtk/IBTKInit.h"
 #include <ibtk/CartExtrapPhysBdryOp.h>
 #include <ibtk/HierarchyMathOps.h>
 #include <ibtk/IBTK_MPI.h>
 
-// LIBMESH INCLUDES
-#include <libmesh/equation_systems.h>
-#include <libmesh/exact_solution.h>
-#include <libmesh/mesh.h>
-#include <libmesh/mesh_function.h>
-using namespace libMesh;
-
-// SAMRAI INCLUDES
-#include <ibamr/app_namespaces.h>
-
-#include "ibtk/AppInitializer.h"
-#include "ibtk/IBTKInit.h"
-
-#include "LS/SemiLagrangianAdvIntegrator.h"
-
+#include <CCAD/app_namespaces.h>
 #include <tbox/Database.h>
 #include <tbox/HDFDatabase.h>
 #include <tbox/InputDatabase.h>
@@ -48,19 +19,23 @@ using namespace libMesh;
 #include <tbox/SAMRAIManager.h>
 #include <tbox/Utilities.h>
 
+#include <libmesh/equation_systems.h>
+#include <libmesh/exact_solution.h>
+#include <libmesh/mesh.h>
+#include <libmesh/mesh_function.h>
+
+#include <petsc.h>
+
 #include <CartesianGridGeometry.h>
 #include <CellVariable.h>
 #include <ComponentSelector.h>
 #include <HierarchyCellDataOpsReal.h>
 #include <HierarchySideDataOpsReal.h>
 #include <PatchHierarchy.h>
+#include <SAMRAI_config.h>
 #include <SideVariable.h>
 #include <VariableDatabase.h>
 #include <VisItDataWriter.h>
-
-using namespace IBTK;
-using namespace SAMRAI;
-using namespace std;
 
 int
 main(int argc, char* argv[])

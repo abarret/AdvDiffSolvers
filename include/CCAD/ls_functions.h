@@ -1,9 +1,9 @@
-#ifndef included_LS_utility_functions
-#define included_LS_utility_functions
+#ifndef included_CCAD_utility_functions
+#define included_CCAD_utility_functions
 
-#include "LS/LSFindCellVolume.h"
-#include "LS/SetLSValue.h"
-#include "LS/ls_utilities.h"
+#include "CCAD/LSFindCellVolume.h"
+#include "CCAD/SetLSValue.h"
+#include "CCAD/ls_utilities.h"
 
 #include "NodeIndex.h"
 #include "Variable.h"
@@ -16,11 +16,11 @@
 
 #include "Eigen/Dense"
 
-namespace LS
+namespace CCAD
 {
-#define LS_TIMER_START(timer) timer->start();
+#define CCAD_TIMER_START(timer) timer->start();
 
-#define LS_TIMER_STOP(timer) timer->stop();
+#define CCAD_TIMER_STOP(timer) timer->stop();
 
 static double s_eps = 1.0e-12;
 
@@ -42,16 +42,12 @@ get_node_index_from_corner(const SAMRAI::hier::Index<NDIM>& idx, int corner)
         return SAMRAI::pdat::NodeIndex<NDIM>(idx, SAMRAI::pdat::NodeIndex<NDIM>::LowerLeft);
     }
 }
-double length_fraction(const double dx, const double phi_l, const double phi_u);
+double length_fraction(double dx, double phi_l, double phi_u);
 
-double area_fraction(const double reg_area,
-                     const double phi_ll,
-                     const double phi_lu,
-                     const double phi_uu,
-                     const double phi_ul);
+double area_fraction(double reg_area, double phi_ll, double phi_lu, double phi_uu, double phi_ul);
 
 inline IBTK::VectorNd
-midpoint_value(const IBTK::VectorNd& pt0, const double& phi0, const IBTK::VectorNd& pt1, const double& phi1)
+midpoint_value(const IBTK::VectorNd& pt0, double phi0, const IBTK::VectorNd& pt1, double phi1)
 {
     return pt0 * phi1 / (phi1 - phi0) - pt1 * phi0 / (phi1 - phi0);
 }
@@ -464,5 +460,5 @@ get_libmesh_restart_file_name(const std::string& restart_dump_dirname,
                      << std::setfill('0') << std::right << time_step_number << "." << extension;
     return file_name_prefix.str();
 }
-} // namespace LS
+} // namespace CCAD
 #endif

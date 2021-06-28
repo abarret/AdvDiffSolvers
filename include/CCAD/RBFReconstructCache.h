@@ -1,12 +1,12 @@
-#ifndef included_RBFReconstructCache
-#define included_RBFReconstructCache
+#ifndef included_CCAD_RBFReconstructCache
+#define included_CCAD_RBFReconstructCache
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
+#include "CCAD/ReconstructCache.h"
+
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 #include "ibtk/ibtk_utilities.h"
-
-#include "LS/ReconstructCache.h"
 
 #include "CellData.h"
 #include "CellIndex.h"
@@ -23,7 +23,7 @@
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace LS
+namespace CCAD
 {
 /*!
  * \brief Class RBFReconstructCache caches the data necessary to form RBF reconstructions of data.
@@ -53,7 +53,7 @@ public:
                               SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) override;
 
 private:
-    std::vector<std::map<LS::IndexList, std::vector<SAMRAI::hier::Index<NDIM>>>> d_reconstruct_idxs_map_vec;
+    std::vector<std::map<IndexList, std::vector<SAMRAI::hier::Index<NDIM>>>> d_reconstruct_idxs_map_vec;
 };
-} // namespace LS
+} // namespace CCAD
 #endif
