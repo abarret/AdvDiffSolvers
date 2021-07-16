@@ -187,7 +187,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                     avg_unit_normal /= static_cast<double>(num_min);
                     avg_unit_normal.normalize();
 
-                    Vector3d phys_vec;
+                    Vector3d phys_vec = Vector3d::Zero();
                     for (unsigned int d = 0; d < NDIM; ++d) phys_vec(d) = dx[d] * (P - avg_proj)[d];
                     double dist_phys = phys_vec.norm();
                     double sgn = (avg_unit_normal.dot(P - avg_proj) <= 0.0 ? -1.0 : 1.0);
