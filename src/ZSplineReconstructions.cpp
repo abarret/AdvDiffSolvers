@@ -1,9 +1,8 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
 #include "CCAD/ZSplineReconstructions.h"
+#include "CCAD/app_namespaces.h" // IWYU pragma: keep
 #include "CCAD/ls_functions.h"
-
-#include "ibamr/namespaces.h" // IWYU pragma: keep
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 

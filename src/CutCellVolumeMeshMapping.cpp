@@ -1,6 +1,5 @@
 #include "CCAD/CutCellVolumeMeshMapping.h"
-
-#include "ibamr/app_namespaces.h"
+#include "CCAD/app_namespaces.h"
 
 #include "ibtk/IBTK_MPI.h"
 #include "ibtk/IndexUtilities.h"

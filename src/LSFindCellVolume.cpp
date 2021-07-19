@@ -1,9 +1,7 @@
 #include "ibamr/config.h"
 
 #include "CCAD/LSFindCellVolume.h"
-
-#include "ibtk/DebuggingUtilities.h"
-#include "ibtk/app_namespaces.h"
+#include "CCAD/app_namespaces.h"
 
 namespace CCAD
 {

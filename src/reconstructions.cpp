@@ -1,10 +1,9 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
+#include "CCAD/app_namespaces.h"
 #include "CCAD/ls_functions.h"
 #include "CCAD/ls_utilities.h"
 #include "CCAD/reconstructions.h"
-
-#include <ibamr/app_namespaces.h>
 
 #include "CartesianPatchGeometry.h"
 #include "CellData.h"

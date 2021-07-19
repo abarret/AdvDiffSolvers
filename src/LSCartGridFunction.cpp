@@ -1,8 +1,7 @@
 #include "ibamr/config.h"
 
 #include "CCAD/LSCartGridFunction.h"
-
-#include "ibamr/app_namespaces.h"
+#include "CCAD/app_namespaces.h"
 
 #include <SAMRAI_config.h>
 

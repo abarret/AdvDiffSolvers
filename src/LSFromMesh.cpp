@@ -1,28 +1,10 @@
 #include "CCAD/LSFromMesh.h"
+#include "CCAD/app_namespaces.h"
 #include "CCAD/ls_functions.h"
 
-#include "ibtk/DebuggingUtilities.h"
 #include "ibtk/IBTK_MPI.h"
 
 #include "RefineAlgorithm.h"
-
-#if (0)
-#include <CGAL/Alpha_shape_2.h>
-#include <CGAL/Alpha_shape_face_base_2.h>
-#include <CGAL/Alpha_shape_vertex_base_2.h>
-#include <CGAL/Arr_segment_traits_2.h>
-#include <CGAL/Arrangement_2.h>
-#include <CGAL/Cartesian.h>
-#include <CGAL/Delaunay_triangulation_2.h>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/MP_Float.h>
-#include <CGAL/Polygon_2.h>
-#include <CGAL/Quotient.h>
-#include <CGAL/algorithm.h>
-#include <CGAL/assertions.h>
-#include <CGAL/draw_polygon_2.h>
-#include <CGAL/draw_triangulation_2.h>
-#endif
 
 #include <algorithm>
 #include <queue>
@@ -197,97 +179,10 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                 }
             }
 
-#if (0)
-            // TODO: Need to determine the correct way to account for regions with interior points.
-            // Find cell volumes. We use a triangulation algorithm from CGAL
-            // First find all vertices and put them in one vector
-            using K = CGAL::Exact_predicates_inexact_constructions_kernel;
-            using Triangulation = CGAL::Triangulation_2<K>;
-            bool draw = false;
-            if (idx(0) == 128 && idx(1) == 67) draw = true;
-            Triangulation t;
-            t.clear();
-            std::vector<K::Point_2> points;
-            // First vertices of cell nodes
-            VectorNd x_pt;
-            for (int d = 0; d < NDIM; ++d) x_pt[d] = x_low[d] + dx[d] * static_cast<double>(idx(d) - idx_low(d));
-            NodeIndex<NDIM> idx_ll(idx, NodeIndex<NDIM>::LowerLeft);
-            NodeIndex<NDIM> idx_lr(idx, NodeIndex<NDIM>::LowerRight);
-            NodeIndex<NDIM> idx_ur(idx, NodeIndex<NDIM>::UpperRight);
-            NodeIndex<NDIM> idx_ul(idx, NodeIndex<NDIM>::UpperLeft);
-            if ((*phi_data)(idx_ll) < 0.0) points.push_back(K::Point_2(x_pt[0], x_pt[1]));
-            if ((*phi_data)(idx_lr) < 0.0) points.push_back(K::Point_2(x_pt[0] + dx[0], x_pt[1]));
-            if ((*phi_data)(idx_ur) < 0.0) points.push_back(K::Point_2(x_pt[0] + dx[0], x_pt[1] + dx[1]));
-            if ((*phi_data)(idx_ul) < 0.0) points.push_back(K::Point_2(x_pt[0], x_pt[1] + dx[1]));
-            // Now loop through all intersections
-            // Only count interior points once
-            std::vector<libMesh::Point> int_pts;
-            std::map<int, std::vector<libMesh::Point>> side_pt_map;
-            for (const auto& cut_cell : cut_cell_elem_vec)
-            {
-                const std::vector<std::pair<libMesh::Point, int>>& pt_side_vec = cut_cell.d_intersection_side_vec;
-                for (const auto& pt_side : pt_side_vec)
-                {
-                    const libMesh::Point& pt = pt_side.first;
-                    if (pt_side.second == -1 && std::find(int_pts.begin(), int_pts.end(), pt) != int_pts.end())
-                        continue; // Already found point.
-                    else
-                        int_pts.push_back(pt); // Haven't found point yet.
-                    side_pt_map[pt_side.second].push_back(pt);
-                    points.push_back(K::Point_2(pt(0), pt(1)));
-                }
-            }
-            // If we have multiple intersections on a side, we need to check whether that side has INTERIOR cell nodes.
-            // If there are INTERIOR cell nodes, our structure is concave, and we need to use a different algorithm
-            bool concave_structure = false;
-            for (const auto& side_pt_vec_pair : side_pt_map)
-            {
-                int side = side_pt_vec_pair.first;
-                if (side == -1) continue;
-                if (side_pt_vec_pair.second.size() > 1)
-                {
-                    NodeIndex<NDIM> idx_l, idx_u;
-                    switch (side)
-                    {
-                    case 0:
-                        idx_l = NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerLeft);
-                        idx_u = NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperLeft);
-                        break;
-                    case 1:
-                        idx_l = NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerRight);
-                        idx_u = NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperRight);
-                        break;
-                    case 2:
-                        idx_l = NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerLeft);
-                        idx_u = NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerRight);
-                        break;
-                    case 3:
-                        idx_l = NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperLeft);
-                        idx_u = NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperRight);
-                        break;
-                    default:
-                        TBOX_ERROR("Unknown side!\n");
-                    }
-                    if ((*phi_data)(idx_l) < 0.0 && (*phi_data)(idx_u) < 0.0) concave_structure = true;
-                }
-            }
-            // We now have all the points in the vector. Use the triangulation algorithm.
-            t.insert(points.begin(), points.end());
-            if (draw) CGAL::draw(t);
-            Triangulation::Finite_faces_iterator face_iter = t.finite_faces_begin();
-            double vol = 0.0;
-            for (; face_iter != t.finite_faces_end(); ++face_iter)
-            {
-                Triangulation::Triangle tri = t.triangle(face_iter);
-                vol += tri.area();
-            }
-            (*vol_data)(idx) = vol / (dx[0] * dx[1]);
-#else
             // Find volumes from level set.
             double vol = 0.0;
             findVolume(x_low, dx, idx_low, phi_data, idx, vol);
             (*vol_data)(idx) = vol / (dx[0] * dx[1]);
-#endif
 
             // Determine side lengths
             if (side_idx != IBTK::invalid_index)

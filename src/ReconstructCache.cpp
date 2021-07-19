@@ -1,6 +1,5 @@
 #include "CCAD/ReconstructCache.h"
-
-#include "ibamr/app_namespaces.h"
+#include "CCAD/app_namespaces.h"
 
 namespace CCAD
 {

@@ -1,8 +1,7 @@
 #include "CCAD/RBFReconstructCache.h"
+#include "CCAD/app_namespaces.h"
 #include "CCAD/ls_functions.h"
 #include "CCAD/reconstructions.h"
-
-#include "ibamr/app_namespaces.h"
 
 namespace CCAD
 {

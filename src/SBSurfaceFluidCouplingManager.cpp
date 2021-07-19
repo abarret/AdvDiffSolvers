@@ -1,6 +1,5 @@
 #include "CCAD/SBSurfaceFluidCouplingManager.h"
-
-#include "ibamr/app_namespaces.h"
+#include "CCAD/app_namespaces.h"
 
 #include "ibtk/IndexUtilities.h"
 #include "ibtk/ibtk_utilities.h"

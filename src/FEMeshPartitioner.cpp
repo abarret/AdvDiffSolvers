@@ -88,7 +88,7 @@ IBTK_DISABLE_EXTRA_WARNINGS
 #include "boost/multi_array.hpp"
 IBTK_ENABLE_EXTRA_WARNINGS
 
-#include "ibtk/namespaces.h" // IWYU pragma: keep
+#include "CCAD/app_namespaces.h" // IWYU pragma: keep
 
 #include <algorithm>
 #include <array>

@@ -3,12 +3,12 @@
 #include "CCAD/RBFReconstructions.h"
 #include "CCAD/SBBoundaryConditions.h"
 #include "CCAD/ZSplineReconstructions.h"
+#include "CCAD/app_namespaces.h"
 #include "CCAD/ls_functions.h"
 
 #include "ibamr/AdvDiffCUIConvectiveOperator.h"
 #include "ibamr/AdvDiffPPMConvectiveOperator.h"
 #include "ibamr/AdvDiffWavePropConvectiveOperator.h"
-#include "ibamr/app_namespaces.h"
 
 #include "HierarchyDataOpsManager.h"
 #include "SAMRAIVectorReal.h"

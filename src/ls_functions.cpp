@@ -1,8 +1,7 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
+#include "CCAD/app_namespaces.h"
 #include "CCAD/ls_functions.h"
-
-#include <ibamr/app_namespaces.h>
 
 namespace CCAD
 {

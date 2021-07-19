@@ -1,8 +1,7 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
 #include "CCAD/AdvectiveReconstructionOperator.h"
-
-#include "ibamr/namespaces.h" // IWYU pragma: keep
+#include "CCAD/app_namespaces.h" // IWYU pragma: keep
 
 #include "SAMRAIVectorReal.h"
 

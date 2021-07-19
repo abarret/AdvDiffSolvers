@@ -1,6 +1,7 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
 #include "CCAD/LSCutCellLaplaceOperator.h"
+#include "CCAD/app_namespaces.h" // IWYU pragma: keep
 #include "CCAD/ls_functions.h"
 
 #include "ibtk/CellNoCornersFillPattern.h"
@@ -9,7 +10,6 @@
 #include "ibtk/HierarchyMathOps.h"
 #include "ibtk/LaplaceOperator.h"
 #include "ibtk/ibtk_utilities.h"
-#include "ibtk/namespaces.h" // IWYU pragma: keep
 
 #include "CellDataFactory.h"
 #include "CellVariable.h"

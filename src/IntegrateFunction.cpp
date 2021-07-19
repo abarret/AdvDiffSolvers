@@ -1,8 +1,7 @@
 #include "CCAD/IntegrateFunction.h"
+#include "CCAD/app_namespaces.h"
 #include "CCAD/ls_functions.h"
 #include "CCAD/ls_utilities.h"
-
-#include "ibamr/namespaces.h"
 
 #include "tbox/ShutdownRegistry.h"
 
