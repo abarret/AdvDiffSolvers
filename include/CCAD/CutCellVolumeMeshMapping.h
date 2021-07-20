@@ -86,8 +86,6 @@ private:
 
     std::vector<std::shared_ptr<FEMeshPartitioner>> d_bdry_mesh_partitioners;
     std::vector<IBTK::FEDataManager*> d_fe_data_managers;
-    unsigned int d_num_parts;
-
     std::vector<MappingFcn> d_mapping_fcns;
 };
 

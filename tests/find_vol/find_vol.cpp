@@ -1,30 +1,18 @@
-// Config files
-#include <IBAMR_config.h>
-#include <IBTK_config.h>
-#include <SAMRAI_config.h>
+#include <ibamr/config.h>
 
-// Headers for basic PETSc functions
-#include <petscsys.h>
+#include "CCAD/CutCellVolumeMeshMapping.h"
+#include "CCAD/LSCutCellLaplaceOperator.h"
+#include "CCAD/LSFromLevelSet.h"
+#include "CCAD/LSFromMesh.h"
+#include "CCAD/SBBoundaryConditions.h"
+#include "CCAD/SBIntegrator.h"
 
-// Headers for basic SAMRAI objects
-#include "tbox/Pointer.h"
-
-#include <BergerRigoutsos.h>
-#include <CartesianGridGeometry.h>
-#include <LoadBalancer.h>
-#include <StandardTagAndInitialize.h>
-
-#include <memory>
-#include <utility>
-
-// Headers for application-specific algorithm/data structure objects
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
 #include <ibamr/IBFEMethod.h>
 #include <ibamr/IBFESurfaceMethod.h>
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
 #include <ibamr/RelaxationLSMethod.h>
-#include <ibamr/app_namespaces.h>
 
 #include "ibtk/CartGridFunctionSet.h"
 #include "ibtk/PETScKrylovPoissonSolver.h"
@@ -33,7 +21,8 @@
 #include <ibtk/AppInitializer.h>
 #include <ibtk/IBTKInit.h>
 
-#include "InsideLSFcn.h"
+#include "tbox/Pointer.h"
+#include <CCAD/app_namespaces.h>
 
 #include <libmesh/boundary_mesh.h>
 #include <libmesh/equation_systems.h>
@@ -43,14 +32,56 @@
 #include <libmesh/numeric_vector.h>
 #include <libmesh/transient_system.h>
 
-#include "../../include/CCAD/LSCutCellLaplaceOperator.h"
-#include "../../include/CCAD/LSFromMesh.h"
-#include "../../include/CCAD/QInitial.h"
-#include "../../include/CCAD/SBBoundaryConditions.h"
-#include "../../include/CCAD/SBIntegrator.h"
-#include "../../include/CCAD/SemiLagrangianAdvIntegrator.h"
+#include <BergerRigoutsos.h>
+#include <CartesianGridGeometry.h>
+#include <LoadBalancer.h>
+#include <SAMRAI_config.h>
+#include <StandardTagAndInitialize.h>
 
-using namespace LS;
+// Local includes
+class InsideLSFcn : IBTK::CartGridFunction
+{
+public:
+    InsideLSFcn(string object_name, const double R) : CartGridFunction(std::move(object_name)), d_R(R)
+    {
+#if !defined(NDEBUG)
+        TBOX_ASSERT(!d_object_name.empty());
+#endif
+        return;
+    } // InsideLSFcn
+
+    bool isTimeDependent() const override
+    {
+        return true;
+    }
+
+    void setDataOnPatch(const int data_idx,
+                        Pointer<hier::Variable<NDIM>> var,
+                        Pointer<Patch<NDIM>> patch,
+                        const double data_time,
+                        const bool initial_time,
+                        Pointer<PatchLevel<NDIM>> /*level*/) override
+    {
+        Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+        const double* const dx = pgeom->getDx();
+        const double* const xlow = pgeom->getXLower();
+        const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+
+        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(data_idx);
+        for (NodeIterator<NDIM> ni(patch->getBox()); ni; ni++)
+        {
+            const NodeIndex<NDIM>& idx = ni();
+            VectorNd X;
+            for (int d = 0; d < NDIM; ++d) X[d] = xlow[d] + dx[d] * static_cast<double>(idx(d) - idx_low(d));
+
+            (*ls_data)(idx) = X.norm() - d_R;
+        }
+    } // setDataOnPatch
+
+private:
+    double d_R = std::numeric_limits<double>::quiet_NaN();
+};
+
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
  * be given on the command line.  For non-restarted case, command line is:     *
@@ -68,6 +99,9 @@ main(int argc, char* argv[])
     // Initialize PETSc, MPI, and SAMRAI.
     IBTKInit ibtk_init(argc, argv, MPI_COMM_WORLD);
     const LibMeshInit& init = ibtk_init.getLibMeshInit();
+
+    // Suppress a warning
+    SAMRAI::tbox::Logger::getInstance()->setWarning(false);
 
     { // cleanup dynamically allocated objects prior to shutdown
 
@@ -91,9 +125,8 @@ main(int argc, char* argv[])
         const double dx = input_db->getDouble("DX");
         const double ds = input_db->getDouble("MFAC") * dx;
 
-        string IB_delta_function = input_db->getString("IB_DELTA_FUNCTION");
         string elem_type = input_db->getString("ELEM_TYPE");
-        const int second_order_mesh = (input_db->getString("elem_order") == "SECOND");
+        const int second_order_mesh = (input_db->getString("ELEM_ORDER") == "SECOND");
         string bdry_elem_type = second_order_mesh ? "EDGE3" : "EDGE2";
 
         Mesh solid_mesh(init.comm(), NDIM);
@@ -117,14 +150,14 @@ main(int argc, char* argv[])
         }
 
         solid_mesh.prepare_for_use();
-        BoundaryMesh reaction_mesh(solid_mesh.comm(), solid_mesh.mesh_dimension() - 1);
-        solid_mesh.boundary_info->sync(reaction_mesh);
-        reaction_mesh.set_spatial_dimension(NDIM);
-        reaction_mesh.prepare_for_use();
+        BoundaryMesh bdry_mesh(solid_mesh.comm(), solid_mesh.mesh_dimension() - 1);
+        solid_mesh.boundary_info->sync(bdry_mesh);
+        bdry_mesh.set_spatial_dimension(NDIM);
+        bdry_mesh.prepare_for_use();
 
         static const int REACTION_MESH_ID = 0;
         vector<MeshBase*> meshes(1);
-        meshes[REACTION_MESH_ID] = &reaction_mesh;
+        meshes[REACTION_MESH_ID] = &bdry_mesh;
 
         // Create major algorithm and data objects that comprise the
         // application.  These objects are configured from the input database
@@ -155,16 +188,14 @@ main(int argc, char* argv[])
         // Create Eulerian boundary condition specification objects.
         vector<RobinBcCoefStrategy<NDIM>*> u_bc_coefs(NDIM, static_cast<RobinBcCoefStrategy<NDIM>*>(NULL));
 
-        Pointer<CellVariable<NDIM, double>> ls_c_var = new CellVariable<NDIM, double>("ls_c_var");
-        Pointer<NodeVariable<NDIM, double>> ls_n_var = new NodeVariable<NDIM, double>("ls_n_var");
+        Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("ls_var");
         Pointer<CellVariable<NDIM, double>> vol_var = new CellVariable<NDIM, double>("VOL");
         Pointer<CellVariable<NDIM, double>> area_var = new CellVariable<NDIM, double>("AREA");
         Pointer<SideVariable<NDIM, double>> side_var = new SideVariable<NDIM, double>("SIDE");
 
         auto var_db = VariableDatabase<NDIM>::getDatabase();
         Pointer<VariableContext> ctx = var_db->getContext("CTX");
-        const int ls_c_idx = var_db->registerVariableAndContext(ls_c_var, ctx, IntVector<NDIM>(2));
-        const int ls_n_idx = var_db->registerVariableAndContext(ls_n_var, ctx, IntVector<NDIM>(2));
+        const int ls_idx = var_db->registerVariableAndContext(ls_var, ctx, IntVector<NDIM>(2));
         const int vol_idx = var_db->registerVariableAndContext(vol_var, ctx, IntVector<NDIM>(2));
         const int area_idx = var_db->registerVariableAndContext(area_var, ctx, IntVector<NDIM>(2));
         const int side_idx = var_db->registerVariableAndContext(side_var, ctx, IntVector<NDIM>(2));
@@ -185,51 +216,65 @@ main(int argc, char* argv[])
             ib_method_ops->getFEDataManager(part)->setPatchHierarchy(patch_hierarchy);
             ib_method_ops->getFEDataManager(part)->reinitElementMappings();
         }
-        libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(new ExodusII_IO(*meshes[REACTION_MESH_ID]));
         FEDataManager* fe_data_manager = ib_method_ops->getFEDataManager(REACTION_MESH_ID);
 
+#if (0)
+        libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(new ExodusII_IO(*meshes[REACTION_MESH_ID]));
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
-        visit_data_writer->registerPlotQuantity("ls_c", "SCALAR", ls_c_idx);
-        visit_data_writer->registerPlotQuantity("ls_n", "SCALAR", ls_n_idx);
+        visit_data_writer->registerPlotQuantity("ls", "SCALAR", ls_idx);
         visit_data_writer->registerPlotQuantity("vol", "SCALAR", vol_idx);
         visit_data_writer->registerPlotQuantity("area", "SCALAR", area_idx);
+#endif
 
         // Allocate data
         for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
         {
             Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
-            level->allocatePatchData(ls_c_idx);
-            level->allocatePatchData(ls_n_idx);
+            level->allocatePatchData(ls_idx);
             level->allocatePatchData(vol_idx);
             level->allocatePatchData(area_idx);
             level->allocatePatchData(side_idx);
         }
 
-        Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume("VolFcn", patch_hierarchy);
-        Pointer<InsideLSFcn> ls_fcn = new InsideLSFcn("LSFcn",
-                                                      app_initializer->getComponentDatabase("InsideLSFcn"),
-                                                      &reaction_mesh,
-                                                      &reaction_mesh,
-                                                      fe_data_manager);
+        Pointer<CutCellMeshMapping> cut_cell_mesh_mapping = new CutCellVolumeMeshMapping(
+            "CutCellMeshMapping", app_initializer->getComponentDatabase("CutCellMeshMapping"), fe_data_manager);
+        cut_cell_mesh_mapping->initializeObjectState(patch_hierarchy);
+        cut_cell_mesh_mapping->generateCutCellMappings();
 
-        ls_fcn->setDataOnPatchHierarchy(ls_c_idx, ls_c_var, patch_hierarchy, 0.0);
-        ls_fcn->setDataOnPatchHierarchy(ls_n_idx, ls_n_var, patch_hierarchy, 0.0);
+        Pointer<LSFromMesh> mesh_vol_fcn = new LSFromMesh("MeshVolFcn", patch_hierarchy, cut_cell_mesh_mapping);
+        Pointer<LSFromLevelSet> ls_vol_fcn = new LSFromLevelSet("LSVolFcn", patch_hierarchy);
+        Pointer<InsideLSFcn> ls_fcn = new InsideLSFcn("LSFcn", R);
 
-        vol_fcn->updateVolumeAndArea(vol_idx, vol_var, area_idx, area_var, ls_n_idx, ls_n_var, true);
+        plog << "Computing errors from prescribed level set.\n";
+        ls_vol_fcn->registerLSFcn(ls_fcn);
+        ls_vol_fcn->updateVolumeAreaSideLS(
+            vol_idx, vol_var, area_idx, area_var, side_idx, side_var, ls_idx, ls_var, 0.0);
+        HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(patch_hierarchy);
+        HierarchySideDataOpsReal<NDIM, double> hier_sc_data_ops(patch_hierarchy);
+        // Compute error based on exact formula
+        double exact_vol = M_PI * R * R;
+        double exact_area = 2.0 * R * M_PI;
 
-        pout << "Writing control results.\n";
-        reaction_exodus_io->write_timestep(reaction_exodus_filename, *fe_data_manager->getEquationSystems(), 1, 0.0);
-        visit_data_writer->writePlotData(patch_hierarchy, 0, 0.0);
+        double approx_vol = hier_cc_data_ops.L1Norm(vol_idx) * (dx * dx);
+        double approx_area = hier_cc_data_ops.L1Norm(area_idx);
 
-        // Now fill in ls data from mesh
-        Pointer<LSFromMesh> ls_from_mesh =
-            new LSFromMesh("LSFromMesh", patch_hierarchy, &reaction_mesh, fe_data_manager);
-        ls_from_mesh->updateVolumeAreaLength(
-            vol_idx, vol_var, area_idx, area_var, side_idx, side_var, ls_n_idx, ls_n_var);
+        plog << "  Approx vol:  " << approx_vol << "\n";
+        plog << "  Exact vol:   " << exact_vol << "\n";
+        plog << "  Approx area: " << approx_area << "\n";
+        plog << "  Exact area:  " << exact_area << "\n";
 
-        pout << "Writing new results.\n";
-        reaction_exodus_io->write_timestep(reaction_exodus_filename, *fe_data_manager->getEquationSystems(), 2, 0.0);
-        visit_data_writer->writePlotData(patch_hierarchy, 1, 0.0);
+        plog << "\nComputing errors from mesh level set.\n";
+
+        mesh_vol_fcn->updateVolumeAreaSideLS(
+            vol_idx, vol_var, area_idx, area_var, side_idx, side_var, ls_idx, ls_var, 0.0);
+        approx_vol = hier_cc_data_ops.L1Norm(vol_idx) * (dx * dx);
+        approx_area = hier_cc_data_ops.L1Norm(area_idx);
+
+        plog << "  Approx vol:  " << approx_vol << "\n";
+        plog << "  Exact vol:   " << exact_vol << "\n";
+        plog << "  Approx area: " << approx_area << "\n";
+        plog << "  Exact area:  " << exact_area << "\n";
+
     } // cleanup dynamically allocated objects prior to shutdown
     return 0;
 } // main

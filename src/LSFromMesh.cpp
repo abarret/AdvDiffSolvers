@@ -383,8 +383,9 @@ LSFromMesh::commonConstructor()
 {
     IBAMR_DO_ONCE(t_updateVolumeAreaSideLS =
                       TimerManager::getManager()->getTimer("CCAD::LSFromMesH::updateVolumeAreaSideLS()"););
-    d_norm_reverse_domain_ids.resize(d_cut_cell_mesh_mapping->getNumParts());
-    d_norm_reverse_elem_ids.resize(d_cut_cell_mesh_mapping->getNumParts());
+    const unsigned int num_parts = d_cut_cell_mesh_mapping->getNumParts();
+    d_norm_reverse_domain_ids.resize(num_parts);
+    d_norm_reverse_elem_ids.resize(num_parts);
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_sgn_idx = var_db->registerVariableAndContext(d_sgn_var, var_db->getContext(d_object_name + "::Context"), 1);

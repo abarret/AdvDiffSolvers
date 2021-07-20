@@ -11,9 +11,7 @@ namespace CCAD
 CutCellVolumeMeshMapping::CutCellVolumeMeshMapping(std::string object_name,
                                                    Pointer<Database> input_db,
                                                    const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner)
-    : CutCellMeshMapping(std::move(object_name), input_db, 1),
-      d_bdry_mesh_partitioners({ fe_mesh_partitioner }),
-      d_num_parts(d_bdry_mesh_partitioners.size())
+    : CutCellMeshMapping(std::move(object_name), input_db, 1), d_bdry_mesh_partitioners({ fe_mesh_partitioner })
 {
     commonConstructor(input_db);
 }
@@ -23,8 +21,7 @@ CutCellVolumeMeshMapping::CutCellVolumeMeshMapping(
     Pointer<Database> input_db,
     const std::vector<std::shared_ptr<FEMeshPartitioner>>& fe_mesh_partitioners)
     : CutCellMeshMapping(std::move(object_name), input_db, fe_mesh_partitioners.size()),
-      d_bdry_mesh_partitioners(fe_mesh_partitioners),
-      d_num_parts(d_bdry_mesh_partitioners.size())
+      d_bdry_mesh_partitioners(fe_mesh_partitioners)
 {
     commonConstructor(input_db);
 }
@@ -32,9 +29,7 @@ CutCellVolumeMeshMapping::CutCellVolumeMeshMapping(
 CutCellVolumeMeshMapping::CutCellVolumeMeshMapping(std::string object_name,
                                                    Pointer<Database> input_db,
                                                    FEDataManager* fe_data_manager)
-    : CutCellMeshMapping(std::move(object_name), input_db, d_fe_data_managers.size()),
-      d_fe_data_managers({ fe_data_manager }),
-      d_num_parts(d_fe_data_managers.size())
+    : CutCellMeshMapping(std::move(object_name), input_db, 1), d_fe_data_managers({ fe_data_manager })
 {
     commonConstructor(input_db);
 }
@@ -43,8 +38,7 @@ CutCellVolumeMeshMapping::CutCellVolumeMeshMapping(std::string object_name,
                                                    Pointer<Database> input_db,
                                                    const std::vector<FEDataManager*>& fe_data_managers)
     : CutCellMeshMapping(std::move(object_name), input_db, fe_data_managers.size()),
-      d_fe_data_managers(fe_data_managers),
-      d_num_parts(d_fe_data_managers.size())
+      d_fe_data_managers(fe_data_managers)
 {
     commonConstructor(input_db);
 }
@@ -52,7 +46,7 @@ CutCellVolumeMeshMapping::CutCellVolumeMeshMapping(std::string object_name,
 void
 CutCellVolumeMeshMapping::commonConstructor(const Pointer<Database>& input_db)
 {
-    d_mapping_fcns.resize(d_bdry_mesh_partitioners.size());
+    d_mapping_fcns.resize(d_num_parts);
     d_perturb_nodes = input_db->getBool("perturb_nodes");
     return;
 }

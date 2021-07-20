@@ -1,0 +1,18 @@
+
+IBFESurfaceMethod: mesh part 0 is using FIRST order LAGRANGE finite elements.
+
+Computing errors from prescribed level set.
+Setting Level set at time 0
+Minimum volume on level:     0 is: 1.14499409315e-05
+Total area found on level:   0 is: 6.28253790848
+Total volume found on level: 0 is: 3.14042322927
+  Approx vol:  3.14042322927
+  Exact vol:   3.14159265359
+  Approx area: 6.28253790848
+  Exact area:  6.28318530718
+
+Computing errors from mesh level set.
+  Approx vol:  3.13578828519
+  Exact vol:   3.14159265359
+  Approx area: 6.28066231391
+  Exact area:  6.28318530718
