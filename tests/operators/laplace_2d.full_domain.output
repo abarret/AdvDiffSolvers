@@ -1,0 +1,15 @@
+
+IBFESurfaceMethod: mesh part 0 is using FIRST order LAGRANGE finite elements.
+
+Norms of solution: 
+  L1-norm:  39.4097
+  L2-norm:  33.5542
+  max-norm: 77.4692
+Norms of exact: 
+  L1-norm:  39.4642
+  L2-norm:  33.6161
+  max-norm: 77.6268
+Norms of error: 
+  L1-norm:  0.100139
+  L2-norm:  0.0718914
+  max-norm: 0.157611
