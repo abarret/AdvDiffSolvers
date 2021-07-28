@@ -1,0 +1,16 @@
+Setting Level set at time 0
+Minimum volume on level:     0 is: 4.52500199928e-07
+Total area found on level:   0 is: 6.28302350553
+Total volume found on level: 0 is: 3.14130456981
+Norms of solution: 
+  L1-norm:  2.01981
+  L2-norm:  1.17057
+  max-norm: 0.999885
+Norms of exact: 
+  L1-norm:  2.01997
+  L2-norm:  1.17067
+  max-norm: 1
+Norms of error: 
+  L1-norm:  0.000240498
+  L2-norm:  0.000173848
+  max-norm: 0.000631279

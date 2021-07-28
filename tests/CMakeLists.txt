@@ -90,6 +90,7 @@ ENDMACRO()
 SETUP_2D(find_vol find_vol.cpp)
 
 SETUP_2D(operators laplace.cpp)
+SETUP_2D(operators reconstructions.cpp)
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
