@@ -147,7 +147,16 @@ RBFReconstructCache::reconstructOnIndex(VectorNd x_loc,
 
     IndexList pi_pair(patch, idx);
     const std::vector<hier::Index<NDIM>>& idx_vec = d_reconstruct_idxs_map_vec[ln][pi_pair];
-    std::map<IndexList, FullPivHouseholderQR<MatrixXd>>& qr_map = d_qr_matrix_vec[ln][patch->getPatchNumber()];
+    // Get local patch index
+    // TODO: rearrange data structures to avoid this
+    unsigned int patch_num = 0;
+    Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
+    {
+        Pointer<Patch<NDIM>> cur_patch = level->getPatch(p());
+        if (cur_patch == patch) break;
+    }
+    std::map<IndexList, FullPivHouseholderQR<MatrixXd>>& qr_map = d_qr_matrix_vec[ln][patch_num];
 
     for (const auto& idx_c : idx_vec)
     {

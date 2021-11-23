@@ -19,7 +19,8 @@ RBFReconstructions::RBFReconstructions(std::string object_name, Reconstruct::RBF
       d_Q_scr_var(new CellVariable<NDIM, double>(d_object_name + "::Q_scratch"))
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_scr_var, var_db->getContext(d_object_name + "::CTX"), 2);
+    d_Q_scr_idx = var_db->registerVariableAndContext(
+        d_Q_scr_var, var_db->getContext(d_object_name + "::CTX"), std::ceil(0.5 * d_rbf_stencil_size));
     return;
 } // RBFReconstructions
 

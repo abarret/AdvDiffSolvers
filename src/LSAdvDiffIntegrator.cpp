@@ -1327,7 +1327,7 @@ LSAdvDiffIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
             }
         }
     }
-    if (d_enable_logging)
+    if (d_enable_logging && d_enable_logging_solver_iterations)
     {
         plog << d_object_name << "::integrateHierarchy(): diffusion solve number of iterations = "
              << Q_helmholtz_solver->getNumIterations() << "\n";
