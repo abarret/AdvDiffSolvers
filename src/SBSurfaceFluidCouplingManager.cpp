@@ -467,6 +467,7 @@ SBSurfaceFluidCouplingManager::updateJacobian(unsigned int part)
 
     X_petsc_vec->restore_array();
     J_vec->close();
+    J_sys.update();
     return d_J_sys_name;
 }
 
