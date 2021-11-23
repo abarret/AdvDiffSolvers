@@ -213,7 +213,8 @@ protected:
 
 private:
     bool d_use_rbfs = false;
-    unsigned int d_rbf_stencil_size = 2;
+    unsigned int d_rbf_stencil_size = 8;
+    unsigned int d_mls_stencil_size = 8;
     Reconstruct::RBFPolyOrder d_rbf_poly_order = Reconstruct::RBFPolyOrder::UNKNOWN_ORDER;
 }; // Class LSAdvDiffIntegrator
 } // namespace CCAD

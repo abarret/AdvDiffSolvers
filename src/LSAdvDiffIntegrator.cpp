@@ -193,7 +193,8 @@ LSAdvDiffIntegrator::LSAdvDiffIntegrator(const std::string& object_name,
         d_adv_ts_type = string_to_enum<AdvectionTimeIntegrationMethod>(input_db->getString("advection_ts_type"));
         d_dif_ts_type = string_to_enum<DiffusionTimeIntegrationMethod>(input_db->getString("diffusion_ts_type"));
         d_use_rbfs = input_db->getBool("use_rbfs");
-        d_rbf_stencil_size = input_db->getInteger("rbf_stencil_size");
+        d_rbf_stencil_size = input_db->getIntegerWithDefault("rbf_stencil_size", d_rbf_stencil_size);
+        d_mls_stencil_size = input_db->getIntegerWithDefault("mls_stencil_size", d_mls_stencil_size);
         d_rbf_poly_order =
             Reconstruct::string_to_enum<Reconstruct::RBFPolyOrder>(input_db->getString("rbf_poly_order"));
         d_default_adv_reconstruct_type =
@@ -212,6 +213,7 @@ LSAdvDiffIntegrator::LSAdvDiffIntegrator(const std::string& object_name,
         break;
     case AdvReconstructType::LINEAR:
         d_default_adv_reconstruct_op = std::make_shared<LinearReconstructions>(d_object_name + "::DefaultReconstruct");
+        break;
     default:
         TBOX_ERROR("Unknown adv reconstruction type " << enum_to_string(d_default_adv_reconstruct_type) << "\n");
         break;
@@ -961,9 +963,9 @@ LSAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double cu
         if (!d_reconstruction_cache)
         {
             if (d_use_rbfs)
-                d_reconstruction_cache = new RBFReconstructCache(8 /*stencil_size*/);
+                d_reconstruction_cache = new RBFReconstructCache(d_rbf_stencil_size);
             else
-                d_reconstruction_cache = new MLSReconstructCache(8 /*stencil_size*/);
+                d_reconstruction_cache = new MLSReconstructCache(d_mls_stencil_size);
         }
     }
     plog << d_object_name << ": Finished initializing composite data\n";
