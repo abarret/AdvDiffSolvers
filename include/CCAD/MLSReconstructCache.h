@@ -31,11 +31,14 @@ namespace CCAD
 class MLSReconstructCache : public ReconstructCache
 {
 public:
-    MLSReconstructCache() = default;
+    MLSReconstructCache() = delete;
+
+    MLSReconstructCache(int stencil_size);
 
     MLSReconstructCache(int ls_idx,
                         int vol_idx,
                         SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                        int stencil_size = 8,
                         bool use_centroids = true);
 
     ~MLSReconstructCache() = default;

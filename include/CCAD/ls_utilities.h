@@ -155,6 +155,7 @@ enum class AdvReconstructType
 {
     ZSPLINES,
     RBF,
+    LINEAR,
     UNKNOWN_TYPE
 };
 template <>
@@ -163,6 +164,7 @@ string_to_enum<AdvReconstructType>(const std::string& val)
 {
     if (strcasecmp(val.c_str(), "ZSPLINES") == 0) return AdvReconstructType::ZSPLINES;
     if (strcasecmp(val.c_str(), "RBF") == 0) return AdvReconstructType::RBF;
+    if (strcasecmp(val.c_str(), "LINEAR") == 0) return AdvReconstructType::LINEAR;
     return AdvReconstructType::UNKNOWN_TYPE;
 }
 
@@ -172,6 +174,7 @@ enum_to_string<AdvReconstructType>(AdvReconstructType val)
 {
     if (val == AdvReconstructType::ZSPLINES) return "ZSPLINES";
     if (val == AdvReconstructType::RBF) return "RBF";
+    if (val == AdvReconstructType::LINEAR) return "LINEAR";
     return "UNKNOWN_TYPE";
 }
 } // namespace CCAD

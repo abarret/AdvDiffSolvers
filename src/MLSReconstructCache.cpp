@@ -7,8 +7,14 @@ namespace CCAD
 MLSReconstructCache::MLSReconstructCache(int ls_idx,
                                          int vol_idx,
                                          Pointer<PatchHierarchy<NDIM>> hierarchy,
+                                         int stencil_size,
                                          bool use_centroids)
-    : ReconstructCache(ls_idx, vol_idx, hierarchy, use_centroids)
+    : ReconstructCache(ls_idx, vol_idx, hierarchy, stencil_size, use_centroids)
+{
+    // intentionally blank
+}
+
+MLSReconstructCache::MLSReconstructCache(int stencil_size) : ReconstructCache(stencil_size)
 {
     // intentionally blank
 }

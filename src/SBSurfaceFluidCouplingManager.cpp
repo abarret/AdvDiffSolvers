@@ -50,8 +50,7 @@ SBSurfaceFluidCouplingManager::SBSurfaceFluidCouplingManager(
 void
 SBSurfaceFluidCouplingManager::commonConstructor(Pointer<Database> input_db)
 {
-    d_rbf_reconstruct = new RBFReconstructCache();
-    d_rbf_reconstruct->setStencilWidth(input_db->getInteger("stencil_width"));
+    d_rbf_reconstruct = new RBFReconstructCache(input_db->getInteger("stencil_width"));
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_scr_idx = var_db->registerVariableAndContext(

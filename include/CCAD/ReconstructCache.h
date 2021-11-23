@@ -31,11 +31,14 @@ namespace CCAD
 class ReconstructCache : public SAMRAI::tbox::DescribedClass
 {
 public:
-    ReconstructCache() = default;
+    ReconstructCache() = delete;
+
+    ReconstructCache(int stencil_size);
 
     ReconstructCache(int ls_idx,
                      int vol_idx,
                      SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                     int stencil_size = 8,
                      bool use_centroids = true);
 
     virtual ~ReconstructCache() = default;
@@ -74,7 +77,7 @@ public:
                                       SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) = 0;
 
 protected:
-    unsigned int d_stencil_size = 2;
+    unsigned int d_stencil_size = 8;
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
     std::vector<std::vector<std::map<IndexList, Eigen::FullPivHouseholderQR<IBTK::MatrixXd>>>> d_qr_matrix_vec;
     bool d_update_weights = true;

@@ -1,5 +1,6 @@
 #include "CCAD/LSAdvDiffIntegrator.h"
 #include "CCAD/LSCartGridFunction.h"
+#include "CCAD/LinearReconstructions.h"
 #include "CCAD/RBFReconstructions.h"
 #include "CCAD/SBBoundaryConditions.h"
 #include "CCAD/ZSplineReconstructions.h"
@@ -209,6 +210,8 @@ LSAdvDiffIntegrator::LSAdvDiffIntegrator(const std::string& object_name,
         d_default_adv_reconstruct_op = std::make_shared<RBFReconstructions>(
             d_object_name + "::DefaultReconstruct", d_rbf_poly_order, d_rbf_stencil_size);
         break;
+    case AdvReconstructType::LINEAR:
+        d_default_adv_reconstruct_op = std::make_shared<LinearReconstructions>(d_object_name + "::DefaultReconstruct");
     default:
         TBOX_ERROR("Unknown adv reconstruction type " << enum_to_string(d_default_adv_reconstruct_type) << "\n");
         break;
@@ -958,9 +961,9 @@ LSAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double cu
         if (!d_reconstruction_cache)
         {
             if (d_use_rbfs)
-                d_reconstruction_cache = new RBFReconstructCache();
+                d_reconstruction_cache = new RBFReconstructCache(8 /*stencil_size*/);
             else
-                d_reconstruction_cache = new MLSReconstructCache();
+                d_reconstruction_cache = new MLSReconstructCache(8 /*stencil_size*/);
         }
     }
     plog << d_object_name << ": Finished initializing composite data\n";

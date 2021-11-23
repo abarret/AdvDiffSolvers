@@ -3,8 +3,21 @@
 
 namespace CCAD
 {
-ReconstructCache::ReconstructCache(int ls_idx, int vol_idx, Pointer<PatchHierarchy<NDIM>> hierarchy, bool use_centroids)
-    : d_hierarchy(hierarchy), d_use_centroids(use_centroids), d_vol_idx(vol_idx), d_ls_idx(ls_idx)
+ReconstructCache::ReconstructCache(int ls_idx,
+                                   int vol_idx,
+                                   Pointer<PatchHierarchy<NDIM>> hierarchy,
+                                   const int stencil_size,
+                                   bool use_centroids)
+    : d_stencil_size(stencil_size),
+      d_hierarchy(hierarchy),
+      d_use_centroids(use_centroids),
+      d_vol_idx(vol_idx),
+      d_ls_idx(ls_idx)
+{
+    // intentionally blank
+}
+
+ReconstructCache::ReconstructCache(const int stencil_size) : d_stencil_size(stencil_size)
 {
     // intentionally blank
 }

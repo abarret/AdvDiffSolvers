@@ -31,11 +31,14 @@ namespace CCAD
 class RBFReconstructCache : public ReconstructCache
 {
 public:
-    RBFReconstructCache() = default;
+    RBFReconstructCache() = delete;
+
+    RBFReconstructCache(int stencil_size);
 
     RBFReconstructCache(int ls_idx,
                         int vol_idx,
                         SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                        int d_stencil_size = 8,
                         bool use_centroids = true);
 
     ~RBFReconstructCache() = default;
