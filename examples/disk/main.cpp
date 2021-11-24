@@ -67,12 +67,19 @@ void computeFluidErrors(Pointer<CellVariable<NDIM, double>> Q_var,
                         const double time);
 
 void computeSurfaceErrors(const MeshBase& mesh,
-                          FEDataManager* fe_data_manager,
+                          std::shared_ptr<FEMeshPartitioner> fe_data_manager,
                           const std::string& sys_name,
                           const std::string& err_name,
                           double time);
 
 static double k_on, k_off, sf_max, D_coef;
+
+double
+exact_surface(const VectorNd& /*x*/, double t)
+{
+    double denom = -k_on * (1.0 + t * (1.0 - t)) - k_off;
+    return (-2.0 * D_coef * (t - 1.0) * t - sf_max * k_on * (1.0 + t * (1.0 - t))) / denom;
+}
 double
 a_fcn(double Q_bdry, const std::vector<double>& fl_vals, const std::vector<double>& sf_vals, double time, void* ctx)
 {
@@ -86,13 +93,12 @@ g_fcn(double Q_bdry, const std::vector<double>& fl_vals, const std::vector<doubl
 }
 
 double
-sf_ode(double q, const std::vector<double>& fl_vals, const std::vector<double>& sf_vals, double time, void* ctx)
+sf_ode(double q, const std::vector<double>& fl_vals, const std::vector<double>& sf_vals, double t, void* ctx)
 {
     double ode_val = k_on * (sf_max - q) * fl_vals[0] - k_off * q;
-    double t = time;
-    double denom = 2.0 * D_coef + k_on * (sf_max - t * (1 + t));
-    double force = 1.0 + 2.0 * t + k_off * t * (1.0 + t) -
-                   (k_on * (sf_max - t * (1.0 + t)) * (2.0 * D_coef + k_off * t * (1.0 + t))) / denom;
+    double denom = k_off + k_on - k_on * (time * (time - 1.0));
+    double force = 2.0 * D_coef * t - 2.0 * D_coef * t * t -
+                   ((2.0 * t - 1.0) * (2.0 * D_coef * (k_off + k_on) + sf_max * k_off * k_on)) / (denom * denom);
     return ode_val + force;
 }
 /*******************************************************************************
@@ -199,13 +205,8 @@ main(int argc, char* argv[])
         // and, if this is a restarted run, from the restart database.
         Pointer<CartesianGridGeometry<NDIM>> grid_geometry = new CartesianGridGeometry<NDIM>(
             "CartesianGeometry", app_initializer->getComponentDatabase("CartesianGeometry"));
-        Pointer<IBFESurfaceMethod> ib_method_ops =
-            new IBFESurfaceMethod("IBFESurfaceMethod",
-                                  app_initializer->getComponentDatabase("IBFESurfaceMethod"),
-                                  meshes,
-                                  app_initializer->getComponentDatabase("GriddingAlgorithm")->getInteger("max_levels"));
         Pointer<SBAdvDiffIntegrator> adv_diff_integrator = new SBAdvDiffIntegrator(
-            "SBAdvDiffIntegrator", app_initializer->getComponentDatabase("SBAdvDiffIntegrator"), false);
+            "SBAdvDiffIntegrator", app_initializer->getComponentDatabase("SBAdvDiffIntegrator"), nullptr, false);
 
         Pointer<PatchHierarchy<NDIM>> patch_hierarchy = new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
         Pointer<StandardTagAndInitialize<NDIM>> error_detector =
@@ -222,7 +223,6 @@ main(int argc, char* argv[])
                                         box_generator,
                                         load_balancer);
 
-        ib_method_ops->initializeFEEquationSystems();
         // Create Eulerian boundary condition specification objects.
         vector<RobinBcCoefStrategy<NDIM>*> u_bc_coefs(NDIM, static_cast<RobinBcCoefStrategy<NDIM>*>(NULL));
         const bool periodic_domain = grid_geometry->getPeriodicShift().min() > 0;
@@ -235,17 +235,21 @@ main(int argc, char* argv[])
             new muParserCartGridFunction("UFcn", app_initializer->getComponentDatabase("UFcn"), grid_geometry);
         adv_diff_integrator->setAdvectionVelocityFunction(u_var, u_fcn);
 
+        // Setup boundary mesh mapping
+        auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
+            "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), &reaction_mesh);
+        adv_diff_integrator->registerGeneralBoundaryMeshMapping(mesh_mapping);
+
         // Setup the level set function
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS_In");
         adv_diff_integrator->registerLevelSetVariable(ls_var);
 
-        Pointer<CutCellVolumeMeshMapping> cut_cell_mapping =
-            new CutCellVolumeMeshMapping("CutCellMeshMapping",
-                                         app_initializer->getComponentDatabase("CutCellMeshMapping"),
-                                         ib_method_ops->getFEDataManager());
+        Pointer<CutCellMeshMapping> cut_cell_mapping =
+            new CutCellVolumeMeshMapping("CutCellMapping",
+                                         app_initializer->getComponentDatabase("CutCellMapping"),
+                                         mesh_mapping->getMeshPartitioners());
         Pointer<LSFromMesh> vol_fcn = new LSFromMesh("LSFromMesh", patch_hierarchy, cut_cell_mapping, true);
         adv_diff_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
-        adv_diff_integrator->setFEDataManagerNeedsInitialization(ib_method_ops->getFEDataManager(REACTION_MESH_ID));
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_in_var = new CellVariable<NDIM, double>("Q_in");
@@ -268,26 +272,19 @@ main(int argc, char* argv[])
         auto sb_data_manager =
             std::make_shared<SBSurfaceFluidCouplingManager>("SBDataManager",
                                                             app_initializer->getComponentDatabase("SBDataManager"),
-                                                            ib_method_ops->getFEDataManager(REACTION_MESH_ID),
-                                                            &reaction_mesh);
+                                                            mesh_mapping->getMeshPartitioners());
         sb_data_manager->registerFluidConcentration(Q_in_var);
         std::string sf_name = "SurfaceConcentration";
         sb_data_manager->registerSurfaceConcentration(sf_name);
         sb_data_manager->registerFluidSurfaceDependence(sf_name, Q_in_var);
         sb_data_manager->registerSurfaceReactionFunction(sf_name, sf_ode, nullptr);
         sb_data_manager->registerFluidBoundaryCondition(Q_in_var, a_fcn, g_fcn, nullptr);
-        sb_data_manager->initializeFEEquationSystems();
+        sb_data_manager->registerInitialConditions(
+            sf_name, [](const VectorNd& x, const Node* n) -> double { return exact_surface(x, 0.0); });
+        sb_data_manager->initializeFEData();
 
-        auto cut_cell_mesh_mapping =
-            std::make_shared<CutCellMeshMapping>("CutCellMeshMapping",
-                                                 input_db->getDatabase("CutCellMeshMapping"),
-                                                 &reaction_mesh,
-                                                 ib_method_ops->getFEDataManager(REACTION_MESH_ID));
-
-        Pointer<SBIntegrator> sb_integrator = new SBIntegrator(
-            "SBIntegrator", app_initializer->getComponentDatabase("SBIntegrator"), sb_data_manager, &reaction_mesh);
+        Pointer<SBIntegrator> sb_integrator = new SBIntegrator("SBIntegrator", sb_data_manager);
         adv_diff_integrator->registerSBIntegrator(sb_integrator, ls_var);
-        adv_diff_integrator->registerLevelSetCutCellMapping(ls_var, cut_cell_mesh_mapping);
         adv_diff_integrator->registerLevelSetSBDataManager(ls_var, sb_data_manager);
 
         // Forcing term
@@ -304,13 +301,8 @@ main(int argc, char* argv[])
         Pointer<LSCutCellLaplaceOperator> sol_in_oper = new LSCutCellLaplaceOperator(
             "LSCutCellInOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         // Create boundary operators
-        Pointer<SBBoundaryConditions> bdry_conditions =
-            new SBBoundaryConditions("SBBoundaryConditions",
-                                     sb_data_manager->getFLName(Q_in_var),
-                                     app_initializer->getComponentDatabase("SBBoundaryConditions"),
-                                     &reaction_mesh,
-                                     sb_data_manager,
-                                     cut_cell_mesh_mapping);
+        Pointer<SBBoundaryConditions> bdry_conditions = new SBBoundaryConditions(
+            "SBBoundaryConditions", sb_data_manager->getFLName(Q_in_var), sb_data_manager, cut_cell_mapping);
         bdry_conditions->setFluidContext(adv_diff_integrator->getCurrentContext());
         rhs_in_oper->setBoundaryConditionOperator(bdry_conditions);
         sol_in_oper->setBoundaryConditionOperator(bdry_conditions);
@@ -340,12 +332,12 @@ main(int argc, char* argv[])
         visit_data_writer->registerPlotQuantity("distance", "SCALAR", dist_idx);
 
         const std::string err_sys_name = "ERROR";
-        ExplicitSystem& sys = ib_method_ops->getFEDataManager(REACTION_MESH_ID)
-                                  ->getEquationSystems()
-                                  ->add_system<ExplicitSystem>(err_sys_name);
+        ExplicitSystem& sys =
+            sb_data_manager->getFEMeshPartitioner()->getEquationSystems()->add_system<ExplicitSystem>(err_sys_name);
         sys.add_variable("Error");
 
-        ib_method_ops->initializeFEData();
+        mesh_mapping->initializeEquationSystems();
+        sb_data_manager->fillInitialConditions();
         // Initialize hierarchy configuration and data on all patches.
         adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
@@ -364,12 +356,6 @@ main(int argc, char* argv[])
 
         const int Q_idx = var_db->mapVariableAndContextToIndex(Q_in_var, adv_diff_integrator->getCurrentContext());
 
-        for (unsigned int part = 0; part < meshes.size(); ++part)
-        {
-            ib_method_ops->getFEDataManager(part)->setPatchHierarchy(patch_hierarchy);
-            ib_method_ops->getFEDataManager(part)->reinitElementMappings();
-        }
-
         // Close the restart manager.
         RestartManager::getManager()->closeRestartFile();
 
@@ -385,7 +371,7 @@ main(int argc, char* argv[])
         double dt = adv_diff_integrator->getMaximumTimeStepSize();
 
         // Write out initial visualization data.
-        EquationSystems* reaction_eq_sys = ib_method_ops->getFEDataManager(REACTION_MESH_ID)->getEquationSystems();
+        EquationSystems* reaction_eq_sys = sb_data_manager->getFEMeshPartitioner()->getEquationSystems();
         int iteration_num = adv_diff_integrator->getIntegratorStep();
         double loop_time = adv_diff_integrator->getIntegratorTime();
         if (dump_viz_data && uses_visit)
@@ -395,7 +381,7 @@ main(int argc, char* argv[])
             computeFluidErrors(
                 Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
             computeSurfaceErrors(reaction_mesh,
-                                 ib_method_ops->getFEDataManager(REACTION_MESH_ID),
+                                 sb_data_manager->getFEMeshPartitioner(),
                                  sb_data_manager->getSFNames()[0],
                                  err_sys_name,
                                  loop_time);
@@ -441,7 +427,7 @@ main(int argc, char* argv[])
                 computeFluidErrors(
                     Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
                 computeSurfaceErrors(reaction_mesh,
-                                     ib_method_ops->getFEDataManager(REACTION_MESH_ID),
+                                     sb_data_manager->getFEMeshPartitioner(),
                                      sb_data_manager->getSFNames()[0],
                                      err_sys_name,
                                      loop_time);
@@ -504,14 +490,11 @@ postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
 
 void
 computeSurfaceErrors(const MeshBase& mesh,
-                     FEDataManager* fe_data_manager,
+                     std::shared_ptr<FEMeshPartitioner> fe_data_manager,
                      const std::string& sys_name,
                      const std::string& err_name,
                      double time)
 {
-    // exact solution
-    auto exact = [](double time) -> double { return time * (1.0 + time); };
-
     EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
     TransientExplicitSystem& q_system = eq_sys->get_system<TransientExplicitSystem>(sys_name);
     ExplicitSystem& err_sys = eq_sys->get_system<ExplicitSystem>(err_name);
@@ -533,8 +516,10 @@ computeSurfaceErrors(const MeshBase& mesh,
     for (; it != it_end; ++it)
     {
         Node* n = *it;
+        VectorNd x;
+        for (int d = 0; d < NDIM; ++d) x[d] = (*n)(d);
         const int dof_index = n->dof_number(q_system.number(), 0, 0);
-        err_vec->set(dof_index, std::abs(exact(time) - (*q_vec)(dof_index)));
+        err_vec->set(dof_index, std::abs(exact_surface(x, time) - (*q_vec)(dof_index)));
         max_norm = std::max(max_norm, (*err_vec)(dof_index));
     }
 

@@ -1,6 +1,6 @@
 #include "ibamr/config.h"
 
-#include "CCAD/LSFindCellVolume.h"
+#include "CCAD/LSFromLevelSet.h"
 
 #include <ibtk/AppInitializer.h>
 #include <ibtk/CartExtrapPhysBdryOp.h>
@@ -10,7 +10,6 @@
 #include "BoxArray.h"
 #include "CartesianPatchGeometry.h"
 #include "CoarseFineBoundary.h"
-#include "LSFcn.h"
 #include "PatchGeometry.h"
 #include "RefineAlgorithm.h"
 #include <CCAD/app_namespaces.h>
@@ -18,6 +17,9 @@
 #include <petscsys.h>
 
 #include <SAMRAI_config.h>
+
+// Local includes
+#include "LSFcn.h"
 
 /*******************************************************************************
  * For each run, the input filename must be given on the command line.  In all *
@@ -241,17 +243,18 @@ main(int argc, char* argv[])
         Pointer<CartGridFunction> ls_fcn = new LSFcn("SetLSValue", app_initializer->getComponentDatabase("LSFcn"));
         {
             // Coarse patch hierarchy
-            Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume("VolFcn", coarse_patch_hierarchy);
-            ls_fcn->setDataOnPatchHierarchy(ls_idx, ls_var, coarse_patch_hierarchy, loop_time);
-
-            using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-            std::vector<ITC> ghost_cell_comps(1);
-            ghost_cell_comps[0] = ITC(ls_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
-            HierarchyGhostCellInterpolation hier_ghost_cell;
-            hier_ghost_cell.initializeOperatorState(ghost_cell_comps, coarse_patch_hierarchy);
-            hier_ghost_cell.fillData(loop_time);
-
-            vol_fcn->updateVolumeAndArea(vol_idx, vol_var, IBTK::invalid_index, nullptr, ls_idx, ls_var, true);
+            Pointer<LSFromLevelSet> vol_fcn = new LSFromLevelSet("VolFcn", coarse_patch_hierarchy);
+            vol_fcn->registerLSFcn(ls_fcn);
+            vol_fcn->updateVolumeAreaSideLS(vol_idx,
+                                            vol_var,
+                                            IBTK::invalid_index,
+                                            nullptr,
+                                            IBTK::invalid_index,
+                                            nullptr,
+                                            ls_idx,
+                                            ls_var,
+                                            0.0,
+                                            true);
             for (int ln = 0; ln <= coarse_patch_hierarchy->getFinestLevelNumber(); ++ln)
             {
                 Pointer<PatchLevel<NDIM>> level = coarse_patch_hierarchy->getPatchLevel(ln);
@@ -266,17 +269,18 @@ main(int argc, char* argv[])
 
         {
             // Fine patch hierarchy
-            Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume("VolFcn", fine_patch_hierarchy);
-            ls_fcn->setDataOnPatchHierarchy(ls_idx, ls_var, fine_patch_hierarchy, loop_time);
-
-            using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-            std::vector<ITC> ghost_cell_comps(1);
-            ghost_cell_comps[0] = ITC(ls_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
-            HierarchyGhostCellInterpolation hier_ghost_cell;
-            hier_ghost_cell.initializeOperatorState(ghost_cell_comps, fine_patch_hierarchy);
-            hier_ghost_cell.fillData(loop_time);
-
-            vol_fcn->updateVolumeAndArea(vol_idx, vol_var, IBTK::invalid_index, nullptr, ls_idx, ls_var, true);
+            Pointer<LSFromLevelSet> vol_fcn = new LSFromLevelSet("VolFcn", fine_patch_hierarchy);
+            vol_fcn->registerLSFcn(ls_fcn);
+            vol_fcn->updateVolumeAreaSideLS(vol_idx,
+                                            vol_var,
+                                            IBTK::invalid_index,
+                                            nullptr,
+                                            IBTK::invalid_index,
+                                            nullptr,
+                                            ls_idx,
+                                            ls_var,
+                                            0.0,
+                                            true);
             for (int ln = 0; ln <= fine_patch_hierarchy->getFinestLevelNumber(); ++ln)
             {
                 Pointer<PatchLevel<NDIM>> level = fine_patch_hierarchy->getPatchLevel(ln);
@@ -291,17 +295,18 @@ main(int argc, char* argv[])
 
         {
             // Coarsened fine patch hierarchy
-            Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume("VolFcn", coarsened_fine_patch_hierarchy);
-            ls_fcn->setDataOnPatchHierarchy(ls_idx, ls_var, coarsened_fine_patch_hierarchy, loop_time);
-
-            using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-            std::vector<ITC> ghost_cell_comps(1);
-            ghost_cell_comps[0] = ITC(ls_idx, "LINEAR_REFINE", false, "NONE", "LINEAR");
-            HierarchyGhostCellInterpolation hier_ghost_cell;
-            hier_ghost_cell.initializeOperatorState(ghost_cell_comps, coarsened_fine_patch_hierarchy);
-            hier_ghost_cell.fillData(loop_time);
-
-            vol_fcn->updateVolumeAndArea(vol_idx, vol_var, IBTK::invalid_index, nullptr, ls_idx, ls_var, true);
+            Pointer<LSFromLevelSet> vol_fcn = new LSFromLevelSet("VolFcn", coarsened_fine_patch_hierarchy);
+            vol_fcn->registerLSFcn(ls_fcn);
+            vol_fcn->updateVolumeAreaSideLS(vol_idx,
+                                            vol_var,
+                                            IBTK::invalid_index,
+                                            nullptr,
+                                            IBTK::invalid_index,
+                                            nullptr,
+                                            ls_idx,
+                                            ls_var,
+                                            0.0,
+                                            true);
             for (int ln = 0; ln <= coarsened_fine_patch_hierarchy->getFinestLevelNumber(); ++ln)
             {
                 Pointer<PatchLevel<NDIM>> level = coarsened_fine_patch_hierarchy->getPatchLevel(ln);
@@ -404,8 +409,10 @@ main(int argc, char* argv[])
         // Compute norms of differences.
         coarse_hier_cc_data_ops.subtract(Q_idx, Q_idx, Q_interp_idx);
 
-        Pointer<LSFindCellVolume> vol_fcn = new LSFindCellVolume("VolFcn", coarse_patch_hierarchy);
-        vol_fcn->updateVolumeAndArea(vol_idx, vol_var, IBTK::invalid_index, nullptr, ls_idx, ls_var, true);
+        Pointer<LSFromLevelSet> vol_fcn = new LSFromLevelSet("VolFcn", coarse_patch_hierarchy);
+        vol_fcn->registerLSFcn(ls_fcn);
+        vol_fcn->updateVolumeAreaSideLS(
+            vol_idx, vol_var, IBTK::invalid_index, nullptr, IBTK::invalid_index, nullptr, ls_idx, ls_var, 0.0, true);
 
         //        coarse_hier_cc_data_ops.multiply(wgt_cc_idx, vol_in_idx, wgt_cc_idx);
         const IntVector<NDIM> cut_cell_width(input_db->getInteger("SKIP_CUT_CELLS"));
@@ -418,7 +425,6 @@ main(int argc, char* argv[])
                 Pointer<CellData<NDIM, double>> wgt_data = patch->getPatchData(wgt_cc_idx);
                 Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
                 Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-                const double* const dx = pgeom->getDx();
                 for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();

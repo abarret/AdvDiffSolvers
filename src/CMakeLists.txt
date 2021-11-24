@@ -21,6 +21,7 @@ SET(CXX_SRC
     CutCellMeshMapping.cpp
     CutCellVolumeMeshMapping.cpp
     FEMeshPartitioner.cpp
+    GeneralBoundaryMeshMapping.cpp
     IntegrateFunction.cpp
     LinearReconstructions.cpp
     LSAdvDiffIntegrator.cpp

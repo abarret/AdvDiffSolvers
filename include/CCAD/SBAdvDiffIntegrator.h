@@ -4,13 +4,13 @@
 #include "ibamr/config.h"
 
 #include "CCAD/AdvectiveReconstructionOperator.h"
+#include "CCAD/GeneralBoundaryMeshMapping.h"
 #include "CCAD/LSAdvDiffIntegrator.h"
 #include "CCAD/LSCutCellLaplaceOperator.h"
 #include "CCAD/LSFindCellVolume.h"
 #include "CCAD/MLSReconstructCache.h"
 #include "CCAD/RBFReconstructCache.h"
 #include "CCAD/SBIntegrator.h"
-#include "CCAD/VolumeBoundaryMeshMapping.h"
 #include "CCAD/ls_utilities.h"
 #include "CCAD/reconstructions.h"
 
@@ -30,7 +30,7 @@ class SBAdvDiffIntegrator : public LSAdvDiffIntegrator
 public:
     SBAdvDiffIntegrator(const std::string& object_name,
                         SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
-                        SAMRAI::tbox::Pointer<IBAMR::IBHierarchyIntegrator> ib_integrator,
+                        SAMRAI::tbox::Pointer<IBAMR::IBHierarchyIntegrator> ib_integrator = nullptr,
                         bool register_for_restart = true);
 
     ~SBAdvDiffIntegrator() = default;
@@ -45,7 +45,7 @@ public:
 
     static void callbackIntegrateHierarchy(double current_time, double neW_time, int cycle_num, void* ctx);
 
-    void registerVolumeBoundaryMeshMapping(const std::shared_ptr<VolumeBoundaryMeshMapping>& vol_bdry_mesh_mapping);
+    void registerGeneralBoundaryMeshMapping(const std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping);
 
     void registerLevelSetSBDataManager(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                        std::shared_ptr<SBSurfaceFluidCouplingManager> sb_data_manager);
@@ -81,7 +81,7 @@ protected:
         d_ls_sb_data_manager_map;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>, std::shared_ptr<CutCellMeshMapping>>
         d_ls_cut_cell_mapping_map;
-    std::shared_ptr<VolumeBoundaryMeshMapping> d_vol_bdry_mesh_mapping;
+    std::shared_ptr<GeneralBoundaryMeshMapping> d_mesh_mapping;
     std::map<SAMRAI::tbox::Pointer<SBIntegrator>, SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>>
         d_sb_integrator_ls_map;
 
@@ -89,6 +89,7 @@ private:
     bool d_use_rbfs = false;
     unsigned int d_rbf_stencil_size = 2;
     Reconstruct::RBFPolyOrder d_rbf_poly_order = Reconstruct::RBFPolyOrder::UNKNOWN_ORDER;
+    bool d_used_with_ib = false;
 }; // Class SBAdvDiffIntegrator
 
 } // namespace CCAD

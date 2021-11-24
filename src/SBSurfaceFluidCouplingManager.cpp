@@ -22,10 +22,8 @@ namespace CCAD
 SBSurfaceFluidCouplingManager::SBSurfaceFluidCouplingManager(
     std::string object_name,
     const Pointer<Database>& input_db,
-    const std::vector<BoundaryMesh*>& bdry_meshes,
     const std::vector<std::shared_ptr<FEMeshPartitioner>>& fe_mesh_partitioners)
     : d_object_name(std::move(object_name)),
-      d_meshes(bdry_meshes),
       d_fe_mesh_partitioners(fe_mesh_partitioners),
       d_J_sys_name("Jacobian"),
       d_scr_var(new CellVariable<NDIM, double>(d_object_name + "::SCR"))
@@ -36,10 +34,8 @@ SBSurfaceFluidCouplingManager::SBSurfaceFluidCouplingManager(
 SBSurfaceFluidCouplingManager::SBSurfaceFluidCouplingManager(
     std::string object_name,
     const Pointer<Database>& input_db,
-    BoundaryMesh* bdry_mesh,
     const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner)
     : d_object_name(std::move(object_name)),
-      d_meshes({ bdry_mesh }),
       d_fe_mesh_partitioners({ fe_mesh_partitioner }),
       d_J_sys_name("Jacobian"),
       d_scr_var(new CellVariable<NDIM, double>(d_object_name + "::SCR"))
@@ -58,7 +54,7 @@ SBSurfaceFluidCouplingManager::commonConstructor(Pointer<Database> input_db)
         var_db->getContext(d_object_name + "::SCR"),
         std::floor(std::sqrt(static_cast<double>(d_rbf_reconstruct->getStencilWidth()))));
 
-    unsigned int num_parts = d_meshes.size();
+    unsigned int num_parts = getNumParts();
     pout << "Resizing vectors to size: " << num_parts << "\n";
     d_sf_names_vec.resize(num_parts);
     d_fl_names_vec.resize(num_parts);
@@ -184,7 +180,7 @@ SBSurfaceFluidCouplingManager::initializeFEData()
 {
     plog << d_object_name << ": Initializing FE data.\n";
     const bool from_restart = RestartManager::getManager()->isFromRestart();
-    for (unsigned int part = 0; part < d_fe_mesh_partitioners.size(); ++part)
+    for (unsigned int part = 0; part < getNumParts(); ++part)
     {
         const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner = d_fe_mesh_partitioners[part];
         EquationSystems* eq_sys = fe_mesh_partitioner->getEquationSystems();
@@ -354,9 +350,10 @@ const std::string&
 SBSurfaceFluidCouplingManager::updateJacobian(unsigned int part)
 {
     EquationSystems* eq_sys = d_fe_mesh_partitioners[part]->getEquationSystems();
+    MeshBase& mesh = eq_sys->get_mesh();
     auto& J_sys = eq_sys->get_system<ExplicitSystem>(d_J_sys_name);
     DofMap& J_dof_map = J_sys.get_dof_map();
-    J_dof_map.compute_sparsity(*d_meshes[part]);
+    J_dof_map.compute_sparsity(mesh);
     auto J_vec = dynamic_cast<libMesh::PetscVector<double>*>(J_sys.solution.get());
     std::unique_ptr<NumericVector<double>> F_c_vec(J_vec->zero_clone());
     auto F_vec = dynamic_cast<libMesh::PetscVector<double>*>(F_c_vec.get());
@@ -372,8 +369,8 @@ SBSurfaceFluidCouplingManager::updateJacobian(unsigned int part)
 
     std::vector<dof_id_type> J_dof_indices;
 
-    std::unique_ptr<FEBase> fe = FEBase::build(d_meshes[part]->mesh_dimension(), X_fe_type);
-    std::unique_ptr<QBase> qrule = QBase::build(QGAUSS, d_meshes[part]->mesh_dimension(), FIFTH);
+    std::unique_ptr<FEBase> fe = FEBase::build(mesh.mesh_dimension(), X_fe_type);
+    std::unique_ptr<QBase> qrule = QBase::build(QGAUSS, mesh.mesh_dimension(), FIFTH);
     fe->attach_quadrature_rule(qrule.get());
     const std::vector<std::vector<double>>& phi = fe->get_phi();
     const std::vector<double>& JxW = fe->get_JxW();
@@ -383,16 +380,16 @@ SBSurfaceFluidCouplingManager::updateJacobian(unsigned int part)
     dphi_dxi[1] = &fe->get_dphideta();
 #endif
 
-    std::unique_ptr<PetscLinearSolver<double>> solver(new PetscLinearSolver<double>(d_meshes[part]->comm()));
-    std::unique_ptr<PetscMatrix<double>> M_mat(new PetscMatrix<double>(d_meshes[part]->comm()));
+    std::unique_ptr<PetscLinearSolver<double>> solver(new PetscLinearSolver<double>(mesh.comm()));
+    std::unique_ptr<PetscMatrix<double>> M_mat(new PetscMatrix<double>(mesh.comm()));
     M_mat->attach_dof_map(J_dof_map);
     M_mat->init();
 
     DenseMatrix<double> M_e;
     DenseVector<double> F_e;
 
-    const MeshBase::const_element_iterator el_begin = d_meshes[part]->active_elements_begin();
-    const MeshBase::const_element_iterator el_end = d_meshes[part]->active_elements_end();
+    const MeshBase::const_element_iterator el_begin = mesh.active_elements_begin();
+    const MeshBase::const_element_iterator el_end = mesh.active_elements_end();
     for (auto el_it = el_begin; el_it != el_end; ++el_it)
     {
         Elem* const elem = *el_it;
@@ -473,12 +470,13 @@ SBSurfaceFluidCouplingManager::updateJacobian(unsigned int part)
 void
 SBSurfaceFluidCouplingManager::fillInitialConditions()
 {
-    for (unsigned int part = 0; part < d_meshes.size(); ++part)
+    for (unsigned int part = 0; part < getNumParts(); ++part)
     {
         for (const auto& sf_fcn_pair : d_sf_init_fcn_map_vec[part])
         {
             const std::string& sf_name = sf_fcn_pair.first;
             EquationSystems* eq_sys = d_fe_mesh_partitioners[part]->getEquationSystems();
+            const MeshBase& mesh = eq_sys->get_mesh();
             System& sf_system = eq_sys->get_system(sf_name);
             const DofMap& sf_dof_map = sf_system.get_dof_map();
             System& X_system = eq_sys->get_system(d_fe_mesh_partitioners[part]->COORDINATES_SYSTEM_NAME);
@@ -488,8 +486,8 @@ SBSurfaceFluidCouplingManager::fillInitialConditions()
             NumericVector<double>* sf_vec = sf_system.solution.get();
 
             // Loop over nodes
-            auto iter = d_meshes[part]->local_nodes_begin();
-            const auto iter_end = d_meshes[part]->local_nodes_end();
+            auto iter = mesh.local_nodes_begin();
+            const auto iter_end = mesh.local_nodes_end();
             for (; iter != iter_end; ++iter)
             {
                 const Node* const node = *iter;

@@ -87,7 +87,8 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
 
                 for (const auto& node : active_patch_nodes)
                 {
-                    // Integrate solution to new value. Use Adams-Bashforth-2
+                    // Integrate solution to new value. Use Forward Euler
+                    // TODO: We should do a better time stepping scheme. The simplest would be AB2.
                     std::vector<dof_id_type> fl_dofs, sf_dofs, sf_base_dofs;
                     std::vector<double> fl_vals, sf_cur_vals, sf_old_vals;
                     std::vector<double> sf_base_cur_vals, sf_base_new_vals;

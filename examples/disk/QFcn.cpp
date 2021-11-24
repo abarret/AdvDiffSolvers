@@ -1,6 +1,7 @@
 #include "ibamr/config.h"
 
 #include "CCAD/app_namespaces.h"
+#include "CCAD/ls_functions.h"
 
 #include "QFcn.h"
 
@@ -41,8 +42,7 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
 
     auto fcn = [this](VectorNd X, double t) -> double {
         X -= d_cent;
-        return 1.0 + X.squaredNorm() * (-d_sf_max * d_k_on + (d_k_off + d_k_on) * t * (1.0 + t)) /
-                         (2.0 * d_D + d_k_on * (d_sf_max - t * (1.0 + t)));
+        return 1.0 + X.squaredNorm() * (t * (1.0 - t));
     };
 
     // Divide by total volume to get cell average

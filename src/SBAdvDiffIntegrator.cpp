@@ -46,7 +46,11 @@ SBAdvDiffIntegrator::SBAdvDiffIntegrator(const std::string& object_name,
                                          bool register_for_restart)
     : LSAdvDiffIntegrator(object_name, input_db, register_for_restart)
 {
-    ib_integrator->registerIntegrateHierarchyCallback(callback_fcn, static_cast<void*>(this));
+    if (ib_integrator)
+    {
+        d_used_with_ib = true;
+        ib_integrator->registerIntegrateHierarchyCallback(callback_fcn, static_cast<void*>(this));
+    }
 
     IBAMR_DO_ONCE(
         t_advective_step = TimerManager::getManager()->getTimer("CCAD::SBAdvDiffIntegrator::advective_step");
@@ -62,10 +66,9 @@ SBAdvDiffIntegrator::SBAdvDiffIntegrator(const std::string& object_name,
 }
 
 void
-SBAdvDiffIntegrator::registerVolumeBoundaryMeshMapping(
-    const std::shared_ptr<VolumeBoundaryMeshMapping>& vol_bdry_mesh_mapping)
+SBAdvDiffIntegrator::registerGeneralBoundaryMeshMapping(const std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping)
 {
-    d_vol_bdry_mesh_mapping = vol_bdry_mesh_mapping;
+    d_mesh_mapping = mesh_mapping;
 }
 
 void
@@ -105,17 +108,17 @@ SBAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
 {
     CCAD_TIMER_START(t_preprocess)
     // TODO: This was placed here for restarts. We should only call reinitElementMappings() when required.
-    if (d_vol_bdry_mesh_mapping)
+    if (d_mesh_mapping)
     {
         plog << d_object_name + ": Initializing fe mesh mappings\n";
-        for (const auto& fe_mesh_mapping : d_vol_bdry_mesh_mapping->getMeshPartitioners())
+        for (const auto& fe_mesh_mapping : d_mesh_mapping->getMeshPartitioners())
         {
             fe_mesh_mapping->setPatchHierarchy(d_hierarchy);
             fe_mesh_mapping->reinitElementMappings();
         }
     }
 
-    if (d_vol_bdry_mesh_mapping) d_vol_bdry_mesh_mapping->matchBoundaryToVolume();
+    if (d_mesh_mapping) d_mesh_mapping->updateBoundaryLocation(current_time, false);
     LSAdvDiffIntegrator::preprocessIntegrateHierarchy(current_time, new_time, num_cycles);
     CCAD_TIMER_STOP(t_preprocess);
 }
@@ -123,7 +126,8 @@ SBAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
 void
 SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
 {
-    AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
+    if (!(d_used_with_ib && cycle_num == 500))
+        AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
     CCAD_TIMER_START(t_integrate_hierarchy);
     const double half_time = current_time + 0.5 * (new_time - current_time);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
@@ -197,7 +201,9 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
         return;
     }
 
-    if (cycle_num == 500)
+    // Note we need to do advection as the LAST step. If we are using an IB solver, we need to wait until the
+    // integrateHierarchyCallback is called.
+    if ((d_used_with_ib && cycle_num == 500) || (!d_used_with_ib && cycle_num == 1))
     {
         // Update Level sets
         for (size_t l = 0; l < d_ls_vars.size(); ++l)
@@ -290,7 +296,7 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
                 ls_fcn->setLS(false);
             }
 
-            if (d_vol_bdry_mesh_mapping) d_vol_bdry_mesh_mapping->matchBoundaryToVolume("new");
+            if (d_mesh_mapping) d_mesh_mapping->updateBoundaryLocation(new_time, true);
             ls_fcn->updateVolumeAreaSideLS(vol_new_idx,
                                            vol_var,
                                            area_new_idx,
@@ -399,10 +405,10 @@ SBAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double cu
     plog << d_object_name + ": initializing composite Hierarchy data\n";
     if (initial_time)
     {
-        if (d_vol_bdry_mesh_mapping)
+        if (d_mesh_mapping)
         {
             plog << d_object_name + ": Initializing fe mesh mappings\n";
-            for (const auto& fe_mesh_mapping : d_vol_bdry_mesh_mapping->getMeshPartitioners())
+            for (const auto& fe_mesh_mapping : d_mesh_mapping->getMeshPartitioners())
             {
                 fe_mesh_mapping->setPatchHierarchy(d_hierarchy);
                 fe_mesh_mapping->reinitElementMappings();
@@ -415,9 +421,9 @@ SBAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double cu
 void
 SBAdvDiffIntegrator::regridHierarchyEndSpecialized()
 {
-    if (d_vol_bdry_mesh_mapping)
+    if (d_mesh_mapping)
     {
-        for (const auto& mesh_partitioner : d_vol_bdry_mesh_mapping->getMeshPartitioners())
+        for (const auto& mesh_partitioner : d_mesh_mapping->getMeshPartitioners())
         {
             mesh_partitioner->reinitElementMappings();
         }
