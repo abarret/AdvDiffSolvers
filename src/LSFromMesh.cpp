@@ -118,7 +118,8 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                 if (!d_use_inside) e3 *= -1.0;
                 if (d_norm_reverse_domain_ids[part].find(domain_id) != d_norm_reverse_domain_ids[part].end() ||
                     d_norm_reverse_elem_ids[part].find(cut_cell_elem.d_parent_elem->id()) !=
-                        d_norm_reverse_elem_ids[part].end())
+                        d_norm_reverse_elem_ids[part].end() ||
+                    d_reverse_normal[part])
                 {
                     e3 *= -1.0;
                 }
@@ -389,6 +390,7 @@ LSFromMesh::commonConstructor()
     const unsigned int num_parts = d_cut_cell_mesh_mapping->getNumParts();
     d_norm_reverse_domain_ids.resize(num_parts);
     d_norm_reverse_elem_ids.resize(num_parts);
+    d_reverse_normal.resize(num_parts, 0);
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_sgn_idx = var_db->registerVariableAndContext(d_sgn_var, var_db->getContext(d_object_name + "::Context"), 1);

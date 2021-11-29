@@ -13,12 +13,12 @@ MAX_LEVELS = 1                            // maximum number of levels in locally
 REF_RATIO  = 4                            // refinement ratio between levels
 N = 128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
-DX = LX/NFINEST
+DX = LY/NFINEST
 H = DX
 REGRID_INTERVAL = 1
 
 OUTPUT_BDRY_INFO = FALSE
-USING_LS_FCN = TRUE
+USING_LS_FCN = FALSE
 DRAW_EXACT = FALSE
 MIN_REFINE_FACTOR = -4.0
 MAX_REFINE_FACTOR = 2.0
@@ -27,18 +27,26 @@ USE_STRANG_SPLITTING = TRUE
 USE_OUTSIDE_LS_FOR_TAGGING = TRUE
 ADV_INT_METHOD = "MIDPOINT_RULE"
 DIF_INT_METHOD = "TRAPEZOIDAL_RULE"
+RBF_POLY_ORDER = "QUADRATIC"
+USE_RBFS = TRUE
+RBF_STENCIL_SIZE = 8
+REACT_FRAC = 0.25
 
 ERROR_ON_MOVE = TRUE
-MFAC = 1.0
+MFAC = 1.5
 ELEM_TYPE = "EDGE2"
 elem_order = "FIRST"
 THETA = PI/18.0
-Y_LOW = 0.5
-Y_UP = 1.5
-KAPPA_S = 1.0e3
-ETA_S = 1.0
+Y_LOW = 0.5 - DX / 2.0
+Y_UP = 1.5 - DX / 2.0
+KAPPA_S = 5.0e2
+ETA_S = 1.0e1
 
-D_coef = 0.05
+K_ON = 1.0
+K_OFF = 1.0
+SF_MAX = 1.0
+
+D_coef = 0.1
 
 USE_IB_DELTA_FUNCTIONS     = TRUE                   // whether to use smoothed delta functions to mediate Lagrangian-Eulerian interaction
 IB_DELTA_FUNCTION          = "BSPLINE_3"         // the type of smoothed delta function to use for Lagrangian-Eulerian interaction
@@ -54,10 +62,10 @@ CONVECTIVE_TS_TYPE         = "FORWARD_EULER"      // convective time stepping ty
 CONVECTIVE_OP_TYPE         = "STABILIZED_PPM"       // convective differencing discretization type
 CONVECTIVE_FORM            = "ADVECTIVE"            // how to compute the convective terms
 NORMALIZE_PRESSURE         = FALSE                  // whether to explicitly force the pressure to have mean zero
-CFL_MAX                    = 0.2                    // maximum CFL number
+CFL_MAX                    = 0.1                    // maximum CFL number
 DT                         = CFL_MAX*DX/U_MAX       // maximum timestep size
 START_TIME                 = 0.0e0                  // initial simulation time
-END_TIME                   = 10.0                 // final simulation time
+END_TIME                   = 6.0                 // final simulation time
 ERROR_ON_DT_CHANGE         = TRUE                  // whether to emit an error message if the time step size changes
 VORTICITY_TAGGING          = TRUE                   // whether to tag cells for refinement based on vorticity thresholds
 TAG_BUFFER                 = 1                      // size of tag buffer used by grid generation algorithm
@@ -70,84 +78,51 @@ OUTPUT_DIV_U               = TRUE
 ENABLE_LOGGING             = TRUE
 
 // Level set parameters
-LS_REINIT_INTERVAL = 1000000//REGRID_INTERVAL
-MAX_ITERATIONS_LS     = NFINEST/4
+LS_REINIT_INTERVAL = 1000000000
+MAX_ITERATIONS_LS     = 1000//NFINEST/4
 LS_ORDER           = "THIRD_ORDER_ENO"
 USE_SUBCELL_FIX    = TRUE
 USE_SIGN_FIX       = TRUE
 LS_ATOL            = 1e-10
 
-U = "(X_1 < y_low ? 0.0 : (X_1 > y_up ? 0.0 : ((X_1 - y_low)*(y_up - X_1))))"
+U = "4.0*(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : (-cos(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta))))))"
+V = "4.0*(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : (-sin(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta))))))"
 
-VelocityInitialConditions {
-   y_low = Y_LOW
-   y_up = Y_UP
-   function_0 = "0.0"
-   function_1 = "0.0"
-}
-
-PressureInitialConditions {
+UFcn
+{
    y_low = Y_LOW
    y_up = Y_UP
    theta = THETA
-   p = PE
-   l = LX
-
-   function = "(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : 2*p / l * X_0))"
+   function_0 = U
+   function_1 = V
 }
 
-VelocityBcCoefs_0 {
-   y_low = Y_LOW
-   y_up = Y_UP
-   theta = THETA
-   p = PE
-
-   acoef_function_0 = "(X_1 < (y_low + X_0 * tan(theta)) ? 1.0 : (X_1 > (y_up + X_0*tan(theta)) ? 1.0 : 0.0))"
-   acoef_function_1 = "(X_1 < (y_low + X_0 * tan(theta)) ? 1.0 : (X_1 > (y_up + X_0*tan(theta)) ? 1.0 : 0.0))"
-   acoef_function_2 = "1.0"
-   acoef_function_3 = "1.0"
-
-   bcoef_function_0 = "(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : 1.0))"
-   bcoef_function_1 = "(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : 1.0))"
-   bcoef_function_2 = "0.0"
-   bcoef_function_3 = "0.0"
-
-   gcoef_function_0 = "(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : -p))"
-   gcoef_function_1 = "(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : p))"
-   gcoef_function_2 = "0.0"
-   gcoef_function_3 = "0.0"
+SBIntegrator {
+   perturb_nodes = FALSE
+   stencil_width = 2
 }
 
-VelocityBcCoefs_1 {
-   acoef_function_0 = "1.0"
-   acoef_function_1 = "1.0"
-   acoef_function_2 = "0.0"
-   acoef_function_3 = "0.0"
-
-   bcoef_function_0 = "0.0"
-   bcoef_function_1 = "0.0"
-   bcoef_function_2 = "1.0"
-   bcoef_function_3 = "1.0"
-
-   gcoef_function_0 = "0.0"
-   gcoef_function_1 = "0.0"
-   gcoef_function_2 = "0.0"
-   gcoef_function_3 = "0.0"
+SBBoundaryConditions {
+   perturb_nodes = FALSE
 }
 
-RelaxationLSMethod {
-    order              = LS_ORDER
-    apply_subcell_fix  = USE_SUBCELL_FIX
-    apply_sign_fix     = USE_SIGN_FIX
-    sweep_abs_tol      = LS_ATOL
-    max_iterations     = MAX_ITERATIONS_LS
-    enable_logging     = FALSE
-    reinit_interval    = LS_REINIT_INTERVAL
+SBDataManager {
+  stencil_width = RBF_STENCIL_SIZE
+}
+
+CutCellMapping {
+  perturb_nodes = FALSE
 }
 
 LSCutCellOperator {
-  robin_boundary = FALSE
+  robin_boundary = TRUE
   cache_boundary = TRUE
+  use_rbfs = USE_RBFS
+  stencil_size = RBF_STENCIL_SIZE
+}
+
+MeshMapping {
+  max_level = MAX_LEVELS
 }
 
 InsideLSFcn {
@@ -158,25 +133,42 @@ InsideLSFcn {
 }
 
 QInitial {
+   initial = 0.0
+   y_low = Y_LOW
+   y_up = Y_UP
+   theta = THETA
+   d = D_coef
+   channel_center = 1.5,0.26
 }
+
+LSPipeFlow {
+   y_low = Y_LOW
+   y_up = Y_UP
+   l = LX
+   theta = THETA
+}
+
 
 PoissonSolver {
 }
 
 Q_bcs {
+    ylow = Y_LOW
+    yup = Y_UP
     D = 1.0
 
-    acoef_function_0 = "0.0"
+    acoef_function_0 = "1.0"
     acoef_function_1 = "0.0"
     acoef_function_2 = "0.0"
     acoef_function_3 = "0.0"
 
-    bcoef_function_0 = "1.0"
+    bcoef_function_0 = "0.0"
     bcoef_function_1 = "1.0"
     bcoef_function_2 = "1.0"
     bcoef_function_3 = "1.0"
 
-    gcoef_function_0 = "0.0"
+    gcoef_function_0 = " (X_1 < ylow ? 0.0 : X_1 > yup ? 0.0 : 1.0)"
+    //gcoef_function_0 = "0.0"
     gcoef_function_1 = "0.0"
     gcoef_function_2 = "0.0"
     gcoef_function_3 = "0.0"
@@ -190,15 +182,15 @@ Main {
 
 // visualization dump parameters
    viz_writer                  = "VisIt", "ExodusII"
-   viz_dump_interval           = NFINEST/8
-   viz_dump_dirname            = "viz_adv_diff2d"
+   viz_dump_interval           = NFINEST/4
+   viz_dump_dirname            = "new_viz_adv_diff2d"
    visit_number_procs_per_file = 1
 
 // restart dump parameters
    restart_dump_interval       = 0
    restart_dump_dirname        = "restart_adv_diff2d"
 
-   data_dump_interval          = 0
+   data_dump_interval          = NFINEST/4
    data_dump_dirname           = "hier_data_IB2d"
 
    timer_dump_interval = 0
@@ -249,14 +241,13 @@ TimerManager{
 
 
 LSAdvDiffIntegrator {
-    start_time           = 0.0e0  // initial simulation time
-    end_time             = END_TIME    // final simulation time
-    grow_dt              = 2.0e0  // growth factor for timesteps
-    regrid_interval      = REGRID_INTERVAL  // effectively disable regridding
-    cfl                  = CFL_MAX
-    dt_max               = DT
-    dt_min               = DT
-    enable_logging       = TRUE
+   start_time          = START_TIME
+   end_time            = END_TIME
+   grow_dt             = GROW_DT
+   regrid_cfl_interval = REGRID_CFL_INTERVAL
+   dt_max              = DT
+   error_on_dt_change  = ERROR_ON_DT_CHANGE
+   enable_logging      = ENABLE_LOGGING
 
     prescribe_level_set  = USING_LS_FCN
     min_ls_refine_factor = MIN_REFINE_FACTOR
@@ -265,6 +256,9 @@ LSAdvDiffIntegrator {
     use_strang_splitting = USE_STRANG_SPLITTING
     advection_ts_type = ADV_INT_METHOD
     diffusion_ts_type = DIF_INT_METHOD
+    use_rbfs = USE_RBFS
+    rbf_stencil_size = RBF_STENCIL_SIZE
+    rbf_poly_order = RBF_POLY_ORDER
 
     tag_buffer = TAG_BUFFER
     
@@ -274,30 +268,6 @@ LSAdvDiffIntegrator {
     init_convective_time_stepping_type = "MIDPOINT_RULE"
     diffusion_time_stepping_type = "TRAPEZOIDAL_RULE"
     num_cycles = 1
-}
-
-IBHierarchyIntegrator {
-   start_time          = START_TIME
-   end_time            = END_TIME
-   grow_dt             = GROW_DT
-   num_cycles          = NUM_CYCLES
-   regrid_cfl_interval = REGRID_CFL_INTERVAL
-   dt_max              = DT
-   error_on_dt_change  = ERROR_ON_DT_CHANGE
-   enable_logging      = ENABLE_LOGGING
-}
-
-IBFESurfaceMethod {
-   use_IB_spread_operator     = USE_IB_DELTA_FUNCTIONS
-   use_IB_interp_operator     = USE_IB_DELTA_FUNCTIONS
-   IB_delta_fcn               = IB_DELTA_FUNCTION
-   split_forces               = SPLIT_FORCES
-// split_tangential_force     = FALSE
-   use_jump_conditions        = USE_JUMP_CONDITIONS
-   use_consistent_mass_matrix = USE_CONSISTENT_MASS_MATRIX
-   IB_point_density           = IB_POINT_DENSITY
-//   constrain_tangential_motion = TRUE
-//   constrain_interior_faces = TRUE
 }
 
 INSStaggeredHierarchyIntegrator {

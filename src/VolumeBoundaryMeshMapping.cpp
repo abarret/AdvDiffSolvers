@@ -120,8 +120,8 @@ VolumeBoundaryMeshMapping::updateBoundaryLocation(const double time,
 
     std::map<dof_id_type, dof_id_type> node_id_map;
     std::map<dof_id_type, unsigned char> side_id_map;
-    d_vol_meshes[d_vol_id_vec[part]]->boundary_info->get_side_and_node_maps(
-        *d_bdry_meshes[part], node_id_map, side_id_map);
+    auto bdry_mesh = static_cast<BoundaryMesh*>(d_bdry_meshes[part].get());
+    d_vol_meshes[d_vol_id_vec[part]]->boundary_info->get_side_and_node_maps(*bdry_mesh, node_id_map, side_id_map);
     auto node_it = d_bdry_meshes[part]->local_nodes_begin();
     auto node_end = d_bdry_meshes[part]->local_nodes_end();
     for (; node_it != node_end; ++node_it)

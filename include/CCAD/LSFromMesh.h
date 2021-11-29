@@ -82,6 +82,11 @@ public:
         for (const auto& bdry_id : bdry_ids) registerNormalReverseElemId(bdry_id, part);
     }
 
+    inline void registerReverseNormal(const int part = 0)
+    {
+        d_reverse_normal[part] = 1;
+    }
+
     using BdryFcn = std::function<void(const IBTK::VectorNd&, double&)>;
 
     inline void registerBdryFcn(BdryFcn fcn)
@@ -113,6 +118,7 @@ private:
     SAMRAI::tbox::Pointer<CutCellMeshMapping> d_cut_cell_mesh_mapping;
 
     std::vector<std::set<unsigned int>> d_norm_reverse_domain_ids, d_norm_reverse_elem_ids;
+    std::vector<int> d_reverse_normal;
 
     BdryFcn d_bdry_fcn;
 

@@ -12,25 +12,25 @@ namespace CCAD
 {
 GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
                                                        Pointer<Database> input_db,
-                                                       BoundaryMesh* bdry_mesh,
+                                                       MeshBase* bdry_mesh,
                                                        const std::string& restart_read_dirname,
                                                        const unsigned int restart_restore_number)
     : d_object_name(std::move(object_name))
 {
-    d_bdry_meshes.push_back(std::unique_ptr<BoundaryMesh>(bdry_mesh));
+    d_bdry_meshes.push_back(std::unique_ptr<MeshBase>(bdry_mesh));
     commonConstructor(input_db, restart_read_dirname, restart_restore_number);
 }
 
 GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
                                                        Pointer<Database> input_db,
-                                                       std::vector<BoundaryMesh*>& bdry_mesh,
+                                                       std::vector<MeshBase*>& bdry_mesh,
                                                        const std::string& restart_read_dirname,
                                                        const unsigned int restart_restore_number)
     : d_object_name(std::move(object_name))
 {
     for (unsigned int part = 0; part < bdry_mesh.size(); ++part)
     {
-        d_bdry_meshes.push_back(std::unique_ptr<BoundaryMesh>(bdry_mesh[part]));
+        d_bdry_meshes.push_back(std::unique_ptr<MeshBase>(bdry_mesh[part]));
     }
     commonConstructor(input_db, restart_read_dirname, restart_restore_number);
 }
@@ -136,8 +136,8 @@ GeneralBoundaryMeshMapping::initializeEquationSystems()
     for (unsigned int part = 0; part < d_bdry_meshes.size(); ++part)
     {
         d_bdry_eq_sys_vec[part]->init();
-        updateBoundaryLocation(0.0, false);
     }
+    updateBoundaryLocation(0.0, false);
     return;
 }
 

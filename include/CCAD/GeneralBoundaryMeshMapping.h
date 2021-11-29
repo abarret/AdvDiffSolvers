@@ -27,7 +27,7 @@ public:
      */
     GeneralBoundaryMeshMapping(std::string object_name,
                                SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
-                               std::vector<libMesh::BoundaryMesh*>& bdry_meshes,
+                               std::vector<libMesh::MeshBase*>& bdry_meshes,
                                const std::string& restart_read_dirname = "",
                                unsigned int restart_restore_number = 0);
 
@@ -37,7 +37,7 @@ public:
      */
     GeneralBoundaryMeshMapping(std::string object_name,
                                SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
-                               libMesh::BoundaryMesh* bdry_mesh,
+                               libMesh::MeshBase* bdry_mesh,
                                const std::string& restart_read_dirname = "",
                                unsigned int restart_restore_number = 0);
 
@@ -119,7 +119,7 @@ protected:
 
     std::vector<std::shared_ptr<IBTK::FEData>> d_fe_data;
     std::vector<std::shared_ptr<FEMeshPartitioner>> d_bdry_mesh_partitioners;
-    std::vector<std::unique_ptr<libMesh::BoundaryMesh>> d_bdry_meshes;
+    std::vector<std::unique_ptr<libMesh::MeshBase>> d_bdry_meshes;
     std::vector<std::unique_ptr<libMesh::EquationSystems>> d_bdry_eq_sys_vec;
     std::string d_coords_sys_name = "COORDINATES_SYSTEM";
     std::string d_disp_sys_name = "DISPLACEMENT_SYSTEM";
