@@ -87,6 +87,7 @@ MACRO(SETUP_3D _dir _src)
   ADD_DEPENDENCIES(tests-${_dir} ${_target})
 ENDMACRO()
 
+SETUP_2D(examples disk.cpp)
 SETUP_2D(examples radial.cpp)
 
 SETUP_2D(find_vol find_vol.cpp)

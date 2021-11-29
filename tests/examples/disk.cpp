@@ -46,8 +46,11 @@
 #include <utility>
 
 // Local includes
-#include "ForcingFcn.h"
-#include "QFcn.h"
+#include "disk/ForcingFcn.h"
+#include "disk/QFcn.h"
+
+#include "disk/ForcingFcn.cpp"
+#include "disk/QFcn.cpp"
 
 void postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
                       Pointer<SBAdvDiffIntegrator> integrator,
@@ -118,6 +121,7 @@ main(int argc, char* argv[])
     // Initialize PETSc, MPI, and SAMRAI.
     IBTKInit ibtk_init(argc, argv, MPI_COMM_WORLD);
     const LibMeshInit& init = ibtk_init.getLibMeshInit();
+    PetscOptionsSetValue(nullptr, "-poisson_solve_ksp_rtol", "1.0e-12");
 
     { // cleanup dynamically allocated objects prior to shutdown
 
@@ -131,12 +135,6 @@ main(int argc, char* argv[])
         // Get various standard options set in the input file.
         const bool dump_viz_data = app_initializer->dumpVizData();
         const int viz_dump_interval = app_initializer->getVizDumpInterval();
-        const bool uses_visit = dump_viz_data && app_initializer->getVisItDataWriter();
-        const bool uses_exodus = dump_viz_data && !app_initializer->getExodusIIFilename().empty();
-        const string lower_exodus_filename = app_initializer->getExodusIIFilename("lower");
-        const string upper_exodus_filename = app_initializer->getExodusIIFilename("upper");
-        const string reaction_exodus_filename = app_initializer->getExodusIIFilename("reaction");
-        const string vol_mesh_file_name = app_initializer->getExodusIIFilename("vol");
 
         const bool dump_restart_data = app_initializer->dumpRestartData();
         const int restart_dump_interval = app_initializer->getRestartDumpInterval();
@@ -313,23 +311,12 @@ main(int argc, char* argv[])
         Q_in_helmholtz_solver->setOperator(sol_in_oper);
         adv_diff_integrator->setHelmholtzSolver(Q_in_var, Q_in_helmholtz_solver);
 
-        // Set up visualization plot file writer.
-        Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
-        if (uses_visit)
-        {
-            adv_diff_integrator->registerVisItDataWriter(visit_data_writer);
-        }
-        libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[REACTION_MESH_ID]) :
-                                                                         NULL);
-
         auto var_db = VariableDatabase<NDIM>::getDatabase();
         Pointer<CellVariable<NDIM, double>> dist_var = new CellVariable<NDIM, double>("distance");
         Pointer<CellVariable<NDIM, double>> n_var = new CellVariable<NDIM, double>("num_elements");
         const int dist_idx =
             var_db->registerVariableAndContext(dist_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(1));
         const int n_idx = var_db->registerVariableAndContext(n_var, var_db->getContext("Scratch"), IntVector<NDIM>(1));
-        visit_data_writer->registerPlotQuantity("num_elements", "SCALAR", n_idx);
-        visit_data_writer->registerPlotQuantity("distance", "SCALAR", dist_idx);
 
         const std::string err_sys_name = "ERROR";
         ExplicitSystem& sys =
@@ -351,8 +338,6 @@ main(int argc, char* argv[])
             level->allocatePatchData(Q_exact_idx);
             level->allocatePatchData(Q_error_idx);
         }
-        visit_data_writer->registerPlotQuantity("Error", "SCALAR", Q_error_idx);
-        visit_data_writer->registerPlotQuantity("Exact", "SCALAR", Q_exact_idx);
 
         const int Q_idx = var_db->mapVariableAndContextToIndex(Q_in_var, adv_diff_integrator->getCurrentContext());
 
@@ -374,25 +359,6 @@ main(int argc, char* argv[])
         EquationSystems* reaction_eq_sys = sb_data_manager->getFEMeshPartitioner()->getEquationSystems();
         int iteration_num = adv_diff_integrator->getIntegratorStep();
         double loop_time = adv_diff_integrator->getIntegratorTime();
-        if (dump_viz_data && uses_visit)
-        {
-            pout << "\n\nWriting visualization files...\n\n";
-            adv_diff_integrator->setupPlotData();
-            computeFluidErrors(
-                Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
-            computeSurfaceErrors(reaction_mesh,
-                                 sb_data_manager->getFEMeshPartitioner(),
-                                 sb_data_manager->getSFNames()[0],
-                                 err_sys_name,
-                                 loop_time);
-
-            visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-            if (uses_exodus)
-            {
-                reaction_exodus_io->write_timestep(
-                    reaction_exodus_filename, *reaction_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
-            }
-        }
 
         // Main time step loop.
         double loop_time_end = adv_diff_integrator->getEndTime();
@@ -419,45 +385,14 @@ main(int argc, char* argv[])
             // At specified intervals, write visualization and restart files,
             // and print out timer data.
             iteration_num += 1;
-            const bool last_step = !adv_diff_integrator->stepsRemaining();
-            if (dump_viz_data && uses_visit && (iteration_num % viz_dump_interval == 0 || last_step))
-            {
-                pout << "\nWriting visualization files...\n\n";
-                adv_diff_integrator->setupPlotData();
-                computeFluidErrors(
-                    Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
-                computeSurfaceErrors(reaction_mesh,
-                                     sb_data_manager->getFEMeshPartitioner(),
-                                     sb_data_manager->getSFNames()[0],
-                                     err_sys_name,
-                                     loop_time);
-                visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-                if (uses_exodus)
-                {
-                    reaction_exodus_io->write_timestep(
-                        reaction_exodus_filename, *reaction_eq_sys, iteration_num / viz_dump_interval + 1, loop_time);
-                }
-            }
-            if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
-            {
-                pout << "\nWriting restart files...\n\n";
-                RestartManager::getManager()->writeRestartFile(restart_dump_dirname, iteration_num);
-            }
-            if (dump_timer_data && (iteration_num % timer_dump_interval == 0 || last_step))
-            {
-                pout << "\nWriting timer data...\n\n";
-                TimerManager::getManager()->print(plog);
-                TimerManager::getManager()->resetAllTimers();
-            }
-            if (dump_postproc_data && (iteration_num % dump_postproc_interval == 0 || last_step))
-            {
-                postprocess_data(patch_hierarchy,
-                                 adv_diff_integrator,
-                                 Q_in_var,
-                                 iteration_num,
-                                 loop_time,
-                                 postproc_data_dump_dirname);
-            }
+            pout << "\nWriting visualization files...\n\n";
+            computeFluidErrors(
+                Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
+            computeSurfaceErrors(reaction_mesh,
+                                 sb_data_manager->getFEMeshPartitioner(),
+                                 sb_data_manager->getSFNames()[0],
+                                 err_sys_name,
+                                 loop_time);
         }
 
         if (!periodic_domain) delete Q_in_bcs[0];

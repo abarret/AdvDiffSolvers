@@ -1,0 +1,833 @@
+Resizing vectors to size: 1
+SBDataManager: Initializing FE data.
+SBAdvDiffIntegrator: initializing Hierarchy integrator.
+SBAdvDiffIntegrator::initializePatchHierarchy(): tag_buffer = 0
+SBAdvDiffIntegrator: initializing level data
+1Setting level set at initial time: 1
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: Initializing fe mesh mappings
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: initializing level set for: LS_In
+SBAdvDiffIntegrator: Initializing data for variable: Q_in
+SBAdvDiffIntegrator: Finished initializing composite data
+Input database:
+input_db {
+   PI                         = 3.14159                     // input used
+   LX                         = 1.5                         // input used
+   LY                         = 1.5                         // input used
+   RHO                        = 1                           // input not used
+   MU                         = 0.01                        // input not used
+   U_MAX                      = 2                           // input used
+   PE                         = 0.5                         // input used
+   BASE_NAME                  = "test1"                     // input not used
+   MAX_LEVELS                 = 1                           // input used
+   REF_RATIO                  = 4                           // input used
+   N                          = 64                          // input used
+   NFINEST                    = 64                          // input used
+   DX                         = 0.046875                    // input used
+   H                          = 0.046875                    // input not used
+   REGRID_INTERVAL            = 1                           // input used
+   OUTPUT_BDRY_INFO           = FALSE                       // input not used
+   USING_LS_FCN               = TRUE                        // input used
+   DRAW_EXACT                 = FALSE                       // input not used
+   MIN_REFINE_FACTOR          = -4                          // input used
+   MAX_REFINE_FACTOR          = 2                           // input used
+   LEAST_SQUARES_ORDER        = "QUADRATIC"                 // input used
+   USE_STRANG_SPLITTING       = TRUE                        // input used
+   USE_OUTSIDE_LS_FOR_TAGGING = TRUE                        // input not used
+   ADV_INT_METHOD             = "MIDPOINT_RULE"             // input used
+   DIF_INT_METHOD             = "TRAPEZOIDAL_RULE"          // input used
+   USE_RBFS                   = TRUE                        // input used
+   RBF_STENCIL_SIZE           = 8                           // input used
+   RBF_POLY_ORDER             = "QUADRATIC"                 // input used
+   REACT_FRAC                 = 0.25                        // input not used
+   ERROR_ON_MOVE              = TRUE                        // input not used
+   MFAC                       = 1.5                         // input used
+   ELEM_TYPE                  = "EDGE2"                     // input used
+   elem_order                 = "FIRST"                     // input used
+   THETA                      = 0.174533                    // input used
+   Y_LOW                      = 0.5                         // input used
+   Y_UP                       = 1.5                         // input used
+   KAPPA_S                    = 500                         // input not used
+   ETA_S                      = 10                          // input not used
+   CENTER                     = 0.021, 0.003                // input used
+   XCOM                       = 0.021                       // input used
+   YCOM                       = 0.003                       // input used
+   D_COEF                     = 0.1                         // input used
+   K_ON                       = 1                           // input used
+   K_OFF                      = 1                           // input used
+   SF_MAX                     = 2                           // input used
+   USE_IB_DELTA_FUNCTIONS     = TRUE                        // input not used
+   IB_DELTA_FUNCTION          = "BSPLINE_3"                 // input used
+   SPLIT_FORCES               = FALSE                       // input not used
+   USE_JUMP_CONDITIONS        = TRUE                        // input not used
+   ONE_SIDED_INTERACTION      = FALSE                       // input not used
+   USE_CONSISTENT_MASS_MATRIX = TRUE                        // input not used
+   IB_POINT_DENSITY           = 2                           // input not used
+   SOLVER_TYPE                = "STAGGERED"                 // input not used
+   GROW_DT                    = 2                           // input not used
+   NUM_CYCLES                 = 1                           // input not used
+   CONVECTIVE_TS_TYPE         = "FORWARD_EULER"             // input not used
+   CONVECTIVE_OP_TYPE         = "STABILIZED_PPM"            // input not used
+   CONVECTIVE_FORM            = "ADVECTIVE"                 // input not used
+   NORMALIZE_PRESSURE         = FALSE                       // input not used
+   CFL_MAX                    = 0.5                         // input used
+   DT                         = 0.0117188                   // input used
+   START_TIME                 = 0                           // input not used
+   END_TIME                   = 0.117188                    // input used
+   ERROR_ON_DT_CHANGE         = TRUE                        // input not used
+   VORTICITY_TAGGING          = TRUE                        // input not used
+   TAG_BUFFER                 = 1                           // input used
+   REGRID_CFL_INTERVAL        = 0.5                         // input not used
+   OUTPUT_U                   = TRUE                        // input not used
+   OUTPUT_P                   = TRUE                        // input not used
+   OUTPUT_F                   = TRUE                        // input not used
+   OUTPUT_OMEGA               = TRUE                        // input not used
+   OUTPUT_DIV_U               = TRUE                        // input not used
+   ENABLE_LOGGING             = TRUE                        // input not used
+   LS_REINIT_INTERVAL         = 1000000000                  // input used
+   MAX_ITERATIONS_LS          = 1000                        // input used
+   LS_ORDER                   = "THIRD_ORDER_ENO"           // input used
+   USE_SUBCELL_FIX            = TRUE                        // input used
+   USE_SIGN_FIX               = TRUE                        // input used
+   LS_ATOL                    = 1e-10                       // input used
+   U                          = "4.0*(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : (-cos(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta))))))" // input used
+   V                          = "4.0*(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : (-sin(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta))))))" // input used
+   UFcn {
+      y_low      = 0.5                                      // input used
+      y_up       = 1.5                                      // input used
+      theta      = 0.174533                                 // input used
+      function_0 = "0.0"                                    // input used
+      function_1 = "0.0"                                    // input used
+   }
+   ForcingFcn {
+      d      = 0.1                                          // input used
+      k_on   = 1                                            // input used
+      k_off  = 1                                            // input used
+      sf_max = 2                                            // input used
+      center = 0.021, 0.003                                 // input used
+   }
+   SBIntegrator {
+      perturb_nodes = FALSE                                 // input not used
+      stencil_width = 8                                     // input not used
+   }
+   SBDataManager {
+      stencil_width = 8                                     // input used
+   }
+   MeshMapping {
+      max_level = 1                                         // input used
+   }
+   CutCellMapping {
+      perturb_nodes = FALSE                                 // input used
+   }
+   SBBoundaryConditions {
+      perturb_nodes = FALSE                                 // input not used
+   }
+   LSBcCoefs {
+      y_low            = 0.5                                // input not used
+      y_up             = 1.5                                // input not used
+      theta            = 0.174533                           // input not used
+      acoef_function_0 = "1.0"                              // input not used
+      acoef_function_1 = "1.0"                              // input not used
+      acoef_function_2 = "1.0"                              // input not used
+      acoef_function_3 = "1.0"                              // input not used
+      bcoef_function_0 = "0.0"                              // input not used
+      bcoef_function_1 = "0.0"                              // input not used
+      bcoef_function_2 = "0.0"                              // input not used
+      bcoef_function_3 = "0.0"                              // input not used
+      gcoef_function_0 = "max(y_low - (X_0 * cos(theta) + X_1*sin(theta)), (X_0 * cos(theta) + X_1 * sin(theta)) - y_up)" // input not used
+      gcoef_function_1 = "max(y_low - (X_0 * cos(theta) + X_1*sin(theta)), (X_0 * cos(theta) + X_1 * sin(theta)) - y_up)" // input not used
+      gcoef_function_2 = "max(y_low - (X_0 * cos(theta) + X_1*sin(theta)), (X_0 * cos(theta) + X_1 * sin(theta)) - y_up)" // input not used
+      gcoef_function_3 = "max(y_low - (X_0 * cos(theta) + X_1*sin(theta)), (X_0 * cos(theta) + X_1 * sin(theta)) - y_up)" // input not used
+   }
+   VelocityInitialConditions {
+      y_low      = 0.5                                      // input not used
+      y_up       = 1.5                                      // input not used
+      theta      = 0.174533                                 // input not used
+      function_0 = "4.0*(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : (-cos(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta))))))" // input not used
+      function_1 = "4.0*(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : (-sin(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta))))))" // input not used
+   }
+   PressureInitialConditions {
+      y_low    = 0.5                                        // input not used
+      y_up     = 1.5                                        // input not used
+      theta    = 0.174533                                   // input not used
+      p        = 0.5                                        // input not used
+      l        = 1.5                                        // input not used
+      function = "(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : 2*p / l * X_0))" // input not used
+   }
+   VelocityBcCoefs_0 {
+      y_low            = 0.5                                // input not used
+      y_up             = 1.5                                // input not used
+      theta            = 0.174533                           // input not used
+      p                = 0.5                                // input not used
+      acoef_function_0 = "(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : 1.0))" // input not used
+      acoef_function_1 = "(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : 1.0))" // input not used
+      acoef_function_2 = "1.0"                              // input not used
+      acoef_function_3 = "1.0"                              // input not used
+      bcoef_function_0 = "(X_1 < (y_low + X_0 * tan(theta)) ? 1.0 : (X_1 > (y_up + X_0*tan(theta)) ? 1.0 : 0.0))" // input not used
+      bcoef_function_1 = "(X_1 < (y_low + X_0 * tan(theta)) ? 1.0 : (X_1 > (y_up + X_0*tan(theta)) ? 1.0 : 0.0))" // input not used
+      bcoef_function_2 = "0.0"                              // input not used
+      bcoef_function_3 = "0.0"                              // input not used
+      gcoef_function_0 = "4.0 * (X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : -cos(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta)))))" // input not used
+      gcoef_function_1 = "4.0 * (X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : -cos(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta)))))" // input not used
+      gcoef_function_2 = "0.0"                              // input not used
+      gcoef_function_3 = "0.0"                              // input not used
+   }
+   VelocityBcCoefs_1 {
+      y_low            = 0.5                                // input not used
+      y_up             = 1.5                                // input not used
+      theta            = 0.174533                           // input not used
+      p                = 0.5                                // input not used
+      acoef_function_0 = "(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : 1.0))" // input not used
+      acoef_function_1 = "(X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : 1.0))" // input not used
+      acoef_function_2 = "1.0"                              // input not used
+      acoef_function_3 = "1.0"                              // input not used
+      bcoef_function_0 = "(X_1 < (y_low + X_0 * tan(theta)) ? 1.0 : (X_1 > (y_up + X_0*tan(theta)) ? 1.0 : 0.0))" // input not used
+      bcoef_function_1 = "(X_1 < (y_low + X_0 * tan(theta)) ? 1.0 : (X_1 > (y_up + X_0*tan(theta)) ? 1.0 : 0.0))" // input not used
+      bcoef_function_2 = "0.0"                              // input not used
+      bcoef_function_3 = "0.0"                              // input not used
+      gcoef_function_0 = "4.0 * (X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : -sin(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta)))))" // input not used
+      gcoef_function_1 = "4.0 * (X_1 < (y_low + X_0 * tan(theta)) ? 0.0 : (X_1 > (y_up + X_0*tan(theta)) ? 0.0 : -sin(theta) * (X_1 - (y_low + X_0*tan(theta)))*(X_1 - (y_up + X_0*tan(theta)))))" // input not used
+      gcoef_function_2 = "0.0"                              // input not used
+      gcoef_function_3 = "0.0"                              // input not used
+   }
+   RelaxationLSMethod {
+      order             = "THIRD_ORDER_ENO"                 // input not used
+      apply_subcell_fix = TRUE                              // input not used
+      apply_sign_fix    = TRUE                              // input not used
+      sweep_abs_tol     = 1e-10                             // input not used
+      max_iterations    = 1000                              // input not used
+      enable_logging    = TRUE                              // input not used
+      reinit_interval   = 1000000000                        // input not used
+   }
+   LSCutCellOperator {
+      robin_boundary = TRUE                                 // input used
+      cache_boundary = TRUE                                 // input not used
+      use_rbfs       = TRUE                                 // input not used
+      stencil_size   = 8                                    // input used
+   }
+   InsideLSFcn {
+      center = 0, 0                                         // input not used
+      radius = 1                                            // input not used
+   }
+   QInitial {
+      d      = 0.1                                          // input used
+      k_on   = 1                                            // input used
+      k_off  = 1                                            // input used
+      sf_max = 2                                            // input used
+      center = 0.021, 0.003                                 // input used
+   }
+   PoissonSolver {
+   }
+   Q_bcs {
+      ylow             = 0.5                                // input used
+      yup              = 1.5                                // input used
+      D                = 1                                  // input used
+      acoef_function_0 = "0.0"                              // input used
+      acoef_function_1 = "0.0"                              // input used
+      acoef_function_2 = "0.0"                              // input used
+      acoef_function_3 = "0.0"                              // input used
+      bcoef_function_0 = "1.0"                              // input used
+      bcoef_function_1 = "1.0"                              // input used
+      bcoef_function_2 = "1.0"                              // input used
+      bcoef_function_3 = "1.0"                              // input used
+      gcoef_function_0 = "0.0"                              // input used
+      gcoef_function_1 = "0.0"                              // input used
+      gcoef_function_2 = "0.0"                              // input used
+      gcoef_function_3 = "0.0"                              // input used
+   }
+   Main {
+      log_file_name               = "output"                // input used
+      log_all_nodes               = FALSE                   // input used
+      viz_writer                  = "VisIt", "ExodusII"     // input used
+      viz_dump_interval           = 1                       // input used
+      viz_dump_dirname            = "new_viz_adv_diff2d"    // input used
+      visit_number_procs_per_file = 1                       // input used
+      restart_dump_interval       = 0                       // input used
+      restart_dump_dirname        = "restart_adv_diff2d"    // input used
+      data_dump_interval          = 0                       // input used
+      data_dump_dirname           = "hier_data_IB2d"        // input used
+      timer_dump_interval         = 0                       // input used
+   }
+   CartesianGeometry {
+      domain_boxes       = [(0,0),(63,63)]                  // input used
+      x_lo               = -1.5, -1.5                       // input used
+      x_up               = 1.5, 1.5                         // input used
+      periodic_dimension = 0, 0                             // input used
+   }
+   GriddingAlgorithm {
+      max_levels                = 1                         // input used
+      efficiency_tolerance      = 0.9                       // input used
+      combine_efficiency        = 0.9                       // input used
+      check_nonrefined_tags     = 'w'                       // from default
+      check_overlapping_patches = 'i'                       // from default
+      extend_tags_to_bdry       = FALSE                     // from default
+      ratio_to_coarser {
+         level_1 = 4, 4                                     // input not used
+         level_2 = 4, 4                                     // input not used
+         level_3 = 4, 4                                     // input not used
+      }
+      largest_patch_size {
+         level_0 = 512, 512                                 // input used
+      }
+      smallest_patch_size {
+         level_0 = 4, 4                                     // input used
+      }
+   }
+   StandardTagAndInitialize {
+      tagging_method = "GRADIENT_DETECTOR"                  // input used
+      RefineBoxes {
+         level_0 = [(16,16),(47,31)], [(16,32),(31,47)]     // input not used
+      }
+   }
+   LoadBalancer {
+      bin_pack_method                      = "SPATIAL"      // input used
+      max_workload_factor                  = 1              // input used
+      ignore_level_box_union_is_single_box = FALSE          // from default
+   }
+   TimerManager {
+      print_exclusive      = TRUE                           // input used
+      print_total          = TRUE                           // input used
+      print_threshold      = 0                              // input used
+      timer_list           = "LS::*::*", "IBAMR::*::*", "IBTK::*::*" // input used
+      print_processor      = TRUE                           // from default
+      print_max            = FALSE                          // from default
+      print_summed         = FALSE                          // from default
+      print_user           = FALSE                          // from default
+      print_sys            = FALSE                          // from default
+      print_wall           = TRUE                           // from default
+      print_percentage     = TRUE                           // from default
+      print_concurrent     = FALSE                          // from default
+      print_timer_overhead = FALSE                          // from default
+   }
+   SBAdvDiffIntegrator {
+      start_time                         = 0                // input used
+      end_time                           = 0.117188         // input used
+      grow_dt                            = 2                // input used
+      regrid_interval                    = 1                // input used
+      cfl                                = 0.5              // input used
+      dt_max                             = 0.0117188        // input used
+      dt_min                             = 0.0117188        // input used
+      enable_logging                     = TRUE             // input used
+      enable_logging_solver_iterations   = FALSE            // input used
+      prescribe_level_set                = TRUE             // input not used
+      min_ls_refine_factor               = -4               // input used
+      max_ls_refine_factor               = 2                // input used
+      least_squares_order                = "QUADRATIC"      // input used
+      use_strang_splitting               = TRUE             // input used
+      advection_ts_type                  = "MIDPOINT_RULE"  // input used
+      diffusion_ts_type                  = "TRAPEZOIDAL_RULE" // input used
+      use_rbfs                           = TRUE             // input used
+      rbf_stencil_size                   = 8                // input used
+      rbf_poly_order                     = "QUADRATIC"      // input used
+      tag_buffer                         = 1                // input used
+      convective_op_type                 = "PPM"            // input not used
+      convective_difference_form         = "CONSERVATIVE"   // input used
+      convective_time_stepping_type      = "TRAPEZOIDAL_RULE" // input not used
+      init_convective_time_stepping_type = "MIDPOINT_RULE"  // input not used
+      diffusion_time_stepping_type       = "TRAPEZOIDAL_RULE" // input used
+      num_cycles                         = 1                // input used
+      mls_stencil_size                   = 8                // from default
+      default_adv_reconstruct_type       = "RBF"            // from default
+   }
+}
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 0
+Simulation time is 0
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0,0.0117188], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 0
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: Finished initializing composite data
+SBAdvDiffIntegrator: Initializing fe mesh mappings
+SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SBAdvDiffIntegrator: Integrating surface odes
+Projection converged: 1
+SBAdvDiffIntegrator: Finished integrating surface odes
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Projection converged: 1
+SBAdvDiffIntegrator: advecting Q_in
+SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
+Projection converged: 1
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+SBAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 0
+Simulation time is 0.0117188
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+Error in fluid at time: 0.0117188
+  L1-norm:   0.0003789670296
+  L2-norm:   0.0005333857455
+  max-norm:  0.001141533138
+Error in fluid without cut cells at time: 0.01171875
+  L1-norm:   7.070793146e-05
+  L2-norm:   0.0001266686654
+  max-norm:  0.0004235112258
+Error at surface at time: 0.01171875
+ L1-norm:  0.01481544977
+ L2-norm:  0.00482688004
+ max-norm: 0.002360398596
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 1
+Simulation time is 0.01171875
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0117188,0.0234375], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 1
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: Finished initializing composite data
+SBAdvDiffIntegrator: Initializing fe mesh mappings
+SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SBAdvDiffIntegrator: Integrating surface odes
+Projection converged: 1
+SBAdvDiffIntegrator: Finished integrating surface odes
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Projection converged: 1
+SBAdvDiffIntegrator: advecting Q_in
+SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
+Projection converged: 1
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+SBAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 1
+Simulation time is 0.0234375
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+Error in fluid at time: 0.0234375
+  L1-norm:   0.0006285066568
+  L2-norm:   0.0007851294868
+  max-norm:  0.001491119597
+Error in fluid without cut cells at time: 0.0234375
+  L1-norm:   0.0001868021662
+  L2-norm:   0.0002849670311
+  max-norm:  0.0007819492639
+Error at surface at time: 0.0234375
+ L1-norm:  0.02905515633
+ L2-norm:  0.009466182643
+ max-norm: 0.004629376836
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 2
+Simulation time is 0.0234375
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0234375,0.0351562], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 2
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: Finished initializing composite data
+SBAdvDiffIntegrator: Initializing fe mesh mappings
+SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SBAdvDiffIntegrator: Integrating surface odes
+Projection converged: 1
+SBAdvDiffIntegrator: Finished integrating surface odes
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Projection converged: 1
+SBAdvDiffIntegrator: advecting Q_in
+SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
+Projection converged: 1
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+SBAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 2
+Simulation time is 0.03515625
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+Error in fluid at time: 0.03515625
+  L1-norm:   0.000855053606
+  L2-norm:   0.0009940230625
+  max-norm:  0.00179632942
+Error in fluid without cut cells at time: 0.03515625
+  L1-norm:   0.000312110951
+  L2-norm:   0.0004313635631
+  max-norm:  0.001089561703
+Error at surface at time: 0.03515625
+ L1-norm:  0.04276508092
+ L2-norm:  0.01393288204
+ max-norm: 0.006813713281
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 3
+Simulation time is 0.03515625
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0351562,0.046875], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 3
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: Finished initializing composite data
+SBAdvDiffIntegrator: Initializing fe mesh mappings
+SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SBAdvDiffIntegrator: Integrating surface odes
+Projection converged: 1
+SBAdvDiffIntegrator: Finished integrating surface odes
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Projection converged: 1
+SBAdvDiffIntegrator: advecting Q_in
+SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
+Projection converged: 1
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+SBAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 3
+Simulation time is 0.046875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+Error in fluid at time: 0.046875
+  L1-norm:   0.001071246247
+  L2-norm:   0.001182739382
+  max-norm:  0.002071933312
+Error in fluid without cut cells at time: 0.046875
+  L1-norm:   0.0004417736325
+  L2-norm:   0.0005693098194
+  max-norm:  0.001359246123
+Error at surface at time: 0.046875
+ L1-norm:  0.05596601082
+ L2-norm:  0.01823375086
+ max-norm: 0.008917782482
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 4
+Simulation time is 0.046875
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.046875,0.0585938], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 4
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: Finished initializing composite data
+SBAdvDiffIntegrator: Initializing fe mesh mappings
+SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SBAdvDiffIntegrator: Integrating surface odes
+Projection converged: 1
+SBAdvDiffIntegrator: Finished integrating surface odes
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Projection converged: 1
+SBAdvDiffIntegrator: advecting Q_in
+SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
+Projection converged: 1
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+SBAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 4
+Simulation time is 0.05859375
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+Error in fluid at time: 0.05859375
+  L1-norm:   0.001281928371
+  L2-norm:   0.001359620137
+  max-norm:  0.002330810469
+Error in fluid without cut cells at time: 0.05859375
+  L1-norm:   0.0005744568492
+  L2-norm:   0.0007016553456
+  max-norm:  0.001605329834
+Error at surface at time: 0.05859375
+ L1-norm:  0.0686746935
+ L2-norm:  0.02237424552
+ max-norm: 0.01094436079
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 5
+Simulation time is 0.05859375
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0585938,0.0703125], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 5
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: Finished initializing composite data
+SBAdvDiffIntegrator: Initializing fe mesh mappings
+SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SBAdvDiffIntegrator: Integrating surface odes
+Projection converged: 1
+SBAdvDiffIntegrator: Finished integrating surface odes
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Projection converged: 1
+SBAdvDiffIntegrator: advecting Q_in
+SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
+Projection converged: 1
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+SBAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 5
+Simulation time is 0.0703125
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+Error in fluid at time: 0.0703125
+  L1-norm:   0.001489591966
+  L2-norm:   0.001528863828
+  max-norm:  0.002578713837
+Error in fluid without cut cells at time: 0.0703125
+  L1-norm:   0.000709679659
+  L2-norm:   0.0008302199348
+  max-norm:  0.001835164258
+Error at surface at time: 0.0703125
+ L1-norm:  0.08090598481
+ L2-norm:  0.02635920614
+ max-norm: 0.01289592987
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 6
+Simulation time is 0.0703125
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0703125,0.0820312], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 6
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: Finished initializing composite data
+SBAdvDiffIntegrator: Initializing fe mesh mappings
+SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SBAdvDiffIntegrator: Integrating surface odes
+Projection converged: 1
+SBAdvDiffIntegrator: Finished integrating surface odes
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Projection converged: 1
+SBAdvDiffIntegrator: advecting Q_in
+SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
+Projection converged: 1
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+SBAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 6
+Simulation time is 0.08203125
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+Error in fluid at time: 0.08203125
+  L1-norm:   0.001695676958
+  L2-norm:   0.001692867431
+  max-norm:  0.002818745167
+Error in fluid without cut cells at time: 0.08203125
+  L1-norm:   0.0008472329427
+  L2-norm:   0.0009561820509
+  max-norm:  0.002052959043
+Error at surface at time: 0.08203125
+ L1-norm:  0.09267350441
+ L2-norm:  0.03019307014
+ max-norm: 0.01477470673
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 7
+Simulation time is 0.08203125
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0820312,0.09375], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 7
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: Finished initializing composite data
+SBAdvDiffIntegrator: Initializing fe mesh mappings
+SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SBAdvDiffIntegrator: Integrating surface odes
+Projection converged: 1
+SBAdvDiffIntegrator: Finished integrating surface odes
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Projection converged: 1
+SBAdvDiffIntegrator: advecting Q_in
+SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
+Projection converged: 1
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+SBAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 7
+Simulation time is 0.09375
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+Error in fluid at time: 0.09375
+  L1-norm:   0.001901067639
+  L2-norm:   0.001853103747
+  max-norm:  0.00305271815
+Error in fluid without cut cells at time: 0.09375
+  L1-norm:   0.0009870046531
+  L2-norm:   0.001080326873
+  max-norm:  0.002261328348
+Error at surface at time: 0.09375
+ L1-norm:  0.1039899273
+ L2-norm:  0.03387996713
+ max-norm: 0.01658272225
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 8
+Simulation time is 0.09375
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.09375,0.105469], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 8
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: Finished initializing composite data
+SBAdvDiffIntegrator: Initializing fe mesh mappings
+SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SBAdvDiffIntegrator: Integrating surface odes
+Projection converged: 1
+SBAdvDiffIntegrator: Finished integrating surface odes
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Projection converged: 1
+SBAdvDiffIntegrator: advecting Q_in
+SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
+Projection converged: 1
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+SBAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 8
+Simulation time is 0.10546875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+Error in fluid at time: 0.10546875
+  L1-norm:   0.002106323855
+  L2-norm:   0.002010521159
+  max-norm:  0.003281746544
+Error in fluid without cut cells at time: 0.10546875
+  L1-norm:   0.001128917259
+  L2-norm:   0.00120318901
+  max-norm:  0.002461991616
+Error at surface at time: 0.10546875
+ L1-norm:  0.1148671421
+ L2-norm:  0.03742377058
+ max-norm: 0.01832186143
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 9
+Simulation time is 0.10546875
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.105469,0.117188], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 9
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: initializing composite Hierarchy data
+SBAdvDiffIntegrator: Finished initializing composite data
+SBAdvDiffIntegrator: Initializing fe mesh mappings
+SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SBAdvDiffIntegrator: Integrating surface odes
+Projection converged: 1
+SBAdvDiffIntegrator: Finished integrating surface odes
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Projection converged: 1
+SBAdvDiffIntegrator: advecting Q_in
+SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
+Projection converged: 1
+SBAdvDiffIntegrator: Starting diffusion update for variable Q_in
+SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
+SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
+SBAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+SBAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 9
+Simulation time is 0.1171875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+Error in fluid at time: 0.1171875
+  L1-norm:   0.002311802128
+  L2-norm:   0.002165748426
+  max-norm:  0.003506533958
+Error in fluid without cut cells at time: 0.1171875
+  L1-norm:   0.001272903123
+  L2-norm:   0.001325136917
+  max-norm:  0.002656127741
+Error at surface at time: 0.1171875
+ L1-norm:  0.1253163501
+ L2-norm:  0.04082812998
+ max-norm: 0.01999388711

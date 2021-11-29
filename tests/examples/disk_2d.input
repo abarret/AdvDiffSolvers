@@ -11,7 +11,7 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 256                                    // coarsest grid spacing
+N = 64                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = 2.0*LY/NFINEST
 H = DX
@@ -67,7 +67,7 @@ NORMALIZE_PRESSURE         = FALSE                  // whether to explicitly for
 CFL_MAX                    = 0.5                    // maximum CFL number
 DT                         = CFL_MAX*DX/U_MAX       // maximum timestep size
 START_TIME                 = 0.0e0                  // initial simulation time
-END_TIME                   = 1.0                 // final simulation time
+END_TIME                   = 10 * DT                // final simulation time
 ERROR_ON_DT_CHANGE         = TRUE                  // whether to emit an error message if the time step size changes
 VORTICITY_TAGGING          = TRUE                   // whether to tag cells for refinement based on vorticity thresholds
 TAG_BUFFER                 = 1                      // size of tag buffer used by grid generation algorithm
@@ -269,12 +269,12 @@ Q_bcs {
 Main {
 
 // log file parameters
-   log_file_name               = "test.log"
+   log_file_name               = "output"
    log_all_nodes               = FALSE
 
 // visualization dump parameters
    viz_writer                  = "VisIt", "ExodusII"
-   viz_dump_interval           = NFINEST/8
+   viz_dump_interval           = 1
    viz_dump_dirname            = "new_viz_adv_diff2d"
    visit_number_procs_per_file = 1
 
@@ -341,6 +341,7 @@ SBAdvDiffIntegrator {
     dt_max               = DT
     dt_min               = DT
     enable_logging       = TRUE
+    enable_logging_solver_iterations = FALSE
 
     prescribe_level_set  = USING_LS_FCN
     min_ls_refine_factor = MIN_REFINE_FACTOR
@@ -361,52 +362,4 @@ SBAdvDiffIntegrator {
     init_convective_time_stepping_type = "MIDPOINT_RULE"
     diffusion_time_stepping_type = "TRAPEZOIDAL_RULE"
     num_cycles = 1
-}
-
-IBHierarchyIntegrator {
-   start_time          = START_TIME
-   end_time            = END_TIME
-   grow_dt             = GROW_DT
-   num_cycles          = NUM_CYCLES
-   regrid_cfl_interval = REGRID_CFL_INTERVAL
-   dt_max              = DT
-   error_on_dt_change  = ERROR_ON_DT_CHANGE
-   enable_logging      = ENABLE_LOGGING
-}
-
-IBFESurfaceMethod {
-   use_IB_spread_operator     = USE_IB_DELTA_FUNCTIONS
-   use_IB_interp_operator     = USE_IB_DELTA_FUNCTIONS
-   IB_delta_fcn               = IB_DELTA_FUNCTION
-   split_forces               = SPLIT_FORCES
-// split_tangential_force     = FALSE
-   use_jump_conditions        = USE_JUMP_CONDITIONS
-   use_consistent_mass_matrix = USE_CONSISTENT_MASS_MATRIX
-   IB_point_density           = IB_POINT_DENSITY
-//   constrain_tangential_motion = TRUE
-//   constrain_interior_faces = TRUE
-}
-
-INSStaggeredHierarchyIntegrator {
-   mu                            = MU
-   rho                           = RHO
-   start_time                    = START_TIME
-   end_time                      = END_TIME
-   grow_dt                       = GROW_DT
-   convective_time_stepping_type = CONVECTIVE_TS_TYPE
-   convective_op_type            = CONVECTIVE_OP_TYPE
-   convective_difference_form    = CONVECTIVE_FORM
-   normalize_pressure            = NORMALIZE_PRESSURE
-   cfl                           = CFL_MAX
-   dt_max                        = DT
-   using_vorticity_tagging       = VORTICITY_TAGGING
-   vorticity_rel_thresh          = 0.01
-   tag_buffer                    = TAG_BUFFER
-   output_U                      = OUTPUT_U
-   output_P                      = OUTPUT_P
-   output_F                      = OUTPUT_F
-   output_Omega                  = OUTPUT_OMEGA
-   output_Div_U                  = OUTPUT_DIV_U
-   enable_logging                = ENABLE_LOGGING
-   num_cycles = 1
 }

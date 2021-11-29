@@ -381,9 +381,12 @@ LSAdvDiffIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<NDIM>>
         d_new_data.setFlag(side_new_idx);
 
         const std::string& ls_name = ls_var->getName();
-        d_visit_writer->registerPlotQuantity(ls_name + "_Node", "SCALAR", ls_node_cur_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "_volume", "SCALAR", vol_cur_idx);
-        d_visit_writer->registerPlotQuantity(ls_name + "_area", "SCALAR", area_cur_idx);
+        if (d_visit_writer)
+        {
+            d_visit_writer->registerPlotQuantity(ls_name + "_Node", "SCALAR", ls_node_cur_idx);
+            d_visit_writer->registerPlotQuantity(ls_name + "_volume", "SCALAR", vol_cur_idx);
+            d_visit_writer->registerPlotQuantity(ls_name + "_area", "SCALAR", area_cur_idx);
+        }
 
         if (d_ls_u_map[ls_var].getPointer() != nullptr)
         {
@@ -400,7 +403,7 @@ LSAdvDiffIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<NDIM>>
                              "CONSERVATIVE_COARSEN",
                              "CONSERVATIVE_LINEAR_REFINE");
 
-            d_visit_writer->registerPlotQuantity(ls_name + "_Cell", "SCALAR", ls_cell_cur_idx);
+            if (d_visit_writer) d_visit_writer->registerPlotQuantity(ls_name + "_Cell", "SCALAR", ls_cell_cur_idx);
         }
     }
 
