@@ -6,7 +6,7 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 256                                    // coarsest grid spacing
+N = 128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.5
@@ -28,7 +28,7 @@ USE_OUTSIDE_LS_FOR_TAGGING = TRUE
 ADV_INT_METHOD = "MIDPOINT_RULE"
 DIF_INT_METHOD = "TRAPEZOIDAL_RULE"
 USE_RBFS =  TRUE
-RBF_STENCIL_SIZE = 2
+RBF_STENCIL_SIZE = 12
 RBF_POLY_ORDER = "QUADRATIC"
 
 XCOM = 1.521
@@ -140,7 +140,7 @@ Main {
 
 // visualization dump parameters
    viz_writer                  = "VisIt"
-   viz_dump_interval           = NFINEST/8
+   viz_dump_interval           = 1//NFINEST/8
    viz_dump_dirname            = "viz_adv_diff2d"
    visit_number_procs_per_file = 1
 
@@ -198,7 +198,7 @@ TimerManager{
 }
 
 
-SBAdvDiffIntegrator {
+LSAdvDiffIntegrator {
     start_time           = 0.0e0  // initial simulation time
     end_time             = END_TIME    // final simulation time
     grow_dt              = 2.0e0  // growth factor for timesteps
@@ -218,6 +218,7 @@ SBAdvDiffIntegrator {
     use_rbfs = USE_RBFS
     rbf_stencil_size = RBF_STENCIL_SIZE
     rbf_poly_order = RBF_POLY_ORDER
+    default_adv_reconstruct_type = "ZSPLINES"
 
     tag_buffer = TAG_BUFFER
     

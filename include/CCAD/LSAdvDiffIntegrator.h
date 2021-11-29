@@ -155,6 +155,8 @@ protected:
 
     virtual void evaluateMappingOnHierarchy(int xstar_idx, int Q_cur_idx, int Q_new_idx, int order);
 
+    void setDefaultReconstructionOperator(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var);
+
     SAMRAI::hier::ComponentSelector d_adv_data;
 
     // Level set information
@@ -183,7 +185,6 @@ protected:
              std::shared_ptr<AdvectiveReconstructionOperator>>
         d_Q_adv_reconstruct_map;
     AdvReconstructType d_default_adv_reconstruct_type = AdvReconstructType::RBF;
-    std::shared_ptr<AdvectiveReconstructionOperator> d_default_adv_reconstruct_op;
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_s_var;
 

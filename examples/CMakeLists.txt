@@ -1,5 +1,5 @@
 ADD_CUSTOM_TARGET(examples)
-SET(EXAMPLE_DIRECTORIES couette disk fpc pipe_flow pipe_flow_no_ins radial reacting_couette rotational)
+SET(EXAMPLE_DIRECTORIES couette disk pipe_flow pipe_flow_no_ins radial reacting_couette rotational)
 
 MACRO(CCAD_ADD_EXAMPLE)
   SET(OPTIONS)

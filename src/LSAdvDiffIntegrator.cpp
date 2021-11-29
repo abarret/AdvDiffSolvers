@@ -201,24 +201,6 @@ LSAdvDiffIntegrator::LSAdvDiffIntegrator(const std::string& object_name,
             string_to_enum<AdvReconstructType>(input_db->getStringWithDefault("default_adv_reconstruct_type", "RBF"));
     }
 
-    switch (d_default_adv_reconstruct_type)
-    {
-    case AdvReconstructType::ZSPLINES:
-        d_default_adv_reconstruct_op =
-            std::make_shared<ZSplineReconstructions>(d_object_name + "::DefaultReconstruct", 2);
-        break;
-    case AdvReconstructType::RBF:
-        d_default_adv_reconstruct_op = std::make_shared<RBFReconstructions>(
-            d_object_name + "::DefaultReconstruct", d_rbf_poly_order, d_rbf_stencil_size);
-        break;
-    case AdvReconstructType::LINEAR:
-        d_default_adv_reconstruct_op = std::make_shared<LinearReconstructions>(d_object_name + "::DefaultReconstruct");
-        break;
-    default:
-        TBOX_ERROR("Unknown adv reconstruction type " << enum_to_string(d_default_adv_reconstruct_type) << "\n");
-        break;
-    }
-
     IBAMR_DO_ONCE(
         t_advective_step = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::advective_step");
         t_diffusion_step = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::diffusive_step");
@@ -236,7 +218,7 @@ void
 LSAdvDiffIntegrator::registerTransportedQuantity(Pointer<CellVariable<NDIM, double>> Q_var, bool Q_output)
 {
     AdvDiffHierarchyIntegrator::registerTransportedQuantity(Q_var, Q_output);
-    d_Q_adv_reconstruct_map[Q_var] = d_default_adv_reconstruct_op;
+    setDefaultReconstructionOperator(Q_var);
 }
 
 void
@@ -1614,5 +1596,28 @@ LSAdvDiffIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
         }
     }
     CCAD_TIMER_STOP(t_evaluate_mapping_ls);
+}
+
+void
+LSAdvDiffIntegrator::setDefaultReconstructionOperator(Pointer<CellVariable<NDIM, double>> Q_var)
+{
+    switch (d_default_adv_reconstruct_type)
+    {
+    case AdvReconstructType::ZSPLINES:
+        d_Q_adv_reconstruct_map[Q_var] =
+            std::make_shared<ZSplineReconstructions>(Q_var->getName() + "::DefaultReconstruct", 2);
+        break;
+    case AdvReconstructType::RBF:
+        d_Q_adv_reconstruct_map[Q_var] = std::make_shared<RBFReconstructions>(
+            Q_var->getName() + "::DefaultReconstruct", d_rbf_poly_order, d_rbf_stencil_size);
+        break;
+    case AdvReconstructType::LINEAR:
+        d_Q_adv_reconstruct_map[Q_var] =
+            std::make_shared<LinearReconstructions>(Q_var->getName() + "::DefaultReconstruct");
+        break;
+    default:
+        TBOX_ERROR("Unknown adv reconstruction type " << enum_to_string(d_default_adv_reconstruct_type) << "\n");
+        break;
+    }
 }
 } // namespace CCAD
