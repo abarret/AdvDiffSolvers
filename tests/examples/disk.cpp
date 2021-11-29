@@ -52,13 +52,6 @@
 #include "disk/ForcingFcn.cpp"
 #include "disk/QFcn.cpp"
 
-void postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
-                      Pointer<SBAdvDiffIntegrator> integrator,
-                      Pointer<CellVariable<NDIM, double>> Q_in_var,
-                      int iteration_num,
-                      double loop_time,
-                      const std::string& dirname);
-
 void computeFluidErrors(Pointer<CellVariable<NDIM, double>> Q_var,
                         const int Q_idx,
                         const int Q_error_idx,
@@ -131,25 +124,6 @@ main(int argc, char* argv[])
         Pointer<AppInitializer> app_initializer = new AppInitializer(argc, argv, "adv_diff.log");
         Pointer<Database> input_db = app_initializer->getInputDatabase();
         Pointer<Database> main_db = app_initializer->getComponentDatabase("Main");
-
-        // Get various standard options set in the input file.
-        const bool dump_viz_data = app_initializer->dumpVizData();
-        const int viz_dump_interval = app_initializer->getVizDumpInterval();
-
-        const bool dump_restart_data = app_initializer->dumpRestartData();
-        const int restart_dump_interval = app_initializer->getRestartDumpInterval();
-        const std::string restart_dump_dirname = app_initializer->getRestartDumpDirectory();
-
-        const bool dump_timer_data = app_initializer->dumpTimerData();
-        const int timer_dump_interval = app_initializer->getTimerDumpInterval();
-
-        const bool dump_postproc_data = app_initializer->dumpPostProcessingData();
-        const int dump_postproc_interval = app_initializer->getPostProcessingDataDumpInterval();
-        const std::string postproc_data_dump_dirname = app_initializer->getPostProcessingDataDumpDirectory();
-        if (dump_postproc_data && !postproc_data_dump_dirname.empty())
-        {
-            Utilities::recursiveMkdir(postproc_data_dump_dirname);
-        }
 
         // Create a simple FE mesh.
         // Create a simple FE mesh.
@@ -311,13 +285,6 @@ main(int argc, char* argv[])
         Q_in_helmholtz_solver->setOperator(sol_in_oper);
         adv_diff_integrator->setHelmholtzSolver(Q_in_var, Q_in_helmholtz_solver);
 
-        auto var_db = VariableDatabase<NDIM>::getDatabase();
-        Pointer<CellVariable<NDIM, double>> dist_var = new CellVariable<NDIM, double>("distance");
-        Pointer<CellVariable<NDIM, double>> n_var = new CellVariable<NDIM, double>("num_elements");
-        const int dist_idx =
-            var_db->registerVariableAndContext(dist_var, var_db->getContext("SCRATCH"), IntVector<NDIM>(1));
-        const int n_idx = var_db->registerVariableAndContext(n_var, var_db->getContext("Scratch"), IntVector<NDIM>(1));
-
         const std::string err_sys_name = "ERROR";
         ExplicitSystem& sys =
             sb_data_manager->getFEMeshPartitioner()->getEquationSystems()->add_system<ExplicitSystem>(err_sys_name);
@@ -329,6 +296,7 @@ main(int argc, char* argv[])
         adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
         // Exact and error terms
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
         const int Q_exact_idx = var_db->registerVariableAndContext(Q_in_var, var_db->getContext("Exact"));
         const int Q_error_idx = var_db->registerVariableAndContext(Q_in_var, var_db->getContext("Error"));
         // Allocate exact and error data
@@ -356,7 +324,6 @@ main(int argc, char* argv[])
         double dt = adv_diff_integrator->getMaximumTimeStepSize();
 
         // Write out initial visualization data.
-        EquationSystems* reaction_eq_sys = sb_data_manager->getFEMeshPartitioner()->getEquationSystems();
         int iteration_num = adv_diff_integrator->getIntegratorStep();
         double loop_time = adv_diff_integrator->getIntegratorTime();
 
@@ -399,29 +366,6 @@ main(int argc, char* argv[])
     } // cleanup dynamically allocated objects prior to shutdown
     return 0;
 } // main
-
-void
-postprocess_data(Pointer<PatchHierarchy<NDIM>> hierarchy,
-                 Pointer<SBAdvDiffIntegrator> integrator,
-                 Pointer<CellVariable<NDIM, double>> Q_in_var,
-                 const int iteration_num,
-                 const double loop_time,
-                 const std::string& dirname)
-{
-    std::string file_name = dirname + "/hier_data.";
-    char temp_buf[128];
-    sprintf(temp_buf, "%05d.samrai.%05d", iteration_num, SAMRAI_MPI::getRank());
-    file_name += temp_buf;
-    Pointer<HDFDatabase> hier_db = new HDFDatabase("hier_db");
-    hier_db->create(file_name);
-    ComponentSelector hier_data;
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
-    hier_data.setFlag(var_db->mapVariableAndContextToIndex(Q_in_var, integrator->getCurrentContext()));
-    hierarchy->putToDatabase(hier_db->putDatabase("PatchHierarchy"), hier_data);
-    hier_db->putDouble("loop_time", loop_time);
-    hier_db->putInteger("iteration_num", iteration_num);
-    hier_db->close();
-}
 
 void
 computeSurfaceErrors(const MeshBase& mesh,
