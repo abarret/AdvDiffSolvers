@@ -50,16 +50,18 @@ VolumeBoundaryMeshMapping::commonConstructor(const std::vector<std::set<boundary
     unsigned int num_parts = vol_parts.size();
     d_vol_id_vec.resize(num_parts);
     d_bdry_meshes.resize(num_parts);
+    d_own_bdry_mesh.resize(num_parts);
     d_bdry_eq_sys_vec.resize(num_parts);
     d_fe_data.resize(num_parts);
     for (unsigned int part = 0; part < num_parts; ++part)
     {
         unsigned int vol_part = vol_parts[part];
         d_vol_id_vec[part] = vol_part;
-        std::unique_ptr<BoundaryMesh> bdry_mesh = libmesh_make_unique<BoundaryMesh>(
-            d_vol_meshes[vol_part]->comm(), d_vol_meshes[vol_part]->spatial_dimension() - 1);
+        BoundaryMesh* bdry_mesh =
+            new BoundaryMesh(d_vol_meshes[vol_part]->comm(), d_vol_meshes[vol_part]->spatial_dimension() - 1);
         d_vol_meshes[vol_part]->boundary_info->sync(bdry_ids[part], *bdry_mesh);
         d_bdry_meshes[part] = std::move(bdry_mesh);
+        d_own_bdry_mesh[part] = 1;
         d_bdry_eq_sys_vec[part] = std::move(libmesh_make_unique<EquationSystems>(*d_bdry_meshes[part]));
         d_fe_data[part] = std::make_shared<FEData>(
             d_object_name + "::FEData::" + std::to_string(part), *d_bdry_eq_sys_vec[part], true);
@@ -120,7 +122,7 @@ VolumeBoundaryMeshMapping::updateBoundaryLocation(const double time,
 
     std::map<dof_id_type, dof_id_type> node_id_map;
     std::map<dof_id_type, unsigned char> side_id_map;
-    auto bdry_mesh = static_cast<BoundaryMesh*>(d_bdry_meshes[part].get());
+    auto bdry_mesh = static_cast<BoundaryMesh*>(d_bdry_meshes[part]);
     d_vol_meshes[d_vol_id_vec[part]]->boundary_info->get_side_and_node_maps(*bdry_mesh, node_id_map, side_id_map);
     auto node_it = d_bdry_meshes[part]->local_nodes_begin();
     auto node_end = d_bdry_meshes[part]->local_nodes_end();

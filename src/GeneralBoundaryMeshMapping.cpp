@@ -17,20 +17,22 @@ GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
                                                        const unsigned int restart_restore_number)
     : d_object_name(std::move(object_name))
 {
-    d_bdry_meshes.push_back(std::unique_ptr<MeshBase>(bdry_mesh));
+    d_bdry_meshes.push_back(bdry_mesh);
+    d_own_bdry_mesh.push_back(0);
     commonConstructor(input_db, restart_read_dirname, restart_restore_number);
 }
 
 GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
                                                        Pointer<Database> input_db,
-                                                       std::vector<MeshBase*>& bdry_mesh,
+                                                       const std::vector<MeshBase*>& bdry_mesh,
                                                        const std::string& restart_read_dirname,
                                                        const unsigned int restart_restore_number)
     : d_object_name(std::move(object_name))
 {
     for (unsigned int part = 0; part < bdry_mesh.size(); ++part)
     {
-        d_bdry_meshes.push_back(std::unique_ptr<MeshBase>(bdry_mesh[part]));
+        d_bdry_meshes.push_back(bdry_mesh[part]);
+        d_own_bdry_mesh.push_back(0);
     }
     commonConstructor(input_db, restart_read_dirname, restart_restore_number);
 }
@@ -38,6 +40,20 @@ GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
 GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name) : d_object_name(std::move(object_name))
 {
     // intentionally blank
+}
+
+GeneralBoundaryMeshMapping::~GeneralBoundaryMeshMapping()
+{
+    // Clean up allocated memory if we need to
+    for (unsigned int part = 0; part < d_bdry_meshes.size(); ++part)
+    {
+        if (d_own_bdry_mesh[part])
+        {
+            delete d_bdry_meshes[part];
+            d_bdry_meshes[part] = nullptr;
+            d_own_bdry_mesh[part] = 0;
+        }
+    }
 }
 
 void

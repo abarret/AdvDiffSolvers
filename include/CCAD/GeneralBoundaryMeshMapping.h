@@ -27,7 +27,7 @@ public:
      */
     GeneralBoundaryMeshMapping(std::string object_name,
                                SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
-                               std::vector<libMesh::MeshBase*>& bdry_meshes,
+                               const std::vector<libMesh::MeshBase*>& bdry_meshes,
                                const std::string& restart_read_dirname = "",
                                unsigned int restart_restore_number = 0);
 
@@ -54,7 +54,7 @@ public:
     /*!
      * \brief Default deconstructor.
      */
-    virtual ~GeneralBoundaryMeshMapping() = default;
+    virtual ~GeneralBoundaryMeshMapping();
 
     /*!
      * \brief Deleted copy constructor.
@@ -119,7 +119,10 @@ protected:
 
     std::vector<std::shared_ptr<IBTK::FEData>> d_fe_data;
     std::vector<std::shared_ptr<FEMeshPartitioner>> d_bdry_mesh_partitioners;
-    std::vector<std::unique_ptr<libMesh::MeshBase>> d_bdry_meshes;
+    // TODO: Figure out ownership requirements for d_bdry_meshes. Meshes could be given to us, or we could create them.
+    // For now, we just use a raw pointer, along with a flag to determine if we need to clean it up.
+    std::vector<libMesh::MeshBase*> d_bdry_meshes;
+    std::vector<int> d_own_bdry_mesh;
     std::vector<std::unique_ptr<libMesh::EquationSystems>> d_bdry_eq_sys_vec;
     std::string d_coords_sys_name = "COORDINATES_SYSTEM";
     std::string d_disp_sys_name = "DISPLACEMENT_SYSTEM";
