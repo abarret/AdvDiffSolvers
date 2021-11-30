@@ -503,7 +503,7 @@ def main():
         print("\ncannot be run since either the input or output file missing. "
               "This usually means\nthat one of the files is a broken link. "
               "Broken links to test files occur when\na test exists in one "
-              "revision of CCAD but not another: for example, if a test\nhas "
+              "revision of ADS but not another: for example, if a test\nhas "
               "been removed then links to its input and output files may "
               "still be present\nin the build directory. This is usually "
               "harmless. A good way to get rid of this\nwarning is to delete "

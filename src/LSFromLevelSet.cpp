@@ -1,14 +1,14 @@
 #include "ibtk/config.h"
 
-#include "CCAD/LSFromLevelSet.h"
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/LSFromLevelSet.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 IBTK_DISABLE_EXTRA_WARNINGS
 #include <boost/multi_array.hpp>
 IBTK_ENABLE_EXTRA_WARNINGS
 
-namespace CCAD
+namespace ADS
 {
 const double LSFromLevelSet::s_eps = 1.0e-12;
 
@@ -557,4 +557,4 @@ LSFromLevelSet::findArea(const std::vector<Simplex>& simplices)
     return area;
 }
 
-} // namespace CCAD
+} // namespace ADS

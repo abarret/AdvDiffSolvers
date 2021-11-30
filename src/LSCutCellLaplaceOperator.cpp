@@ -1,8 +1,8 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/LSCutCellLaplaceOperator.h"
-#include "CCAD/app_namespaces.h" // IWYU pragma: keep
-#include "CCAD/ls_functions.h"
+#include "ADS/LSCutCellLaplaceOperator.h"
+#include "ADS/app_namespaces.h" // IWYU pragma: keep
+#include "ADS/ls_functions.h"
 
 #include "ibtk/CellNoCornersFillPattern.h"
 #include "ibtk/DebuggingUtilities.h"
@@ -28,7 +28,7 @@
 
 /////////////////////////////// NAMESPACE ////////////////////////////////////
 
-namespace CCAD
+namespace ADS
 {
 /////////////////////////////// STATIC ///////////////////////////////////////
 
@@ -74,15 +74,14 @@ LSCutCellLaplaceOperator::LSCutCellLaplaceOperator(const std::string& object_nam
         d_Q_var, var_db->getContext(d_object_name + "::SCRATCH"), input_db->getInteger("stencil_size"));
 
     IBTK_DO_ONCE(t_compute_helmholtz =
-                     TimerManager::getManager()->getTimer("CCAD::LSCutCellLaplaceOperator::computeHelmholtzAction()");
+                     TimerManager::getManager()->getTimer("ADS::LSCutCellLaplaceOperator::computeHelmholtzAction()");
                  t_extrapolate =
-                     TimerManager::getManager()->getTimer("CCAD::LSCutCellLaplaceOperator::extrapolateToCellCenters()");
-                 t_apply = TimerManager::getManager()->getTimer("CCAD::LSCutCellLaplaceOperator::apply()");
+                     TimerManager::getManager()->getTimer("ADS::LSCutCellLaplaceOperator::extrapolateToCellCenters()");
+                 t_apply = TimerManager::getManager()->getTimer("ADS::LSCutCellLaplaceOperator::apply()");
                  t_find_cell_centroid =
-                     TimerManager::getManager()->getTimer("CCAD::LSCutCellLaplaceOperator::find_cell_centroid");
-                 t_find_system = TimerManager::getManager()->getTimer("CCAD::LSCutCellLaplaceOperator::find_system");
-                 t_solve_system =
-                     TimerManager::getManager()->getTimer("CCAD::LSCutCellLaplaceOperator::solve_system"););
+                     TimerManager::getManager()->getTimer("ADS::LSCutCellLaplaceOperator::find_cell_centroid");
+                 t_find_system = TimerManager::getManager()->getTimer("ADS::LSCutCellLaplaceOperator::find_system");
+                 t_solve_system = TimerManager::getManager()->getTimer("ADS::LSCutCellLaplaceOperator::solve_system"););
     return;
 } // LSCutCellLaplaceOperator()
 
@@ -95,7 +94,7 @@ LSCutCellLaplaceOperator::~LSCutCellLaplaceOperator()
 void
 LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorReal<NDIM, double>& y)
 {
-    CCAD_TIMER_START(t_apply);
+    ADS_TIMER_START(t_apply);
 #if !defined(NDEBUG)
     TBOX_ASSERT(d_is_initialized);
     for (int comp = 0; comp < d_ncomp; ++comp)
@@ -166,7 +165,7 @@ LSCutCellLaplaceOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
             d_bdry_conds->applyBoundaryCondition(d_Q_var, d_Q_scr_idx, y_cc_var, y_idx, d_hierarchy, d_solution_time);
         }
     }
-    CCAD_TIMER_STOP(t_apply);
+    ADS_TIMER_STOP(t_apply);
     return;
 } // apply
 
@@ -297,7 +296,7 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
                                                  CellData<NDIM, double>& R_data,
                                                  const Patch<NDIM>& patch)
 {
-    CCAD_TIMER_START(t_compute_helmholtz);
+    ADS_TIMER_START(t_compute_helmholtz);
     const Box<NDIM>& box = patch.getBox();
     const Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch.getPatchGeometry();
     const double* const dx = pgeom->getDx();
@@ -375,11 +374,11 @@ LSCutCellLaplaceOperator::computeHelmholtzAction(const CellData<NDIM, double>& Q
             R_data(idx, l) += C * Q_data(idx, l);
         }
     }
-    CCAD_TIMER_STOP(t_compute_helmholtz);
+    ADS_TIMER_STOP(t_compute_helmholtz);
     return;
 }
 //////////////////////////////////////////////////////////////////////////////
 
-} // namespace CCAD
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////

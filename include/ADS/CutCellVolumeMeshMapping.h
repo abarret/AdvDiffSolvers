@@ -1,16 +1,16 @@
-#ifndef included_CCAD_CutCellVolumeMeshMapping
-#define included_CCAD_CutCellVolumeMeshMapping
-#include "CCAD/CutCellMeshMapping.h"
-#include "CCAD/FEMeshPartitioner.h"
-#include "CCAD/ls_functions.h"
-#include "CCAD/ls_utilities.h"
+#ifndef included_ADS_CutCellVolumeMeshMapping
+#define included_ADS_CutCellVolumeMeshMapping
+#include "ADS/CutCellMeshMapping.h"
+#include "ADS/FEMeshPartitioner.h"
+#include "ADS/ls_functions.h"
+#include "ADS/ls_utilities.h"
 
 #include "ibtk/FEDataManager.h"
 
 #include "libmesh/boundary_mesh.h"
 #include "libmesh/mesh.h"
 
-namespace CCAD
+namespace ADS
 {
 /*!
  * CutCellVolumeMeshMapping maintains a description of the Lagrangian mesh from the point of view of the background
@@ -89,5 +89,5 @@ private:
     std::vector<MappingFcn> d_mapping_fcns;
 };
 
-} // namespace CCAD
+} // namespace ADS
 #endif

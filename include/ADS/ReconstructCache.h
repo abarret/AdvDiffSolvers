@@ -1,9 +1,9 @@
-#ifndef included_CCAD_ReconstructCache
-#define included_CCAD_ReconstructCache
+#ifndef included_ADS_ReconstructCache
+#define included_ADS_ReconstructCache
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/ls_utilities.h"
+#include "ADS/ls_utilities.h"
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 #include "ibtk/ibtk_utilities.h"
@@ -23,7 +23,7 @@
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace CCAD
+namespace ADS
 {
 /*!
  * \brief Class ReconstructCache caches the data necessary to form RBF reconstructions of data.
@@ -84,5 +84,5 @@ protected:
     bool d_use_centroids = true;
     int d_vol_idx = IBTK::invalid_index, d_ls_idx = IBTK::invalid_index;
 };
-} // namespace CCAD
+} // namespace ADS
 #endif

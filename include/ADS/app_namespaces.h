@@ -1,21 +1,21 @@
 /////////////////////////////// INCLUDE GUARD ////////////////////////////////
 
-#ifndef included_CCAD_app_namespaces
-#define included_CCAD_app_namespaces
+#ifndef included_ADS_app_namespaces
+#define included_ADS_app_namespaces
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
 #include <ibamr/config.h>
 
 /*!
- * Defines "using" declarations for all namespaces used in CCAD.  This
+ * Defines "using" declarations for all namespaces used in ADS.  This
  * header file may be included in application codes, but it MUST NOT be included
  * in any other header (.h) or inline (.I) file in the library.
  */
-namespace CCAD
+namespace ADS
 {
 }
-using namespace CCAD;
+using namespace ADS;
 
 namespace Eigen
 {

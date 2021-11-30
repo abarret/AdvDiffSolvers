@@ -1,8 +1,8 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/LinearReconstructions.h"
-#include "CCAD/app_namespaces.h" // IWYU pragma: keep
-#include "CCAD/ls_functions.h"
+#include "ADS/LinearReconstructions.h"
+#include "ADS/app_namespaces.h" // IWYU pragma: keep
+#include "ADS/ls_functions.h"
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 
@@ -10,7 +10,7 @@
 
 #include <utility>
 
-namespace CCAD
+namespace ADS
 {
 LinearReconstructions::LinearReconstructions(std::string object_name)
     : AdvectiveReconstructionOperator(std::move(object_name)),
@@ -129,6 +129,6 @@ LinearReconstructions::deallocateOperatorState()
         if (level->checkAllocated(d_Q_scr_idx)) level->deallocatePatchData(d_Q_scr_idx);
     }
 }
-} // namespace CCAD
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////

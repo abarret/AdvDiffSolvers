@@ -1,5 +1,5 @@
-#ifndef included_CCAD_IntegrateFunction
-#define included_CCAD_IntegrateFunction
+#ifndef included_ADS_IntegrateFunction
+#define included_ADS_IntegrateFunction
 
 #include "ibtk/ibtk_enums.h"
 #include "ibtk/ibtk_utilities.h"
@@ -10,7 +10,7 @@
 #include "NodeData.h"
 #include "PatchHierarchy.h"
 
-namespace CCAD
+namespace ADS
 {
 class IntegrateFunction
 {
@@ -92,5 +92,5 @@ private:
     static const double s_eps;
 }; // class IntegrateFunction
 
-} // namespace CCAD
+} // namespace ADS
 #endif

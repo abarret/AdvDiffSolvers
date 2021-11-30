@@ -1,7 +1,7 @@
-#include "CCAD/ReconstructCache.h"
-#include "CCAD/app_namespaces.h"
+#include "ADS/ReconstructCache.h"
+#include "ADS/app_namespaces.h"
 
-namespace CCAD
+namespace ADS
 {
 ReconstructCache::ReconstructCache(int ls_idx,
                                    int vol_idx,
@@ -46,4 +46,4 @@ ReconstructCache::setPatchHierarchy(Pointer<PatchHierarchy<NDIM>> hierarchy)
     clearCache();
     d_update_weights = true;
 }
-} // namespace CCAD
+} // namespace ADS

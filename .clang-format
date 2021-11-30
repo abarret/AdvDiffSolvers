@@ -56,8 +56,8 @@ IncludeCategories:
 # first our config files:
   - Regex: "(ibamr|ibtk)/config.h"
     Priority: -1
-# then CCAD
-  - Regex: "[<\"]CCAD/.*\\.h[<\"]$"
+# then ADS
+  - Regex: "[<\"]ADS/.*\\.h[<\"]$"
     Priority: 5
 # then IBAMR/IBTK library:
   - Regex: "ibamr/.*\\.h.$"

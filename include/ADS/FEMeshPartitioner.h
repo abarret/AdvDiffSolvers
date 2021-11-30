@@ -1,7 +1,7 @@
 /////////////////////////////// INCLUDE GUARD ////////////////////////////////
 
-#ifndef included_CCAD_FEMeshPartitioner
-#define included_CCAD_FEMeshPartitioner
+#ifndef included_ADS_FEMeshPartitioner
+#define included_ADS_FEMeshPartitioner
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -44,7 +44,7 @@ IBTK_ENABLE_EXTRA_WARNINGS
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace CCAD
+namespace ADS
 {
 /*!
  * \brief Class FEMeshPartitioner coordinates data required for
@@ -433,7 +433,7 @@ private:
      */
     std::map<std::string, std::unique_ptr<libMesh::PetscVector<double>>> d_system_ib_ghost_vec;
 };
-} // namespace CCAD
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////
 

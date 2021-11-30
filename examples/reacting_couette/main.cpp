@@ -1,11 +1,11 @@
 #include "ibamr/config.h"
 
-#include "CCAD/LSAdvDiffIntegrator.h"
-#include "CCAD/LSCutCellLaplaceOperator.h"
-#include "CCAD/LSFindCellVolume.h"
-#include "CCAD/LSFromLevelSet.h"
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/LSAdvDiffIntegrator.h"
+#include "ADS/LSCutCellLaplaceOperator.h"
+#include "ADS/LSFindCellVolume.h"
+#include "ADS/LSFromLevelSet.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 #include <ibamr/RelaxationLSMethod.h>
 

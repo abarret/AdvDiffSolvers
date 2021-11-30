@@ -1,7 +1,7 @@
 #include "ibamr/config.h"
 
-#include "CCAD/LSFindCellVolume.h"
-#include "CCAD/LSFromLevelSet.h"
+#include "ADS/LSFindCellVolume.h"
+#include "ADS/LSFromLevelSet.h"
 
 #include <ibtk/AppInitializer.h>
 #include <ibtk/CartExtrapPhysBdryOp.h>
@@ -13,7 +13,7 @@
 #include "CoarseFineBoundary.h"
 #include "PatchGeometry.h"
 #include "RefineAlgorithm.h"
-#include <CCAD/app_namespaces.h>
+#include <ADS/app_namespaces.h>
 
 #include <petscsys.h>
 

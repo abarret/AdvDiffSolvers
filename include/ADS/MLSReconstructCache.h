@@ -1,9 +1,9 @@
-#ifndef included_CCAD_RBFReconstructCache
-#define included_CCAD_RBFReconstructCache
+#ifndef included_ADS_MLSReconstructCache
+#define included_ADS_MLSReconstructCache
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/ReconstructCache.h"
+#include "ADS/ReconstructCache.h"
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 #include "ibtk/ibtk_utilities.h"
@@ -23,40 +23,37 @@
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace CCAD
+namespace ADS
 {
 /*!
- * \brief Class RBFReconstructCache caches the data necessary to form RBF reconstructions of data.
+ * \brief Class MLSReconstructCache caches the data necessary to form RBF reconstructions of data.
  */
-class RBFReconstructCache : public ReconstructCache
+class MLSReconstructCache : public ReconstructCache
 {
 public:
-    RBFReconstructCache() = delete;
+    MLSReconstructCache() = delete;
 
-    RBFReconstructCache(int stencil_size);
+    MLSReconstructCache(int stencil_size);
 
-    RBFReconstructCache(int ls_idx,
+    MLSReconstructCache(int ls_idx,
                         int vol_idx,
                         SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
-                        int d_stencil_size = 8,
+                        int stencil_size = 8,
                         bool use_centroids = true);
 
-    ~RBFReconstructCache() = default;
+    ~MLSReconstructCache() = default;
 
     /*!
      * \brief Deleted copy constructor.
      */
-    RBFReconstructCache(const RBFReconstructCache& from) = delete;
+    MLSReconstructCache(const MLSReconstructCache& from) = delete;
 
     void cacheData() override;
 
     double reconstructOnIndex(IBTK::VectorNd x_loc,
                               const SAMRAI::hier::Index<NDIM>& idx,
                               const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
-                              SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) override;
-
-private:
-    std::vector<std::map<IndexList, std::vector<SAMRAI::hier::Index<NDIM>>>> d_reconstruct_idxs_map_vec;
+                              SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
 };
-} // namespace CCAD
+} // namespace ADS
 #endif

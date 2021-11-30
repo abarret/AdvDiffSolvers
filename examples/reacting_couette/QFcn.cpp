@@ -8,7 +8,7 @@
 
 #include <array>
 
-namespace CCAD
+namespace ADS
 {
 /////////////////////////////// PUBLIC ///////////////////////////////////////
 
@@ -124,4 +124,4 @@ QFcn::getFromInput(Pointer<Database> db)
     return;
 } // getFromInput
 
-} // namespace CCAD
+} // namespace ADS

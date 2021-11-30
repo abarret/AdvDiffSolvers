@@ -1,11 +1,11 @@
 #include "ibamr/config.h"
 
-#include "CCAD/LSCartGridFunction.h"
-#include "CCAD/app_namespaces.h"
+#include "ADS/LSCartGridFunction.h"
+#include "ADS/app_namespaces.h"
 
 #include <SAMRAI_config.h>
 
-namespace CCAD
+namespace ADS
 {
 /////////////////////////////// PUBLIC ///////////////////////////////////////
 
@@ -15,4 +15,4 @@ LSCartGridFunction::LSCartGridFunction(const string& object_name) : CartGridFunc
     return;
 } // LSCartGridFunction
 
-} // namespace CCAD
+} // namespace ADS

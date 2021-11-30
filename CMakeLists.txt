@@ -1,8 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.15.0)
 
-PROJECT(CCAD LANGUAGES C CXX Fortran)
-SET(CCAD_VERSION "0.1.0")
-SET(CCAD_DIMENSIONS
+PROJECT(ADS LANGUAGES C CXX Fortran)
+SET(ADS_VERSION "0.1.0")
+SET(ADS_DIMENSIONS
     "2"
     "3")
 
@@ -11,7 +11,7 @@ SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 MESSAGE(STATUS "This is CMAKE ${CMAKE_VERSION}")
 MESSAGE(STATUS "")
-MESSAGE(STATUS "This is CCAD Version ${CCAD_VERSION}")
+MESSAGE(STATUS "This is ADS Version ${ADS_VERSION}")
 INCLUDE(GNUInstallDirs)
 INCLUDE(CMakePackageConfigHelpers)
 LIST(APPEND CMAKE_MODULE_PARTH ${CMAKE_SOURCE_DIR}/cmake/modules)
@@ -44,7 +44,7 @@ INCLUDE(CMakeParseArguments)
 # - NAME : Relative path(from the directory in which the macro is called) to the
 # relevant Fortran file.For example : if we want to preprocess
 # foo / bar / baz.f.m4 then we should pass foo / bar / baz.f as the NAME argument.
-MACRO(CCAD_PROCESS_M4)
+MACRO(ADS_PROCESS_M4)
 SET(options)
 SET(singleValueArgs NAME)
 
@@ -107,9 +107,9 @@ not a fatal problem but it may result in compilation failures later in the build
   SET_SOURCE_FILES_PROPERTIES(${_output} PROPERTIES LANGUAGE Fortran)
 ENDMACRO()
 
-# Macro to setup an CCAD target library with all common features(i.e.,
+# Macro to setup an ADS target library with all common features(i.e.,
 # everything but the source files)
-FUNCTION(CCADLIB_SETUP_TARGET_LIBRARY target_library)
+FUNCTION(ADSLIB_SETUP_TARGET_LIBRARY target_library)
   MESSAGE(STATUS "setting up target ${target_library}")
 
   SET_TARGET_PROPERTIES(${target_library} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -132,22 +132,22 @@ FUNCTION(CCADLIB_SETUP_TARGET_LIBRARY target_library)
 ENDFUNCTION()
 
 #
-# CCADLib is compiled in 2D and 3D, but the headers are only installed
+# ADSLib is compiled in 2D and 3D, but the headers are only installed
 # once - hence set up the headers as separate targets
 #
-ADD_LIBRARY(CCADHeaders INTERFACE)
+ADD_LIBRARY(ADSHeaders INTERFACE)
 TARGET_INCLUDE_DIRECTORIES(
-  CCADHeaders
+  ADSHeaders
   INTERFACE $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>)
 
-INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/include/CCAD DESTINATION include)
+INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ADS DESTINATION include)
 
-INSTALL(TARGETS CCADHeaders EXPORT CCADTargets)
+INSTALL(TARGETS ADSHeaders EXPORT ADSTargets)
 
 #
 # Set up specific targets for executables and libraries that want to link to
-# CCAD.As noted above, we have to do this since SAMRAI might not be compiled
+# ADS.As noted above, we have to do this since SAMRAI might not be compiled
 # with - fPIC : i.e., if we added SAMRAI as a link dependency to libIBTK and
 # libIBTK as a link dependency to libFoo, then the linker would encounter errors
 # as a result.With executables we can use the full link interface.
@@ -155,27 +155,27 @@ INSTALL(TARGETS CCADHeaders EXPORT CCADTargets)
 SET(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/ccad/)
 
 # Set up actual files containing the export target information:
-INSTALL(EXPORT "CCADTargets" FILE "CCADTargets.cmake"
-	NAMESPACE CCAD::
+INSTALL(EXPORT "ADSTargets" FILE "ADSTargets.cmake"
+	NAMESPACE ADS::
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ccad/)
 
 # Do the same for in - tree:
-EXPORT(EXPORT "CCADTargets"
-  FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/CCADTargets.cmake"
-  NAMESPACE CCAD::)
+EXPORT(EXPORT "ADSTargets"
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/ADSTargets.cmake"
+  NAMESPACE ADS::)
 
 WRITE_BASIC_PACKAGE_VERSION_FILE(
-  "${CMAKE_CURRENT_BINARY_DIR}/cmake/CCADConfigVersion.cmake"
-  VERSION ${CCAD_VERSION}
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake/ADSConfigVersion.cmake"
+  VERSION ${ADS_VERSION}
   COMPATIBILITY AnyNewerVersion)
 
 CONFIGURE_PACKAGE_CONFIG_FILE(
-  ${CMAKE_SOURCE_DIR}/cmake/CCADConfig.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/cmake/CCADConfig.cmake
+  ${CMAKE_SOURCE_DIR}/cmake/ADSConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake/ADSConfig.cmake
   INSTALL_DESTINATION ${INSTALL_CONFIGDIR})
 
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/CCADConfig.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/cmake/CCADConfigVersion.cmake
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/ADSConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake/ADSConfigVersion.cmake
   DESTINATION ${INSTALL_CONFIGDIR})
 
 # proceed to compilation units:

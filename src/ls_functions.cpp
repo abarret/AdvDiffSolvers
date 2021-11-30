@@ -1,9 +1,9 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
-namespace CCAD
+namespace ADS
 {
 double
 area_fraction(const double reg_area, const double phi_ll, const double phi_lu, const double phi_uu, const double phi_ul)
@@ -50,4 +50,4 @@ length_fraction(const double dx, const double phi_l, const double phi_u)
     }
     return L * dx;
 }
-} // namespace CCAD
+} // namespace ADS

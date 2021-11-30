@@ -1,18 +1,18 @@
-#ifndef included_CCAD_SBAdvDiffIntegrator
-#define included_CCAD_SBAdvDiffIntegrator
+#ifndef included_ADS_SBAdvDiffIntegrator
+#define included_ADS_SBAdvDiffIntegrator
 
 #include "ibamr/config.h"
 
-#include "CCAD/AdvectiveReconstructionOperator.h"
-#include "CCAD/GeneralBoundaryMeshMapping.h"
-#include "CCAD/LSAdvDiffIntegrator.h"
-#include "CCAD/LSCutCellLaplaceOperator.h"
-#include "CCAD/LSFindCellVolume.h"
-#include "CCAD/MLSReconstructCache.h"
-#include "CCAD/RBFReconstructCache.h"
-#include "CCAD/SBIntegrator.h"
-#include "CCAD/ls_utilities.h"
-#include "CCAD/reconstructions.h"
+#include "ADS/AdvectiveReconstructionOperator.h"
+#include "ADS/GeneralBoundaryMeshMapping.h"
+#include "ADS/LSAdvDiffIntegrator.h"
+#include "ADS/LSCutCellLaplaceOperator.h"
+#include "ADS/LSFindCellVolume.h"
+#include "ADS/MLSReconstructCache.h"
+#include "ADS/RBFReconstructCache.h"
+#include "ADS/SBIntegrator.h"
+#include "ADS/ls_utilities.h"
+#include "ADS/reconstructions.h"
 
 #include "ibamr/AdvDiffHierarchyIntegrator.h"
 #include "ibamr/IBHierarchyIntegrator.h"
@@ -21,7 +21,7 @@
 #include "ibtk/PETScKrylovPoissonSolver.h"
 #include "ibtk/PoissonSolver.h"
 
-namespace CCAD
+namespace ADS
 {
 void callback_fcn(double current_time, double new_time, int cycle_num, void* ctx);
 
@@ -92,6 +92,6 @@ private:
     bool d_used_with_ib = false;
 }; // Class SBAdvDiffIntegrator
 
-} // namespace CCAD
+} // namespace ADS
 
 #endif

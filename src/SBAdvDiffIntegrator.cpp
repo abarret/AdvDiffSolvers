@@ -1,9 +1,9 @@
 #include "ibamr/config.h"
 
-#include "CCAD/SBAdvDiffIntegrator.h"
-#include "CCAD/SBBoundaryConditions.h"
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/SBAdvDiffIntegrator.h"
+#include "ADS/SBBoundaryConditions.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 #include "ibamr/AdvDiffCUIConvectiveOperator.h"
 #include "ibamr/AdvDiffPPMConvectiveOperator.h"
@@ -17,7 +17,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-namespace CCAD
+namespace ADS
 {
 namespace
 {
@@ -53,16 +53,16 @@ SBAdvDiffIntegrator::SBAdvDiffIntegrator(const std::string& object_name,
     }
 
     IBAMR_DO_ONCE(
-        t_advective_step = TimerManager::getManager()->getTimer("CCAD::SBAdvDiffIntegrator::advective_step");
-        t_diffusion_step = TimerManager::getManager()->getTimer("CCAD::SBAdvDiffIntegrator::diffusive_step");
-        t_preprocess = TimerManager::getManager()->getTimer("CCAD::SBAdvDiffIntegrator::preprocess");
-        t_postprocess = TimerManager::getManager()->getTimer("CCAD::SBAdvDiffIntegrator::postprocess");
-        t_find_velocity = TimerManager::getManager()->getTimer("CCAD::SBAdvDiffIntegrator::find_velocity");
-        t_evaluate_mapping_ls = TimerManager::getManager()->getTimer("CCAD::SBAdvDiffIntegrator::evaluate_mapping_ls");
-        t_integrate_path_vol = TimerManager::getManager()->getTimer("CCAD::SBAdvDiffIntegrator::integrage_path_vol");
-        t_integrate_path_ls = TimerManager::getManager()->getTimer("CCAD::SBAdvDiffIntegrator::integrate_path_ls");
-        t_integrate_hierarchy = TimerManager::getManager()->getTimer("CCAD::SBAdvDiffIntegrator::integrate_hierarchy");
-        t_find_cell_centroid = TimerManager::getManager()->getTimer("CCAD::SBAdvDiffIntegrator::find_cell_centroid"));
+        t_advective_step = TimerManager::getManager()->getTimer("ADS::SBAdvDiffIntegrator::advective_step");
+        t_diffusion_step = TimerManager::getManager()->getTimer("ADS::SBAdvDiffIntegrator::diffusive_step");
+        t_preprocess = TimerManager::getManager()->getTimer("ADS::SBAdvDiffIntegrator::preprocess");
+        t_postprocess = TimerManager::getManager()->getTimer("ADS::SBAdvDiffIntegrator::postprocess");
+        t_find_velocity = TimerManager::getManager()->getTimer("ADS::SBAdvDiffIntegrator::find_velocity");
+        t_evaluate_mapping_ls = TimerManager::getManager()->getTimer("ADS::SBAdvDiffIntegrator::evaluate_mapping_ls");
+        t_integrate_path_vol = TimerManager::getManager()->getTimer("ADS::SBAdvDiffIntegrator::integrage_path_vol");
+        t_integrate_path_ls = TimerManager::getManager()->getTimer("ADS::SBAdvDiffIntegrator::integrate_path_ls");
+        t_integrate_hierarchy = TimerManager::getManager()->getTimer("ADS::SBAdvDiffIntegrator::integrate_hierarchy");
+        t_find_cell_centroid = TimerManager::getManager()->getTimer("ADS::SBAdvDiffIntegrator::find_cell_centroid"));
 }
 
 void
@@ -106,7 +106,7 @@ SBAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
                                                   const double new_time,
                                                   const int num_cycles)
 {
-    CCAD_TIMER_START(t_preprocess)
+    ADS_TIMER_START(t_preprocess)
     // TODO: This was placed here for restarts. We should only call reinitElementMappings() when required.
     if (d_mesh_mapping)
     {
@@ -120,7 +120,7 @@ SBAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
 
     if (d_mesh_mapping) d_mesh_mapping->updateBoundaryLocation(current_time, false);
     LSAdvDiffIntegrator::preprocessIntegrateHierarchy(current_time, new_time, num_cycles);
-    CCAD_TIMER_STOP(t_preprocess);
+    ADS_TIMER_STOP(t_preprocess);
 }
 
 void
@@ -128,7 +128,7 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
 {
     if (!(d_used_with_ib && cycle_num == 500))
         AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
-    CCAD_TIMER_START(t_integrate_hierarchy);
+    ADS_TIMER_START(t_integrate_hierarchy);
     const double half_time = current_time + 0.5 * (new_time - current_time);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
 
@@ -396,7 +396,7 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
             }
         }
     }
-    CCAD_TIMER_STOP(t_integrate_hierarchy);
+    ADS_TIMER_STOP(t_integrate_hierarchy);
 }
 
 void
@@ -430,4 +430,4 @@ SBAdvDiffIntegrator::regridHierarchyEndSpecialized()
     }
 }
 
-} // namespace CCAD
+} // namespace ADS

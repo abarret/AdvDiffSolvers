@@ -1,17 +1,17 @@
-#ifndef included_CCAD_VolumeBoundaryMeshMapping
-#define included_CCAD_VolumeBoundaryMeshMapping
-#include "CCAD/CutCellMeshMapping.h"
-#include "CCAD/FEMeshPartitioner.h"
-#include "CCAD/GeneralBoundaryMeshMapping.h"
-#include "CCAD/ls_functions.h"
-#include "CCAD/ls_utilities.h"
+#ifndef included_ADS_VolumeBoundaryMeshMapping
+#define included_ADS_VolumeBoundaryMeshMapping
+#include "ADS/CutCellMeshMapping.h"
+#include "ADS/FEMeshPartitioner.h"
+#include "ADS/GeneralBoundaryMeshMapping.h"
+#include "ADS/ls_functions.h"
+#include "ADS/ls_utilities.h"
 
 #include "ibtk/FEDataManager.h"
 
 #include "libmesh/boundary_mesh.h"
 #include "libmesh/mesh.h"
 
-namespace CCAD
+namespace ADS
 {
 /*!
  * VolumeBoundaryMeshMapping is a concrete implementation of GeneralBoundaryMeshMapping. It is used to efficiently match
@@ -79,5 +79,5 @@ private:
     std::vector<unsigned int> d_vol_id_vec;
 };
 
-} // namespace CCAD
+} // namespace ADS
 #endif

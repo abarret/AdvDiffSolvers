@@ -63,7 +63,7 @@ MACRO(SETUP_2D _dir _src)
     ${_out_name}
     )
   TARGET_COMPILE_OPTIONS(${_target} PUBLIC -DSOURCE_DIR="${CMAKE_SOURCE_DIR}/tests/${_dir}/")
-  TARGET_LINK_LIBRARIES(${_target} PRIVATE CCAD2d)
+  TARGET_LINK_LIBRARIES(${_target} PRIVATE ADS2d)
   ADD_DEPENDENCIES("tests-${_dir}" ${_target})
 ENDMACRO()
 
@@ -83,7 +83,7 @@ MACRO(SETUP_3D _dir _src)
     ${_out_name}
     )
   TARGET_COMPILE_OPTIONS(${_target} PUBLIC -DSOURCE_DIR="${CMAKE_SOURCE_DIR}/tests/${_dir}/")
-  TARGET_LINK_LIBRARIES(${_target} PRIVATE CCAD3d)
+  TARGET_LINK_LIBRARIES(${_target} PRIVATE ADS3d)
   ADD_DEPENDENCIES(tests-${_dir} ${_target})
 ENDMACRO()
 

@@ -1,8 +1,8 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/RBFReconstructions.h"
-#include "CCAD/app_namespaces.h" // IWYU pragma: keep
-#include "CCAD/ls_functions.h"
+#include "ADS/RBFReconstructions.h"
+#include "ADS/app_namespaces.h" // IWYU pragma: keep
+#include "ADS/ls_functions.h"
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 
@@ -10,7 +10,7 @@
 
 #include <utility>
 
-namespace CCAD
+namespace ADS
 {
 RBFReconstructions::RBFReconstructions(std::string object_name, Reconstruct::RBFPolyOrder rbf_order, int stencil_size)
     : AdvectiveReconstructionOperator(std::move(object_name)),
@@ -112,6 +112,6 @@ RBFReconstructions::deallocateOperatorState()
         if (level->checkAllocated(d_Q_scr_idx)) level->deallocatePatchData(d_Q_scr_idx);
     }
 }
-} // namespace CCAD
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////

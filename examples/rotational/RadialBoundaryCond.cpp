@@ -1,7 +1,7 @@
 #include "ibamr/config.h"
 
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 #include "RadialBoundaryCond.h"
 
@@ -29,7 +29,7 @@ RadialBoundaryCond::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>> Q
                 (1.0 + 2.0 * time));
 
     const double sgn = d_D / std::abs(d_D);
-    double pre_fac = sgn * (d_ts_type == CCAD::DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE ? 0.5 : 1.0);
+    double pre_fac = sgn * (d_ts_type == ADS::DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE ? 0.5 : 1.0);
     if (d_D == 0.0) pre_fac = 0.0;
 
     for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
@@ -70,7 +70,7 @@ RadialBoundaryCond::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>> Q
                     double dphi_dy =
                         ((*ls_data)(idx_ul) + (*ls_data)(idx_ur) - (*ls_data)(idx_ll) - (*ls_data)(idx_lr)) /
                         (2.0 * dx[1]);
-                    double dist = CCAD::node_to_cell(idx, *ls_data) / std::sqrt(dphi_dx * dphi_dx + dphi_dy * dphi_dy);
+                    double dist = ADS::node_to_cell(idx, *ls_data) / std::sqrt(dphi_dx * dphi_dx + dphi_dy * dphi_dy);
                     for (int l = 0; l < Q_data->getDepth(); ++l)
                     {
                         if (d_homogeneous_bdry)

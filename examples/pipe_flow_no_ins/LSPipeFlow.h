@@ -3,7 +3,7 @@
 
 #include "ibtk/config.h"
 
-#include "CCAD/LSFindCellVolume.h"
+#include "ADS/LSFindCellVolume.h"
 
 #include "ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h"
 #include "ibamr/ConvectiveOperator.h"
@@ -35,7 +35,7 @@ IBTK_DISABLE_EXTRA_WARNINGS
 #include <boost/multi_array.hpp>
 IBTK_ENABLE_EXTRA_WARNINGS
 
-class LSPipeFlow : public CCAD::LSFindCellVolume
+class LSPipeFlow : public ADS::LSFindCellVolume
 {
 public:
     LSPipeFlow(std::string object_name,

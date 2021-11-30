@@ -1,5 +1,5 @@
-#include "CCAD/GeneralBoundaryMeshMapping.h"
-#include "CCAD/app_namespaces.h"
+#include "ADS/GeneralBoundaryMeshMapping.h"
+#include "ADS/app_namespaces.h"
 
 #include "ibtk/IBTK_MPI.h"
 #include "ibtk/IndexUtilities.h"
@@ -8,7 +8,7 @@
 #include "libmesh/enum_xdr_mode.h"
 #include "libmesh/explicit_system.h"
 
-namespace CCAD
+namespace ADS
 {
 GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
                                                        Pointer<Database> input_db,
@@ -170,4 +170,4 @@ GeneralBoundaryMeshMapping::writeFEDataToRestartFile(const std::string& restart_
         d_bdry_eq_sys_vec[part]->write(file_name, xdr_mode, write_mode, /*partition_agnostic*/ true);
     }
 }
-} // namespace CCAD
+} // namespace ADS

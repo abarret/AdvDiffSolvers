@@ -1,4 +1,4 @@
-CCAD_ADD_EXAMPLE(
+ADS_ADD_EXAMPLE(
   TARGET_NAME
     "pipe_flow_no_ins"
   OUTPUT_DIRECTORY
@@ -10,7 +10,7 @@ CCAD_ADD_EXAMPLE(
   SOURCES
     main.cpp InsideLSFcn.cpp LSPipeFlow.cpp QFcn.cpp
   LINK_TARGETS
-    CCAD2d
+    ADS2d
   INPUT_FILES
     input2d
   )

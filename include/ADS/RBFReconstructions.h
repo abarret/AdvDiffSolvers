@@ -1,44 +1,44 @@
-#ifndef included_CCAD_ZSplineReconstructions
-#define included_CCAD_ZSplineReconstructions
+#ifndef included_ADS_RBFReconstructions
+#define included_ADS_RBFReconstructions
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
 #include <ibamr/config.h>
 
-#include "CCAD/AdvectiveReconstructionOperator.h"
-#include "CCAD/ls_utilities.h"
-#include "CCAD/reconstructions.h"
+#include "ADS/AdvectiveReconstructionOperator.h"
+#include "ADS/ls_utilities.h"
+#include "ADS/reconstructions.h"
 
 #include "CellVariable.h"
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace CCAD
+namespace ADS
 {
 /*!
- * \brief Class ZSplineReconstructions is a abstract class for an implementation of
+ * \brief Class RBFReconstructions is a abstract class for an implementation of
  * a convective differencing operator.
  */
-class ZSplineReconstructions : public AdvectiveReconstructionOperator
+class RBFReconstructions : public AdvectiveReconstructionOperator
 {
 public:
     /*!
      * \brief Class constructor.
      */
-    ZSplineReconstructions(std::string object_name, int z_spline_order);
+    RBFReconstructions(std::string object_name, Reconstruct::RBFPolyOrder rbf_poly_order, int stencil_size);
 
     /*!
      * \brief Destructor.
      */
-    ~ZSplineReconstructions();
+    ~RBFReconstructions();
 
     /*!
      * \brief Deletec Operators
      */
     //\{
-    ZSplineReconstructions() = delete;
-    ZSplineReconstructions(const ZSplineReconstructions& from) = delete;
-    ZSplineReconstructions& operator=(const ZSplineReconstructions& that) = delete;
+    RBFReconstructions() = delete;
+    RBFReconstructions(const RBFReconstructions& from) = delete;
+    RBFReconstructions& operator=(const RBFReconstructions& that) = delete;
     //\}
 
     /*!
@@ -59,8 +59,6 @@ public:
     void applyReconstruction(int Q_idx, int N_idx, int path_idx) override;
 
 private:
-    int d_order = 2;
-
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
     Reconstruct::RBFPolyOrder d_rbf_order = Reconstruct::RBFPolyOrder::LINEAR;
     unsigned int d_rbf_stencil_size = 5;
@@ -69,8 +67,8 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_scr_var;
     int d_Q_scr_idx = IBTK::invalid_index;
 };
-} // namespace CCAD
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////
 
-#endif //#ifndef included_LS_ZSplineReconstructions
+#endif //#ifndef included_LS_RBFReconstructions

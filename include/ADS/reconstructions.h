@@ -1,5 +1,5 @@
-#ifndef included_CCAD_reconstructions
-#define included_CCAD_reconstructions
+#ifndef included_ADS_reconstructions
+#define included_ADS_reconstructions
 
 #include <ibamr/config.h>
 

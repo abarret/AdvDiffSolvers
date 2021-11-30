@@ -3,8 +3,8 @@
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/IntegrateFunction.h"
-#include "CCAD/LSCartGridFunction.h"
+#include "ADS/IntegrateFunction.h"
+#include "ADS/LSCartGridFunction.h"
 
 #include <ibamr/AdvDiffHierarchyIntegrator.h>
 
@@ -18,7 +18,7 @@
 /*!
  * \brief Method to initialize the value of the advected scalar Q.
  */
-class ForcingFcn : public CCAD::LSCartGridFunction
+class ForcingFcn : public ADS::LSCartGridFunction
 {
 public:
     /*!

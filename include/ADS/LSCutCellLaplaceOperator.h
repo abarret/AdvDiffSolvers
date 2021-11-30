@@ -1,12 +1,12 @@
-#ifndef included_CCAD_LSCutCellLaplaceOperator
-#define included_CCAD_LSCutCellLaplaceOperator
+#ifndef included_ADS_LSCutCellLaplaceOperator
+#define included_ADS_LSCutCellLaplaceOperator
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/LSCutCellBoundaryConditions.h"
-#include "CCAD/LSFindCellVolume.h"
-#include "CCAD/RBFReconstructCache.h"
-#include "CCAD/ls_utilities.h"
+#include "ADS/LSCutCellBoundaryConditions.h"
+#include "ADS/LSFindCellVolume.h"
+#include "ADS/RBFReconstructCache.h"
+#include "ADS/ls_utilities.h"
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 #include "ibtk/LaplaceOperator.h"
@@ -27,7 +27,7 @@
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace CCAD
+namespace ADS
 {
 /*!
  * \brief Class LSCutCellLaplaceOperator is a concrete LaplaceOperator which implements
@@ -204,7 +204,7 @@ private:
 
     DiffusionTimeIntegrationMethod d_ts_type = DiffusionTimeIntegrationMethod::UNKNOWN_METHOD;
 };
-} // namespace CCAD
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////
 

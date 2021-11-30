@@ -1,5 +1,5 @@
-#include "CCAD/VolumeBoundaryMeshMapping.h"
-#include "CCAD/app_namespaces.h"
+#include "ADS/VolumeBoundaryMeshMapping.h"
+#include "ADS/app_namespaces.h"
 
 #include "ibtk/IBTK_MPI.h"
 #include "ibtk/IndexUtilities.h"
@@ -8,7 +8,7 @@
 #include "libmesh/enum_xdr_mode.h"
 #include "libmesh/explicit_system.h"
 
-namespace CCAD
+namespace ADS
 {
 VolumeBoundaryMeshMapping::VolumeBoundaryMeshMapping(std::string object_name,
                                                      Pointer<Database> input_db,
@@ -152,4 +152,4 @@ VolumeBoundaryMeshMapping::updateBoundaryLocation(const double time,
     dX_bdry_sys.update();
     return;
 }
-} // namespace CCAD
+} // namespace ADS

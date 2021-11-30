@@ -1,11 +1,11 @@
 #include "ibamr/config.h"
 
-#include "CCAD/CutCellVolumeMeshMapping.h"
-#include "CCAD/LSCutCellLaplaceOperator.h"
-#include "CCAD/LSFromMesh.h"
-#include "CCAD/SBAdvDiffIntegrator.h"
-#include "CCAD/SBBoundaryConditions.h"
-#include "CCAD/SBIntegrator.h"
+#include "ADS/CutCellVolumeMeshMapping.h"
+#include "ADS/LSCutCellLaplaceOperator.h"
+#include "ADS/LSFromMesh.h"
+#include "ADS/SBAdvDiffIntegrator.h"
+#include "ADS/SBBoundaryConditions.h"
+#include "ADS/SBIntegrator.h"
 
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
@@ -22,7 +22,7 @@
 #include <ibtk/IBTKInit.h>
 
 #include "tbox/Pointer.h"
-#include <CCAD/app_namespaces.h>
+#include <ADS/app_namespaces.h>
 
 #include <libmesh/boundary_mesh.h>
 #include <libmesh/communicator.h>

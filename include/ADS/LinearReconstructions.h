@@ -1,44 +1,46 @@
-#ifndef included_CCAD_RBFReconstructions
-#define included_CCAD_RBFReconstructions
+/////////////////////////////// INCLUDE GUARD ////////////////////////////////
+
+#ifndef included_ADS_LinearReconstructions
+#define included_ADS_LinearReconstructions
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
 #include <ibamr/config.h>
 
-#include "CCAD/AdvectiveReconstructionOperator.h"
-#include "CCAD/ls_utilities.h"
-#include "CCAD/reconstructions.h"
+#include "ADS/AdvectiveReconstructionOperator.h"
+#include "ADS/ls_utilities.h"
+#include "ADS/reconstructions.h"
 
 #include "CellVariable.h"
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace CCAD
+namespace ADS
 {
 /*!
- * \brief Class RBFReconstructions is a abstract class for an implementation of
+ * \brief Class LinearReconstructions is a abstract class for an implementation of
  * a convective differencing operator.
  */
-class RBFReconstructions : public AdvectiveReconstructionOperator
+class LinearReconstructions : public AdvectiveReconstructionOperator
 {
 public:
     /*!
      * \brief Class constructor.
      */
-    RBFReconstructions(std::string object_name, Reconstruct::RBFPolyOrder rbf_poly_order, int stencil_size);
+    LinearReconstructions(std::string object_name);
 
     /*!
      * \brief Destructor.
      */
-    ~RBFReconstructions();
+    ~LinearReconstructions();
 
     /*!
      * \brief Deletec Operators
      */
     //\{
-    RBFReconstructions() = delete;
-    RBFReconstructions(const RBFReconstructions& from) = delete;
-    RBFReconstructions& operator=(const RBFReconstructions& that) = delete;
+    LinearReconstructions() = delete;
+    LinearReconstructions(const LinearReconstructions& from) = delete;
+    LinearReconstructions& operator=(const LinearReconstructions& that) = delete;
     //\}
 
     /*!
@@ -67,8 +69,8 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_scr_var;
     int d_Q_scr_idx = IBTK::invalid_index;
 };
-} // namespace CCAD
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////
 
-#endif //#ifndef included_LS_RBFReconstructions
+#endif //#ifndef included_ADS_LinearReconstructions

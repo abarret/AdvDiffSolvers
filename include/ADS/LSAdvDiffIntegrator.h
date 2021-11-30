@@ -1,17 +1,17 @@
-#ifndef included_CCAD_LSAdvDiffIntegrator
-#define included_CCAD_LSAdvDiffIntegrator
+#ifndef included_ADS_LSAdvDiffIntegrator
+#define included_ADS_LSAdvDiffIntegrator
 
 #include "ibamr/config.h"
 
-#include "CCAD/AdvectiveReconstructionOperator.h"
-#include "CCAD/LSCutCellLaplaceOperator.h"
-#include "CCAD/LSFindCellVolume.h"
-#include "CCAD/MLSReconstructCache.h"
-#include "CCAD/RBFReconstructCache.h"
-#include "CCAD/SBIntegrator.h"
-#include "CCAD/VolumeBoundaryMeshMapping.h"
-#include "CCAD/ls_utilities.h"
-#include "CCAD/reconstructions.h"
+#include "ADS/AdvectiveReconstructionOperator.h"
+#include "ADS/LSCutCellLaplaceOperator.h"
+#include "ADS/LSFindCellVolume.h"
+#include "ADS/MLSReconstructCache.h"
+#include "ADS/RBFReconstructCache.h"
+#include "ADS/SBIntegrator.h"
+#include "ADS/VolumeBoundaryMeshMapping.h"
+#include "ADS/ls_utilities.h"
+#include "ADS/reconstructions.h"
 
 #include "ibamr/AdvDiffHierarchyIntegrator.h"
 #include "ibamr/LSInitStrategy.h"
@@ -19,7 +19,7 @@
 #include "ibtk/PETScKrylovPoissonSolver.h"
 #include "ibtk/PoissonSolver.h"
 
-namespace CCAD
+namespace ADS
 {
 class LSAdvDiffIntegrator : public IBAMR::AdvDiffHierarchyIntegrator
 {
@@ -66,7 +66,7 @@ public:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
     getLSCellVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
-    void registerReconstructionCache(SAMRAI::tbox::Pointer<CCAD::ReconstructCache> reconstruct_cache);
+    void registerReconstructionCache(SAMRAI::tbox::Pointer<ADS::ReconstructCache> reconstruct_cache);
 
     void registerAdvectionReconstruction(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                          std::shared_ptr<AdvectiveReconstructionOperator> reconstruct_op);
@@ -218,6 +218,6 @@ private:
     unsigned int d_mls_stencil_size = 8;
     Reconstruct::RBFPolyOrder d_rbf_poly_order = Reconstruct::RBFPolyOrder::UNKNOWN_ORDER;
 }; // Class LSAdvDiffIntegrator
-} // namespace CCAD
+} // namespace ADS
 
 #endif

@@ -1,13 +1,13 @@
-#ifndef included_CCAD_CutCellMeshMapping
-#define included_CCAD_CutCellMeshMapping
-#include "CCAD/ls_functions.h"
-#include "CCAD/ls_utilities.h"
+#ifndef included_ADS_CutCellMeshMapping
+#define included_ADS_CutCellMeshMapping
+#include "ADS/ls_functions.h"
+#include "ADS/ls_utilities.h"
 
 #include "ibtk/FEDataManager.h"
 
 #include "libmesh/mesh.h"
 
-namespace CCAD
+namespace ADS
 {
 /*!
  * CutCellMeshMapping maintains a description of the Lagrangian mesh from the point of view of the background mesh. We
@@ -69,5 +69,5 @@ protected:
     std::vector<std::vector<std::map<IndexList, std::vector<CutCellElems>>>> d_idx_cut_cell_elems_map_vec;
 };
 
-} // namespace CCAD
+} // namespace ADS
 #endif

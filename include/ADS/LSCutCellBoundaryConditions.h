@@ -1,10 +1,10 @@
-#ifndef included_CCAD_LSCutCellBoundaryConditions
-#define included_CCAD_LSCutCellBoundaryConditions
+#ifndef included_ADS_LSCutCellBoundaryConditions
+#define included_ADS_LSCutCellBoundaryConditions
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/LSFindCellVolume.h"
-#include "CCAD/ls_utilities.h"
+#include "ADS/LSFindCellVolume.h"
+#include "ADS/ls_utilities.h"
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 #include "ibtk/LaplaceOperator.h"
@@ -23,7 +23,7 @@
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace CCAD
+namespace ADS
 {
 class LSCutCellBoundaryConditions : public virtual SAMRAI::tbox::DescribedClass
 {
@@ -91,6 +91,6 @@ protected:
     DiffusionTimeIntegrationMethod d_ts_type = DiffusionTimeIntegrationMethod::UNKNOWN_METHOD;
 };
 
-} // namespace CCAD
+} // namespace ADS
 
 #endif

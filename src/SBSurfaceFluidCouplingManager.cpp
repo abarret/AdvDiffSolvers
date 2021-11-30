@@ -1,5 +1,5 @@
-#include "CCAD/SBSurfaceFluidCouplingManager.h"
-#include "CCAD/app_namespaces.h"
+#include "ADS/SBSurfaceFluidCouplingManager.h"
+#include "ADS/app_namespaces.h"
 
 #include "ibtk/IndexUtilities.h"
 #include "ibtk/ibtk_utilities.h"
@@ -17,7 +17,7 @@ namespace
 static Timer* t_interpolateToBoundary = nullptr;
 }
 
-namespace CCAD
+namespace ADS
 {
 SBSurfaceFluidCouplingManager::SBSurfaceFluidCouplingManager(
     std::string object_name,
@@ -68,7 +68,7 @@ SBSurfaceFluidCouplingManager::commonConstructor(Pointer<Database> input_db)
     d_sf_init_fcn_map_vec.resize(num_parts);
 
     IBTK_DO_ONCE(t_interpolateToBoundary =
-                     TimerManager::getManager()->getTimer("CCAD::SBDataManager::interpolateToBoundary()"););
+                     TimerManager::getManager()->getTimer("ADS::SBDataManager::interpolateToBoundary()"););
     return;
 }
 
@@ -225,7 +225,7 @@ SBSurfaceFluidCouplingManager::interpolateToBoundary(Pointer<CellVariable<NDIM, 
                                                      const double time,
                                                      unsigned int part)
 {
-    CCAD_TIMER_START(t_interpolateToBoundary);
+    ADS_TIMER_START(t_interpolateToBoundary);
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -342,7 +342,7 @@ SBSurfaceFluidCouplingManager::interpolateToBoundary(Pointer<CellVariable<NDIM, 
     }
     X_petsc_vec->restore_array();
     fl_vec->close();
-    CCAD_TIMER_STOP(t_interpolateToBoundary);
+    ADS_TIMER_STOP(t_interpolateToBoundary);
     return fl_name;
 }
 
@@ -503,4 +503,4 @@ SBSurfaceFluidCouplingManager::fillInitialConditions()
         }
     }
 }
-} // namespace CCAD
+} // namespace ADS

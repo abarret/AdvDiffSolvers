@@ -1,16 +1,16 @@
-#ifndef included_CCAD_GeneralBoundaryMeshMapping
-#define included_CCAD_GeneralBoundaryMeshMapping
-#include "CCAD/CutCellMeshMapping.h"
-#include "CCAD/FEMeshPartitioner.h"
-#include "CCAD/ls_functions.h"
-#include "CCAD/ls_utilities.h"
+#ifndef included_ADS_GeneralBoundaryMeshMapping
+#define included_ADS_GeneralBoundaryMeshMapping
+#include "ADS/CutCellMeshMapping.h"
+#include "ADS/FEMeshPartitioner.h"
+#include "ADS/ls_functions.h"
+#include "ADS/ls_utilities.h"
 
 #include "ibtk/FEDataManager.h"
 
 #include "libmesh/boundary_mesh.h"
 #include "libmesh/mesh.h"
 
-namespace CCAD
+namespace ADS
 {
 /*!
  * GeneralBoundaryMeshMapping is a class that generalizes the notion of a boundary mesh. It maintains an EquationSystems
@@ -136,5 +136,5 @@ private:
                            unsigned int restart_restore_number);
 };
 
-} // namespace CCAD
+} // namespace ADS
 #endif

@@ -1,7 +1,7 @@
 #include "ibamr/config.h"
 
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 #include "QFcn.h"
 
@@ -40,7 +40,7 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
     coarsest_ln = coarsest_ln < 0 ? 0 : coarsest_ln;
     finest_ln = finest_ln < 0 ? hierarchy->getFinestLevelNumber() : finest_ln;
 
-    auto integrator = CCAD::IntegrateFunction::getIntegrator();
+    auto integrator = ADS::IntegrateFunction::getIntegrator();
 
     auto fcn = [this](VectorNd X, double t) -> double {
         auto w = [](double r, double D, double t) -> double {

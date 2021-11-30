@@ -1,8 +1,8 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/ZSplineReconstructions.h"
-#include "CCAD/app_namespaces.h" // IWYU pragma: keep
-#include "CCAD/ls_functions.h"
+#include "ADS/ZSplineReconstructions.h"
+#include "ADS/app_namespaces.h" // IWYU pragma: keep
+#include "ADS/ls_functions.h"
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 
@@ -10,7 +10,7 @@
 
 #include <utility>
 
-namespace CCAD
+namespace ADS
 {
 ZSplineReconstructions::ZSplineReconstructions(std::string object_name, int z_spline_order)
     : AdvectiveReconstructionOperator(std::move(object_name)),
@@ -117,6 +117,6 @@ ZSplineReconstructions::deallocateOperatorState()
         if (level->checkAllocated(d_Q_scr_idx)) level->deallocatePatchData(d_Q_scr_idx);
     }
 }
-} // namespace CCAD
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////

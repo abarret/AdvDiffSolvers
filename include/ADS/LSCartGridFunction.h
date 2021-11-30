@@ -1,5 +1,5 @@
-#ifndef included_CCAD_LSCartGridFunction
-#define included_CCAD_LSCartGridFunction
+#ifndef included_ADS_LSCartGridFunction
+#define included_ADS_LSCartGridFunction
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -11,7 +11,7 @@
 /*!
  * \brief Method to initialize the value of the advected scalar Q.
  */
-namespace CCAD
+namespace ADS
 {
 class LSCartGridFunction : public IBTK::CartGridFunction
 {
@@ -65,6 +65,6 @@ protected:
     int d_vol_idx = IBTK::invalid_index;
 };
 
-} // namespace CCAD
+} // namespace ADS
 
 #endif //#ifndef included_LS_LSCartGridFunction

@@ -1,7 +1,7 @@
-#ifndef included_CCAD_utility_functions
-#define included_CCAD_utility_functions
-#include "CCAD/LSFindCellVolume.h"
-#include "CCAD/ls_utilities.h"
+#ifndef included_ADS_utility_functions
+#define included_ADS_utility_functions
+#include "ADS/LSFindCellVolume.h"
+#include "ADS/ls_utilities.h"
 
 #include "ibtk/ibtk_utilities.h"
 
@@ -16,11 +16,11 @@
 
 #include "Eigen/Dense"
 
-namespace CCAD
+namespace ADS
 {
-#define CCAD_TIMER_START(timer) timer->start();
+#define ADS_TIMER_START(timer) timer->start();
 
-#define CCAD_TIMER_STOP(timer) timer->stop();
+#define ADS_TIMER_STOP(timer) timer->stop();
 
 static double s_eps = 1.0e-12;
 
@@ -460,5 +460,5 @@ get_libmesh_restart_file_name(const std::string& restart_dump_dirname,
                      << std::setfill('0') << std::right << time_step_number << "." << extension;
     return file_name_prefix.str();
 }
-} // namespace CCAD
+} // namespace ADS
 #endif

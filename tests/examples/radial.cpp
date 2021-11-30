@@ -1,8 +1,8 @@
 #include "ibamr/config.h"
 
-#include "CCAD/LSAdvDiffIntegrator.h"
-#include "CCAD/LSCutCellLaplaceOperator.h"
-#include "CCAD/LSFromLevelSet.h"
+#include "ADS/LSAdvDiffIntegrator.h"
+#include "ADS/LSCutCellLaplaceOperator.h"
+#include "ADS/LSFromLevelSet.h"
 
 #include <ibamr/RelaxationLSMethod.h>
 
@@ -19,7 +19,7 @@
 #include "SAMRAI_config.h"
 #include "StandardTagAndInitialize.h"
 #include "tbox/Pointer.h"
-#include <CCAD/app_namespaces.h>
+#include <ADS/app_namespaces.h>
 
 #include <petscsys.h>
 

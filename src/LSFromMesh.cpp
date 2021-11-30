@@ -1,6 +1,6 @@
-#include "CCAD/LSFromMesh.h"
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/LSFromMesh.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 #include "ibtk/IBTK_MPI.h"
 
@@ -14,7 +14,7 @@ namespace
 static Timer* t_updateVolumeAreaSideLS = nullptr;
 } // namespace
 
-namespace CCAD
+namespace ADS
 {
 LSFromMesh::LSFromMesh(std::string object_name,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
@@ -41,7 +41,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                                    double /*data_time*/,
                                    bool extended_box)
 {
-    CCAD_TIMER_START(t_updateVolumeAreaSideLS);
+    ADS_TIMER_START(t_updateVolumeAreaSideLS);
     TBOX_ASSERT(phi_idx != IBTK::invalid_index);
     TBOX_ASSERT(phi_var);
     const int finest_ln = d_hierarchy->getFinestLevelNumber();
@@ -379,14 +379,14 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
             }
         }
     }
-    CCAD_TIMER_STOP(t_updateVolumeAreaSideLS);
+    ADS_TIMER_STOP(t_updateVolumeAreaSideLS);
 }
 
 void
 LSFromMesh::commonConstructor()
 {
     IBAMR_DO_ONCE(t_updateVolumeAreaSideLS =
-                      TimerManager::getManager()->getTimer("CCAD::LSFromMesH::updateVolumeAreaSideLS()"););
+                      TimerManager::getManager()->getTimer("ADS::LSFromMesH::updateVolumeAreaSideLS()"););
     const unsigned int num_parts = d_cut_cell_mesh_mapping->getNumParts();
     d_norm_reverse_domain_ids.resize(num_parts);
     d_norm_reverse_elem_ids.resize(num_parts);
@@ -799,4 +799,4 @@ LSFromMesh::floodFillForLS(const int ln, const double eps)
         num_negative_found = IBTK_MPI::sumReduction(num_negative_found);
     }
 }
-} // namespace CCAD
+} // namespace ADS

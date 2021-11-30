@@ -1,7 +1,7 @@
 #include "ibamr/config.h"
 
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 #include "QFcn.h"
 
@@ -64,7 +64,7 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
                 const CellIndex<NDIM>& idx = ci();
                 if ((*vol_data)(idx) > 0.0)
                 {
-                    VectorNd cell_centroid = CCAD::find_cell_centroid(idx, *ls_data);
+                    VectorNd cell_centroid = ADS::find_cell_centroid(idx, *ls_data);
                     for (int d = 0; d < NDIM; ++d)
                     {
                         cell_centroid[d] = xlow[d] + dx[d] * cell_centroid[d];

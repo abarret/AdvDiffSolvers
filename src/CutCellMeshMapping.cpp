@@ -1,9 +1,9 @@
-#include "CCAD/CutCellMeshMapping.h"
-#include "CCAD/app_namespaces.h"
+#include "ADS/CutCellMeshMapping.h"
+#include "ADS/app_namespaces.h"
 
 #include "ibtk/IndexUtilities.h"
 
-namespace CCAD
+namespace ADS
 {
 CutCellMeshMapping::CutCellMeshMapping(std::string object_name,
                                        Pointer<Database> input_db,
@@ -38,4 +38,4 @@ CutCellMeshMapping::deinitializeObjectState()
 
     d_is_initialized = false;
 }
-} // namespace CCAD
+} // namespace ADS

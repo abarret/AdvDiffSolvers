@@ -1,7 +1,7 @@
 #include "ibamr/config.h"
 
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 #include "ibtk/IBTK_MPI.h"
 
@@ -69,7 +69,7 @@ LSPipeFlow::updateVolumeAreaSideLS(int vol_idx,
                                    double /*data_time*/,
                                    bool extended_box)
 {
-    CCAD_TIMER_START(t_updateVolumeAreaSideLS);
+    ADS_TIMER_START(t_updateVolumeAreaSideLS);
     auto dist_up = [this](VectorNd x_pt, double y_p) -> double {
         VectorNd x_int;
         x_int(0) =
@@ -641,13 +641,13 @@ LSPipeFlow::updateVolumeAreaSideLS(int vol_idx,
             }
         }
     }
-    CCAD_TIMER_STOP(t_updateVolumeAreaSideLS);
+    ADS_TIMER_STOP(t_updateVolumeAreaSideLS);
 }
 
 bool
 LSPipeFlow::findIntersection(libMesh::Point& p, Elem* elem, libMesh::Point r, libMesh::VectorValue<double> q)
 {
-    CCAD_TIMER_START(t_findIntersection);
+    ADS_TIMER_START(t_findIntersection);
     bool found_intersection = false;
     switch (elem->type())
     {
@@ -690,7 +690,7 @@ LSPipeFlow::findIntersection(libMesh::Point& p, Elem* elem, libMesh::Point r, li
     default:
         TBOX_ERROR("Unknown element.\n");
     }
-    CCAD_TIMER_STOP(t_findIntersection);
+    ADS_TIMER_STOP(t_findIntersection);
     return found_intersection;
 }
 

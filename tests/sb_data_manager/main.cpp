@@ -43,12 +43,12 @@
 #include <libmesh/numeric_vector.h>
 #include <libmesh/transient_system.h>
 
-#include "../../include/CCAD/LSCutCellLaplaceOperator.h"
-#include "../../include/CCAD/LSFromMesh.h"
-#include "../../include/CCAD/QInitial.h"
-#include "../../include/CCAD/SBBoundaryConditions.h"
-#include "../../include/CCAD/SBIntegrator.h"
-#include "../../include/CCAD/SemiLagrangianAdvIntegrator.h"
+#include "../../include/ADS/LSCutCellLaplaceOperator.h"
+#include "../../include/ADS/LSFromMesh.h"
+#include "../../include/ADS/QInitial.h"
+#include "../../include/ADS/SBBoundaryConditions.h"
+#include "../../include/ADS/SBIntegrator.h"
+#include "../../include/ADS/SemiLagrangianAdvIntegrator.h"
 
 using namespace LS;
 

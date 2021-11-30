@@ -1,7 +1,7 @@
 #include "ibamr/config.h"
 
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 #include "OutsideLSFcn.h"
 

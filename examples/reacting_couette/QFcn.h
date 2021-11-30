@@ -1,10 +1,10 @@
-#ifndef included_CCAD_QFcn
-#define included_CCAD_QFcn
+#ifndef included_ADS_QFcn
+#define included_ADS_QFcn
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/IntegrateFunction.h"
-#include "CCAD/LSCartGridFunction.h"
+#include "ADS/IntegrateFunction.h"
+#include "ADS/LSCartGridFunction.h"
 
 #include <ibamr/AdvDiffHierarchyIntegrator.h>
 
@@ -18,7 +18,7 @@
 /*!
  * \brief Method to initialize the value of the advected scalar Q.
  */
-namespace CCAD
+namespace ADS
 {
 class QFcn : public LSCartGridFunction
 {
@@ -123,6 +123,6 @@ private:
     bool d_use_constant = false;
 };
 
-} // namespace CCAD
+} // namespace ADS
 
 #endif //#ifndef included_LS_QFcn

@@ -1,4 +1,4 @@
-CCAD_ADD_EXAMPLE(
+ADS_ADD_EXAMPLE(
   TARGET_NAME
     "reacting_couette"
   OUTPUT_DIRECTORY
@@ -10,12 +10,12 @@ CCAD_ADD_EXAMPLE(
   SOURCES
     main.cpp InsideBoundaryConditions.cpp InsideLSFcn.cpp OutsideBoundaryConditions.cpp OutsideLSFcn.cpp QFcn.cpp
   LINK_TARGETS
-    CCAD2d
+    ADS2d
   INPUT_FILES
     input2d
   )
 
-CCAD_ADD_EXAMPLE(
+ADS_ADD_EXAMPLE(
   TARGET_NAME
     "reacting_couette_convergence"
   OUTPUT_DIRECTORY
@@ -27,7 +27,7 @@ CCAD_ADD_EXAMPLE(
   SOURCES
     convergence_tester.cpp InsideBoundaryConditions.cpp InsideLSFcn.cpp OutsideBoundaryConditions.cpp OutsideLSFcn.cpp QFcn.cpp
   LINK_TARGETS
-    CCAD2d
+    ADS2d
   INPUT_FILES
     input2d.convergence
   )

@@ -1,6 +1,6 @@
-#include "CCAD/SBBoundaryConditions.h"
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/SBBoundaryConditions.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 #include "ibtk/IndexUtilities.h"
 
@@ -18,7 +18,7 @@ static Timer* t_allocateOperatorState = nullptr;
 static Timer* t_deallocateOperatorState = nullptr;
 } // namespace
 
-namespace CCAD
+namespace ADS
 {
 SBBoundaryConditions::SBBoundaryConditions(const std::string& object_name,
                                            const std::string& fl_name,
@@ -30,11 +30,11 @@ SBBoundaryConditions::SBBoundaryConditions(const std::string& object_name,
       d_fl_name(fl_name)
 {
     IBTK_DO_ONCE(t_applyBoundaryCondition =
-                     TimerManager::getManager()->getTimer("CCAD::SBBoundaryConditions::applyBoundaryCondition()");
+                     TimerManager::getManager()->getTimer("ADS::SBBoundaryConditions::applyBoundaryCondition()");
                  t_allocateOperatorState =
-                     TimerManager::getManager()->getTimer("CCAD::SBBoundaryConditions::allocateOperatorState()");
+                     TimerManager::getManager()->getTimer("ADS::SBBoundaryConditions::allocateOperatorState()");
                  t_deallocateOperatorState =
-                     TimerManager::getManager()->getTimer("CCAD::SBBoundaryConditions::deallocateOperatorState()"););
+                     TimerManager::getManager()->getTimer("ADS::SBBoundaryConditions::deallocateOperatorState()"););
 }
 
 void
@@ -46,7 +46,7 @@ SBBoundaryConditions::setFluidContext(Pointer<VariableContext> ctx)
 void
 SBBoundaryConditions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierarchy, double time)
 {
-    CCAD_TIMER_START(t_allocateOperatorState);
+    ADS_TIMER_START(t_allocateOperatorState);
     LSCutCellBoundaryConditions::allocateOperatorState(hierarchy, time);
 
     TBOX_ASSERT(d_ctx);
@@ -64,16 +64,16 @@ SBBoundaryConditions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierar
 
     d_cut_cell_mapping->initializeObjectState(hierarchy);
     d_cut_cell_mapping->generateCutCellMappings();
-    CCAD_TIMER_STOP(t_allocateOperatorState);
+    ADS_TIMER_STOP(t_allocateOperatorState);
 }
 
 void
 SBBoundaryConditions::deallocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierarchy, double time)
 {
-    CCAD_TIMER_START(t_deallocateOperatorState);
+    ADS_TIMER_START(t_deallocateOperatorState);
     LSCutCellBoundaryConditions::deallocateOperatorState(hierarchy, time);
     d_cut_cell_mapping->deinitializeObjectState();
-    CCAD_TIMER_STOP(t_deallocateOperatorState);
+    ADS_TIMER_STOP(t_deallocateOperatorState);
 }
 
 void
@@ -84,7 +84,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
                                              Pointer<PatchHierarchy<NDIM>> hierarchy,
                                              const double time)
 {
-    CCAD_TIMER_START(t_applyBoundaryCondition);
+    ADS_TIMER_START(t_applyBoundaryCondition);
     TBOX_ASSERT(d_ls_var && d_vol_var && d_area_var);
     TBOX_ASSERT(d_ls_idx > 0 && d_vol_idx > 0 && d_area_idx > 0);
 
@@ -94,7 +94,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
         TBOX_ASSERT(d_fl_name == sys_name);
 
         const double sgn = d_D / std::abs(d_D);
-        double pre_fac = sgn * (d_ts_type == CCAD::DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE ? 0.5 : 1.0);
+        double pre_fac = sgn * (d_ts_type == ADS::DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE ? 0.5 : 1.0);
         if (d_D == 0.0) pre_fac = 0.0;
 
         const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner = d_sb_data_manager->getFEMeshPartitioner(part);
@@ -264,6 +264,6 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
         X_petsc_vec->restore_array();
         J_petsc_vec->restore_array();
     }
-    CCAD_TIMER_STOP(t_applyBoundaryCondition);
+    ADS_TIMER_STOP(t_applyBoundaryCondition);
 }
-} // namespace CCAD
+} // namespace ADS

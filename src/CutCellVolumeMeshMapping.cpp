@@ -1,12 +1,12 @@
-#include "CCAD/CutCellVolumeMeshMapping.h"
-#include "CCAD/app_namespaces.h"
+#include "ADS/CutCellVolumeMeshMapping.h"
+#include "ADS/app_namespaces.h"
 
 #include "ibtk/IBTK_MPI.h"
 #include "ibtk/IndexUtilities.h"
 
 #include "libmesh/explicit_system.h"
 
-namespace CCAD
+namespace ADS
 {
 CutCellVolumeMeshMapping::CutCellVolumeMeshMapping(std::string object_name,
                                                    Pointer<Database> input_db,
@@ -304,4 +304,4 @@ CutCellVolumeMeshMapping::findIntersection(libMesh::Point& p,
     }
     return found_intersection;
 }
-} // namespace CCAD
+} // namespace ADS

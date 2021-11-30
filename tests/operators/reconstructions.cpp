@@ -1,12 +1,12 @@
 #include <ibamr/config.h>
 
-#include "CCAD/CutCellVolumeMeshMapping.h"
-#include "CCAD/LSCartGridFunction.h"
-#include "CCAD/LSCutCellLaplaceOperator.h"
-#include "CCAD/LSFromLevelSet.h"
-#include "CCAD/RBFReconstructions.h"
-#include "CCAD/ZSplineReconstructions.h"
-#include "CCAD/ls_utilities.h"
+#include "ADS/CutCellVolumeMeshMapping.h"
+#include "ADS/LSCartGridFunction.h"
+#include "ADS/LSCutCellLaplaceOperator.h"
+#include "ADS/LSFromLevelSet.h"
+#include "ADS/RBFReconstructions.h"
+#include "ADS/ZSplineReconstructions.h"
+#include "ADS/ls_utilities.h"
 
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
@@ -25,7 +25,7 @@
 #include "PoissonSpecifications.h"
 #include "Variable.h"
 #include "tbox/Pointer.h"
-#include <CCAD/app_namespaces.h>
+#include <ADS/app_namespaces.h>
 
 #include <BergerRigoutsos.h>
 #include <CartesianGridGeometry.h>
@@ -362,7 +362,7 @@ main(int argc, char* argv[])
 
         // Set up reconstruction
         Pointer<AdvectiveReconstructionOperator> op = nullptr;
-        auto reconstruct_type = CCAD::string_to_enum<AdvReconstructType>(input_db->getString("RECONSTRUCT_TYPE"));
+        auto reconstruct_type = ADS::string_to_enum<AdvReconstructType>(input_db->getString("RECONSTRUCT_TYPE"));
         switch (reconstruct_type)
         {
         case AdvReconstructType::ZSPLINES:

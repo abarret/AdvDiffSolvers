@@ -1,13 +1,13 @@
-#include "CCAD/IntegrateFunction.h"
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
-#include "CCAD/ls_utilities.h"
+#include "ADS/IntegrateFunction.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
+#include "ADS/ls_utilities.h"
 
 #include "tbox/ShutdownRegistry.h"
 
 #include "boost/multi_array.hpp"
 
-namespace CCAD
+namespace ADS
 {
 /////////////////// STATIC /////////////////////////////
 
@@ -384,4 +384,4 @@ IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_
     return integral * J;
 #endif
 }
-} // namespace CCAD
+} // namespace ADS

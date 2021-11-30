@@ -1,11 +1,11 @@
-#include "CCAD/LSAdvDiffIntegrator.h"
-#include "CCAD/LSCartGridFunction.h"
-#include "CCAD/LinearReconstructions.h"
-#include "CCAD/RBFReconstructions.h"
-#include "CCAD/SBBoundaryConditions.h"
-#include "CCAD/ZSplineReconstructions.h"
-#include "CCAD/app_namespaces.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/LSAdvDiffIntegrator.h"
+#include "ADS/LSCartGridFunction.h"
+#include "ADS/LinearReconstructions.h"
+#include "ADS/RBFReconstructions.h"
+#include "ADS/SBBoundaryConditions.h"
+#include "ADS/ZSplineReconstructions.h"
+#include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 #include "ibamr/AdvDiffCUIConvectiveOperator.h"
 #include "ibamr/AdvDiffPPMConvectiveOperator.h"
@@ -149,7 +149,7 @@ extern "C"
 #endif
 }
 
-namespace CCAD
+namespace ADS
 {
 namespace
 {
@@ -202,16 +202,16 @@ LSAdvDiffIntegrator::LSAdvDiffIntegrator(const std::string& object_name,
     }
 
     IBAMR_DO_ONCE(
-        t_advective_step = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::advective_step");
-        t_diffusion_step = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::diffusive_step");
-        t_preprocess = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::preprocess");
-        t_postprocess = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::postprocess");
-        t_find_velocity = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::find_velocity");
-        t_evaluate_mapping_ls = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::evaluate_mapping_ls");
-        t_integrate_path_vol = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::integrage_path_vol");
-        t_integrate_path_ls = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::integrate_path_ls");
-        t_integrate_hierarchy = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::integrate_hierarchy");
-        t_find_cell_centroid = TimerManager::getManager()->getTimer("CCAD::LSAdvDiffIntegrator::find_cell_centroid"));
+        t_advective_step = TimerManager::getManager()->getTimer("ADS::LSAdvDiffIntegrator::advective_step");
+        t_diffusion_step = TimerManager::getManager()->getTimer("ADS::LSAdvDiffIntegrator::diffusive_step");
+        t_preprocess = TimerManager::getManager()->getTimer("ADS::LSAdvDiffIntegrator::preprocess");
+        t_postprocess = TimerManager::getManager()->getTimer("ADS::LSAdvDiffIntegrator::postprocess");
+        t_find_velocity = TimerManager::getManager()->getTimer("ADS::LSAdvDiffIntegrator::find_velocity");
+        t_evaluate_mapping_ls = TimerManager::getManager()->getTimer("ADS::LSAdvDiffIntegrator::evaluate_mapping_ls");
+        t_integrate_path_vol = TimerManager::getManager()->getTimer("ADS::LSAdvDiffIntegrator::integrage_path_vol");
+        t_integrate_path_ls = TimerManager::getManager()->getTimer("ADS::LSAdvDiffIntegrator::integrate_path_ls");
+        t_integrate_hierarchy = TimerManager::getManager()->getTimer("ADS::LSAdvDiffIntegrator::integrate_hierarchy");
+        t_find_cell_centroid = TimerManager::getManager()->getTimer("ADS::LSAdvDiffIntegrator::find_cell_centroid"));
 }
 
 void
@@ -483,7 +483,7 @@ LSAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
                                                   const double new_time,
                                                   const int num_cycles)
 {
-    CCAD_TIMER_START(t_preprocess)
+    ADS_TIMER_START(t_preprocess)
     AdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(current_time, new_time, num_cycles);
     const double dt = new_time - current_time;
     const int coarsest_ln = 0;
@@ -641,14 +641,14 @@ LSAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
         d_Q_adv_reconstruct_map[Q_var]->setLSData(ls_cur_idx, vol_cur_idx, ls_new_idx, vol_new_idx);
         d_Q_adv_reconstruct_map[Q_var]->allocateOperatorState(d_hierarchy, current_time, new_time);
     }
-    CCAD_TIMER_STOP(t_preprocess);
+    ADS_TIMER_STOP(t_preprocess);
 }
 
 void
 LSAdvDiffIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
 {
     AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
-    CCAD_TIMER_START(t_integrate_hierarchy);
+    ADS_TIMER_START(t_integrate_hierarchy);
     const double half_time = current_time + 0.5 * (new_time - current_time);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
 
@@ -867,7 +867,7 @@ LSAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
             }
         }
     }
-    CCAD_TIMER_STOP(t_integrate_hierarchy);
+    ADS_TIMER_STOP(t_integrate_hierarchy);
 }
 
 void
@@ -876,13 +876,13 @@ LSAdvDiffIntegrator::postprocessIntegrateHierarchy(const double current_time,
                                                    const bool skip_synchronize_new_state_data,
                                                    const int num_cycles)
 {
-    CCAD_TIMER_START(t_postprocess);
+    ADS_TIMER_START(t_postprocess);
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
         d_hierarchy->getPatchLevel(ln)->deallocatePatchData(d_adv_data);
 
     AdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(
         current_time, new_time, skip_synchronize_new_state_data, num_cycles);
-    CCAD_TIMER_STOP(t_postprocess);
+    ADS_TIMER_STOP(t_postprocess);
 }
 
 void
@@ -1094,7 +1094,7 @@ LSAdvDiffIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
                                      const double new_time)
 {
     plog << d_object_name << ": advecting " << Q_var->getName() << "\n";
-    CCAD_TIMER_START(t_advective_step);
+    ADS_TIMER_START(t_advective_step);
     const double dt = new_time - current_time;
     int finest_ln = d_hierarchy->getFinestLevelNumber();
     int coarsest_ln = 0;
@@ -1136,7 +1136,7 @@ LSAdvDiffIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
 
     // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
     d_Q_adv_reconstruct_map[Q_var]->applyReconstruction(Q_cur_idx, Q_new_idx, d_path_idx);
-    CCAD_TIMER_STOP(t_advective_step);
+    ADS_TIMER_STOP(t_advective_step);
 }
 
 void
@@ -1153,7 +1153,7 @@ LSAdvDiffIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
                                      const double new_time)
 {
     plog << d_object_name << ": Starting diffusion update for variable " << Q_var->getName() << "\n";
-    CCAD_TIMER_START(t_diffusion_step);
+    ADS_TIMER_START(t_diffusion_step);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     // We assume scratch context is already filled correctly.
     const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
@@ -1331,13 +1331,13 @@ LSAdvDiffIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
         Q_helmholtz_solver->deallocateSolverState();
         d_helmholtz_solvers_need_init[l] = true;
     }
-    CCAD_TIMER_STOP(t_diffusion_step);
+    ADS_TIMER_STOP(t_diffusion_step);
 }
 
 void
 LSAdvDiffIntegrator::integratePaths(const int path_idx, const int u_new_idx, const int u_half_idx, const double dt)
 {
-    CCAD_TIMER_START(t_integrate_path_ls);
+    ADS_TIMER_START(t_integrate_path_ls);
     // Integrate path to find \xx^{n+1}
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
@@ -1432,7 +1432,7 @@ LSAdvDiffIntegrator::integratePaths(const int path_idx, const int u_new_idx, con
             }
         }
     }
-    CCAD_TIMER_STOP(t_integrate_path_ls);
+    ADS_TIMER_STOP(t_integrate_path_ls);
 }
 
 void
@@ -1443,7 +1443,7 @@ LSAdvDiffIntegrator::integratePaths(const int path_idx,
                                     const int ls_idx,
                                     const double dt)
 {
-    CCAD_TIMER_START(t_integrate_path_vol);
+    ADS_TIMER_START(t_integrate_path_vol);
     // Integrate path to find \xx^{n+1}
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
@@ -1470,9 +1470,9 @@ LSAdvDiffIntegrator::integratePaths(const int path_idx,
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
-                CCAD_TIMER_START(t_find_cell_centroid);
+                ADS_TIMER_START(t_find_cell_centroid);
                 VectorNd centroid = find_cell_centroid(idx, *ls_data);
-                CCAD_TIMER_STOP(t_find_cell_centroid);
+                ADS_TIMER_STOP(t_find_cell_centroid);
                 for (int d = 0; d < NDIM; ++d) centroid_data(idx, d) = centroid[d];
             }
 #endif
@@ -1561,7 +1561,7 @@ LSAdvDiffIntegrator::integratePaths(const int path_idx,
             }
         }
     }
-    CCAD_TIMER_STOP(t_integrate_path_vol);
+    ADS_TIMER_STOP(t_integrate_path_vol);
 }
 
 void
@@ -1570,7 +1570,7 @@ LSAdvDiffIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
                                                 const int Q_new_idx,
                                                 const int order)
 {
-    CCAD_TIMER_START(t_evaluate_mapping_ls)
+    ADS_TIMER_START(t_evaluate_mapping_ls)
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -1595,7 +1595,7 @@ LSAdvDiffIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
             }
         }
     }
-    CCAD_TIMER_STOP(t_evaluate_mapping_ls);
+    ADS_TIMER_STOP(t_evaluate_mapping_ls);
 }
 
 void
@@ -1620,4 +1620,4 @@ LSAdvDiffIntegrator::setDefaultReconstructionOperator(Pointer<CellVariable<NDIM,
         break;
     }
 }
-} // namespace CCAD
+} // namespace ADS

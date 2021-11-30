@@ -1,13 +1,13 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/AdvectiveReconstructionOperator.h"
-#include "CCAD/app_namespaces.h" // IWYU pragma: keep
+#include "ADS/AdvectiveReconstructionOperator.h"
+#include "ADS/app_namespaces.h" // IWYU pragma: keep
 
 #include "SAMRAIVectorReal.h"
 
 #include <utility>
 
-namespace CCAD
+namespace ADS
 {
 AdvectiveReconstructionOperator::AdvectiveReconstructionOperator(std::string object_name)
     : d_object_name(std::move(object_name))
@@ -64,6 +64,6 @@ AdvectiveReconstructionOperator::deallocateOperatorState()
 {
     d_is_allocated = false;
 }
-} // namespace CCAD
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////

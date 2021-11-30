@@ -1,8 +1,8 @@
 // GENERAL CONFIGURATION
 #include <ibamr/config.h>
 
-#include "CCAD/LSFindCellVolume.h"
-#include "CCAD/ls_functions.h"
+#include "ADS/LSFindCellVolume.h"
+#include "ADS/ls_functions.h"
 
 #include <ibtk/AppInitializer.h>
 #include <ibtk/CartExtrapPhysBdryOp.h>
@@ -14,7 +14,7 @@
 #include "CoarseFineBoundary.h"
 #include "PatchGeometry.h"
 #include "RefineAlgorithm.h"
-#include <CCAD/app_namespaces.h>
+#include <ADS/app_namespaces.h>
 
 #include <petscsys.h>
 

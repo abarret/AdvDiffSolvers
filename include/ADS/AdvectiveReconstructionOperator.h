@@ -1,5 +1,5 @@
-#ifndef included_CCAD_AdvectiveReconstructionOperator
-#define included_CCAD_AdvectiveReconstructionOperator
+#ifndef included_ADS_AdvectiveReconstructionOperator
+#define included_ADS_AdvectiveReconstructionOperator
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -22,7 +22,7 @@ class SAMRAIVectorReal;
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace CCAD
+namespace ADS
 {
 /*!
  * \brief Class AdvectiveReconstructionOperator is an abstract class for reconstructing solutions after a
@@ -89,8 +89,8 @@ protected:
     double d_current_time = std::numeric_limits<double>::quiet_NaN(),
            d_new_time = std::numeric_limits<double>::quiet_NaN();
 };
-} // namespace CCAD
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////
 
-#endif //#ifndef included_CCAD_AdvectiveReconstructionOperator
+#endif //#ifndef included_ADS_AdvectiveReconstructionOperator

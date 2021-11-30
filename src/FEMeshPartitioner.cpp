@@ -1,6 +1,6 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "CCAD/FEMeshPartitioner.h"
+#include "ADS/FEMeshPartitioner.h"
 
 #include "ibtk/FECache.h"
 #include "ibtk/FEMappingCache.h"
@@ -88,7 +88,7 @@ IBTK_DISABLE_EXTRA_WARNINGS
 #include "boost/multi_array.hpp"
 IBTK_ENABLE_EXTRA_WARNINGS
 
-#include "CCAD/app_namespaces.h" // IWYU pragma: keep
+#include "ADS/app_namespaces.h" // IWYU pragma: keep
 
 #include <algorithm>
 #include <array>
@@ -105,7 +105,7 @@ IBTK_ENABLE_EXTRA_WARNINGS
 
 /////////////////////////////// NAMESPACE ////////////////////////////////////
 
-namespace CCAD
+namespace ADS
 {
 /////////////////////////////// STATIC ///////////////////////////////////////
 
@@ -769,6 +769,6 @@ FEMeshPartitioner::reinitializeIBGhostedDOFs(const std::string& system_name)
 }
 /////////////////////////////// NAMESPACE ////////////////////////////////////
 
-} // namespace CCAD
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////
