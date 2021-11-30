@@ -27,8 +27,8 @@ USE_STRANG_SPLITTING = TRUE
 USE_OUT_LS_FOR_TAGGING = FALSE
 ADV_INT_METHOD = "MIDPOINT_RULE"
 DIF_INT_METHOD = "TRAPEZOIDAL_RULE"
-USE_RBFS = FALSE
-RBF_STENCIL_SIZE = 2
+USE_RBFS = TRUE
+RBF_STENCIL_SIZE = 12
 RBF_POLY_ORDER = "QUADRATIC"
 DIFF_SOLVE_ITERS = 3
 
@@ -97,12 +97,10 @@ QFcnIn {
 }
 
 QInitial_out {
-    D = 0.05
-    R1 = 1.0
-    Center = XCOM,YCOM
-    velocity = 0.0,0.0
-    init_type = "CONSTANT"
-    value = 0.0
+    r = R
+    D = D_coef
+    com = XCOM, YCOM
+    use_constant = TRUE
 }
 
 

@@ -120,6 +120,7 @@ private:
     IBTK::VectorNd d_com;
     double d_R;
     double d_D = 0.01;
+    bool d_use_constant = false;
 };
 
 } // namespace CCAD

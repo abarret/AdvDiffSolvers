@@ -269,8 +269,8 @@ main(int argc, char* argv[])
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_out_var = new CellVariable<NDIM, double>("Q_out");
-        Pointer<QInitial> Q_out_init =
-            new QInitial("QInit", grid_geometry, app_initializer->getComponentDatabase("QInitial_out"));
+        Pointer<LSCartGridFunction> Q_out_init =
+            new QFcn("QInit", app_initializer->getComponentDatabase("QInitial_out"));
         std::vector<RobinBcCoefStrategy<NDIM>*> Q_out_bcs(1);
         if (!periodic_domain)
         {

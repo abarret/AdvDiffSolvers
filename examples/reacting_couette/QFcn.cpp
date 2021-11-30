@@ -34,7 +34,7 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
                               Pointer<Variable<NDIM>> var,
                               Pointer<PatchHierarchy<NDIM>> hierarchy,
                               const double data_time,
-                              const bool /*initial_time*/,
+                              const bool initial_time,
                               int coarsest_ln,
                               int finest_ln)
 {
@@ -43,6 +43,15 @@ QFcn::setDataOnPatchHierarchy(const int data_idx,
 
     auto integrator = IntegrateFunction::getIntegrator();
 
+    if (d_use_constant)
+    {
+        for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+        {
+            Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+            setDataOnPatchLevel(data_idx, var, level, data_time, initial_time);
+        }
+        return;
+    }
     auto fcn = [this](VectorNd X, double t) -> double {
         auto w = [](double r, double D, double t) -> double {
             if (r < 1.0)
@@ -111,6 +120,7 @@ QFcn::getFromInput(Pointer<Database> db)
     d_D = db->getDouble("D");
     db->getDoubleArray("com", d_com.data(), NDIM);
     d_R = db->getDouble("r");
+    d_use_constant = db->getBoolWithDefault("use_constant", d_use_constant);
     return;
 } // getFromInput
 
