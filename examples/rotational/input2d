@@ -6,7 +6,7 @@ BASE_NAME = "test1"
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 2*128                                    // coarsest grid spacing
+N = 128                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 H = L/NFINEST
 CFL_MAX = 0.3
@@ -24,7 +24,7 @@ USE_STRANG_SPLITTING = TRUE
 ADV_INTEGRATION_METHOD = "MIDPOINT_RULE"
 DIF_INTEGRATION_METHOD = "TRAPEZOIDAL_RULE"
 USE_RBFS = TRUE
-RBF_STENCIL_SIZE = 3
+RBF_STENCIL_SIZE = 10
 RBF_POLY_ORDER = "QUADRATIC"
 
 
