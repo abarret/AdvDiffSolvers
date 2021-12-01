@@ -1,5 +1,13 @@
-#ifndef included_KDTree
-#define included_KDTree
+// ---------------------------------------------------------------------
+//
+// Modified from code written by Varun Shankar
+//
+// ---------------------------------------------------------------------
+
+#ifndef included_ADS_KDTree
+#define included_ADS_KDTree
+
+#include <ibtk/ibtk_utilities.h>
 
 #include <math.h> // fabs operation
 
@@ -64,15 +72,15 @@ public:
     void
     ball_query(const Point& point, const double radius, std::vector<int>& idxsInRange, std::vector<double>& distances);
     void ellipsoid_query(const Point& point,
-                         const VectorNd& radii,
+                         const IBTK::VectorNd& radii,
                          std::vector<int>& idxsInRange,
                          std::vector<double>& distances);
     void cuboid_query(const Point& point,
-                      const VectorNd& radii,
+                      const IBTK::VectorNd& radii,
                       std::vector<int>& idxsInRange,
                       std::vector<double>& distances);
-    void range_query(const VectorNd& pmin,
-                     const VectorNd& pmax,
+    void range_query(const IBTK::VectorNd& pmin,
+                     const IBTK::VectorNd& pmax,
                      std::vector<int>& inrange_idxs,
                      int nodeIdx = 0,
                      int dim = 0);
@@ -85,31 +93,31 @@ private:
     bool ball_within_bounds(const Point& Xq);
     double bounds_overlap_ball(const Point& Xq);
     void ball_bbox_query(int nodeIdx,
-                         VectorNd& pmin,
-                         VectorNd& pmax,
+                         IBTK::VectorNd& pmin,
+                         IBTK::VectorNd& pmax,
                          std::vector<int>& inrange_idxs,
                          std::vector<double>& distances,
                          const Point& point,
                          const double& radiusSquared,
                          int dim = 0);
     void ellipsoid_bbox_query(int nodeIdx,
-                              VectorNd& pmin,
-                              VectorNd& pmax,
+                              IBTK::VectorNd& pmin,
+                              IBTK::VectorNd& pmax,
                               std::vector<int>& inrange_idxs,
                               std::vector<double>& distances,
                               const Point& point,
-                              const VectorNd& radii,
+                              const IBTK::VectorNd& radii,
                               int dim = 0);
     void cuboid_bbox_query(int nodeIdx,
-                           VectorNd& pmin,
-                           VectorNd& pmax,
+                           IBTK::VectorNd& pmin,
+                           IBTK::VectorNd& pmax,
                            std::vector<int>& inrange_idxs,
                            std::vector<double>& distances,
                            const Point& point,
-                           const VectorNd& radii,
+                           const IBTK::VectorNd& radii,
                            int dim = 0);
-    bool lies_in_range2(const Point& p, const VectorNd& pMin, const VectorNd& pMax);
-    bool lies_in_range(const Point& p, const VectorNd& pMin, const VectorNd& pMax);
+    bool lies_in_range2(const Point& p, const IBTK::VectorNd& pMin, const IBTK::VectorNd& pMax);
+    bool lies_in_range(const Point& p, const IBTK::VectorNd& pMin, const IBTK::VectorNd& pMax);
 
     int d_npoints = -1;          ///< Number of stored points
     std::vector<Point> d_points; ///< Points data, size ?x?

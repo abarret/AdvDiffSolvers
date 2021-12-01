@@ -144,9 +144,9 @@ void
 PETScAugmentedKrylovLinearSolver::setOperator(Pointer<LinearOperator> A)
 {
 #ifndef NDEBUG
-    Pointer<PETScLinearAugmentedOperator> A_op = A;
+    Pointer<PETScAugmentedLinearOperator> A_op = A;
     if (!A_op)
-        TBOX_ERROR(d_object_name + "::setOperator: The linear operator must be a PETScLinearAugmentedOperator\n");
+        TBOX_ERROR(d_object_name + "::setOperator: The linear operator must be a PETScAugmentedLinearOperator\n");
 #endif
     KrylovLinearSolver::setOperator(A);
     return;
@@ -173,7 +173,7 @@ PETScAugmentedKrylovLinearSolver::solveSystem(SAMRAIVectorReal<NDIM, double>& x,
 {
     IBTK_TIMER_START(t_solve_system);
 
-    Pointer<PETScLinearAugmentedOperator> A_op = d_A;
+    Pointer<PETScAugmentedLinearOperator> A_op = d_A;
 #if !defined(NDEBUG)
     TBOX_ASSERT(d_A);
     TBOX_ASSERT(A_op);
@@ -335,7 +335,7 @@ PETScAugmentedKrylovLinearSolver::initializeSolverState(const SAMRAIVectorReal<N
 
     // Initialize the linear operator and preconditioner objects.
     // Before we initialize, we need to set up augmented vector
-    Pointer<PETScLinearAugmentedOperator> A_aug = d_A;
+    Pointer<PETScAugmentedLinearOperator> A_aug = d_A;
     A_aug->setAugmentedVec(d_aug_x);
     d_A->initializeOperatorState(*d_x, *d_b);
     resetKSPOperators();
@@ -538,7 +538,7 @@ PETScAugmentedKrylovLinearSolver::MatVecMult_SAMRAI(Mat A, Vec x, Vec y)
     TBOX_ASSERT(krylov_solver);
     TBOX_ASSERT(krylov_solver->d_A);
 #endif
-    Pointer<PETScLinearAugmentedOperator> A_op = krylov_solver->d_A;
+    Pointer<PETScAugmentedLinearOperator> A_op = krylov_solver->d_A;
 #if !defined(NDEBUG)
     TBOX_ASSERT(A_op);
 #endif

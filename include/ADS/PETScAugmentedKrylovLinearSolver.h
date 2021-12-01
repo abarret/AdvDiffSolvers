@@ -135,7 +135,7 @@ public:
      *
      * \note The operator must be an implementation of PETScLinearAugmentedOperator.
      */
-    void setOperator(SAMRAI::tbox::Pointer<LinearOperator> A) override;
+    void setOperator(SAMRAI::tbox::Pointer<IBTK::LinearOperator> A) override;
 
     /*!
      * \brief Set the preconditioner used by the Krylov subspace method when
@@ -143,7 +143,7 @@ public:
      *
      * \note If the preconditioner is nullptr, no preconditioning is performed.
      */
-    void setPreconditioner(SAMRAI::tbox::Pointer<LinearSolver> pc_solver = nullptr) override;
+    void setPreconditioner(SAMRAI::tbox::Pointer<IBTK::LinearSolver> pc_solver = nullptr) override;
 
     /*!
      * \brief Set the nullspace of the linear system.

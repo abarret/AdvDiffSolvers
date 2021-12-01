@@ -1,4 +1,11 @@
-#include "KDTree.h"
+// ---------------------------------------------------------------------
+//
+// Modified from code written by Varun Shankar
+//
+// ---------------------------------------------------------------------
+#include "ADS/KDTree.h"
+
+#include <ibtk/ibtk_utilities.h>
 namespace tree
 {
 template <class Point>
@@ -516,8 +523,8 @@ KDTree<Point>::ball_query(const Point& point,
 template <class Point>
 void
 KDTree<Point>::ball_bbox_query(int nodeIdx,
-                               VectorNd& pmin,
-                               VectorNd& pmax,
+                               IBTK::VectorNd& pmin,
+                               IBTK::VectorNd& pmax,
                                std::vector<int>& inrange_idxs,
                                std::vector<double>& distances,
                                const Point& point,
@@ -553,7 +560,7 @@ KDTree<Point>::ball_bbox_query(int nodeIdx,
 template <class Point>
 void
 KDTree<Point>::ellipsoid_query(const Point& point,
-                               const VectorNd& radii,
+                               const IBTK::VectorNd& radii,
                                std::vector<int>& idxsInRange,
                                std::vector<double>& distances)
 {
@@ -572,12 +579,12 @@ KDTree<Point>::ellipsoid_query(const Point& point,
 template <class Point>
 void
 KDTree<Point>::ellipsoid_bbox_query(int nodeIdx,
-                                    VectorNd& pmin,
-                                    VectorNd& pmax,
+                                    IBTK::VectorNd& pmin,
+                                    IBTK::VectorNd& pmax,
                                     std::vector<int>& inrange_idxs,
                                     std::vector<double>& distances,
                                     const Point& point,
-                                    const VectorNd& radii,
+                                    const IBTK::VectorNd& radii,
                                     int dim)
 {
     Node* node = d_nodesPtrs[nodeIdx].get();
@@ -609,13 +616,13 @@ KDTree<Point>::ellipsoid_bbox_query(int nodeIdx,
 template <class Point>
 void
 KDTree<Point>::cuboid_query(const Point& point,
-                            const VectorNd& radii,
+                            const IBTK::VectorNd& radii,
                             std::vector<int>& idxsInRange,
                             std::vector<double>& distances)
 {
     // create pmin pmax that bound the sphere
-    VectorNd pmin;
-    VectorNd pmax;
+    IBTK::VectorNd pmin;
+    IBTK::VectorNd pmax;
     for (int dim = 0; dim < NDIM; dim++)
     {
         pmin[dim] = point[dim] - radii[dim];
@@ -628,12 +635,12 @@ KDTree<Point>::cuboid_query(const Point& point,
 template <class Point>
 void
 KDTree<Point>::cuboid_bbox_query(int nodeIdx,
-                                 VectorNd& pmin,
-                                 VectorNd& pmax,
+                                 IBTK::VectorNd& pmin,
+                                 IBTK::VectorNd& pmax,
                                  std::vector<int>& inrange_idxs,
                                  std::vector<double>& distances,
                                  const Point& point,
-                                 const VectorNd& radii,
+                                 const IBTK::VectorNd& radii,
                                  int dim)
 {
     Node* node = d_nodesPtrs[nodeIdx].get();
@@ -669,8 +676,8 @@ KDTree<Point>::cuboid_bbox_query(int nodeIdx,
  */
 template <class Point>
 void
-KDTree<Point>::range_query(const VectorNd& pmin,
-                           const VectorNd& pmax,
+KDTree<Point>::range_query(const IBTK::VectorNd& pmin,
+                           const IBTK::VectorNd& pmax,
                            std::vector<int>& inrange_idxs,
                            int nodeIdx /*=0*/,
                            int dim /*=0*/)
@@ -707,7 +714,7 @@ KDTree<Point>::range_query(const VectorNd& pmin,
  */
 template <class Point>
 bool
-KDTree<Point>::lies_in_range(const Point& p, const VectorNd& pMin, const VectorNd& pMax)
+KDTree<Point>::lies_in_range(const Point& p, const IBTK::VectorNd& pMin, const IBTK::VectorNd& pMax)
 {
     for (int dim = 0; dim < NDIM; dim++)
         if (p[dim] < pMin[dim] || p[dim] > pMax[dim]) return false;
@@ -716,7 +723,7 @@ KDTree<Point>::lies_in_range(const Point& p, const VectorNd& pMin, const VectorN
 
 template <class Point>
 bool
-KDTree<Point>::lies_in_range2(const Point& p, const VectorNd& pMin, const VectorNd& pMax)
+KDTree<Point>::lies_in_range2(const Point& p, const IBTK::VectorNd& pMin, const IBTK::VectorNd& pMax)
 {
     for (int dim = 0; dim < NDIM; dim++)
         if (p[dim] <= pMin[dim] || p[dim] >= pMax[dim]) return false;

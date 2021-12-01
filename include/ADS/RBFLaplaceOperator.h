@@ -116,7 +116,7 @@ public:
         return d_idx;
     }
 
-    const VectorNd& getVec() const
+    const IBTK::VectorNd& getVec() const
     {
         return d_pt;
     }
@@ -255,7 +255,7 @@ private:
      *
      * \param from The value to copy to this object.
      */
-    RBFLaplaceOperator(const LaplaceOperator& from) = delete;
+    RBFLaplaceOperator(const RBFLaplaceOperator& from) = delete;
 
     /*!
      * \brief Assignment operator.
@@ -266,7 +266,7 @@ private:
      *
      * \return A reference to this object.
      */
-    LaplaceOperator& operator=(const LaplaceOperator& that) = delete;
+    RBFLaplaceOperator& operator=(const RBFLaplaceOperator& that) = delete;
 
     void applyToLagDOFs(int x_idx, int y_idx);
 
@@ -281,8 +281,8 @@ private:
 
     // Cached communications operators.
     SAMRAI::tbox::Pointer<SAMRAI::xfer::VariableFillPattern<NDIM>> d_fill_pattern;
-    std::vector<HierarchyGhostCellInterpolation::InterpolationTransactionComponent> d_transaction_comps;
-    SAMRAI::tbox::Pointer<HierarchyGhostCellInterpolation> d_hier_bdry_fill, d_no_fill;
+    std::vector<IBTK::HierarchyGhostCellInterpolation::InterpolationTransactionComponent> d_transaction_comps;
+    SAMRAI::tbox::Pointer<IBTK::HierarchyGhostCellInterpolation> d_hier_bdry_fill, d_no_fill;
 
     // Scratch data.
     SAMRAI::tbox::Pointer<SAMRAI::solv::SAMRAIVectorReal<NDIM, double>> d_x, d_b;

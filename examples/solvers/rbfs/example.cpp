@@ -45,7 +45,7 @@ exact(const VectorNd& p)
 #if (NDIM == 2)
     return std::sin(M_PI * p(0)) * std::sin(M_PI * p(1));
 #else
-    return std::sin(M_PI * x(0)) * std::sin(M_PI * x(1)) * std::sin(M_PI * x(2));
+    return std::sin(M_PI * p(0)) * std::sin(M_PI * p(1)) * std::sin(M_PI * p(2));
 #endif
 }
 
