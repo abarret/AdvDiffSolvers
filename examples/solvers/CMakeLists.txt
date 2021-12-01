@@ -1,3 +1,3 @@
-FOREACH(_dir ex0)
+FOREACH(_dir rbfs)
   ADD_SUBDIRECTORY(${_dir})
 ENDFOREACH()
