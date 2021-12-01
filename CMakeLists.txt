@@ -152,12 +152,12 @@ INSTALL(TARGETS ADSHeaders EXPORT ADSTargets)
 # libIBTK as a link dependency to libFoo, then the linker would encounter errors
 # as a result.With executables we can use the full link interface.
 #
-SET(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/ccad/)
+SET(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/ads/)
 
 # Set up actual files containing the export target information:
 INSTALL(EXPORT "ADSTargets" FILE "ADSTargets.cmake"
 	NAMESPACE ADS::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ccad/)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ads/)
 
 # Do the same for in - tree:
 EXPORT(EXPORT "ADSTargets"

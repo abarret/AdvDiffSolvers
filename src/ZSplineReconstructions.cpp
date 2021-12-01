@@ -104,18 +104,20 @@ ZSplineReconstructions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hier
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         if (!level->checkAllocated(d_Q_scr_idx)) level->allocatePatchData(d_Q_scr_idx);
     }
+    d_is_allocated = true;
 }
 
 void
 ZSplineReconstructions::deallocateOperatorState()
 {
     AdvectiveReconstructionOperator::deallocateOperatorState();
-
+    if (!d_is_allocated) return;
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         if (level->checkAllocated(d_Q_scr_idx)) level->deallocatePatchData(d_Q_scr_idx);
     }
+    d_is_allocated = true;
 }
 } // namespace ADS
 

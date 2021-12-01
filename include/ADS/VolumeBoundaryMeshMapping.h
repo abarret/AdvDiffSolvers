@@ -18,7 +18,7 @@ namespace ADS
  * an extracted boundary mesh with that of the corresponding solid mesh. It creates and uses a FEMeshPartitioner to
  * maintain a mapping between background Eulerian patches to boundary elements.
  */
-class VolumeBoundaryMeshMapping : GeneralBoundaryMeshMapping
+class VolumeBoundaryMeshMapping : public GeneralBoundaryMeshMapping
 {
 public:
     /*!
