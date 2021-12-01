@@ -1,0 +1,3 @@
+FOREACH(_dir ex0)
+  ADD_SUBDIRECTORY(${_dir})
+ENDFOREACH()
