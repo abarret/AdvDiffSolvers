@@ -414,7 +414,15 @@ main(int argc, char* argv[])
                     const CellIndex<NDIM>& idx = ci();
                     (*wgt_data)(idx) =
                         (*ls_data)(idx) < -app_initializer->getComponentDatabase("LaplaceOperator")->getDouble("eps") ?
-                            dx[0] * dx[1] :
+#if (NDIM == 2)
+                            dx[0] *
+                                dx[1]
+#endif
+#if (NDIM == 3)
+                                dx[0] *
+                                dx[1] * dx[2]
+#endif
+                            :
                             0.0;
                 }
             }

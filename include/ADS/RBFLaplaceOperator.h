@@ -289,6 +289,7 @@ private:
 
     int d_ls_idx = IBTK::invalid_index;
     double d_dist_to_bdry = std::numeric_limits<double>::quiet_NaN();
+    int d_poly_degree = 3;
 
     // Hierarchy configuration.
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;

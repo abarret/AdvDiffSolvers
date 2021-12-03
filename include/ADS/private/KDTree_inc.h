@@ -3,6 +3,8 @@
 // Modified from code written by Varun Shankar
 //
 // ---------------------------------------------------------------------
+#ifndef included_KDTree_inc
+#define included_KDTree_inc
 #include "ADS/KDTree.h"
 
 #include <ibtk/ibtk_utilities.h>
@@ -730,3 +732,4 @@ KDTree<Point>::lies_in_range2(const Point& p, const IBTK::VectorNd& pMin, const 
     return true;
 }
 } // namespace tree
+#endif

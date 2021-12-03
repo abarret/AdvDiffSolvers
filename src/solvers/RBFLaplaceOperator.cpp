@@ -14,8 +14,10 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
 #include "ADS/KDTree.h"
+#include "ADS/PolynomialBasis.h"
 #include "ADS/RBFLaplaceOperator.h"
 #include "ADS/app_namespaces.h" // IWYU pragma: keep
+#include "ADS/reconstructions.h"
 
 #include "ibtk/CellNoCornersFillPattern.h"
 #include "ibtk/HierarchyMathOps.h"
@@ -77,6 +79,7 @@ RBFLaplaceOperator::RBFLaplaceOperator(const std::string& object_name,
                                        Pointer<Database> input_db)
     : PETScAugmentedLinearOperator(object_name, false), d_mesh(bdry_mesh), d_dof_map(dof_map)
 {
+    d_poly_degree = input_db->getInteger("polynomial_degree");
     d_dist_to_bdry = input_db->getDouble("dist_to_bdry");
     d_eps = input_db->getDouble("eps");
     d_C = input_db->getDouble("C");
@@ -376,7 +379,13 @@ RBFLaplaceOperator::applyToLagDOFs(const int x_idx, const int y_idx)
             for (int i = 0; i < interp_size; ++i)
             {
                 double w = weight_vec[i];
-                lap += w * getSolVal(pt_vec[i], *x_data, d_aug_x_vec) / (dx[0] * dx[1]);
+#if (NDIM == 2)
+                double denom = dx[0] * dx[1];
+#endif
+#if (NDIM == 3)
+                double denom = dx[0] * dx[1];
+#endif
+                lap += w * getSolVal(pt_vec[i], *x_data, d_aug_x_vec) / denom;
             }
             double val = d_C * getSolVal(pt, *x_data, d_aug_x_vec) - d_D * lap;
             // Now insert val into results
@@ -511,7 +520,12 @@ RBFLaplaceOperator::findRBFFDWeights()
     d_pt_weight_vec.clear();
     d_pt_weight_vec.resize(d_base_pt_vec.size());
     auto rbf = [](const double r) -> double { return r * r * r * r * r + 2.0e-10; };
+#if (NDIM == 2)
     auto lap_rbf = [](const double r) -> double { return 25.0 * r * r * r; };
+#endif
+#if (NDIM == 3)
+    auto lap_rbf = [](const double r) -> double { return 30.0 * r * r * r; };
+#endif
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(d_hierarchy->getFinestLevelNumber());
     unsigned int patch_num = 0;
     for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
@@ -530,12 +544,13 @@ RBFLaplaceOperator::findRBFFDWeights()
         {
             const UPoint& pt = d_base_pt_vec[patch_num][idx];
             const std::vector<UPoint>& pt_vec = d_pair_pt_vec[patch_num][idx];
+            const std::vector<VectorNd>& shft_vec = Reconstruct::shift_and_scale_pts(pt_vec, pt.getVec(), dx);
             // Note if we use a KNN search, interp_size is fixed.
             const int interp_size = pt_vec.size();
             // Up to cubic polynomials
-            const int poly_size = NDIM + 1 + NDIM + 1 + NDIM * NDIM;
             MatrixXd A(MatrixXd::Zero(interp_size, interp_size));
-            MatrixXd B(MatrixXd::Zero(interp_size, poly_size));
+            MatrixXd B = PolynomialBasis::formMonomials(shft_vec, d_poly_degree);
+            const int poly_size = B.cols();
             VectorXd U(VectorXd::Zero(interp_size + poly_size));
             VectorNd pt0 = pt.getVec();
             for (int d = 0; d < NDIM; ++d) pt0[d] = pt0[d] / dx[d];
@@ -549,26 +564,13 @@ RBFLaplaceOperator::findRBFFDWeights()
                     for (int d = 0; d < NDIM; ++d) ptj[d] = ptj[d] / dx[d];
                     A(i, j) = rbf((pti - ptj).norm());
                 }
-                // TODO: B is just a Vandermonde matrix. Write a function to set this up given arbitrary polynomial
-                // degree.
-                B(i, 0) = 1.0;
-                VectorNd diff = pti - pt0;
-                for (int d = 0; d < NDIM; ++d) B(i, d + 1) = diff(d);
-                // Add quadratic polynomials
-                B(i, NDIM + 1) = diff(0) * diff(0);
-                B(i, NDIM + 2) = diff(1) * diff(0);
-                B(i, NDIM + 3) = diff(1) * diff(1);
-                // Cubic
-                B(i, NDIM + 4) = diff(0) * diff(0) * diff(0);
-                B(i, NDIM + 5) = diff(1) * diff(0) * diff(0);
-                B(i, NDIM + 6) = diff(1) * diff(1) * diff(0);
-                B(i, NDIM + 7) = diff(1) * diff(1) * diff(1);
                 // Determine rhs
                 U(i) = lap_rbf((pt0 - pti).norm());
             }
             // Add quadratic polynomials
-            U(interp_size + NDIM + 1) = 2.0;
-            U(interp_size + NDIM + 3) = 2.0;
+            std::vector<VectorNd> zeros = { VectorNd::Zero() };
+            MatrixXd Ulow = PolynomialBasis::laplacianMonomials(zeros, d_poly_degree);
+            U.block(interp_size, 0, Ulow.cols(), 1) = Ulow.transpose();
             MatrixXd final_mat(MatrixXd::Zero(interp_size + poly_size, interp_size + poly_size));
             final_mat.block(0, 0, interp_size, interp_size) = A;
             final_mat.block(0, interp_size, interp_size, poly_size) = B;
@@ -578,9 +580,7 @@ RBFLaplaceOperator::findRBFFDWeights()
             // Now evaluate FD stencil)
             VectorXd weights = x.block(0, 0, interp_size, 1);
             for (int i = 0; i < interp_size; ++i)
-            {
                 d_pt_weight_vec[patch_num][idx].push_back(weights(i));
-            }
         }
     }
 }
