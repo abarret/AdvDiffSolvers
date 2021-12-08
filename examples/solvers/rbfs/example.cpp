@@ -5,6 +5,7 @@
 #include <ibtk/CCLaplaceOperator.h>
 #include <ibtk/CCPoissonSolverManager.h>
 #include <ibtk/IBTKInit.h>
+#include <ibtk/IBTK_MPI.h>
 #include <ibtk/libmesh_utilities.h>
 #include <ibtk/muParserCartGridFunction.h>
 
@@ -372,6 +373,15 @@ main(int argc, char* argv[])
         solver.setAugmentedRHS(b_cloned);
         solver.setInitialGuess(q_petsc_vec->vec());
         solver.initializeSolverState(q_vec, b_vec);
+        {
+            int size;
+            int ierr = VecGetLocalSize(b_cloned, &size);
+            IBTK_CHKERRQ(ierr);
+
+            plog << "size on processor " << IBTK_MPI::getRank() << " of " << IBTK_MPI::getNodes() << " is " << size
+                 << "\n";
+            IBTK_MPI::barrier();
+        }
         pout << "Solving system\n";
         solver.solveSystem(q_vec, b_vec);
         pout << "Finished solving\n";

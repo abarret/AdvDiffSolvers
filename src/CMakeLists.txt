@@ -46,6 +46,7 @@ SET(CXX_SRC
     solvers/LSCutCellBoundaryConditions.cpp
     solvers/PETScAugmentedKrylovLinearSolver.cpp
     solvers/PETScAugmentedLinearOperator.cpp
+    solvers/PETScPoissonSolver.cpp
     solvers/RBFLaplaceOperator.cpp
     solvers/SBBoundaryConditions.cpp
     )

@@ -36,6 +36,37 @@ pow(const double q, const int i)
     else
         return std::pow(q, i);
 }
+
+enum class RHSType
+{
+    INTERPOLATORY,
+    LAPLACIAN,
+    HELMHOLTZ,
+    USER_DEFINED,
+    UNKNOWN = -1
+};
+
+template <>
+inline RHSType
+string_to_enum<RHSType>(const std::string& val)
+{
+    if (strcasecmp(val.c_str(), "INTERPOLATORY") == 0) return RHSType::INTERPOLATORY;
+    if (strcasecmp(val.c_str(), "LAPLACIAN") == 0) return RHSType::LAPLACIAN;
+    if (strcasecmp(val.c_str(), "HELMHOLTZ") == 0) return RHSType::HELMHOLTZ;
+    if (strcasecmp(val.c_str(), "USER_DEFINED") == 0) return RHSType::USER_DEFINED;
+    return RHSType::UNKNOWN;
+}
+
+template <>
+inline RHSType
+enum_to_string<RHSType>(RHSType val)
+{
+    if (val == RHSType::INTERPOLATORY) return "INTERPOLATORY";
+    if (val == RHSType::LAPLACIAN) return "LAPLACIAN";
+    if (val == RHSType::HELMHOLTZ) return "HELMHOLTZ";
+    if (val == RHSType::USER_DEFINED) return "USER_DEFINED";
+    return "UNKNOWN";
+}
 } // namespace PolynomialBasis
 } // namespace ADS
 
