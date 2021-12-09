@@ -305,13 +305,6 @@ RBFFDWeightsCache::findRBFFDWeights()
 {
     sortLagDOFsToCells();
     d_pt_weight_vec.clear();
-    auto rbf = [](const double r) -> double { return r * r * r * r * r + 2.0e-10; };
-#if (NDIM == 2)
-    auto lap_rbf = [](const double r) -> double { return 25.0 * r * r * r; };
-#endif
-#if (NDIM == 3)
-    auto lap_rbf = [](const double r) -> double { return 30.0 * r * r * r; };
-#endif
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(d_hierarchy->getFinestLevelNumber());
     for (PatchLevel<NDIM>::Iterator p(level); p; p++)
     {
@@ -350,10 +343,10 @@ RBFFDWeightsCache::findRBFFDWeights()
                 {
                     VectorNd ptj = pt_vec[j].getVec();
                     for (int d = 0; d < NDIM; ++d) ptj[d] = ptj[d] / dx[d];
-                    A(i, j) = rbf((pti - ptj).norm());
+                    A(i, j) = d_rbf_fcn((pti - ptj).norm());
                 }
                 // Determine rhs
-                U(i) = lap_rbf((pt0 - pti).norm());
+                U(i) = d_Lrbf_fcn((pt0 - pti).norm());
             }
             // Add quadratic polynomials
             std::vector<VectorNd> zeros = { VectorNd::Zero() };

@@ -276,8 +276,15 @@ main(int argc, char* argv[])
         auto poly_fcn = [](const std::vector<VectorNd>& pt_vec, int poly_degree) -> MatrixXd {
             return PolynomialBasis::laplacianMonomials(pt_vec, poly_degree);
         };
+        auto rbf_fcn = [](const double r) -> double { return r * r * r * r * r; };
+#if (NDIM == 2)
+        auto Lrbf_fcn = [](const double r) -> double { return 25.0 * r * r * r * r; };
+#endif
+#if (NDIM == 3)
+        auto Lrbf_fcn = [](const double r) -> double { return 30.0 * r * r * r * r; };
+#endif
         bool check_background_grid = input_db->getBool("CHECK_BACKGROUND_GRID_ONLY");
-        weights_op->registerPolyFcn(poly_fcn);
+        weights_op->registerPolyFcn(poly_fcn, rbf_fcn, Lrbf_fcn);
         weights_op->setLS(ls_idx);
         weights_op->findRBFFDWeights();
         {

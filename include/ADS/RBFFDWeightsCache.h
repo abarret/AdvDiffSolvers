@@ -151,11 +151,11 @@ private:
 };
 
 /*!
- * \brief Class RBFFDWeightsCache is a concrete LaplaceOperator which implements
- * a globally second-order accurate cell-centered finite difference
- * discretization of a scalar elliptic operator of the form \f$ L = C I + \nabla
- * \cdot D \nabla\f$.
- */
+ * \brief Class RBFFDWeightsCache is a class that caches finite difference weights for general operators. This class
+ * requires a fe_mesh_partitioner and a level set function to determine which cells need finite difference weights.
+ * Three functions must be registered. The first is the RBF evaluated at a point r. The other two are the operator
+ * applied to the RBF evaluated at the point and a function that takes input a vector of inputs and returns the
+ * Vandermonde matrix of the linear operator applied to the monomials.*/
 class RBFFDWeightsCache
 {
 public:
@@ -190,9 +190,13 @@ public:
     const std::vector<UPoint>& getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const UPoint& pt);
     bool isRBFFDBasePoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> ptach, const UPoint& pt);
 
-    void registerPolyFcn(std::function<IBTK::MatrixXd(const std::vector<IBTK::VectorNd>&, int)> fcn)
+    void registerPolyFcn(std::function<IBTK::MatrixXd(const std::vector<IBTK::VectorNd>&, int)> poly_fcn,
+                         std::function<double(double)> rbf_fcn,
+                         std::function<double(double)> Lrbf_fcn)
     {
-        d_poly_fcn = fcn;
+        d_poly_fcn = poly_fcn;
+        d_rbf_fcn = rbf_fcn;
+        d_Lrbf_fcn = Lrbf_fcn;
     }
 
     void clearCache();
@@ -259,6 +263,7 @@ private:
     WeightVecMap d_pt_weight_vec;
 
     std::function<IBTK::MatrixXd(const std::vector<IBTK::VectorNd>&, int)> d_poly_fcn;
+    std::function<double(double)> d_rbf_fcn, d_Lrbf_fcn;
 
     bool d_weights_found = false;
 };
