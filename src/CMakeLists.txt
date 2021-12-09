@@ -33,6 +33,7 @@ SET(CXX_SRC
     LSFromMesh.cpp
     ls_functions.cpp
     MLSReconstructCache.cpp
+    RBFFDWeightsCache.cpp
     RBFReconstructCache.cpp
     RBFReconstructions.cpp
     ReconstructCache.cpp

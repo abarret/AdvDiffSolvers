@@ -1,0 +1,81 @@
+RADIUS = 1
+N = 8
+L = 4.0
+DX = L  / N
+MFAC = 1.0
+ELEM_TYPE = "HEX8"
+XCOM = 0.0
+YCOM = 0.0
+R = 1.0
+LS_TYPE = "LEVEL_SET"
+DT = 0.5 * 4.0 / 256
+CHECK_BACKGROUND_GRID_ONLY = TRUE
+
+RBFWeights {
+ dist_to_bdry = 100000000.0
+ eps = 2.0 * DX
+ polynomial_degree = 3
+ stencil_size = 7
+}
+
+MeshMapping {
+max_level = 1
+}
+
+Main {
+// log file parameters
+   log_file_name = "output"
+   log_all_nodes = FALSE
+
+// visualization dump parameters
+   viz_writer = "VisIt"
+   viz_dump_dirname = "viz2d"
+   visit_number_procs_per_file = 1
+
+// timer dump parameters
+   timer_enabled = TRUE
+}
+
+CartesianGeometry {
+   domain_boxes       = [(0,0,0), (N - 1,N - 1,N - 1)]
+   x_lo               = -L/2, -L/2, -L/2      // lower end of computational domain.
+   x_up               = L/2, L/2, L/2      // upper end of computational domain.
+   periodic_dimension = 1, 1, 1
+}
+
+GriddingAlgorithm {
+   max_levels = 1                 // Maximum number of levels in hierarchy.
+
+   ratio_to_coarser {
+      level_1 = 4, 4, 4              // vector ratio to next coarser level
+   }
+
+   largest_patch_size {
+      level_0 = 512, 512, 512          // largest patch allowed in hierarchy
+                                  // all finer levels will use same values as level_0...
+   }
+
+   smallest_patch_size {
+      level_0 =   4, 4, 4          // smallest patch allowed in hierarchy
+                                  // all finer levels will use same values as level_0...
+   }
+
+   efficiency_tolerance = 0.70e0  // min % of tag cells in new patch level
+   combine_efficiency   = 0.85e0  // chop box if sum of volumes of smaller
+                                  // boxes < efficiency * vol of large box
+}
+
+StandardTagAndInitialize {
+}
+
+LoadBalancer {
+   bin_pack_method = "SPATIAL"
+   max_workload_factor = 1
+}
+
+TimerManager{
+   print_exclusive = FALSE
+   print_total = TRUE
+   print_threshold = 1.0
+   timer_list = "IBTK::*::*"
+}
