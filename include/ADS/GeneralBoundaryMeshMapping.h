@@ -71,7 +71,7 @@ public:
      */
     //\{
 
-    virtual inline std::shared_ptr<FEMeshPartitioner>& getMeshPartitioner(unsigned int part)
+    virtual inline std::shared_ptr<FEMeshPartitioner>& getMeshPartitioner(unsigned int part = 0)
     {
         return d_bdry_mesh_partitioners[part];
     }

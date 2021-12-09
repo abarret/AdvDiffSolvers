@@ -136,5 +136,20 @@ double bilinearReconstruction(const IBTK::VectorNd& x_loc,
                               const SAMRAI::pdat::CellIndex<NDIM>& idx_ll,
                               const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
                               const double* const dx);
+
+template <class Point, class MultiArray>
+std::vector<IBTK::VectorNd>
+shift_and_scale_pts(const std::vector<Point>& pts, IBTK::VectorNd shift, const MultiArray scale)
+{
+    std::vector<IBTK::VectorNd> new_pts(pts.size());
+    for (size_t i = 0; i < pts.size(); ++i)
+    {
+        const Point& pt = pts[i];
+        IBTK::VectorNd new_vec;
+        for (unsigned int d = 0; d < NDIM; ++d) new_vec[d] = (pt(d) - shift(d)) / scale[d];
+        new_pts[i] = new_vec;
+    }
+    return new_pts;
+}
 } // namespace Reconstruct
 #endif
