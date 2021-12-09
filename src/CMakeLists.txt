@@ -26,8 +26,6 @@ SET(CXX_SRC
     LinearReconstructions.cpp
     LSAdvDiffIntegrator.cpp
     LSCartGridFunction.cpp
-    LSCutCellBoundaryConditions.cpp
-    LSCutCellLaplaceOperator.cpp
     LSFindCellVolume.cpp
     LSFromLevelSet.cpp
     LSFromMesh.cpp
@@ -39,11 +37,17 @@ SET(CXX_SRC
     ReconstructCache.cpp
     reconstructions.cpp
     SBAdvDiffIntegrator.cpp
-    SBBoundaryConditions.cpp
     SBIntegrator.cpp
     SBSurfaceFluidCouplingManager.cpp
     VolumeBoundaryMeshMapping.cpp
     ZSplineReconstructions.cpp
+
+    solvers/LSCutCellBoundaryConditions.cpp
+    solvers/LSCutCellLaplaceOperator.cpp
+    solvers/PETScAugmentedKrylovLinearSolver.cpp
+    solvers/PETScAugmentedLinearOperator.cpp
+    solvers/RBFLaplaceOperator.cpp
+    solvers/SBBoundaryConditions.cpp
     )
 
 TARGET_SOURCES(ADS2d PRIVATE ${FORTRAN_GENERATED_SRC2D} ${CXX_SRC})

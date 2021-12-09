@@ -1,0 +1,33 @@
+ADS_ADD_EXAMPLE(
+  TARGET_NAME
+    "solvers_rbfs_2d"
+  OUTPUT_DIRECTORY
+    "${CMAKE_BINARY_DIR}/examples/solvers/rbfs"
+  OUTPUT_NAME
+    main2d
+  EXAMPLE_GROUP
+    examples-solvers
+  SOURCES
+    example.cpp
+  LINK_TARGETS
+    ADS2d
+  INPUT_FILES
+    input2d
+    )
+
+ADS_ADD_EXAMPLE(
+  TARGET_NAME
+    "solvers_rbfs_3d"
+  OUTPUT_DIRECTORY
+    "${CMAKE_BINARY_DIR}/examples/solvers/rbfs"
+  OUTPUT_NAME
+    main3d
+  EXAMPLE_GROUP
+    examples-solvers
+  SOURCES
+    example.cpp
+  LINK_TARGETS
+    ADS3d
+  INPUT_FILES
+    input3d
+    )
