@@ -86,11 +86,11 @@ public:
     {
         out << "   location: " << pt.d_pt.transpose() << "\n";
         if (pt.isNode())
-            out << "   node id: " << pt.d_node->id() << "\n";
+            out << "   node id: " << pt.d_node->id();
         else if (!pt.isEmpty())
-            out << "   idx:     " << pt.d_idx << "\n";
+            out << "   idx:     " << pt.d_idx;
         else
-            out << "   pt is neither node nor index\n";
+            out << "   pt is neither node nor index";
         return out;
     }
 

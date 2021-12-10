@@ -13,8 +13,14 @@ C = 1.0 / DT
 LaplaceOperator {
  dist_to_bdry = 4.0 * DX
  eps = 0.25 * DX
+ polynomial_degree = 3
+ stencil_size = 12
  C = C
  D = D
+}
+
+MeshMapping {
+max_level = 1
 }
 
 solver {

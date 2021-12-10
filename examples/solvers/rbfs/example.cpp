@@ -9,6 +9,7 @@
 #include <ibtk/libmesh_utilities.h>
 #include <ibtk/muParserCartGridFunction.h>
 
+#include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/PETScAugmentedKrylovLinearSolver.h>
 #include <ADS/RBFLaplaceOperator.h>
 #include <ADS/app_namespaces.h>
@@ -186,7 +187,7 @@ main(int argc, char* argv[])
         Pointer<CellVariable<NDIM, double>> q_var = new CellVariable<NDIM, double>("q");
         Pointer<CellVariable<NDIM, double>> b_var = new CellVariable<NDIM, double>("b");
         Pointer<CellVariable<NDIM, double>> e_var = new CellVariable<NDIM, double>("e");
-        Pointer<CellVariable<NDIM, double>> ls_var = new CellVariable<NDIM, double>("ls");
+        Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("ls");
 
         const int q_idx = var_db->registerVariableAndContext(q_var, ctx, IntVector<NDIM>(3));
         const int b_idx = var_db->registerVariableAndContext(b_var, ctx, IntVector<NDIM>(3));
@@ -298,29 +299,34 @@ main(int argc, char* argv[])
         // Set up dummy systems for drawing
         auto vol_io = libmesh_make_unique<ExodusII_IO>(mesh);
         auto bdry_io = libmesh_make_unique<ExodusII_IO>(bdry_mesh);
-        EquationSystems vol_eq_sys(mesh), bdry_eq_sys(bdry_mesh);
+
+        auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
+            "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), &bdry_mesh);
+        std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner = mesh_mapping->getMeshPartitioner();
+        EquationSystems* bdry_eq_sys = fe_mesh_partitioner->getEquationSystems();
+        EquationSystems vol_eq_sys(mesh);
 
         auto& b_vol_sys = vol_eq_sys.add_system<ExplicitSystem>("b");
-        auto& b_bdry_sys = bdry_eq_sys.add_system<ExplicitSystem>("b");
+        auto& b_bdry_sys = bdry_eq_sys->add_system<ExplicitSystem>("b");
         b_vol_sys.add_variable("b", FIRST);
         b_bdry_sys.add_variable("b", FIRST);
         auto& q_vol_sys = vol_eq_sys.add_system<ExplicitSystem>("q");
-        auto& q_bdry_sys = bdry_eq_sys.add_system<ExplicitSystem>("q");
+        auto& q_bdry_sys = bdry_eq_sys->add_system<ExplicitSystem>("q");
         q_vol_sys.add_variable("q", FIRST);
         q_bdry_sys.add_variable("q", FIRST);
         auto& ex_vol_sys = vol_eq_sys.add_system<ExplicitSystem>("exact");
-        auto& ex_bdry_sys = bdry_eq_sys.add_system<ExplicitSystem>("exact");
+        auto& ex_bdry_sys = bdry_eq_sys->add_system<ExplicitSystem>("exact");
         ex_vol_sys.add_variable("exact", FIRST);
         ex_bdry_sys.add_variable("exact", FIRST);
         vol_eq_sys.init();
-        bdry_eq_sys.init();
+        mesh_mapping->initializeEquationSystems();
 
         pout << "Filling initial condition\n";
-        fillRHSConditions(&bdry_eq_sys, "b");
+        fillRHSConditions(bdry_eq_sys, "b");
         fillRHSConditions(&vol_eq_sys, "b");
-        fillExact(&bdry_eq_sys, "exact");
+        fillExact(bdry_eq_sys, "exact");
         fillExact(&vol_eq_sys, "exact");
-        fillInitialGuess(&bdry_eq_sys, "q");
+        fillInitialGuess(bdry_eq_sys, "q");
         fillInitialGuess(&vol_eq_sys, "q");
 
         // Compute errors
@@ -331,15 +337,14 @@ main(int argc, char* argv[])
             {
                 Pointer<Patch<NDIM>> patch = level->getPatch(p());
                 const Box<NDIM>& box = patch->getBox();
-                Pointer<CellData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+                Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
                 Pointer<CellData<NDIM, double>> wgt_data = patch->getPatchData(wgt_idx);
                 for (CellIterator<NDIM> ci(box); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
+                    const double ls = ADS::node_to_cell(idx, *ls_data);
                     (*wgt_data)(idx) =
-                        (*ls_data)(idx) < -app_initializer->getComponentDatabase("LaplaceOperator")->getDouble("eps") ?
-                            1.0 :
-                            0.0;
+                        ls < -app_initializer->getComponentDatabase("LaplaceOperator")->getDouble("eps") ? 1.0 : 0.0;
                 }
             }
         }
@@ -360,8 +365,12 @@ main(int argc, char* argv[])
 
         pout << "Creating operator\n";
         // Set up CartLaplaceOperator
-        Pointer<RBFLaplaceOperator> lap_op = new RBFLaplaceOperator(
-            "LapOp", &bdry_mesh, &dof_map, app_initializer->getComponentDatabase("LaplaceOperator"));
+        Pointer<RBFLaplaceOperator> lap_op =
+            new RBFLaplaceOperator("LapOp",
+                                   fe_mesh_partitioner,
+                                   "q",
+                                   patch_hierarchy,
+                                   app_initializer->getComponentDatabase("LaplaceOperator"));
         lap_op->setPatchHierarchy(patch_hierarchy);
         lap_op->setLS(ls_idx);
         lap_op->registerBdryCond(exact);
@@ -417,13 +426,14 @@ main(int argc, char* argv[])
                 Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
                 const double* const dx = pgeom->getDx();
                 const Box<NDIM>& box = patch->getBox();
-                Pointer<CellData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+                Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
                 Pointer<CellData<NDIM, double>> wgt_data = patch->getPatchData(wgt_idx);
                 for (CellIterator<NDIM> ci(box); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
+                    const double ls = ADS::node_to_cell(idx, *ls_data);
                     (*wgt_data)(idx) =
-                        (*ls_data)(idx) < -app_initializer->getComponentDatabase("LaplaceOperator")->getDouble("eps") ?
+                        ls < -app_initializer->getComponentDatabase("LaplaceOperator")->getDouble("eps") ?
 #if (NDIM == 2)
                             dx[0] *
                                 dx[1]
@@ -455,18 +465,19 @@ main(int argc, char* argv[])
             for (PatchLevel<NDIM>::Iterator p(level); p; p++)
             {
                 Pointer<Patch<NDIM>> patch = level->getPatch(p());
-                Pointer<CellData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+                Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
                 Pointer<CellData<NDIM, double>> mask_data = patch->getPatchData(masked_e_idx);
                 Pointer<CellData<NDIM, double>> e_data = patch->getPatchData(e_idx);
                 for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
-                    (*mask_data)(idx) = (*e_data)(idx) * ((*ls_data)(idx) < -eps ? 1.0 : 0.0);
+                    const double ls = ADS::node_to_cell(idx, *ls_data);
+                    (*mask_data)(idx) = (*e_data)(idx) * (ls < -eps ? 1.0 : 0.0);
                 }
             }
         }
 
-        ExactSolution error_estimator(bdry_eq_sys);
+        ExactSolution error_estimator(*bdry_eq_sys);
         error_estimator.attach_exact_value(exactSol);
         error_estimator.compute_error("q", "q");
         double Q_error[3];
@@ -480,7 +491,7 @@ main(int argc, char* argv[])
         pout << std::setprecision(10) << Q_error[0] << " " << Q_error[1] << " " << Q_error[2] << "\n";
         visit_data_writer->writePlotData(patch_hierarchy, 0, 0.0);
         vol_io->write_timestep(vol_dirname, vol_eq_sys, 1, 0.0);
-        bdry_io->write_timestep(bdry_dirname, bdry_eq_sys, 1, 0.0);
+        bdry_io->write_timestep(bdry_dirname, *bdry_eq_sys, 1, 0.0);
 
         // If necessary, write matrix to file
 #define WRITE_MATRIX 0

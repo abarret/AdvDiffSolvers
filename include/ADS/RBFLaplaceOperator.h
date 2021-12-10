@@ -8,6 +8,7 @@
 #include <ibtk/config.h>
 
 #include "ADS/PETScAugmentedLinearOperator.h"
+#include "ADS/RBFFDWeightsCache.h"
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 #include "ibtk/LaplaceOperator.h"
@@ -25,6 +26,7 @@
 #include "libmesh/dof_map.h"
 #include "libmesh/node.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -32,102 +34,6 @@
 
 namespace ADS
 {
-struct UPoint2
-{
-public:
-    UPoint2(const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch, const SAMRAI::pdat::CellIndex<NDIM>& idx)
-        : d_idx(idx)
-    {
-        SAMRAI::tbox::Pointer<SAMRAI::geom::CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-        const double* const dx = pgeom->getDx();
-        const double* const xlow = pgeom->getXLower();
-        const SAMRAI::hier::Index<NDIM>& idx_low = patch->getBox().lower();
-        for (unsigned int d = 0; d < NDIM; ++d)
-            d_pt[d] = xlow[d] + dx[d] * (static_cast<double>(d_idx(d) - idx_low(d)) + 0.5);
-    };
-
-    UPoint2(const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch, libMesh::Node* node) : d_node(node)
-    {
-        for (unsigned int d = 0; d < NDIM; ++d) d_pt[d] = (*d_node)(d);
-    };
-
-    UPoint2() : d_empty(true)
-    {
-        // intentionally blank
-    }
-
-    UPoint2(const std::vector<double>& pt) : d_empty(true)
-    {
-        for (unsigned int d = 0; d < NDIM; ++d) d_pt[d] = pt[d];
-    }
-
-    double dist(const IBTK::VectorNd& x) const
-    {
-        return (d_pt - x).norm();
-    }
-
-    double dist(const UPoint2& pt) const
-    {
-        return (d_pt - pt.getVec()).norm();
-    }
-
-    double operator()(const size_t i) const
-    {
-        return d_pt(i);
-    }
-
-    double operator[](const size_t i) const
-    {
-        return d_pt[i];
-    }
-
-    friend std::ostream& operator<<(std::ostream& out, const UPoint2& pt)
-    {
-        out << "   location: " << pt.d_pt.transpose() << "\n";
-        if (pt.isNode())
-            out << "   node id: " << pt.d_node->id() << "\n";
-        else if (!pt.isEmpty())
-            out << "   idx:     " << pt.d_idx << "\n";
-        else
-            out << "   pt is neither node nor index\n";
-        return out;
-    }
-
-    bool isEmpty() const
-    {
-        return d_empty;
-    }
-
-    bool isNode() const
-    {
-        return d_node != nullptr;
-    }
-
-    const libMesh::Node* const getNode() const
-    {
-        if (!isNode()) TBOX_ERROR("Not at a node\n");
-        return d_node;
-    }
-
-    const SAMRAI::pdat::CellIndex<NDIM>& getIndex() const
-    {
-        if (isNode()) TBOX_ERROR("At at node\n");
-        if (d_empty) TBOX_ERROR("Not a point\n");
-        return d_idx;
-    }
-
-    const IBTK::VectorNd& getVec() const
-    {
-        return d_pt;
-    }
-
-private:
-    IBTK::VectorNd d_pt;
-    libMesh::Node* d_node = nullptr;
-    SAMRAI::pdat::CellIndex<NDIM> d_idx;
-    bool d_empty = false;
-};
-
 /*!
  * \brief Class RBFLaplaceOperator is a concrete LaplaceOperator which implements
  * a globally second-order accurate cell-centered finite difference
@@ -142,8 +48,9 @@ public:
      * coefficients and boundary conditions to default values.
      */
     RBFLaplaceOperator(const std::string& object_name,
-                       libMesh::BoundaryMesh* bdry_mesh,
-                       const libMesh::DofMap* dof_map,
+                       std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner,
+                       const std::string& sys_name,
+                       SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                        SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 
     /*!
@@ -224,22 +131,6 @@ public:
 
     //\}
 
-    /*!
-     * Debugging functions
-     */
-    void sortLagDOFsToCells();
-    void findRBFFDWeights();
-    void printPtMap(std::ostream& os);
-    inline void setPatchHierarchy(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> patch_hierarchy)
-    {
-        d_hierarchy = patch_hierarchy;
-    }
-
-    inline void registerBdryCond(std::function<double(const IBTK::VectorNd&)> fcn)
-    {
-        d_bdry_cond = fcn;
-    }
-
 private:
     /*!
      * \brief Default constructor.
@@ -270,11 +161,8 @@ private:
 
     void applyToLagDOFs(int x_idx, int y_idx);
 
-    double getSolVal(const UPoint2& pt, const SAMRAI::pdat::CellData<NDIM, double>& Q_data, Vec& vec) const;
-    void setSolVal(double q, const UPoint2& pt, SAMRAI::pdat::CellData<NDIM, double>& Q_data, Vec& vec) const;
-
-    static unsigned int s_num_ghost_cells;
-    double d_eps = std::numeric_limits<double>::quiet_NaN();
+    double getSolVal(const UPoint& pt, const SAMRAI::pdat::CellData<NDIM, double>& Q_data, Vec& vec) const;
+    void setSolVal(double q, const UPoint& pt, SAMRAI::pdat::CellData<NDIM, double>& Q_data, Vec& vec) const;
 
     // Operator parameters.
     int d_ncomp = 0;
@@ -289,26 +177,24 @@ private:
 
     int d_ls_idx = IBTK::invalid_index;
     double d_dist_to_bdry = std::numeric_limits<double>::quiet_NaN();
-    int d_poly_degree = 3;
 
     // Hierarchy configuration.
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
     int d_coarsest_ln = IBTK::invalid_level_number, d_finest_ln = IBTK::invalid_level_number;
 
     // Lag structure info
-    libMesh::BoundaryMesh* d_mesh;
-    std::vector<std::vector<libMesh::Node*>> d_idx_node_vec, d_idx_node_ghost_vec;
-    std::vector<std::vector<UPoint2>> d_base_pt_vec;
-    std::vector<std::vector<std::vector<UPoint2>>> d_pair_pt_vec;
-    std::vector<std::vector<std::vector<double>>> d_pt_weight_vec;
+    std::shared_ptr<FEMeshPartitioner> d_fe_mesh_partitioner;
+    std::string d_sys_name = "";
 
     std::vector<SAMRAI::solv::RobinBcCoefStrategy<NDIM>*> d_bc_coefs;
-    const libMesh::DofMap* d_dof_map = nullptr;
 
     double d_C = std::numeric_limits<double>::quiet_NaN();
     double d_D = std::numeric_limits<double>::quiet_NaN();
 
-    std::function<double(const IBTK::VectorNd&)> d_bdry_cond;
+    std::unique_ptr<RBFFDWeightsCache> d_fd_weights;
+
+    std::function<double(double)> d_rbf, d_lap_rbf;
+    std::function<IBTK::MatrixXd(std::vector<IBTK::VectorNd>, int)> d_polys;
 };
 } // namespace ADS
 
