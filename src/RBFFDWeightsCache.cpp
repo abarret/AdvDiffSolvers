@@ -322,42 +322,38 @@ RBFFDWeightsCache::findRBFFDWeights()
         {
             const UPoint& pt = d_base_pt_vec[patch.getPointer()][idx];
             const std::vector<UPoint>& pt_vec = d_pair_pt_vec[patch.getPointer()][idx];
-            const std::vector<VectorNd>& shft_vec = Reconstruct::shift_and_scale_pts(pt_vec, pt.getVec(), dx);
+            const std::vector<VectorNd>& shft_vec = Reconstruct::shift_pts(pt_vec, IBTK::VectorNd::Zero());
             // Note if we use a KNN search, interp_size is fixed.
             const int interp_size = pt_vec.size();
 #ifndef NDEBUG
             TBOX_ASSERT(interp_size == d_stencil_size);
 #endif
-            // Up to cubic polynomials
             MatrixXd A(MatrixXd::Zero(interp_size, interp_size));
-            MatrixXd B = PolynomialBasis::formMonomials(shft_vec, d_poly_degree);
+            MatrixXd B = PolynomialBasis::formMonomials(shft_vec, d_poly_degree, dx[0], pt.getVec());
             const int poly_size = B.cols();
             VectorXd U(VectorXd::Zero(interp_size + poly_size));
             VectorNd pt0 = pt.getVec();
-            for (int d = 0; d < NDIM; ++d) pt0[d] = pt0[d] / dx[d];
             for (int i = 0; i < interp_size; ++i)
             {
                 VectorNd pti = pt_vec[i].getVec();
-                for (int d = 0; d < NDIM; ++d) pti[d] = pti[d] / dx[d];
                 for (int j = 0; j < interp_size; ++j)
                 {
                     VectorNd ptj = pt_vec[j].getVec();
-                    for (int d = 0; d < NDIM; ++d) ptj[d] = ptj[d] / dx[d];
                     A(i, j) = d_rbf_fcn((pti - ptj).norm());
                 }
                 // Determine rhs
                 U(i) = d_Lrbf_fcn((pt0 - pti).norm());
             }
             // Add quadratic polynomials
-            std::vector<VectorNd> zeros = { VectorNd::Zero() };
-            MatrixXd Ulow = d_poly_fcn(zeros, d_poly_degree);
+            std::vector<VectorNd> zeros = { pt.getVec() };
+            MatrixXd Ulow = d_poly_fcn(zeros, d_poly_degree, dx[0], pt.getVec());
             U.block(interp_size, 0, Ulow.cols(), 1) = Ulow.transpose();
             MatrixXd final_mat(MatrixXd::Zero(interp_size + poly_size, interp_size + poly_size));
             final_mat.block(0, 0, interp_size, interp_size) = A;
             final_mat.block(0, interp_size, interp_size, poly_size) = B;
             final_mat.block(interp_size, 0, poly_size, interp_size) = B.transpose();
 
-            VectorXd x = final_mat.fullPivHouseholderQr().solve(U);
+            VectorXd x = final_mat.colPivHouseholderQr().solve(U);
             // Now evaluate FD stencil)
             VectorXd weights = x.block(0, 0, interp_size, 1);
             for (int i = 0; i < interp_size; ++i) d_pt_weight_vec[patch.getPointer()][idx].push_back(weights(i));
