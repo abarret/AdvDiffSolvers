@@ -194,7 +194,7 @@ private:
     std::unique_ptr<RBFFDWeightsCache> d_fd_weights;
 
     std::function<double(double)> d_rbf, d_lap_rbf;
-    std::function<IBTK::MatrixXd(std::vector<IBTK::VectorNd>, int)> d_polys;
+    std::function<IBTK::MatrixXd(std::vector<IBTK::VectorNd>, int, double, const IBTK::VectorNd&)> d_polys;
 };
 } // namespace ADS
 

@@ -10,19 +10,29 @@ namespace PolynomialBasis
 {
 template <class Point>
 IBTK::MatrixXd formMonomials(const std::vector<Point>& pts, int deg);
+template <class Point>
+IBTK::MatrixXd formMonomials(const std::vector<Point>& pts, int deg, double ds, const Point& shft);
 
 template <class Point>
 IBTK::MatrixXd laplacianMonomials(const std::vector<Point>& pts, int deg);
+template <class Point>
+IBTK::MatrixXd laplacianMonomials(const std::vector<Point>& pts, int deg, double ds, const Point& shft);
 
 template <class Point>
 IBTK::MatrixXd dPdxMonomials(const std::vector<Point>& pts, int deg);
+template <class Point>
+IBTK::MatrixXd dPdxMonomials(const std::vector<Point>& pts, int deg, double ds, const Point& shft);
 
 template <class Point>
 IBTK::MatrixXd dPdyMonomials(const std::vector<Point>& pts, int deg);
+template <class Point>
+IBTK::MatrixXd dPdyMonomials(const std::vector<Point>& pts, int deg, double ds, const Point& shft);
 
 #if (NDIM == 3)
 template <class Point>
 IBTK::MatrixXd dPdzMonomials(const std::vector<Point>& pts, int deg);
+template <class Point>
+IBTK::MatrixXd dPdzMonomials(const std::vector<Point>& pts, int deg, double ds, const Point& shft);
 #endif
 
 int getNumberOfPolynomials(int deg);

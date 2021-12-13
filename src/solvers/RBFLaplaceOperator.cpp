@@ -89,19 +89,16 @@ RBFLaplaceOperator::RBFLaplaceOperator(const std::string& object_name,
     d_rbf = [](const double r) -> double { return PolynomialBasis::pow(r, 5); };
     d_lap_rbf = [](const double r) -> double {
 #if (NDIM == 2)
-        // return PolynomialBasis::pow(r, 5) + 25.0 * PolynomialBasis::pow(r, 4);
-        return 25.0 * PolynomialBasis::pow(r, 4);
+        return PolynomialBasis::pow(r, 5) + 25.0 * PolynomialBasis::pow(r, 4);
 #endif
 #if (NDIM == 3)
-        // return PolynomialBasis::pow(r, 5) + 30.0 * PolynomialBasis::pow(r, 4);
-        return 30.0 * PolynomialBasis::pow(r, 4);
+        return PolynomialBasis::pow(r, 5) + 30.0 * PolynomialBasis::pow(r, 4);
 #endif
     };
 
-    d_polys = [this](const std::vector<VectorNd>& vec, int degree) -> MatrixXd {
-        // return d_C * PolynomialBasis::formMonomials(vec, degree) - d_D * PolynomialBasis::laplacianMonomials(vec,
-        // degree);
-        return d_D * PolynomialBasis::laplacianMonomials(vec, degree);
+    d_polys = [this](const std::vector<VectorNd>& vec, int degree, double ds, const VectorNd& shft) -> MatrixXd {
+        return d_C * PolynomialBasis::formMonomials(vec, degree, ds, shft) -
+               d_D * PolynomialBasis::laplacianMonomials(vec, degree, ds, shft);
     };
 
     d_fd_weights->registerPolyFcn(d_polys, d_rbf, d_lap_rbf);
@@ -373,18 +370,9 @@ RBFLaplaceOperator::applyToLagDOFs(const int x_idx, const int y_idx)
             for (int i = 0; i < interp_size; ++i)
             {
                 double w = weights[idx][i];
-#if (NDIM == 2)
-                double denom = dx[0] * dx[1];
-#endif
-#if (NDIM == 3)
-                // TODO: Determine the correct scaling. This is determined by how we scale points when calculating
-                // weights.
-                double denom = dx[0] * dx[1];
-#endif
-                lap += w * getSolVal(rbf_pts[idx][i], *x_data, d_aug_x_vec) / denom;
+                lap += w * getSolVal(rbf_pts[idx][i], *x_data, d_aug_x_vec);
             }
-            //            setSolVal(lap, pt, *y_data, d_aug_y_vec);
-            setSolVal(d_C * getSolVal(pt, *x_data, d_aug_x_vec) - lap, pt, *y_data, d_aug_y_vec);
+            setSolVal(lap, pt, *y_data, d_aug_y_vec);
         }
     }
     // We've set values, so we need to assemble the vector

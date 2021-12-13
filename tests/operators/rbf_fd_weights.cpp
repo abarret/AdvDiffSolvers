@@ -273,8 +273,9 @@ main(int argc, char* argv[])
                                   mesh_mapping->getMeshPartitioner(),
                                   patch_hierarchy,
                                   app_initializer->getComponentDatabase("RBFWeights"));
-        auto poly_fcn = [](const std::vector<VectorNd>& pt_vec, int poly_degree) -> MatrixXd {
-            return PolynomialBasis::laplacianMonomials(pt_vec, poly_degree);
+        auto poly_fcn =
+            [](const std::vector<VectorNd>& pt_vec, int poly_degree, double ds, const VectorNd& shft) -> MatrixXd {
+            return PolynomialBasis::laplacianMonomials(pt_vec, poly_degree, ds, shft);
         };
         auto rbf_fcn = [](const double r) -> double { return r * r * r * r * r; };
 #if (NDIM == 2)

@@ -10,7 +10,6 @@
 #include <ibtk/muParserCartGridFunction.h>
 
 #include <ADS/GeneralBoundaryMeshMapping.h>
-#include <ADS/PETScAugmentedKrylovLinearSolver.h>
 #include <ADS/RBFLaplaceOperator.h>
 #include <ADS/app_namespaces.h>
 
@@ -42,7 +41,7 @@ static double c = 0.0;
 static double d = 0.0;
 
 double
-exact(const VectorNd& p)
+initial(const VectorNd& p)
 {
 #if (NDIM == 2)
     return std::sin(M_PI * p(0)) * std::sin(M_PI * p(1));
@@ -52,18 +51,39 @@ exact(const VectorNd& p)
 }
 
 double
-exactSol(const libMesh::Point& p,
-         const Parameters& /*Parameters*/,
-         const std::string& /*sys_name*/,
-         const std::string& /*unknown_name*/)
+laplacian(const VectorNd& p)
+{
+#if (NDIM == 2)
+    return (c + d * 2.0 * M_PI * M_PI) * sin(M_PI * p(0)) * std::sin(M_PI * p(1));
+#else
+    return (c + d * 3.0 * M_PI * M_PI) * sin(M_PI * p(0)) * std::sin(M_PI * p(1)) * std::sin(M_PI * p(2));
+#endif
+}
+
+double
+initialSol(const libMesh::Point& p,
+           const Parameters& /*Parameters*/,
+           const std::string& /*sys_name*/,
+           const std::string& /*unknown_name*/)
 {
     VectorNd x;
     for (int d = 0; d < NDIM; ++d) x[d] = p(d);
-    return exact(x);
+    return initial(x);
+}
+
+double
+laplacianSol(const libMesh::Point& p,
+             const Parameters& /*Parameters*/,
+             const std::string& /*sys_name*/,
+             const std::string& /*unknown_name*/)
+{
+    VectorNd x;
+    for (int d = 0; d < NDIM; ++d) x[d] = p(d);
+    return laplacian(x);
 }
 
 void
-fillExact(EquationSystems* eq_sys, std::string sys_name)
+fillLaplacian(EquationSystems* eq_sys, std::string sys_name)
 {
     auto& sys = eq_sys->get_system<ExplicitSystem>(sys_name);
     const MeshBase& mesh = eq_sys->get_mesh();
@@ -79,14 +99,14 @@ fillExact(EquationSystems* eq_sys, std::string sys_name)
         dof_map.dof_indices(node, idx_vec);
         VectorNd x;
         for (int d = 0; d < NDIM; ++d) x[d] = (*node)(d);
-        vec->set(idx_vec[0], exact(x));
+        vec->set(idx_vec[0], laplacian(x));
     }
     vec->close();
     sys.update();
 }
 
 void
-fillInitialGuess(EquationSystems* eq_sys, std::string sys_name)
+fillInitial(EquationSystems* eq_sys, std::string sys_name)
 {
     auto& sys = eq_sys->get_system<ExplicitSystem>(sys_name);
     const MeshBase& mesh = eq_sys->get_mesh();
@@ -102,30 +122,7 @@ fillInitialGuess(EquationSystems* eq_sys, std::string sys_name)
         dof_map.dof_indices(node, idx_vec);
         VectorNd x;
         for (int d = 0; d < NDIM; ++d) x[d] = (*node)(d);
-        vec->set(idx_vec[0], 1.0);
-    }
-    vec->close();
-    sys.update();
-}
-
-void
-fillRHSConditions(EquationSystems* eq_sys, std::string sys_name)
-{
-    auto& sys = eq_sys->get_system<ExplicitSystem>(sys_name);
-    const MeshBase& mesh = eq_sys->get_mesh();
-    const DofMap& dof_map = sys.get_dof_map();
-    NumericVector<double>* vec = sys.solution.get();
-
-    auto iter = mesh.local_nodes_begin();
-    const auto iter_end = mesh.local_nodes_end();
-    for (; iter != iter_end; ++iter)
-    {
-        const Node* const node = *iter;
-        std::vector<dof_id_type> idx_vec;
-        dof_map.dof_indices(node, idx_vec);
-        VectorNd x;
-        for (int d = 0; d < NDIM; ++d) x[d] = (*node)(d);
-        vec->set(idx_vec[0], exact(x));
+        vec->set(idx_vec[0], initial(x));
     }
     vec->close();
     sys.update();
@@ -234,30 +231,28 @@ main(int argc, char* argv[])
         HierarchyMathOps hier_math_ops("hier_math_ops", patch_hierarchy);
         const int wgt_idx = hier_math_ops.getCellWeightPatchDescriptorIndex();
 
-        SAMRAIVectorReal<NDIM, double> q_vec("u", patch_hierarchy, 0, patch_hierarchy->getFinestLevelNumber());
-        SAMRAIVectorReal<NDIM, double> b_vec("f", patch_hierarchy, 0, patch_hierarchy->getFinestLevelNumber());
+        SAMRAIVectorReal<NDIM, double> q_vec("q", patch_hierarchy, 0, patch_hierarchy->getFinestLevelNumber());
+        SAMRAIVectorReal<NDIM, double> b_vec("b", patch_hierarchy, 0, patch_hierarchy->getFinestLevelNumber());
         SAMRAIVectorReal<NDIM, double> e_vec("e", patch_hierarchy, 0, patch_hierarchy->getFinestLevelNumber());
 
         q_vec.addComponent(q_var, q_idx, wgt_idx);
         b_vec.addComponent(b_var, b_idx, wgt_idx);
         e_vec.addComponent(e_var, e_idx, wgt_idx);
 
-        q_vec.setToScalar(0.0);
-        b_vec.setToScalar(0.0);
-        e_vec.setToScalar(0.0);
-
         // Setup exact solutions.
         pout << "Setting up solution data\n";
         muParserCartGridFunction b_fcn("b", app_initializer->getComponentDatabase("B"), grid_geometry);
-        muParserCartGridFunction exact_fcn("Q", app_initializer->getComponentDatabase("Q"), grid_geometry);
+        muParserCartGridFunction q_fcn("Q", app_initializer->getComponentDatabase("Q"), grid_geometry);
         muParserCartGridFunction ls_fcn("ls", app_initializer->getComponentDatabase("ls"), grid_geometry);
+        muParserCartGridFunction exact_fcn("exact", app_initializer->getComponentDatabase("Exact"), grid_geometry);
 
         c = input_db->getDouble("C");
         d = input_db->getDouble("D");
 
-        b_fcn.setDataOnPatchHierarchy(b_idx, b_var, patch_hierarchy, 0.0);
+        //        b_fcn.setDataOnPatchHierarchy(b_idx, b_var, patch_hierarchy, 0.0);
         ls_fcn.setDataOnPatchHierarchy(ls_idx, ls_var, patch_hierarchy, 0.0);
         exact_fcn.setDataOnPatchHierarchy(e_idx, e_var, patch_hierarchy, 0.0);
+        q_fcn.setDataOnPatchHierarchy(q_idx, q_var, patch_hierarchy, 0.0);
 
         // Set up the finite element mesh
         // Note we use this to create "augmented" dofs.
@@ -322,12 +317,8 @@ main(int argc, char* argv[])
         mesh_mapping->initializeEquationSystems();
 
         pout << "Filling initial condition\n";
-        fillRHSConditions(bdry_eq_sys, "b");
-        fillRHSConditions(&vol_eq_sys, "b");
-        fillExact(bdry_eq_sys, "exact");
-        fillExact(&vol_eq_sys, "exact");
-        fillInitialGuess(bdry_eq_sys, "q");
-        fillInitialGuess(&vol_eq_sys, "q");
+        fillLaplacian(bdry_eq_sys, "exact");
+        fillInitial(bdry_eq_sys, "q");
 
         // Compute errors
         for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
@@ -356,10 +347,10 @@ main(int argc, char* argv[])
         auto b_petsc_vec = static_cast<PetscVector<double>*>(b_bdry_sys.solution.get());
         auto q_petsc_vec = static_cast<PetscVector<double>*>(q_bdry_sys.solution.get());
         // Clone the underlying vector for augmented operator
-        Vec b_cloned;
-        int ierr = VecDuplicate(b_petsc_vec->vec(), &b_cloned);
+        Vec q_cloned;
+        int ierr = VecDuplicate(q_petsc_vec->vec(), &q_cloned);
         IBTK_CHKERRQ(ierr);
-        ierr = VecCopy(b_petsc_vec->vec(), b_cloned);
+        ierr = VecCopy(q_petsc_vec->vec(), q_cloned);
         IBTK_CHKERRQ(ierr);
         const DofMap& dof_map = b_bdry_sys.get_dof_map();
 
@@ -373,33 +364,18 @@ main(int argc, char* argv[])
                                    app_initializer->getComponentDatabase("LaplaceOperator"));
         lap_op->setLS(ls_idx);
 
-        pout << "Creating solver\n";
+        pout << "Initializing operator:\n";
+        lap_op->setAugmentedVec(q_cloned);
+        lap_op->initializeOperatorState(q_vec, b_vec);
+        pout << "Applying operator\n";
+        lap_op->apply(q_vec, b_vec);
         // Set up solver
-        PETScAugmentedKrylovLinearSolver solver("Solver", app_initializer->getComponentDatabase("solver"), "solver_");
-        solver.setOperator(lap_op);
-        solver.setAugmentedRHS(b_cloned);
-        solver.setInitialGuess(q_petsc_vec->vec());
-        solver.initializeSolverState(q_vec, b_vec);
-        {
-            int size;
-            int ierr = VecGetLocalSize(b_cloned, &size);
-            IBTK_CHKERRQ(ierr);
-
-            plog << "size on processor " << IBTK_MPI::getRank() << " of " << IBTK_MPI::getNodes() << " is " << size
-                 << "\n";
-            IBTK_MPI::barrier();
-        }
-        pout << "Solving system\n";
-        solver.solveSystem(q_vec, b_vec);
-        pout << "Finished solving\n";
-        solver.deallocateSolverState();
-        pout << "Solver deallocated\n";
-        Vec q_out_vec = solver.getAugmentedVec();
+        Vec b_out_vec = lap_op->getAugmentedVec();
 
         pout << "Copying solution data back to vector\n";
         // Copy data to Q vector
-        double* q_out_arr;
-        ierr = VecGetArray(q_out_vec, &q_out_arr);
+        double* b_out_arr;
+        ierr = VecGetArray(b_out_vec, &b_out_arr);
         IBTK_CHKERRQ(ierr);
         auto iter = bdry_mesh.local_nodes_begin();
         const auto iter_end = bdry_mesh.local_nodes_end();
@@ -408,11 +384,11 @@ main(int argc, char* argv[])
             const Node* const node = *iter;
             std::vector<dof_id_type> dofs;
             dof_map.dof_indices(node, dofs);
-            q_petsc_vec->set(dofs[0], q_out_arr[dofs[0]]);
+            b_petsc_vec->set(dofs[0], b_out_arr[dofs[0]]);
         }
-        q_petsc_vec->close();
-        q_bdry_sys.update();
-        VecRestoreArray(q_out_vec, &q_out_arr);
+        b_petsc_vec->close();
+        b_bdry_sys.update();
+        VecRestoreArray(b_out_vec, &b_out_arr);
 
         // Compute errors
         for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
@@ -448,7 +424,7 @@ main(int argc, char* argv[])
 
         HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(
             patch_hierarchy, 0, patch_hierarchy->getFinestLevelNumber());
-        hier_cc_data_ops.subtract(e_idx, e_idx, q_idx);
+        hier_cc_data_ops.subtract(e_idx, e_idx, b_idx);
         pout << "Error in q:\n"
              << "  L1-norm:  " << std::setprecision(10) << hier_cc_data_ops.L1Norm(e_idx, wgt_idx) << "\n"
              << "  L2-norm:  " << hier_cc_data_ops.L2Norm(e_idx, wgt_idx) << "\n"
@@ -476,12 +452,12 @@ main(int argc, char* argv[])
         }
 
         ExactSolution error_estimator(*bdry_eq_sys);
-        error_estimator.attach_exact_value(exactSol);
-        error_estimator.compute_error("q", "q");
+        error_estimator.attach_exact_value(laplacianSol);
+        error_estimator.compute_error("b", "b");
         double Q_error[3];
-        Q_error[0] = error_estimator.l1_error("q", "q");
-        Q_error[1] = error_estimator.l2_error("q", "q");
-        Q_error[2] = error_estimator.l_inf_error("q", "q");
+        Q_error[0] = error_estimator.l1_error("b", "b");
+        Q_error[1] = error_estimator.l2_error("b", "b");
+        Q_error[2] = error_estimator.l_inf_error("b", "b");
         pout << "Structure errors:\n"
              << "  L1-norm:  " << Q_error[0] << "\n"
              << "  L2-norm:  " << Q_error[1] << "\n"
