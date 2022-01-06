@@ -57,7 +57,8 @@ public:
                      SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
                      SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                      std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner,
-                     std::string sys_name,
+                     std::string sys_x_name,
+                     std::string sys_b_name,
                      std::string default_options_prefix,
                      MPI_Comm petsc_comm = PETSC_COMM_WORLD);
 
@@ -257,6 +258,13 @@ private:
     void setupLagDOFs();
 
     /*!
+     * \brief Set up a pairing between the PETSc ordering and the libMesh and SAMRAI data orderings.
+     *
+     * This sets the PETSc data ordering to first loop through SAMRAI DOFs and then libMesh DOFs on each processor.
+     */
+    void setupDOFs(const SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& x);
+
+    /*!
      * \brief Set up the Mat and Vec objects. We preallocate the matrix and fill in the weights. We only preallocate the
      * Vec components.
      */
@@ -284,17 +292,22 @@ private:
 
     // Information of the Lagrangian mesh and it's degrees of freedom.
     std::shared_ptr<FEMeshPartitioner> d_fe_mesh_partitioner;
-    std::string d_sys_name;
+    std::string d_sys_x_name, d_sys_b_name;
+    std::map<int, int> d_lag_petsc_dof_map;
     std::vector<int> d_lag_dofs_per_proc;
 
     // Data structures for entire system, Eulerian + augmented dofs.
     KSP d_petsc_ksp = nullptr;
     Mat d_petsc_mat = nullptr;
     Vec d_petsc_x = nullptr, d_petsc_b = nullptr;
+    std::vector<int> d_petsc_dofs_per_proc;
 
     std::unique_ptr<RBFFDWeightsCache> d_rbf_weights;
+    std::function<double(double)> d_rbf, d_lap_rbf;
+    std::function<IBTK::MatrixXd(std::vector<IBTK::VectorNd>, int, double, const IBTK::VectorNd&)> d_polys;
 
     double d_dist_to_bdry = std::numeric_limits<double>::quiet_NaN();
+    double d_eps = std::numeric_limits<double>::quiet_NaN();
 };
 } // namespace ADS
 

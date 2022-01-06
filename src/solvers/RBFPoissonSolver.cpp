@@ -1,5 +1,6 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
+#include "ADS/PolynomialBasis.h"
 #include "ADS/RBFPoissonSolver.h"
 #include "ADS/app_namespaces.h"
 #include "ADS/ls_functions.h"
@@ -59,7 +60,8 @@ RBFPoissonSolver::RBFPoissonSolver(std::string object_name,
                                    Pointer<Database> input_db,
                                    Pointer<PatchHierarchy<NDIM>> hierarchy,
                                    std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner,
-                                   std::string sys_name,
+                                   std::string sys_x_name,
+                                   std::string sys_b_name,
                                    std::string default_options_prefix,
                                    MPI_Comm petsc_comm)
     : d_ksp_type(KSPGMRES),
@@ -68,7 +70,8 @@ RBFPoissonSolver::RBFPoissonSolver(std::string object_name,
       d_eul_idx_var(new CellVariable<NDIM, int>(object_name + "::IdxVar")),
       d_hierarchy(hierarchy),
       d_fe_mesh_partitioner(std::move(fe_mesh_partitioner)),
-      d_sys_name(std::move(sys_name))
+      d_sys_x_name(std::move(sys_x_name)),
+      d_sys_b_name(std::move(sys_b_name))
 {
     // Setup default values.
     GeneralSolver::init(std::move(object_name), /*homogeneous_bc*/ false);
@@ -79,8 +82,25 @@ RBFPoissonSolver::RBFPoissonSolver(std::string object_name,
 
     d_rbf_weights = libmesh_make_unique<RBFFDWeightsCache>(
         d_object_name + "::weights", d_fe_mesh_partitioner, d_hierarchy, input_db);
+    // Make a function for the weights
+    d_rbf = [](const double r) -> double { return PolynomialBasis::pow(r, 5); };
+    d_lap_rbf = [](const double r) -> double {
+#if (NDIM == 2)
+        return 25.0 * PolynomialBasis::pow(r, 4);
+#endif
+#if (NDIM == 3)
+        return 30.0 * PolynomialBasis::pow(r, 4);
+#endif
+    };
+
+    d_polys = [this](const std::vector<VectorNd>& vec, int degree, double ds, const VectorNd& shft) -> MatrixXd {
+        return PolynomialBasis::laplacianMonomials(vec, degree, ds, shft);
+    };
+
+    d_rbf_weights->registerPolyFcn(d_polys, d_rbf, d_lap_rbf);
+
     // Register eulerian patch data index if not already done
-    if (d_eul_idx_idx != IBTK::invalid_index)
+    if (d_eul_idx_idx == IBTK::invalid_index)
     {
         auto var_db = VariableDatabase<NDIM>::getDatabase();
         d_eul_idx_idx = var_db->registerVariableAndContext(
@@ -151,6 +171,8 @@ RBFPoissonSolver::solveSystem(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorRea
     IBTK_CHKERRQ(ierr);
     const bool converged = (static_cast<int>(reason) > 0);
     reportPETScKSPConvergedReason(d_object_name, reason, plog);
+    plog << "converegd after " << d_current_iterations << " iterations with residual norm " << d_current_residual_norm
+         << "\n";
 
     // Copy data back to other representations
     copyDataFromPetsc(x, b);
@@ -242,6 +264,13 @@ RBFPoissonSolver::initializeSolverState(const SAMRAIVectorReal<NDIM, double>& x,
     ierr = KSPSetFromOptions(d_petsc_ksp);
     IBTK_CHKERRQ(ierr);
 
+    // Allocate patch data
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        level->allocatePatchData(d_eul_idx_idx);
+    }
+
     // Reset the member state variables to correspond to the values used by the
     // KSP object.  (Command-line options always take precedence.)
     const char* ksp_type;
@@ -255,11 +284,16 @@ RBFPoissonSolver::initializeSolverState(const SAMRAIVectorReal<NDIM, double>& x,
     ierr = KSPGetTolerances(d_petsc_ksp, &d_rel_residual_tol, &d_abs_residual_tol, nullptr, &d_max_iterations);
     IBTK_CHKERRQ(ierr);
 
+#if (0)
     // Setup Eulerian DOF indexing
     setupEulDOFs(x);
     // Setup Lagrangian DOF indexing
     setupLagDOFs();
+#endif
+    // Setup DOF indexing
+    setupDOFs(x);
     // Get RBF-FD weights
+    d_rbf_weights->setLS(d_ls_idx);
     d_rbf_weights->findRBFFDWeights();
     // Now create matrix
     setupMatrixAndVec();
@@ -327,6 +361,7 @@ RBFPoissonSolver::commonConstructor(Pointer<Database> input_db)
         if (input_db->keyExists("enable_logging")) d_enable_logging = input_db->getBool("enable_logging");
 
         d_dist_to_bdry = input_db->getDouble("dist_to_bdry");
+        d_eps = input_db->getDouble("eps");
     }
     // Setup Timers.
     IBTK_DO_ONCE(t_solve_system = TimerManager::getManager()->getTimer("ADS::RBFPoissonSolver::solveSystem()");
@@ -344,7 +379,7 @@ RBFPoissonSolver::copyDataToPetsc(const SAMRAIVectorReal<NDIM, double>& x, const
     int ierr;
     // Start with Eulerian data
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(d_hierarchy->getFinestLevelNumber());
-    for (unsigned int comp = 0; comp <= x.getNumberOfComponents(); ++comp)
+    for (int comp = 0; comp < x.getNumberOfComponents(); ++comp)
     {
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
@@ -368,10 +403,11 @@ RBFPoissonSolver::copyDataToPetsc(const SAMRAIVectorReal<NDIM, double>& x, const
     // Note the corresponding PETSc index is the libMesh index plus the number of SAMRAI indices
     int eul_offset = std::accumulate(d_eul_dofs_per_proc.begin(), d_eul_dofs_per_proc.end(), 0);
     EquationSystems* eq_sys = d_fe_mesh_partitioner->getEquationSystems();
-    const System& sys = eq_sys->get_system(d_sys_name);
-    const DofMap& dof_map = sys.get_dof_map();
-    NumericVector<double>* x_vec = sys.current_local_solution.get();
-    NumericVector<double>* b_vec = sys.current_local_solution.get();
+    const System& x_sys = eq_sys->get_system(d_sys_x_name);
+    const DofMap& dof_map = x_sys.get_dof_map();
+    NumericVector<double>* x_vec = x_sys.current_local_solution.get();
+    const System& b_sys = eq_sys->get_system(d_sys_b_name);
+    NumericVector<double>* b_vec = b_sys.current_local_solution.get();
     const MeshBase& mesh = eq_sys->get_mesh();
     auto it = mesh.local_nodes_begin();
     auto it_end = mesh.local_nodes_end();
@@ -379,12 +415,13 @@ RBFPoissonSolver::copyDataToPetsc(const SAMRAIVectorReal<NDIM, double>& x, const
     {
         const Node* const node = *it;
         std::vector<dof_id_type> dofs;
-        dof_map.dof_indices(node, &dofs);
+        dof_map.dof_indices(node, dofs);
         for (const auto& dof : dofs)
         {
-            ierr = VecSetValue(d_petsc_x, dof + eul_offset, (*x_vec)(dof), INSERT_VALUES);
+            const int petsc_dof = d_lag_petsc_dof_map[dof];
+            ierr = VecSetValue(d_petsc_x, petsc_dof, (*x_vec)(dof), INSERT_VALUES);
             IBTK_CHKERRQ(ierr);
-            ierr = VecSetValue(d_petsc_b, dof + eul_offset, (*b_vec)(dof), INSERT_VALUES);
+            ierr = VecSetValue(d_petsc_b, petsc_dof, (*b_vec)(dof), INSERT_VALUES);
             IBTK_CHKERRQ(ierr);
         }
     }
@@ -405,45 +442,35 @@ RBFPoissonSolver::copyDataFromPetsc(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVec
 {
     // We are assuming the PETSc Vec has been allocated correctly.
     int ierr;
-    const double* x_data;
-    const double* b_data;
-    ierr = VecGetArrayRead(d_petsc_x, &x_data);
-    IBTK_CHKERRQ(ierr);
-    ierr = VecGetArrayRead(d_petsc_b, &b_data);
+    const double* x_petsc_data;
+    ierr = VecGetArrayRead(d_petsc_x, &x_petsc_data);
     IBTK_CHKERRQ(ierr);
     // Start with Eulerian data
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(d_hierarchy->getFinestLevelNumber());
     const int mpi_rank = IBTK_MPI::getNodes();
-    const int local_eul_offset =
-        std::accumulate(d_eul_dofs_per_proc.begin(), d_eul_dofs_per_proc.begin() + mpi_rank, 0);
-    for (unsigned int comp = 0; comp <= x.getNumberOfComponents(); ++comp)
+    const int local_offset =
+        std::accumulate(d_petsc_dofs_per_proc.begin(), d_petsc_dofs_per_proc.begin() + mpi_rank, 0);
+    for (unsigned int comp = 0; comp < x.getNumberOfComponents(); ++comp)
     {
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
             Pointer<CellData<NDIM, int>> idx_data = patch->getPatchData(d_eul_idx_idx);
             Pointer<CellData<NDIM, double>> x_data = patch->getPatchData(x.getComponentDescriptorIndex(comp));
-            Pointer<CellData<NDIM, double>> b_data = patch->getPatchData(b.getComponentDescriptorIndex(comp));
             for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
                 int petsc_idx = (*idx_data)(idx, comp);
-                (*x_data)(idx) = x_data[petsc_idx - local_eul_offset];
-                (*b_data)(idx) = b_data[petsc_idx - local_eul_offset];
+                (*x_data)(idx) = x_petsc_data[petsc_idx - local_offset];
             }
         }
     }
 
     // Now the Lag data
-    // Note the corresponding PETSc index is the libMesh index plus the number of SAMRAI indices
-    int eul_offset = std::accumulate(d_eul_dofs_per_proc.begin(), d_eul_dofs_per_proc.end(), 0);
-    const int local_lag_offset =
-        std::accumulate(d_lag_dofs_per_proc.begin(), d_lag_dofs_per_proc.begin() + mpi_rank, 0);
     EquationSystems* eq_sys = d_fe_mesh_partitioner->getEquationSystems();
-    const System& sys = eq_sys->get_system(d_sys_name);
+    System& sys = eq_sys->get_system(d_sys_x_name);
     const DofMap& dof_map = sys.get_dof_map();
     NumericVector<double>* x_vec = sys.current_local_solution.get();
-    NumericVector<double>* b_vec = sys.current_local_solution.get();
     const MeshBase& mesh = eq_sys->get_mesh();
     auto it = mesh.local_nodes_begin();
     auto it_end = mesh.local_nodes_end();
@@ -451,19 +478,16 @@ RBFPoissonSolver::copyDataFromPetsc(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVec
     {
         const Node* const node = *it;
         std::vector<dof_id_type> dofs;
-        dof_map.dof_indices(node, &dofs);
+        dof_map.dof_indices(node, dofs);
         for (const auto& dof : dofs)
         {
-            (*x_vec)(dof) = x_data[dof + eul_offset - local_lag_offset];
-            (*b_vec)(dof) = b_data[dof + eul_offset - local_lag_offset];
+            int petsc_dof = d_lag_petsc_dof_map[dof];
+            x_vec->set(x_petsc_data[petsc_dof - local_offset], dof);
         }
     }
     x_vec->close();
-    b_vec->close();
     sys.update();
-    ierr = VecRestoreArrayRead(d_petsc_x, &x_data);
-    IBTK_CHKERRQ(ierr);
-    ierr = VecRestoreArrayRead(d_petsc_b, &b_data);
+    ierr = VecRestoreArrayRead(d_petsc_x, &x_petsc_data);
     IBTK_CHKERRQ(ierr);
 }
 
@@ -523,7 +547,7 @@ RBFPoissonSolver::setupLagDOFs()
     EquationSystems* eq_sys = d_fe_mesh_partitioner->getEquationSystems();
     const MeshBase& mesh = eq_sys->get_mesh();
 
-    const System& sys = eq_sys->get_system(d_sys_name);
+    const System& sys = eq_sys->get_system(d_sys_x_name);
     const DofMap& dof_map = sys.get_dof_map();
 
     // For now, we just use libMesh's partitioning.
@@ -536,10 +560,98 @@ RBFPoissonSolver::setupLagDOFs()
 }
 
 void
+RBFPoissonSolver::setupDOFs(const SAMRAIVectorReal<NDIM, double>& x)
+{
+    // First count all the DOFs
+    int eul_local_dofs = 0;
+    int lag_local_dofs = 0;
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            const Box<NDIM>& box = patch->getBox();
+            Pointer<CellData<NDIM, int>> idx_data = patch->getPatchData(d_eul_idx_idx);
+            const int depth = idx_data->getDepth();
+            eul_local_dofs += depth * CellGeometry<NDIM>::toCellBox(box).size();
+        }
+    }
+
+    EquationSystems* eq_sys = d_fe_mesh_partitioner->getEquationSystems();
+    const System& sys = eq_sys->get_system(d_sys_x_name);
+    const DofMap& dof_map = sys.get_dof_map();
+    lag_local_dofs = dof_map.n_local_dofs();
+
+    const int mpi_size = IBTK_MPI::getNodes();
+    const int mpi_rank = IBTK_MPI::getRank();
+    d_eul_dofs_per_proc.resize(mpi_size, 0);
+    IBTK_MPI::allGather(eul_local_dofs, d_eul_dofs_per_proc.data());
+    d_lag_dofs_per_proc.resize(mpi_size, 0);
+    IBTK_MPI::allGather(lag_local_dofs, d_lag_dofs_per_proc.data());
+    d_petsc_dofs_per_proc.resize(mpi_size, 0);
+    IBTK_MPI::allGather(eul_local_dofs + lag_local_dofs, d_petsc_dofs_per_proc.data());
+
+    const int local_dof_offset =
+        std::accumulate(d_petsc_dofs_per_proc.begin(), d_petsc_dofs_per_proc.begin() + mpi_rank, 0);
+
+    // Now we actually assign PETSc dofs.
+    // Start with SAMRAI points
+    int counter = local_dof_offset;
+    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            Pointer<CellData<NDIM, int>> idx_data = patch->getPatchData(d_eul_idx_idx);
+            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+            {
+                const CellIndex<NDIM>& idx = ci();
+                (*idx_data)(idx) = counter++;
+            }
+        }
+
+        // Communicate ghost DOF indices.
+        RefineAlgorithm<NDIM> ghost_fill_alg;
+        ghost_fill_alg.registerRefine(d_eul_idx_idx, d_eul_idx_idx, d_eul_idx_idx, nullptr);
+        ghost_fill_alg.createSchedule(level)->fillData(0.0);
+    }
+
+    // Now the libMesh dofs
+    int lag_offset = std::accumulate(d_lag_dofs_per_proc.begin(), d_lag_dofs_per_proc.begin() + mpi_rank, 0);
+    int tot_lag_dofs = std::accumulate(d_lag_dofs_per_proc.begin(), d_lag_dofs_per_proc.end(), 0);
+    std::vector<int> libmesh_dofs(tot_lag_dofs, 0), petsc_dofs(tot_lag_dofs, 0);
+    const MeshBase& mesh = eq_sys->get_mesh();
+    MeshBase::const_node_iterator el_end = mesh.local_nodes_end();
+    MeshBase::const_node_iterator el_it = mesh.local_nodes_begin();
+    int lag_counter = lag_offset;
+    for (; el_it != el_end; ++el_it)
+    {
+        const Node* const node = *el_it;
+        std::vector<dof_id_type> dofs;
+        dof_map.dof_indices(node, dofs);
+        for (const auto& dof : dofs)
+        {
+            libmesh_dofs[lag_counter] = dof;
+            petsc_dofs[lag_counter++] = counter++;
+        }
+    }
+
+    // Now communicate ghost DOF data.
+    IBTK_MPI::sumReduction(libmesh_dofs.data(), tot_lag_dofs, d_petsc_comm);
+    IBTK_MPI::sumReduction(petsc_dofs.data(), tot_lag_dofs, d_petsc_comm);
+    for (size_t i = 0; i < tot_lag_dofs; ++i)
+    {
+        d_lag_petsc_dof_map[libmesh_dofs[i]] = petsc_dofs[i];
+        pout << "libmesh dof " << libmesh_dofs[i] << " has petsc dof: " << petsc_dofs[i] << "\n";
+    }
+}
+
+void
 RBFPoissonSolver::setupMatrixAndVec()
 {
-    // At this point we have the vectors and DOFs labeled. We need to create the matrix.
-
+    // At this point we have the vectors and DOFs labeled. We need to create the matrix and vectors.
     // Determine the non-zero structure of the matrix.
     const int mpi_rank = IBTK_MPI::getRank();
     const int eul_local = d_eul_dofs_per_proc[mpi_rank];
@@ -552,15 +664,28 @@ RBFPoissonSolver::setupMatrixAndVec()
     const int lag_upper = lag_lower + lag_local;
     const int lag_total = std::accumulate(d_lag_dofs_per_proc.begin(), d_lag_dofs_per_proc.end(), 0);
 
+    const int petsc_local = d_petsc_dofs_per_proc[mpi_rank];
+    const int petsc_lower = std::accumulate(d_petsc_dofs_per_proc.begin(), d_petsc_dofs_per_proc.begin() + mpi_rank, 0);
+    const int petsc_upper = petsc_lower + petsc_local;
+    const int petsc_total = std::accumulate(d_petsc_dofs_per_proc.begin(), d_petsc_dofs_per_proc.end(), 0);
+
+    plog << "Total Eul DOFs:   " << eul_total << "\n";
+    plog << "Total Lag DOFs:   " << lag_total << "\n";
+    plog << "Total PETSc DOFs: " << petsc_local << "\n";
+    int ierr = VecCreateMPI(d_petsc_comm, petsc_local, petsc_local, &d_petsc_x);
+    IBTK_CHKERRQ(ierr);
+    ierr = VecDuplicate(d_petsc_x, &d_petsc_b);
+    IBTK_CHKERRQ(ierr);
+
     // We'll need the DofMap
     EquationSystems* eq_sys = d_fe_mesh_partitioner->getEquationSystems();
-    const System& sys = eq_sys->get_system(d_sys_name);
+    const System& sys = eq_sys->get_system(d_sys_x_name);
     const DofMap& dof_map = sys.get_dof_map();
 
     // First the Eulerian degrees of freedom.
     // d_nnz is local dofs
     // o_nnz is dofs on different processors.
-    std::vector<int> d_nnz(eul_local + lag_local, 0), o_nnz(eul_local + lag_local, 0);
+    std::vector<int> d_nnz(petsc_local, 0), o_nnz(petsc_local, 0);
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -574,17 +699,18 @@ RBFPoissonSolver::setupMatrixAndVec()
             {
                 const CellIndex<NDIM>& idx = ci();
                 const int dof_index = (*dof_index_data)(idx);
-                // If this index is between eul_local and eul_upper, we own this dof
-                if (eul_lower <= dof_index && dof_index < eul_upper)
+                // Check that this DOF is local.
+                if (petsc_lower <= dof_index && dof_index < petsc_upper)
                 {
                     // We need the stencil for this operator
+                    const int local_idx = dof_index - petsc_lower;
                     // Check if we are using FD
                     const double ls_val = ADS::node_to_cell(idx, *ls_data);
+                    plog << "local index: " << local_idx << "\n";
+                    plog << "ls val:      " << ls_val << "\n";
                     if (ls_val < 0.0 && std::abs(ls_val) >= d_dist_to_bdry)
                     {
                         // We are using standard finite differences.
-                        const int local_idx = dof_index - eul_lower;
-
                         d_nnz[local_idx] += 1;
                         // Use compact 5 (or 7 in 3D) point stencil
                         for (int dir = 0; dir < NDIM; ++dir)
@@ -593,21 +719,29 @@ RBFPoissonSolver::setupMatrixAndVec()
                             dirs(dir) = 1;
                             // Upper
                             int dof_upper_index = (*dof_index_data)(idx + dirs);
-                            if (dof_upper_index >= eul_lower && dof_upper_index < eul_upper)
+                            if (dof_upper_index >= petsc_lower && dof_upper_index < petsc_upper)
                                 d_nnz[local_idx] += 1;
                             else
                                 o_nnz[local_idx] += 1;
                             // Lower
                             int dof_lower_index = (*dof_index_data)(idx - dirs);
-                            if (dof_lower_index >= eul_lower && dof_upper_index < eul_upper)
+                            if (dof_lower_index >= petsc_lower && dof_upper_index < petsc_upper)
                                 d_nnz[local_idx] += 1;
                             else
                                 o_nnz[local_idx] += 1;
                         }
                         // Ensure we haven't overcounted
-                        d_nnz[local_idx] = std::min(eul_local, d_nnz[local_idx]);
-                        o_nnz[local_idx] = std::min(eul_total - eul_local, o_nnz[local_idx]);
+                        d_nnz[local_idx] = std::min(petsc_local, d_nnz[local_idx]);
+                        o_nnz[local_idx] = std::min(petsc_total - petsc_local, o_nnz[local_idx]);
                     }
+                    else if (ls_val > -d_eps)
+                    {
+                        // Outside physical domain
+                        d_nnz[local_idx] = 1;
+                        o_nnz[local_idx] = 0;
+                    }
+                    plog << "d_nnz:       " << d_nnz[local_idx] << "\n";
+                    plog << "o_nnz:       " << o_nnz[local_idx] << "\n";
                 }
             }
 
@@ -621,42 +755,54 @@ RBFPoissonSolver::setupMatrixAndVec()
                 const UPoint& pt = base_pts[idx];
                 // Get dof index for this point.
                 const int dof_index = getDofIndex(pt, *dof_index_data, dof_map);
+                plog << "Checking dof index: " << dof_index << "\n";
+                plog << petsc_lower << ", " << dof_index << ", " << petsc_upper << "\n";
                 // Ensure that it is local
-                if ((eul_lower <= dof_index && dof_index < eul_upper) ||
-                    ((eul_total + lag_lower) <= dof_index && dof_index < (eul_total + lag_upper)))
+                if (petsc_lower <= dof_index && dof_index < petsc_upper)
                 {
-                    const int local_idx = dof_index - (eul_total + lag_lower);
-                    for (const auto& rbf_pt : rbf_pts[idx])
+                    const int local_idx = dof_index - petsc_lower;
+                    if (pt.isNode())
                     {
-                        const int dof_index = getDofIndex(rbf_pt, *dof_index_data, dof_map);
-                        if ((eul_lower <= dof_index && dof_index < eul_upper) ||
-                            ((eul_total + lag_lower) <= dof_index && dof_index < (eul_total + lag_upper)))
+                        d_nnz[local_idx] = 1;
+                        o_nnz[local_idx] = 0;
+                    }
+                    else
+                    {
+                        for (const auto& rbf_pt : rbf_pts[idx])
                         {
-                            d_nnz[local_idx] += 1;
-                        }
-                        else
-                        {
-                            o_nnz[local_idx] += 1;
+                            const int rbf_dof_index = getDofIndex(rbf_pt, *dof_index_data, dof_map);
+                            if (petsc_lower <= rbf_dof_index && rbf_dof_index < petsc_upper)
+                            {
+                                d_nnz[local_idx] += 1;
+                            }
+                            else
+                            {
+                                o_nnz[local_idx] += 1;
+                            }
                         }
                     }
+                    plog << "local index: " << local_idx << "\n";
+                    plog << "d_nnz:       " << d_nnz[local_idx] << "\n";
+                    plog << "o_nnz:       " << o_nnz[local_idx] << "\n";
                     // Ensure we haven't overcounted
-                    d_nnz[local_idx] = std::min(eul_local + lag_local, d_nnz[local_idx]);
-                    o_nnz[local_idx] = std::min(eul_total + lag_total - eul_local - lag_local, o_nnz[local_idx]);
+                    d_nnz[local_idx] = std::min(petsc_local, d_nnz[local_idx]);
+                    o_nnz[local_idx] = std::min(petsc_total - petsc_local, o_nnz[local_idx]);
                 }
             }
         }
     }
     // We can now preallocate the matrix
-    int ierr = MatCreateAIJ(PETSC_COMM_WORLD,
-                            eul_local + lag_local,
-                            eul_local + lag_local,
-                            PETSC_DETERMINE,
-                            PETSC_DETERMINE,
-                            0,
-                            d_nnz.data(),
-                            0,
-                            o_nnz.data(),
-                            &d_petsc_mat);
+    ierr = MatCreateAIJ(d_petsc_comm,
+                        petsc_total,
+                        petsc_total,
+                        petsc_total,
+                        petsc_total,
+                        0,
+                        d_nnz.data(),
+                        0,
+                        o_nnz.data(),
+                        &d_petsc_mat);
+    IBTK_CHKERRQ(ierr);
 
     // Now we need to fill in the coefficients
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
@@ -685,7 +831,8 @@ RBFPoissonSolver::setupMatrixAndVec()
             {
                 const CellIndex<NDIM>& idx = ci();
                 const int dof_index = (*dof_index_data)(idx);
-                if (eul_lower <= dof_index && dof_index < eul_upper)
+                plog << "dof index: " << dof_index << "\n";
+                if (petsc_lower <= dof_index && dof_index < petsc_upper)
                 {
                     const double ls_val = ADS::node_to_cell(idx, *ls_data);
                     if (ls_val < 0.0 && std::abs(ls_val) >= d_dist_to_bdry)
@@ -711,8 +858,33 @@ RBFPoissonSolver::setupMatrixAndVec()
                             mat_vals[col] = 1.0 / dx[dir];
                             col += 1;
                         }
+                        for (int i = 0; i < mat_cols.size(); ++i)
+                        {
+                            plog << "mat_cols[" << i << "] = " << mat_cols[i] << "\n";
+                            plog << "mat_vals[" << i << "] = " << mat_vals[i] << "\n";
+                        }
                         ierr = MatSetValues(
                             d_petsc_mat, 1, &dof_index, stencil_size, mat_cols.data(), mat_vals.data(), INSERT_VALUES);
+                        IBTK_CHKERRQ(ierr);
+                    }
+                    else if (ls_val > -d_eps)
+                    {
+                        mat_cols.resize(1);
+                        mat_vals.resize(1);
+                        mat_cols[0] = dof_index;
+                        mat_vals[0] = 1.0;
+                        for (int i = 0; i < mat_cols.size(); ++i)
+                        {
+                            plog << "mat_cols[" << i << "] = " << mat_cols[i] << "\n";
+                            plog << "mat_vals[" << i << "] = " << mat_vals[i] << "\n";
+                        }
+                        ierr = MatSetValues(d_petsc_mat,
+                                            1,
+                                            &dof_index,
+                                            mat_cols.size(),
+                                            mat_cols.data(),
+                                            mat_vals.data(),
+                                            INSERT_VALUES);
                         IBTK_CHKERRQ(ierr);
                     }
                 }
@@ -731,21 +903,54 @@ RBFPoissonSolver::setupMatrixAndVec()
                 std::vector<int> mat_cols(rbf_pts[idx].size());
                 // Get dof index for this point.
                 const int dof_index = getDofIndex(pt, *dof_index_data, dof_map);
+                plog << "On index " << dof_index << "\n";
                 // Ensure that it is local
-                if ((eul_lower <= dof_index && dof_index < eul_upper) ||
-                    ((eul_total + lag_lower) <= dof_index && dof_index < (eul_total + lag_upper)))
+                if (petsc_lower <= dof_index && dof_index < petsc_upper)
                 {
                     unsigned int stencil_idx = 0;
-                    for (const auto& rbf_pt : rbf_pts[idx])
+                    if (pt.isNode())
                     {
-                        const int dof_index = getDofIndex(rbf_pt, *dof_index_data, dof_map);
-                        mat_cols[stencil_idx] = dof_index;
-                        stencil_idx += 1;
+                        mat_cols.resize(1);
+                        mat_cols[0] = getDofIndex(pt, *dof_index_data, dof_map);
+                    }
+                    else
+                    {
+                        for (const auto& rbf_pt : rbf_pts[idx])
+                        {
+                            const int rbf_dof_index = getDofIndex(rbf_pt, *dof_index_data, dof_map);
+                            mat_cols[stencil_idx] = rbf_dof_index;
+                            stencil_idx += 1;
+                        }
+                    }
+                    if (pt.isNode())
+                    {
+                        std::vector<double> weights = { 1.0 };
+                        for (size_t i = 0; i < mat_cols.size(); ++i)
+                        {
+                            plog << "mat_cols[" << i << "] = " << mat_cols[i] << "\n";
+                            plog << "mat_vals[" << i << "] = " << weights[i] << "\n";
+                        }
+                        ierr =
+                            MatSetValues(d_petsc_mat, 1, &dof_index, 1, mat_cols.data(), weights.data(), INSERT_VALUES);
+                        IBTK_CHKERRQ(ierr);
+                    }
+                    else
+                    {
+                        for (size_t i = 0; i < mat_cols.size(); ++i)
+                        {
+                            plog << "mat_cols[" << i << "] = " << mat_cols[i] << "\n";
+                            plog << "mat_vals[" << i << "] = " << rbf_weights[idx][i] << "\n";
+                        }
+                        ierr = MatSetValues(d_petsc_mat,
+                                            1,
+                                            &dof_index,
+                                            stencil_size,
+                                            mat_cols.data(),
+                                            rbf_weights[idx].data(),
+                                            INSERT_VALUES);
+                        IBTK_CHKERRQ(ierr);
                     }
                 }
-                ierr = MatSetValues(
-                    d_petsc_mat, 1, &dof_index, stencil_size, mat_cols.data(), rbf_weights[idx].data(), INSERT_VALUES);
-                IBTK_CHKERRQ(ierr);
             }
         }
     }
@@ -759,6 +964,17 @@ RBFPoissonSolver::setupMatrixAndVec()
 int
 RBFPoissonSolver::getDofIndex(const UPoint& pt, const CellData<NDIM, int>& idx_data, const DofMap& dof_map)
 {
+    if (pt.isIdx())
+    {
+        return idx_data(pt.getIndex());
+    }
+    else if (pt.isNode())
+    {
+        std::vector<dof_id_type> dof_idxs;
+        dof_map.dof_indices(pt.getNode(), dof_idxs);
+        return d_lag_petsc_dof_map[dof_idxs[0]];
+    }
+    TBOX_ERROR("Should not reach this statement\n");
     return IBTK::invalid_index;
 }
 

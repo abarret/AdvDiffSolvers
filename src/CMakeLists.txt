@@ -50,6 +50,7 @@ SET(CXX_SRC
     solvers/PETScAugmentedKrylovLinearSolver.cpp
     solvers/PETScAugmentedLinearOperator.cpp
     solvers/RBFLaplaceOperator.cpp
+    solvers/RBFPoissonSolver.cpp
     solvers/SBBoundaryConditions.cpp
     )
 
