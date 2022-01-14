@@ -81,21 +81,27 @@ RBFPoissonSolver::RBFPoissonSolver(std::string object_name,
     d_rel_residual_tol = 1.0e-5;
     d_enable_logging = true;
 
+    d_C = input_db->getDouble("d");
+    d_D = input_db->getDouble("d");
+    const double& C = d_C;
+    const double& D = d_D;
+
     d_rbf_weights = libmesh_make_unique<RBFFDWeightsCache>(
         d_object_name + "::weights", d_fe_mesh_partitioner, d_hierarchy, input_db);
     // Make a function for the weights
     d_rbf = [](const double r) -> double { return PolynomialBasis::pow(r, 5); };
-    d_lap_rbf = [](const double r) -> double {
+    d_lap_rbf = [&C, &D](const double r) -> double {
 #if (NDIM == 2)
-        return 25.0 * PolynomialBasis::pow(r, 4);
+        return C * PolynomialBasis::pow(r, 5) + D * 25.0 * PolynomialBasis::pow(r, 4);
 #endif
 #if (NDIM == 3)
-        return 30.0 * PolynomialBasis::pow(r, 4);
+        return C * PolynomialBasis::pow(r, 5) + D * 30.0 * PolynomialBasis::pow(r, 4);
 #endif
     };
 
-    d_polys = [this](const std::vector<VectorNd>& vec, int degree, double ds, const VectorNd& shft) -> MatrixXd {
-        return PolynomialBasis::laplacianMonomials(vec, degree, ds, shft);
+    d_polys = [&C, &D](const std::vector<VectorNd>& vec, int degree, double ds, const VectorNd& shft) -> MatrixXd {
+        return C * PolynomialBasis::formMonomials(vec, degree) +
+               D * PolynomialBasis::laplacianMonomials(vec, degree, ds, shft);
     };
 
     d_rbf_weights->registerPolyFcn(d_polys, d_rbf, d_lap_rbf);
@@ -716,7 +722,7 @@ RBFPoissonSolver::setupMatrixAndVec()
                         mat_cols[col] = dof_index;
                         mat_vals[col] = 0.0;
                         col += 1;
-                        for (int d = 0; d < NDIM; ++d) mat_vals[0] -= 2.0 / (dx[d] * dx[d]);
+                        for (int d = 0; d < NDIM; ++d) mat_vals[0] += d_C - d_D * 2.0 / (dx[d] * dx[d]);
                         for (int dir = 0; dir < NDIM; ++dir)
                         {
                             IntVector<NDIM> dirs(0);
@@ -724,12 +730,12 @@ RBFPoissonSolver::setupMatrixAndVec()
                             // Upper
                             int dof_upper_index = (*dof_index_data)(idx + dirs);
                             mat_cols[col] = dof_upper_index;
-                            mat_vals[col] = 1.0 / (dx[dir] * dx[dir]);
+                            mat_vals[col] = d_D / (dx[dir] * dx[dir]);
                             col += 1;
                             // Lower
                             int dof_lower_index = (*dof_index_data)(idx - dirs);
                             mat_cols[col] = dof_lower_index;
-                            mat_vals[col] = 1.0 / (dx[dir] * dx[dir]);
+                            mat_vals[col] = d_D / (dx[dir] * dx[dir]);
                             col += 1;
                         }
                         ierr = MatSetValues(

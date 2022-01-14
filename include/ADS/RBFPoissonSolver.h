@@ -331,6 +331,8 @@ private:
 
     double d_dist_to_bdry = std::numeric_limits<double>::quiet_NaN();
     double d_eps = std::numeric_limits<double>::quiet_NaN();
+
+    double d_C = std::numeric_limits<double>::quiet_NaN(), d_D = std::numeric_limits<double>::quiet_NaN();
 };
 } // namespace ADS
 
