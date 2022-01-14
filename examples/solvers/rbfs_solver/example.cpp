@@ -183,6 +183,7 @@ main(int argc, char* argv[])
         Pointer<CellVariable<NDIM, double>> b_var = new CellVariable<NDIM, double>("b");
         Pointer<CellVariable<NDIM, double>> e_var = new CellVariable<NDIM, double>("e");
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("ls");
+        Pointer<CellVariable<NDIM, double>> exact_var = new CellVariable<NDIM, double>("exact");
 
         const int q_idx = var_db->registerVariableAndContext(q_var, ctx, IntVector<NDIM>(3));
         const int b_idx = var_db->registerVariableAndContext(b_var, ctx, IntVector<NDIM>(3));
@@ -190,6 +191,7 @@ main(int argc, char* argv[])
         const int masked_e_idx =
             var_db->registerVariableAndContext(e_var, var_db->getContext("mask"), IntVector<NDIM>(0));
         const int ls_idx = var_db->registerVariableAndContext(ls_var, ctx, IntVector<NDIM>(3));
+        const int exact_idx = var_db->registerVariableAndContext(exact_var, ctx, IntVector<NDIM>(0));
 
         // Register variables for plotting.
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
@@ -198,6 +200,7 @@ main(int argc, char* argv[])
         visit_data_writer->registerPlotQuantity(q_var->getName(), "SCALAR", q_idx);
         visit_data_writer->registerPlotQuantity(b_var->getName(), "SCALAR", b_idx);
         visit_data_writer->registerPlotQuantity(e_var->getName(), "SCALAR", e_idx);
+        visit_data_writer->registerPlotQuantity(exact_var->getName(), "SCALAR", exact_idx);
         visit_data_writer->registerPlotQuantity("masked e", "SCALAR", masked_e_idx);
         visit_data_writer->registerPlotQuantity(ls_var->getName(), "SCALAR", ls_idx);
 
@@ -221,6 +224,7 @@ main(int argc, char* argv[])
             level->allocatePatchData(q_idx, 0.0);
             level->allocatePatchData(b_idx, 0.0);
             level->allocatePatchData(e_idx, 0.0);
+            level->allocatePatchData(exact_idx, 0.0);
             level->allocatePatchData(masked_e_idx, 0.0);
             level->allocatePatchData(ls_idx, 0.0);
         }
@@ -250,6 +254,7 @@ main(int argc, char* argv[])
         b_fcn.setDataOnPatchHierarchy(b_idx, b_var, patch_hierarchy, 0.0);
         ls_fcn.setDataOnPatchHierarchy(ls_idx, ls_var, patch_hierarchy, 0.0);
         exact_fcn.setDataOnPatchHierarchy(e_idx, e_var, patch_hierarchy, 0.0);
+        exact_fcn.setDataOnPatchHierarchy(exact_idx, exact_var, patch_hierarchy, 0.0);
 
         // Set up the finite element mesh
         // Note we use this to create "augmented" dofs.

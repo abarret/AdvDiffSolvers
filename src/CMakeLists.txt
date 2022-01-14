@@ -32,13 +32,11 @@ SET(CXX_SRC
     LSFindCellVolume.cpp
     LSFromLevelSet.cpp
     LSFromMesh.cpp
-    ls_functions.cpp
     MLSReconstructCache.cpp
     RBFFDWeightsCache.cpp
     RBFReconstructCache.cpp
     RBFReconstructions.cpp
     ReconstructCache.cpp
-    reconstructions.cpp
     SBAdvDiffIntegrator.cpp
     SBIntegrator.cpp
     SBSurfaceFluidCouplingManager.cpp
@@ -52,6 +50,10 @@ SET(CXX_SRC
     solvers/RBFLaplaceOperator.cpp
     solvers/RBFPoissonSolver.cpp
     solvers/SBBoundaryConditions.cpp
+
+    utilities/ls_functions.cpp
+    utilities/reconstructions.cpp
+    utilities/solver_utilities.cpp
     )
 
 TARGET_SOURCES(ADS2d PRIVATE ${FORTRAN_GENERATED_SRC2D} ${CXX_SRC})

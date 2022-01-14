@@ -92,6 +92,7 @@ SETUP_2D(examples radial.cpp)
 
 SETUP_2D(find_vol find_vol.cpp)
 
+SETUP_2D(operators copy_to_petsc.cpp)
 SETUP_2D(operators global_indexing.cpp)
 SETUP_2D(operators laplace.cpp)
 SETUP_2D(operators rbf_fd_weights.cpp)

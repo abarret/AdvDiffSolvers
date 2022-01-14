@@ -117,6 +117,8 @@ RBFFDWeightsCache::sortLagDOFsToCells()
     NumericVector<double>* X_vec = sys.current_local_solution.get();
 
     // Loop through nodes
+    // TODO: This breaks in parallel. We need some way to ensure that we have the data of all the nodes on a given
+    // patch.
     auto it_end = mesh.nodes_end();
     for (auto it = mesh.nodes_begin(); it != it_end; ++it)
     {

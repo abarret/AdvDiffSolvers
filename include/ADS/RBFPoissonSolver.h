@@ -207,6 +207,34 @@ public:
 
     //\}
 
+    inline Mat& getMat()
+    {
+        return d_petsc_mat;
+    }
+    inline Vec& getRHS()
+    {
+        return d_petsc_b;
+    }
+    inline Vec& getX()
+    {
+        return d_petsc_x;
+    }
+
+    inline int getEulerianMap()
+    {
+        return d_eul_idx_idx;
+    }
+
+    inline const std::map<int, int>& getLagrangianMap()
+    {
+        return d_lag_petsc_dof_map;
+    }
+
+    inline const std::vector<int>& getDofsPerProc()
+    {
+        return d_petsc_dofs_per_proc;
+    }
+
 private:
     /*!
      * \brief Default constructor.
@@ -240,12 +268,6 @@ private:
      */
     void commonConstructor(SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 
-    void copyDataToPetsc(const SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& x,
-                         const SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& b);
-
-    void copyDataFromPetsc(SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& x,
-                           SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& b);
-
     /*!
      * \brief Set up a pairing between SAMRAI data ordering to PETSc data ordering.
      * We count the number of DOFs for each processor, assign each cell index a PETSc index, and fill in ghost cells.
@@ -270,8 +292,9 @@ private:
      */
     void setupMatrixAndVec();
 
-    int
-    getDofIndex(const UPoint& pt, const SAMRAI::pdat::CellData<NDIM, int>& idx_data, const libMesh::DofMap& dof_map);
+    int getDofIndex(const FDCachedPoint& pt,
+                    const SAMRAI::pdat::CellData<NDIM, int>& idx_data,
+                    const libMesh::DofMap& dof_map);
 
     bool d_reinitializing_solver = false;
 
