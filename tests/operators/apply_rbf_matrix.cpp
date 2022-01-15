@@ -140,14 +140,6 @@ main(int argc, char* argv[])
         const int error_idx = var_db->registerVariableAndContext(error_var, ctx, IntVector<NDIM>(3));
         const int ls_idx = var_db->registerVariableAndContext(ls_var, ctx, IntVector<NDIM>(3));
 
-        // Set up visualization
-        Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
-        visit_data_writer->registerPlotQuantity(exact_var->getName(), "SCALAR", exact_idx);
-        visit_data_writer->registerPlotQuantity(x_var->getName(), "SCALAR", x_idx);
-        visit_data_writer->registerPlotQuantity(b_var->getName(), "SCALAR", b_idx);
-        visit_data_writer->registerPlotQuantity(error_var->getName(), "SCALAR", error_idx);
-        visit_data_writer->registerPlotQuantity(ls_var->getName(), "SCALAR", ls_idx);
-
         // Initialize the AMR patch hierarchy.
         gridding_algorithm->makeCoarsestLevel(patch_hierarchy, 0.0);
         int tag_buffer = 1;
@@ -233,8 +225,18 @@ main(int argc, char* argv[])
         bdry_info.sync(bdry_mesh);
         bdry_mesh.prepare_for_use();
 
-        // Set up system for drawing
+// Uncomment to output visualization.
+//#define DRAW_OUTPUT
+#ifdef DRAW_OUTPUT
+        // Set up visualization
+        Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
+        visit_data_writer->registerPlotQuantity(exact_var->getName(), "SCALAR", exact_idx);
+        visit_data_writer->registerPlotQuantity(x_var->getName(), "SCALAR", x_idx);
+        visit_data_writer->registerPlotQuantity(b_var->getName(), "SCALAR", b_idx);
+        visit_data_writer->registerPlotQuantity(error_var->getName(), "SCALAR", error_idx);
+        visit_data_writer->registerPlotQuantity(ls_var->getName(), "SCALAR", ls_idx);
         auto bdry_io = libmesh_make_unique<ExodusII_IO>(bdry_mesh);
+#endif
 
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
             "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), &bdry_mesh);
@@ -328,8 +330,10 @@ main(int argc, char* argv[])
              << "  L2-norm:  " << Q_error[1] << "\n"
              << "  max-norm: " << Q_error[2] << "\n";
         pout << std::setprecision(10) << Q_error[0] << " " << Q_error[1] << " " << Q_error[2] << "\n";
+#ifdef DRAW_OUTPUT
         visit_data_writer->writePlotData(patch_hierarchy, 0, 0.0);
         bdry_io->write_timestep(bdry_dirname, *bdry_eq_sys, 1, 0.0);
+#endif
 
         // Now deallocate
         solver->deallocateSolverState();

@@ -81,7 +81,7 @@ RBFPoissonSolver::RBFPoissonSolver(std::string object_name,
     d_rel_residual_tol = 1.0e-5;
     d_enable_logging = true;
 
-    d_C = input_db->getDouble("d");
+    d_C = input_db->getDouble("c");
     d_D = input_db->getDouble("d");
     const double& C = d_C;
     const double& D = d_D;
@@ -100,7 +100,7 @@ RBFPoissonSolver::RBFPoissonSolver(std::string object_name,
     };
 
     d_polys = [&C, &D](const std::vector<VectorNd>& vec, int degree, double ds, const VectorNd& shft) -> MatrixXd {
-        return C * PolynomialBasis::formMonomials(vec, degree) +
+        return C * PolynomialBasis::formMonomials(vec, degree, ds, shft) +
                D * PolynomialBasis::laplacianMonomials(vec, degree, ds, shft);
     };
 
@@ -720,9 +720,15 @@ RBFPoissonSolver::setupMatrixAndVec()
                         // Using standard differences
                         int col = 0;
                         mat_cols[col] = dof_index;
-                        mat_vals[col] = 0.0;
+                        pout << "dof_index: " << dof_index << "\n";
+                        mat_vals[col] = d_C;
+                        pout << "mat_val  : " << mat_vals[col] << "\n";
+                        for (int d = 0; d < NDIM; ++d)
+                        {
+                            mat_vals[col] -= d_D * 2.0 / (dx[d] * dx[d]);
+                            pout << "mat_val  : " << mat_vals[col] << "\n";
+                        }
                         col += 1;
-                        for (int d = 0; d < NDIM; ++d) mat_vals[0] += d_C - d_D * 2.0 / (dx[d] * dx[d]);
                         for (int dir = 0; dir < NDIM; ++dir)
                         {
                             IntVector<NDIM> dirs(0);

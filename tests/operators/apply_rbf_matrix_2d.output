@@ -1,0 +1,19 @@
+Allocating data
+Setting up solution data
+Creating finite element mesh
+Extracting boundary mesh
+Filling initial condition
+Creating solver
+Total Eul DOFs:   4096
+Total Lag DOFs:   64
+Total PETSc DOFs: 4160
+Checking errors
+Norms of error: 
+  L1-norm:  3.31018
+  L2-norm:  1.1446
+  max-norm: 0.648417
+Structure errors:
+  L1-norm:  1.67899
+  L2-norm:  0.879048
+  max-norm: 0.625438
+1.678992692 0.879047987 0.625438315

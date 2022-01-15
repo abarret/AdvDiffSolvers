@@ -10,6 +10,8 @@ DT = 0.5 * 4.0 / 256
 
 
 PoissonSolver {
+  c = 0.0
+  d = 0.0
   dist_to_bdry = 40000.0 * DX
   eps = 0.25 * DX
   polynomial_degree = 3

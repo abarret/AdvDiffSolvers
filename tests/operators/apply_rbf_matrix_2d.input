@@ -1,12 +1,12 @@
 RADIUS = 1
-N = 32*2*2
+N = 64
 L = 4.0
 DX = L  / N
 MFAC = 1.0
 ELEM_TYPE = "TRI3"
 XCOM = 0.0
 YCOM = 0.0
-C = 0.0
+C = 1.0
 D = 1.0
 
 PoissonSolver {
@@ -15,7 +15,7 @@ PoissonSolver {
   dist_to_bdry = 40000.0 * DX
   eps = 0.25 * DX
   polynomial_degree = 3
-  stencil_size = 16
+  stencil_size = 12
 }
 
 MeshMapping {
