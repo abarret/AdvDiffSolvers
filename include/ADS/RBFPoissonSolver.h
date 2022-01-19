@@ -235,6 +235,8 @@ public:
         return d_petsc_dofs_per_proc;
     }
 
+    void writeMatToFile(const std::string& filename);
+
 private:
     /*!
      * \brief Default constructor.

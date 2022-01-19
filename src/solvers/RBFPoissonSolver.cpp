@@ -720,13 +720,10 @@ RBFPoissonSolver::setupMatrixAndVec()
                         // Using standard differences
                         int col = 0;
                         mat_cols[col] = dof_index;
-                        pout << "dof_index: " << dof_index << "\n";
                         mat_vals[col] = d_C;
-                        pout << "mat_val  : " << mat_vals[col] << "\n";
                         for (int d = 0; d < NDIM; ++d)
                         {
                             mat_vals[col] -= d_D * 2.0 / (dx[d] * dx[d]);
-                            pout << "mat_val  : " << mat_vals[col] << "\n";
                         }
                         col += 1;
                         for (int dir = 0; dir < NDIM; ++dir)
@@ -840,6 +837,65 @@ RBFPoissonSolver::getDofIndex(const FDCachedPoint& pt, const CellData<NDIM, int>
     }
     TBOX_ERROR("Should not reach this statement\n");
     return IBTK::invalid_index;
+}
+
+void
+RBFPoissonSolver::writeMatToFile(const std::string& filename)
+{
+    std::ofstream mat_file;
+    mat_file.open(filename);
+
+    int num_rows, num_cols;
+    int ierr = MatGetSize(d_petsc_mat, &num_rows, &num_cols);
+    IBTK_CHKERRQ(ierr);
+    mat_file << std::to_string(num_rows) << " " << std::to_string(num_cols) << "\n";
+    // Now loop through rows of matrix
+    for (int row = 0; row < num_rows; ++row)
+    {
+        int num_cols;
+        const int* col_idxs = nullptr;
+        const double* weights = nullptr;
+        ierr = MatGetRow(d_petsc_mat, row, &num_cols, &col_idxs, &weights);
+        IBTK_CHKERRQ(ierr);
+        // Now print out columns
+        for (int col = 0; col < num_cols; ++col)
+        {
+            mat_file << std::to_string(col_idxs[col]) << " " << std::to_string(weights[col]) << " ";
+        }
+        mat_file << "\n";
+        MatRestoreRow(d_petsc_mat, row, &num_cols, &col_idxs, &weights);
+        IBTK_CHKERRQ(ierr);
+    }
+    mat_file.close();
+
+    // Now output rhs
+    std::ofstream rhs_file;
+    rhs_file.open("rhs");
+    int vec_size;
+    double* vec_vals;
+    ierr = VecGetSize(d_petsc_b, &vec_size);
+    IBTK_CHKERRQ(ierr);
+    rhs_file << std::to_string(vec_size) << "\n";
+    ierr = VecGetArray(d_petsc_b, &vec_vals);
+    IBTK_CHKERRQ(ierr);
+    for (int i = 0; i < vec_size; ++i) rhs_file << std::to_string(vec_vals[i]) << "\n";
+    ierr = VecRestoreArray(d_petsc_b, &vec_vals);
+    IBTK_CHKERRQ(ierr);
+    rhs_file.close();
+
+    // Now output sol
+    std::ofstream sol_file;
+    sol_file.open("sol");
+    ierr = VecGetSize(d_petsc_x, &vec_size);
+    IBTK_CHKERRQ(ierr);
+    sol_file << std::to_string(vec_size) << "\n";
+    ierr = VecGetArray(d_petsc_x, &vec_vals);
+    IBTK_CHKERRQ(ierr);
+    for (int i = 0; i < vec_size; ++i) sol_file << std::to_string(vec_vals[i]) << "\n";
+    ierr = VecRestoreArray(d_petsc_b, &vec_vals);
+    sol_file.close();
+    IBTK_CHKERRQ(ierr);
+    return;
 }
 
 //////////////////////////////////////////////////////////////////////////////

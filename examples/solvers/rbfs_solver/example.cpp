@@ -360,6 +360,11 @@ main(int argc, char* argv[])
         pout << "Solving system\n";
         solver->solveSystem(q_vec, b_vec);
         pout << "Finished solving system\n";
+        // If necessary, write matrix to file
+#define WRITE_MATRIX 1
+#if WRITE_MATRIX
+        solver->writeMatToFile("mat");
+#endif
         solver->deallocateSolverState();
 
         // Compute errors
@@ -437,101 +442,8 @@ main(int argc, char* argv[])
         visit_data_writer->writePlotData(patch_hierarchy, 0, 0.0);
         vol_io->write_timestep(vol_dirname, vol_eq_sys, 1, 0.0);
         bdry_io->write_timestep(bdry_dirname, *bdry_eq_sys, 1, 0.0);
-
-        // If necessary, write matrix to file
-#define WRITE_MATRIX 0
-#if WRITE_MATRIX
-        {
-            Vec vec = nullptr, vec_out = nullptr;
-            int ierr = VecDuplicate(b_cloned, &vec);
-            IBTK_CHKERRQ(ierr);
-            int eul_dof = 0, lag_dof = 0;
-            for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
-            {
-                Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
-                for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-                {
-                    Pointer<Patch<NDIM>> patch = level->getPatch(p());
-                    const Box<NDIM>& box = patch->getBox();
-                    for (CellIterator<NDIM> ci(box); ci; ci++)
-                    {
-                        ++eul_dof;
-                    }
-                }
-            }
-            ierr = VecGetSize(vec, &lag_dof);
-            pout << "Eul dofs: " << eul_dof << "\n";
-            pout << "Lag dofs: " << lag_dof << "\n";
-            mat_file.open("matrix_vals");
-            // Loop through dofs and apply laplacian
-            for (int dof = 0; dof < eul_dof; ++dof)
-            {
-                pout << "Printing eul dof: " << dof << "\n";
-                lap_op->setAugmentedVec(vec);
-                fillLagQ(vec, -1);
-                fillEulQ(patch_hierarchy, q_idx, dof);
-                b_vec.setToScalar(0.0);
-                lap_op->initializeOperatorState(q_vec, b_vec);
-                lap_op->apply(q_vec, b_vec);
-                vec_out = lap_op->getAugmentedVec();
-                lap_op->deallocateOperatorState();
-                printMatrix(patch_hierarchy, b_idx, vec_out);
-            }
-            // Now lag_dofs
-            for (int dof = 0; dof < lag_dof; ++dof)
-            {
-                pout << "Printing lag dof: " << dof << "\n";
-                fillLagQ(vec, dof);
-                fillEulQ(patch_hierarchy, q_idx, -1);
-                lap_op->setAugmentedVec(vec);
-                b_vec.setToScalar(0.0);
-                lap_op->initializeOperatorState(q_vec, b_vec);
-                lap_op->apply(q_vec, b_vec);
-                vec_out = lap_op->getAugmentedVec();
-                lap_op->deallocateOperatorState();
-                printMatrix(patch_hierarchy, b_idx, vec_out);
-            }
-            ierr = VecDestroy(&vec);
-        }
-#endif
-
     } // cleanup dynamically allocated objects prior to shutdown
 } // main
-
-void
-printMatrix(Pointer<PatchHierarchy<NDIM>> patch_hierarchy, const int r_idx, Vec& vec)
-{
-    // First Eul dofs
-    for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-        {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            const Box<NDIM>& box = patch->getBox();
-            Pointer<CellData<NDIM, double>> r_data = patch->getPatchData(r_idx);
-            for (CellIterator<NDIM> ci(box); ci; ci++)
-            {
-                const CellIndex<NDIM>& idx = *ci;
-                double val = (*r_data)(idx);
-                mat_file << std::to_string(val) << " ";
-            }
-        }
-    }
-    // Now loop through lag dofs
-    double* vals;
-    int size;
-    int ierr = VecGetArray(vec, &vals);
-    IBTK_CHKERRQ(ierr);
-    ierr = VecGetLocalSize(vec, &size);
-    for (int i = 0; i < size; ++i)
-    {
-        mat_file << std::to_string(vals[i]) << " ";
-    }
-    ierr = VecRestoreArray(vec, &vals);
-    mat_file << "\n";
-    return;
-}
 
 void
 fillEulQ(Pointer<PatchHierarchy<NDIM>> patch_hierarchy, const int q_idx, const int ei)
