@@ -7,7 +7,8 @@ namespace ADS
 {
 GlobalIndexing::GlobalIndexing(std::string object_name,
                                Pointer<PatchHierarchy<NDIM>> hierarchy,
-                               std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner)
+                               std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner,
+                               int gcw)
     : d_object_name(std::move(object_name)),
       d_hierarchy(hierarchy),
       d_eul_idx_var(new CellVariable<NDIM, int>(d_object_name + "::IdxVar")),
@@ -15,7 +16,7 @@ GlobalIndexing::GlobalIndexing(std::string object_name,
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_eul_idx_idx = var_db->registerVariableAndContext(
-        d_eul_idx_var, var_db->getContext(d_object_name + "::EulIdx"), IntVector<NDIM>(1));
+        d_eul_idx_var, var_db->getContext(d_object_name + "::EulIdx"), IntVector<NDIM>(gcw));
 }
 
 GlobalIndexing::~GlobalIndexing()
