@@ -8,6 +8,7 @@
 #include <ibtk/config.h>
 
 #include <ADS/FEMeshPartitioner.h>
+#include <ADS/GhostPoints.h>
 
 #include <mpi.h>
 
@@ -25,7 +26,7 @@ class GlobalIndexing
 public:
     /*!
      * \brief GlobalIndexing constructor. Sets up an Eulerian patch data index with ghost cell width specified. Requires
-     * the mesh partitioner object for the boundary mesh.
+     * the mesh partitioner object for the boundary mesh. Additional ghost points may be registered.
      *
      * \note This leaves the object in an uninitialized state. Users must call setupDOFs() before an index mapping is
      * created.
@@ -33,7 +34,10 @@ public:
     GlobalIndexing(std::string object_name,
                    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                    std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner,
-                   int gcw = 1);
+                   std::string sys_name,
+                   std::shared_ptr<GhostPoints> ghost_pts,
+                   int gcw = 1,
+                   unsigned int depth = 1);
 
     /*!
      * \brief Destructor that by default calls clearDOFs().
@@ -59,6 +63,14 @@ public:
     }
 
     /*!
+     * \brief Return the map between the ghost dof's and the global dof's.
+     */
+    inline const std::map<int, int>& getGhostMap()
+    {
+        return d_ghost_petsc_dof_map;
+    }
+
+    /*!
      * \brief Return the number of dof's per processor.
      */
     inline const std::vector<int>& getDofsPerProc()
@@ -68,7 +80,7 @@ public:
 
     /*!
      * \brief Setup the mapping between SAMRAI and Lagrangian indices to global indices. This sets up a default mapping
-     * that lists all Eulerian dof's and then all libMesh dof's.
+     * that lists all Eulerian dof's, then all libMesh dof's, and finally all the ghost indices.
      */
     virtual void setupDOFs();
 
@@ -86,11 +98,19 @@ protected:
     int d_eul_idx_idx = IBTK::invalid_index;
 
     std::shared_ptr<FEMeshPartitioner> d_fe_mesh_partitioner;
-    std::string d_sys_x_name, d_sys_b_name;
+    std::string d_sys_name;
+    std::map<int, int> d_lag_petsc_local_dof_map;
     std::map<int, int> d_lag_petsc_dof_map;
     std::vector<int> d_lag_dofs_per_proc;
 
+    std::shared_ptr<GhostPoints> d_ghost_pts;
+    std::map<int, int> d_ghost_petsc_local_dof_map;
+    std::map<int, int> d_ghost_petsc_dof_map;
+    std::vector<int> d_ghost_dofs_per_proc;
+
     std::vector<int> d_petsc_dofs_per_proc;
+
+    unsigned int d_depth = 1;
 };
 
 } // namespace ADS
