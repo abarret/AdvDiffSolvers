@@ -16,6 +16,8 @@ namespace ADS
  * GhostPoints maintains a list of ghost nodes useful in solving RBF-FD discretized linear systems. It maintains ghost
  * points outside the SAMRAI domain as well as inside the finite element mesh. The width of ghost cells is given in the
  * constructor.
+ *
+ * \note This is currently specialized to use a geometry of a circle (or sphere in 3D), see findNormals().
  */
 class GhostPoints
 {
@@ -60,34 +62,54 @@ public:
     //\}
 
     /*!
-     * \brief Find the normals of the mesh.
+     * \brief Find the normals of the mesh. This is currently specialized to find the normals of a circle (or sphere in
+     * 3D). An accurate computation of the normals is required for other structures.
      */
     void findNormals();
 
     /*!
-     * Update the location of the boundary mesh. An optional argument is provided if the location of the structure is
-     * needed at the end of the timestep. By default, this function loops over parts and calls the part specific
+     * Update the location of the ghost nodes. By default, this clears the ghost nodes and recreates them via
+     * setupGhostNodes(). Note the normals should be updated prior to calling this function.
+     */
+    virtual void updateGhostNodeLocations(double time);
+
+    /*!
+     * \brief Setup the ghost nodes.
+     *
+     * Two types of ghost nodes are created. Eulerian ghost nodes are one grid cell outside the physical domain.
+     * Lagrangian ghost nodes are created at a specified distance from boundary nodes. This relies on an accurate normal
+     * to move them, which is computed in findNormals(). Note the normals should be updated prior to calling this
      * function.
      */
-    virtual void updateGhostNodeLocations(double time, bool end_of_timestep = false);
-
     virtual void setupGhostNodes();
 
+    /*!
+     * \brief Return the Eulerian ghost nodes.
+     */
     inline const std::vector<std::unique_ptr<libMesh::Node>>& getEulerianGhostNodes()
     {
         return d_eul_ghost_nodes;
     };
 
+    /*!
+     * \brief Return the Lagrangian ghost nodes.
+     */
     inline const std::vector<std::unique_ptr<libMesh::Node>>& getLagrangianGhostNodes()
     {
         return d_lag_ghost_nodes;
     };
 
+    /*!
+     * \brief Return the number of local ghost nodes.
+     */
     inline size_t getLocalNumGhostNodes()
     {
         return d_local_dofs;
     }
 
+    /*!
+     * \brief Return the global number of ghost nodes. This is just the sum of all local dofs.
+     */
     inline size_t getGlobalNumGhostNodes()
     {
         return d_global_dofs;

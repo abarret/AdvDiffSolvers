@@ -37,7 +37,7 @@ GhostPoints::commonConstructor(Pointer<Database> input_db)
 }
 
 void
-GhostPoints::updateGhostNodeLocations(const double time, const bool end_of_timestep)
+GhostPoints::updateGhostNodeLocations(const double time)
 {
     // TODO: We should move points, but for now clear them, and set them up again
     d_eul_ghost_nodes.clear();
