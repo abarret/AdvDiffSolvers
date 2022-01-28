@@ -92,10 +92,12 @@ SETUP_2D(examples radial.cpp)
 
 SETUP_2D(find_vol find_vol.cpp)
 
+SETUP_2D(operators global_indexing.cpp)
 SETUP_2D(operators laplace.cpp)
 SETUP_2D(operators rbf_fd_weights.cpp)
 SETUP_2D(operators reconstructions.cpp)
 
+SETUP_3D(operators global_indexing.cpp)
 SETUP_3D(operators rbf_fd_weights.cpp)
 
 ADD_CUSTOM_COMMAND(TARGET tests
