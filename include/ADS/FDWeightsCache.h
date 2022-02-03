@@ -262,6 +262,12 @@ private:
 /*!
  * \brief Class FDWeightsCache is a class that caches finite difference weights for general operators. This class
  * requires that finite difference weights be registered. No calculations are done by this class.
+ *
+ * Points are stored on a patch by patch basis. If you need that points on a patch, you need a pointer to the patch
+ * object.
+ *
+ * TODO: FD weights should not be attached to a given point. As this is written, we can not store more weights than
+ * points in the overall mesh. This means we can really only generate square matrices with this cache.
  */
 class FDWeightsCache
 {
@@ -276,27 +282,55 @@ public:
      */
     virtual ~FDWeightsCache();
 
+    /*!
+     * \brief Cache FD weights for a given point for a given patch.
+     */
     virtual void cachePoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
                             const FDCachedPoint& pt,
                             const std::vector<FDCachedPoint>& fd_pts,
                             const std::vector<double>& fd_weights);
 
+    /*!
+     * \brief Get the map between a point and it's list of FD weights.
+     */
     const std::map<FDCachedPoint, std::vector<double>>&
     getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
+
+    /*!
+     * \brief Get the map between a point and it's list of FD points.
+     */
     const std::map<FDCachedPoint, std::vector<FDCachedPoint>>&
     getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
+
+    /*!
+     * \brief Get the set of base points that have cached FD weights.
+     */
     const std::set<FDCachedPoint>& getRBFFDBasePoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
 
+    /*!
+     * \brief Get the vector of FD weights for a given patch and point pair.
+     */
     const std::vector<double>& getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
                                                const FDCachedPoint& pt);
+
+    /*!
+     * \brief Get the vector of FD points for a given patch and point pair.
+     */
     const std::vector<FDCachedPoint>& getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
                                                      const FDCachedPoint& pt);
-    bool isRBFFDBasePoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDCachedPoint& pt);
 
+    /*!
+     * \brief Determine if this patch and point pair has associated FD weights
+     */
+    bool isBasePoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDCachedPoint& pt);
+
+    /*!
+     * \brief Clear the cache.
+     */
     virtual void clearCache();
 
     /*!
-     * Debugging functions
+     * Debugging function. Prints all the cached points and their associated FD points to the given output.
      */
     virtual void printPtMap(std::ostream& os, SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
 
