@@ -20,6 +20,7 @@
 #include "SAMRAIVectorReal.h"
 #include "VariableFillPattern.h"
 #include "tbox/Pointer.h"
+#include <ADS/FDWeightsCache.h>
 
 #include "libmesh/boundary_mesh.h"
 #include "libmesh/dof_map.h"
@@ -32,134 +33,16 @@
 
 namespace ADS
 {
-struct UPoint
-{
-public:
-    UPoint(const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch, const SAMRAI::pdat::CellIndex<NDIM>& idx)
-        : d_idx(idx)
-    {
-        SAMRAI::tbox::Pointer<SAMRAI::geom::CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-        const double* const dx = pgeom->getDx();
-        const double* const xlow = pgeom->getXLower();
-        const SAMRAI::hier::Index<NDIM>& idx_low = patch->getBox().lower();
-        for (unsigned int d = 0; d < NDIM; ++d)
-            d_pt[d] = xlow[d] + dx[d] * (static_cast<double>(d_idx(d) - idx_low(d)) + 0.5);
-    };
-
-    UPoint(const IBTK::VectorNd& pt, libMesh::Node* node)
-        : d_pt(pt),
-          d_node(node){
-              // intentionally blank
-          };
-
-    UPoint() : d_empty(true)
-    {
-        // intentionally blank
-    }
-
-    UPoint(const std::vector<double>& pt) : d_empty(true)
-    {
-        for (unsigned int d = 0; d < NDIM; ++d) d_pt[d] = pt[d];
-    }
-
-    double dist(const IBTK::VectorNd& x) const
-    {
-        return (d_pt - x).norm();
-    }
-
-    double dist(const UPoint& pt) const
-    {
-        return (d_pt - pt.getVec()).norm();
-    }
-
-    double operator()(const size_t i) const
-    {
-        return d_pt(i);
-    }
-
-    double operator[](const size_t i) const
-    {
-        return d_pt[i];
-    }
-
-    friend std::ostream& operator<<(std::ostream& out, const UPoint& pt)
-    {
-        out << "   location: " << pt.d_pt.transpose() << "\n";
-        if (pt.isNode())
-            out << "   node id: " << pt.d_node->id();
-        else if (!pt.isEmpty())
-            out << "   idx:     " << pt.d_idx;
-        else
-            out << "   pt is neither node nor index";
-        return out;
-    }
-
-    friend bool operator==(const UPoint& lhs, const UPoint& rhs)
-    {
-        if (lhs.isNode() && rhs.isNode())
-        {
-            return lhs.d_node == rhs.d_node;
-        }
-        else if (lhs.isIdx() && rhs.isIdx())
-        {
-            return lhs.d_idx == rhs.d_idx;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    bool isEmpty() const
-    {
-        return d_empty;
-    }
-
-    bool isNode() const
-    {
-        return d_node != nullptr;
-    }
-
-    bool isIdx() const
-    {
-        return !isNode() && !isEmpty();
-    }
-
-    const libMesh::Node* const getNode() const
-    {
-        if (!isNode()) TBOX_ERROR("Not at a node\n");
-        return d_node;
-    }
-
-    const SAMRAI::pdat::CellIndex<NDIM>& getIndex() const
-    {
-        if (isNode()) TBOX_ERROR("At at node\n");
-        if (d_empty) TBOX_ERROR("Not a point\n");
-        return d_idx;
-    }
-
-    const IBTK::VectorNd& getVec() const
-    {
-        return d_pt;
-    }
-
-private:
-    IBTK::VectorNd d_pt;
-    libMesh::Node* d_node = nullptr;
-    SAMRAI::pdat::CellIndex<NDIM> d_idx;
-    bool d_empty = false;
-};
-
 /*!
- * \brief Class RBFFDWeightsCache is a class that caches finite difference weights for general operators. This class
- * requires a fe_mesh_partitioner and a level set function to determine which cells need finite difference weights.
- * Three functions must be registered. The first is the RBF evaluated at a point r. The other two are the operator
- * applied to the RBF evaluated at the point and a function that takes input a vector of inputs and returns the
- * Vandermonde matrix of the linear operator applied to the monomials.
+ * \brief Class RBFFDWeightsCache is an implementation of FDWeightsCache that computes RBF-FD weights at all points
+ * within a specified distance of the boundary described by the mesh partitioner. Three functions must be registered.
+ * The first is the RBF evaluated at a point r. The other two are the operator applied to the RBF evaluated at the point
+ * and a function that takes input a vector of inputs and returns the Vandermonde matrix of the linear operator applied
+ * to the monomials.
  *
  * Note: This class only supports LINEAR operators.
  */
-class RBFFDWeightsCache
+class RBFFDWeightsCache : public FDWeightsCache
 {
 public:
     /*!
@@ -174,7 +57,7 @@ public:
     /*!
      * \brief Destructor.
      */
-    ~RBFFDWeightsCache();
+    virtual ~RBFFDWeightsCache();
 
     /*!
      * \brief Set the level set
@@ -183,15 +66,6 @@ public:
     {
         d_ls_idx = ls_idx;
     }
-
-    const std::vector<std::vector<double>>& getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
-    const std::vector<std::vector<UPoint>>& getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
-    const std::vector<UPoint>& getRBFFDBasePoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
-
-    const std::vector<double>& getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
-                                               const UPoint& pt);
-    const std::vector<UPoint>& getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const UPoint& pt);
-    bool isRBFFDBasePoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> ptach, const UPoint& pt);
 
     void registerPolyFcn(
         std::function<IBTK::MatrixXd(const std::vector<IBTK::VectorNd>&, int, double, const IBTK::VectorNd&)> poly_fcn,
@@ -203,14 +77,9 @@ public:
         d_Lrbf_fcn = Lrbf_fcn;
     }
 
-    void clearCache();
+    virtual void clearCache() override;
     void sortLagDOFsToCells();
     void findRBFFDWeights();
-
-    /*!
-     * Debugging functions
-     */
-    void printPtMap(std::ostream& os);
 
 private:
     /*!
@@ -257,14 +126,6 @@ private:
     // Lag structure info
     std::shared_ptr<FEMeshPartitioner> d_fe_mesh_partitioner;
     std::map<SAMRAI::hier::Patch<NDIM>*, std::vector<libMesh::Node*>> d_idx_node_vec, d_idx_node_ghost_vec;
-
-    // Weight and point information
-    using PtVecMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::vector<UPoint>>;
-    using PtPairVecMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::vector<std::vector<UPoint>>>;
-    using WeightVecMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::vector<std::vector<double>>>;
-    PtVecMap d_base_pt_vec;
-    PtPairVecMap d_pair_pt_vec;
-    WeightVecMap d_pt_weight_vec;
 
     std::function<IBTK::MatrixXd(const std::vector<IBTK::VectorNd>&, int, double, const IBTK::VectorNd&)> d_poly_fcn;
     std::function<double(double)> d_rbf_fcn, d_Lrbf_fcn;

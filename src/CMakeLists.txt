@@ -20,6 +20,7 @@ SET(CXX_SRC
     AdvectiveReconstructionOperator.cpp
     CutCellMeshMapping.cpp
     CutCellVolumeMeshMapping.cpp
+    FDWeightsCache.cpp
     FEMeshPartitioner.cpp
     GeneralBoundaryMeshMapping.cpp
     GhostPoints.cpp

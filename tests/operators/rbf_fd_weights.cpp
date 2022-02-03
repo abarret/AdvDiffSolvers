@@ -294,13 +294,13 @@ main(int argc, char* argv[])
             for (PatchLevel<NDIM>::Iterator p(level); p; p++)
             {
                 Pointer<Patch<NDIM>> patch = level->getPatch(p());
-                const std::vector<UPoint>& pts = weights_op->getRBFFDBasePoints(patch);
+                const std::set<FDCachedPoint>& pts = weights_op->getRBFFDBasePoints(patch);
                 for (const auto& pt : pts)
                 {
                     if (pt.isNode()) continue;
                     plog << "On point: " << pt << "\n";
                     const std::vector<double>& weights = weights_op->getRBFFDWeights(patch, pt);
-                    const std::vector<UPoint>& other_pts = weights_op->getRBFFDPoints(patch, pt);
+                    const std::vector<FDCachedPoint>& other_pts = weights_op->getRBFFDPoints(patch, pt);
                     bool print_these = true;
                     if (check_background_grid)
                     {

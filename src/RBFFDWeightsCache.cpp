@@ -62,7 +62,7 @@ RBFFDWeightsCache::RBFFDWeightsCache(std::string object_name,
                                      std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner,
                                      Pointer<PatchHierarchy<NDIM>> hierarchy,
                                      Pointer<Database> input_db)
-    : d_object_name(std::move(object_name)), d_hierarchy(hierarchy), d_fe_mesh_partitioner(fe_mesh_partitioner)
+    : FDWeightsCache(std::move(object_name)), d_hierarchy(hierarchy), d_fe_mesh_partitioner(fe_mesh_partitioner)
 {
     d_poly_degree = input_db->getInteger("polynomial_degree");
     d_dist_to_bdry = input_db->getDouble("dist_to_bdry");
@@ -86,80 +86,8 @@ RBFFDWeightsCache::~RBFFDWeightsCache()
 void
 RBFFDWeightsCache::clearCache()
 {
-    d_base_pt_vec.clear();
-    d_pair_pt_vec.clear();
-    d_pt_weight_vec.clear();
+    FDWeightsCache::clearCache();
     d_weights_found = false;
-}
-
-const std::vector<std::vector<double>>&
-RBFFDWeightsCache::getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch)
-{
-    return d_pt_weight_vec[patch.getPointer()];
-}
-
-const std::vector<std::vector<UPoint>>&
-RBFFDWeightsCache::getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch)
-{
-    return d_pair_pt_vec[patch.getPointer()];
-}
-
-const std::vector<UPoint>&
-RBFFDWeightsCache::getRBFFDBasePoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch)
-{
-    return d_base_pt_vec[patch.getPointer()];
-}
-
-const std::vector<double>&
-RBFFDWeightsCache::getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const UPoint& pt)
-{
-#if !defined(NDEBUG)
-    if (!isRBFFDBasePoint(patch, pt)) TBOX_ERROR("pt " << pt << " is not a base point on this patch");
-#endif
-    auto it = std::find(d_base_pt_vec[patch.getPointer()].begin(), d_base_pt_vec[patch.getPointer()].end(), pt);
-    size_t l = std::distance(d_base_pt_vec[patch.getPointer()].begin(), it);
-    return d_pt_weight_vec[patch.getPointer()][l];
-}
-
-const std::vector<UPoint>&
-RBFFDWeightsCache::getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const UPoint& pt)
-{
-#if !defined(NDEBUG)
-    if (!isRBFFDBasePoint(patch, pt)) TBOX_ERROR("pt " << pt << " is not a base point on this patch");
-#endif
-    auto it = std::find(d_base_pt_vec[patch.getPointer()].begin(), d_base_pt_vec[patch.getPointer()].end(), pt);
-    size_t l = std::distance(d_base_pt_vec[patch.getPointer()].begin(), it);
-    return d_pair_pt_vec[patch.getPointer()][l];
-}
-
-bool
-RBFFDWeightsCache::isRBFFDBasePoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const UPoint& pt)
-{
-    return std::find(d_base_pt_vec[patch.getPointer()].begin(), d_base_pt_vec[patch.getPointer()].end(), pt) !=
-           d_base_pt_vec[patch.getPointer()].end();
-}
-
-void
-RBFFDWeightsCache::printPtMap(std::ostream& os)
-{
-    const int ln = d_hierarchy->getFinestLevelNumber();
-    Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-    unsigned int patch_num = 0;
-    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
-    {
-        Pointer<Patch<NDIM>> patch = level->getPatch(p());
-        os << "On patch number: " << patch_num << "\n";
-        os << "There are " << d_base_pt_vec[patch.getPointer()].size() << " key-value pairs present\n";
-        for (size_t i = 0; i < d_base_pt_vec[patch.getPointer()].size(); ++i)
-        {
-            const UPoint& pt = d_base_pt_vec[patch.getPointer()][i];
-            const std::vector<UPoint>& pt_vec = d_pair_pt_vec[patch.getPointer()][i];
-            os << "  Looking at point:\n" << pt << "\n";
-            os << "  Has points: \n";
-            for (const auto& pt_from_vec : pt_vec) os << pt_from_vec << "\n";
-        }
-        os << "\n";
-    }
 }
 
 void
@@ -176,8 +104,8 @@ RBFFDWeightsCache::sortLagDOFsToCells()
     // Clear old data structures.
     d_idx_node_vec.clear();
     d_idx_node_ghost_vec.clear();
-    d_base_pt_vec.clear();
-    d_pair_pt_vec.clear();
+    d_base_pt_set.clear();
+    d_pair_pt_map.clear();
     // Assume structure is on finest level
     int ln = d_hierarchy->getFinestLevelNumber();
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -228,12 +156,12 @@ RBFFDWeightsCache::sortLagDOFsToCells()
         ghost_box.grow(ls_data->getGhostCellWidth());
 
         // First start by collecting all points into a vector
-        std::vector<UPoint> pts;
+        std::vector<FDCachedPoint> pts;
         for (CellIterator<NDIM> ci(ghost_box); ci; ci++)
         {
             const CellIndex<NDIM>& idx = ci();
             const double ls_val = ADS::node_to_cell(idx, *ls_data);
-            if (ls_val < -d_eps) pts.push_back(UPoint(patch, idx));
+            if (ls_val < -d_eps) pts.push_back(FDCachedPoint(patch, idx));
         }
         // Now add in the points in d_idx_node_vec
         for (const auto& node : d_idx_node_ghost_vec[patch.getPointer()])
@@ -245,14 +173,13 @@ RBFFDWeightsCache::sortLagDOFsToCells()
                 dof_map.dof_indices(node, dofs, d);
                 node_pt[d] = (*X_vec)(dofs[0]);
             }
-            pts.push_back(UPoint(node_pt, node));
+            pts.push_back(FDCachedPoint(node_pt, node, false));
         }
 
         // Now create KD tree
-        tree::KDTree<UPoint> tree(pts);
+        tree::KDTree<FDCachedPoint> tree(pts);
         // We have a tree, now we need to find closest points for each point.
         // Start with Eulerian points
-        size_t i = 0;
         for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
         {
             const CellIndex<NDIM>& idx = ci();
@@ -261,21 +188,22 @@ RBFFDWeightsCache::sortLagDOFsToCells()
             {
                 std::vector<int> idx_vec;
                 std::vector<double> distance_vec;
-                d_base_pt_vec[patch.getPointer()].push_back(UPoint(patch, idx));
-                d_pair_pt_vec[patch.getPointer()].push_back({});
+                FDCachedPoint base_pt(patch, idx);
+                d_base_pt_set[patch.getPointer()].insert(base_pt);
+                d_pair_pt_map[patch.getPointer()][base_pt].reserve(d_stencil_size);
 #if (1)
                 // Use KNN search.
-                tree.knnSearch(UPoint(patch, idx), d_stencil_size, idx_vec, distance_vec);
+                tree.knnSearch(FDCachedPoint(patch, idx), d_stencil_size, idx_vec, distance_vec);
 #else
                 // Use a bounding box search
                 VectorNd bbox;
                 bbox(0) = 2.0 * dx[0];
                 bbox(1) = 2.0 * dx[1];
-                tree.cuboid_query(UPoint(patch, idx), bbox, idx_vec, distance_vec);
+                tree.cuboid_query(FDCachedPoint(patch, idx), bbox, idx_vec, distance_vec);
 #endif
                 // Add these points to the vector
-                for (const auto& idx_in_pts : idx_vec) d_pair_pt_vec[patch.getPointer()][i].push_back(pts[idx_in_pts]);
-                ++i;
+                for (const auto& idx_in_pts : idx_vec)
+                    d_pair_pt_map[patch.getPointer()][base_pt].push_back(pts[idx_in_pts]);
             }
         }
         // Now do Lagrangian points
@@ -290,12 +218,13 @@ RBFFDWeightsCache::sortLagDOFsToCells()
             }
             std::vector<int> idx_vec;
             std::vector<double> distance_vec;
-            d_base_pt_vec[patch.getPointer()].push_back(UPoint(node_pt, node));
-            d_pair_pt_vec[patch.getPointer()].push_back({});
-            tree.knnSearch(UPoint(node_pt, node), d_stencil_size, idx_vec, distance_vec);
+            FDCachedPoint base_pt(node_pt, node, false);
+            d_base_pt_set[patch.getPointer()].insert(base_pt);
+            d_pair_pt_map[patch.getPointer()][base_pt].reserve(d_stencil_size);
+            tree.knnSearch(FDCachedPoint(node_pt, node, false), d_stencil_size, idx_vec, distance_vec);
             // Add these points to the vector
-            for (const auto& idx_in_pts : idx_vec) d_pair_pt_vec[patch.getPointer()][i].push_back(pts[idx_in_pts]);
-            ++i;
+            for (const auto& idx_in_pts : idx_vec)
+                d_pair_pt_map[patch.getPointer()][base_pt].push_back(pts[idx_in_pts]);
         }
     }
 }
@@ -304,12 +233,12 @@ void
 RBFFDWeightsCache::findRBFFDWeights()
 {
     sortLagDOFsToCells();
-    d_pt_weight_vec.clear();
+    d_pt_weight_map.clear();
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(d_hierarchy->getFinestLevelNumber());
     for (PatchLevel<NDIM>::Iterator p(level); p; p++)
     {
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
-        if (d_base_pt_vec[patch.getPointer()].size() == 0) continue;
+        if (d_base_pt_set[patch.getPointer()].size() == 0) continue;
         Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         const double* const dx = pgeom->getDx();
         // First loop through Cartesian grid cells.
@@ -317,22 +246,21 @@ RBFFDWeightsCache::findRBFFDWeights()
         // Note Lagrangian data are located in d_aug_(x|b)_vec
 
         // All data have been sorted. We need to loop through d_base_pt_vec.
-        d_pt_weight_vec[patch.getPointer()].resize(d_base_pt_vec[patch.getPointer()].size());
-        for (size_t idx = 0; idx < d_base_pt_vec[patch.getPointer()].size(); ++idx)
+        for (const auto& base_pt : d_base_pt_set[patch.getPointer()])
         {
-            const UPoint& pt = d_base_pt_vec[patch.getPointer()][idx];
-            const std::vector<UPoint>& pt_vec = d_pair_pt_vec[patch.getPointer()][idx];
+            const std::vector<FDCachedPoint>& pt_vec = d_pair_pt_map[patch.getPointer()][base_pt];
             const std::vector<VectorNd>& shft_vec = Reconstruct::shift_pts(pt_vec, IBTK::VectorNd::Zero());
+            d_pt_weight_map[patch.getPointer()][base_pt].reserve(pt_vec.size());
             // Note if we use a KNN search, interp_size is fixed.
             const int interp_size = pt_vec.size();
-#ifndef NDEBUG
+#if !defined(NDEBUG)
             TBOX_ASSERT(interp_size == d_stencil_size);
 #endif
             MatrixXd A(MatrixXd::Zero(interp_size, interp_size));
-            MatrixXd B = PolynomialBasis::formMonomials(shft_vec, d_poly_degree, dx[0], pt.getVec());
+            MatrixXd B = PolynomialBasis::formMonomials(shft_vec, d_poly_degree, dx[0], base_pt.getVec());
             const int poly_size = B.cols();
             VectorXd U(VectorXd::Zero(interp_size + poly_size));
-            VectorNd pt0 = pt.getVec();
+            VectorNd pt0 = base_pt.getVec();
             for (int i = 0; i < interp_size; ++i)
             {
                 VectorNd pti = pt_vec[i].getVec();
@@ -345,8 +273,8 @@ RBFFDWeightsCache::findRBFFDWeights()
                 U(i) = d_Lrbf_fcn((pt0 - pti).norm());
             }
             // Add quadratic polynomials
-            std::vector<VectorNd> zeros = { pt.getVec() };
-            MatrixXd Ulow = d_poly_fcn(zeros, d_poly_degree, dx[0], pt.getVec());
+            std::vector<VectorNd> zeros = { base_pt.getVec() };
+            MatrixXd Ulow = d_poly_fcn(zeros, d_poly_degree, dx[0], base_pt.getVec());
             U.block(interp_size, 0, Ulow.cols(), 1) = Ulow.transpose();
             MatrixXd final_mat(MatrixXd::Zero(interp_size + poly_size, interp_size + poly_size));
             final_mat.block(0, 0, interp_size, interp_size) = A;
@@ -354,9 +282,9 @@ RBFFDWeightsCache::findRBFFDWeights()
             final_mat.block(interp_size, 0, poly_size, interp_size) = B.transpose();
 
             VectorXd x = final_mat.colPivHouseholderQr().solve(U);
-            // Now evaluate FD stencil)
+            // Now cache FD stencil
             VectorXd weights = x.block(0, 0, interp_size, 1);
-            for (int i = 0; i < interp_size; ++i) d_pt_weight_vec[patch.getPointer()][idx].push_back(weights(i));
+            for (int i = 0; i < interp_size; ++i) d_pt_weight_map[patch.getPointer()][base_pt].push_back(weights(i));
         }
     }
 }

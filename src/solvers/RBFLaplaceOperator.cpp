@@ -351,28 +351,25 @@ RBFLaplaceOperator::applyToLagDOFs(const int x_idx, const int y_idx)
     for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
     {
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
-        const std::vector<UPoint>& base_pts = d_fd_weights->getRBFFDBasePoints(patch);
+        const std::set<FDCachedPoint>& base_pts = d_fd_weights->getRBFFDBasePoints(patch);
         if (base_pts.empty()) continue;
-        const std::vector<std::vector<UPoint>>& rbf_pts = d_fd_weights->getRBFFDPoints(patch);
-        const std::vector<std::vector<double>>& weights = d_fd_weights->getRBFFDWeights(patch);
+        const std::map<FDCachedPoint, std::vector<FDCachedPoint>>& rbf_pts = d_fd_weights->getRBFFDPoints(patch);
+        const std::map<FDCachedPoint, std::vector<double>>& weights = d_fd_weights->getRBFFDWeights(patch);
 
         Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-        const double* const dx = pgeom->getDx();
         Pointer<CellData<NDIM, double>> x_data = patch->getPatchData(x_idx);
         Pointer<CellData<NDIM, double>> y_data = patch->getPatchData(y_idx);
-        for (size_t idx = 0; idx < base_pts.size(); ++idx)
+        for (const auto& base_pt : base_pts)
         {
-            const UPoint& pt = base_pts[idx];
-            if (pt.isNode())
-                continue;
-            const int interp_size = weights[idx].size();
+            if (base_pt.isNode()) continue;
+            const size_t interp_size = weights.at(base_pt).size();
             double lap = 0.0;
-            for (int i = 0; i < interp_size; ++i)
+            for (size_t i = 0; i < interp_size; ++i)
             {
-                double w = weights[idx][i];
-                lap += w * getSolVal(rbf_pts[idx][i], *x_data, d_aug_x_vec);
+                double w = weights.at(base_pt)[i];
+                lap += w * getSolVal(rbf_pts.at(base_pt)[i], *x_data, d_aug_x_vec);
             }
-            setSolVal(lap, pt, *y_data, d_aug_y_vec);
+            setSolVal(lap, base_pt, *y_data, d_aug_y_vec);
         }
     }
     // We've set values, so we need to assemble the vector
@@ -383,7 +380,7 @@ RBFLaplaceOperator::applyToLagDOFs(const int x_idx, const int y_idx)
 }
 
 double
-RBFLaplaceOperator::getSolVal(const UPoint& pt, const CellData<NDIM, double>& Q_data, Vec& vec) const
+RBFLaplaceOperator::getSolVal(const FDCachedPoint& pt, const CellData<NDIM, double>& Q_data, Vec& vec) const
 {
     double val = 0.0;
     if (pt.isNode())
@@ -412,7 +409,7 @@ RBFLaplaceOperator::getSolVal(const UPoint& pt, const CellData<NDIM, double>& Q_
 }
 
 void
-RBFLaplaceOperator::setSolVal(const double val, const UPoint& pt, CellData<NDIM, double>& Q_data, Vec& vec) const
+RBFLaplaceOperator::setSolVal(const double val, const FDCachedPoint& pt, CellData<NDIM, double>& Q_data, Vec& vec) const
 {
     if (pt.isNode())
     {
