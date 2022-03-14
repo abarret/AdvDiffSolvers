@@ -1,9 +1,9 @@
 #ifndef included_ADS_PolynomialBasis_inc
 #define included_ADS_PolynomialBasis_inc
 
-#include <ibtk/ibtk_utilities.h>
-
 #include <ADS/PolynomialBasis.h>
+
+#include <ibtk/ibtk_utilities.h>
 
 #include <vector>
 namespace ADS

@@ -1,13 +1,14 @@
 #include <ibamr/config.h>
 
-#include <ibtk/AppInitializer.h>
-#include <ibtk/IBTKInit.h>
-
-#include "tbox/Pointer.h"
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/GhostPoints.h>
 #include <ADS/GlobalIndexing.h>
 #include <ADS/app_namespaces.h>
+
+#include <ibtk/AppInitializer.h>
+#include <ibtk/IBTKInit.h>
+
+#include "tbox/Pointer.h"
 
 #include "libmesh/mesh_modification.h"
 #include <libmesh/boundary_mesh.h>

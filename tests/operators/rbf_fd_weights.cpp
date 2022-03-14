@@ -8,6 +8,9 @@
 #include "ADS/RBFReconstructions.h"
 #include "ADS/ZSplineReconstructions.h"
 #include "ADS/ls_utilities.h"
+#include <ADS/PolynomialBasis.h>
+#include <ADS/RBFFDWeightsCache.h>
+#include <ADS/app_namespaces.h>
 
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
@@ -26,9 +29,6 @@
 #include "PoissonSpecifications.h"
 #include "Variable.h"
 #include "tbox/Pointer.h"
-#include <ADS/PolynomialBasis.h>
-#include <ADS/RBFFDWeightsCache.h>
-#include <ADS/app_namespaces.h>
 
 #include "libmesh/mesh_modification.h"
 #include <libmesh/boundary_mesh.h>

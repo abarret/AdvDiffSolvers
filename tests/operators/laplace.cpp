@@ -5,6 +5,7 @@
 #include "ADS/LSCutCellLaplaceOperator.h"
 #include "ADS/LSFromLevelSet.h"
 #include "ADS/LSFromMesh.h"
+#include <ADS/app_namespaces.h>
 
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
@@ -23,7 +24,6 @@
 #include "PoissonSpecifications.h"
 #include "Variable.h"
 #include "tbox/Pointer.h"
-#include <ADS/app_namespaces.h>
 
 #include <libmesh/boundary_mesh.h>
 #include <libmesh/equation_systems.h>

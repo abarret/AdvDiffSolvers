@@ -7,6 +7,9 @@
 
 #include <ibtk/config.h>
 
+#include <ADS/FDPoint.h>
+#include <ADS/FEMeshPartitioner.h>
+
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 #include "ibtk/LaplaceOperator.h"
 #include "ibtk/ibtk_utilities.h"
@@ -18,8 +21,6 @@
 #include "SAMRAIVectorReal.h"
 #include "VariableFillPattern.h"
 #include "tbox/Pointer.h"
-#include <ADS/FDPoint.h>
-#include <ADS/FEMeshPartitioner.h>
 
 #include "libmesh/boundary_mesh.h"
 #include "libmesh/dof_map.h"
@@ -32,7 +33,6 @@
 
 namespace ADS
 {
-
 /*!
  * \brief Class FDWeightsCache is a class that caches finite difference weights for general operators. This class
  * requires that finite difference weights be registered. No calculations are done by this class.

@@ -7,6 +7,8 @@
 
 #include <ibtk/config.h>
 
+#include <ADS/PETScAugmentedLinearOperator.h>
+
 #include "ibtk/KrylovLinearSolver.h"
 
 #include "IntVector.h"
@@ -14,7 +16,6 @@
 #include "SAMRAIVectorReal.h"
 #include "tbox/Database.h"
 #include "tbox/Pointer.h"
-#include <ADS/PETScAugmentedLinearOperator.h>
 
 #include "petscksp.h"
 #include "petscmat.h"

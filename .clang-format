@@ -57,7 +57,7 @@ IncludeCategories:
   - Regex: "(ibamr|ibtk)/config.h"
     Priority: -1
 # then ADS
-  - Regex: "[<\"]ADS/.*\\.h[<\"]$"
+  - Regex: "ADS/.*\\.h.$"
     Priority: 5
 # then IBAMR/IBTK library:
   - Regex: "ibamr/.*\\.h.$"

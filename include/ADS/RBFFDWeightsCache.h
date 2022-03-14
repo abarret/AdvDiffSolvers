@@ -8,6 +8,7 @@
 #include <ibtk/config.h>
 
 #include "ADS/FEMeshPartitioner.h"
+#include <ADS/FDWeightsCache.h>
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
 #include "ibtk/LaplaceOperator.h"
@@ -20,7 +21,6 @@
 #include "SAMRAIVectorReal.h"
 #include "VariableFillPattern.h"
 #include "tbox/Pointer.h"
-#include <ADS/FDWeightsCache.h>
 
 #include "libmesh/boundary_mesh.h"
 #include "libmesh/dof_map.h"
