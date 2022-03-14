@@ -8,6 +8,9 @@
 #include "ADS/RBFReconstructions.h"
 #include "ADS/ZSplineReconstructions.h"
 #include "ADS/ls_utilities.h"
+#include <ADS/PolynomialBasis.h>
+#include <ADS/RBFFDWeightsCache.h>
+#include <ADS/app_namespaces.h>
 
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
@@ -26,9 +29,6 @@
 #include "PoissonSpecifications.h"
 #include "Variable.h"
 #include "tbox/Pointer.h"
-#include <ADS/PolynomialBasis.h>
-#include <ADS/RBFFDWeightsCache.h>
-#include <ADS/app_namespaces.h>
 
 #include "libmesh/mesh_modification.h"
 #include <libmesh/boundary_mesh.h>
@@ -294,13 +294,13 @@ main(int argc, char* argv[])
             for (PatchLevel<NDIM>::Iterator p(level); p; p++)
             {
                 Pointer<Patch<NDIM>> patch = level->getPatch(p());
-                const std::set<FDCachedPoint>& pts = weights_op->getRBFFDBasePoints(patch);
+                const std::set<FDPoint>& pts = weights_op->getRBFFDBasePoints(patch);
                 for (const auto& pt : pts)
                 {
                     if (pt.isNode()) continue;
                     plog << "On point: " << pt << "\n";
                     const std::vector<double>& weights = weights_op->getRBFFDWeights(patch, pt);
-                    const std::vector<FDCachedPoint>& other_pts = weights_op->getRBFFDPoints(patch, pt);
+                    const std::vector<FDPoint>& other_pts = weights_op->getRBFFDPoints(patch, pt);
                     bool print_these = true;
                     if (check_background_grid)
                     {

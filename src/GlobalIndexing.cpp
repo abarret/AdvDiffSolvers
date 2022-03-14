@@ -1,7 +1,7 @@
-#include <ibtk/IBTK_MPI.h>
-
 #include <ADS/GlobalIndexing.h>
 #include <ADS/app_namespaces.h>
+
+#include <ibtk/IBTK_MPI.h>
 
 #include <RefineAlgorithm.h>
 
@@ -136,8 +136,7 @@ GlobalIndexing::setupDOFs()
     // Communicate ghost DOF data.
     IBTK_MPI::sumReduction(libmesh_dofs.data(), tot_lag_dofs);
     IBTK_MPI::sumReduction(petsc_dofs.data(), tot_lag_dofs);
-    for (size_t i = 0; i < tot_lag_dofs; ++i)
-        d_lag_petsc_dof_map[libmesh_dofs[i]] = petsc_dofs[i];
+    for (size_t i = 0; i < tot_lag_dofs; ++i) d_lag_petsc_dof_map[libmesh_dofs[i]] = petsc_dofs[i];
 
     // Finally, ghost DOFs
     size_t ghost_offset = std::accumulate(d_ghost_dofs_per_proc.begin(), d_ghost_dofs_per_proc.begin() + mpi_rank, 0);

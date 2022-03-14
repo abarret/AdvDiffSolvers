@@ -161,8 +161,8 @@ private:
 
     void applyToLagDOFs(int x_idx, int y_idx);
 
-    double getSolVal(const FDCachedPoint& pt, const SAMRAI::pdat::CellData<NDIM, double>& Q_data, Vec& vec) const;
-    void setSolVal(double q, const FDCachedPoint& pt, SAMRAI::pdat::CellData<NDIM, double>& Q_data, Vec& vec) const;
+    double getSolVal(const FDPoint& pt, const SAMRAI::pdat::CellData<NDIM, double>& Q_data, Vec& vec) const;
+    void setSolVal(double q, const FDPoint& pt, SAMRAI::pdat::CellData<NDIM, double>& Q_data, Vec& vec) const;
 
     // Operator parameters.
     int d_ncomp = 0;

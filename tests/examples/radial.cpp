@@ -3,6 +3,7 @@
 #include "ADS/LSAdvDiffIntegrator.h"
 #include "ADS/LSCutCellLaplaceOperator.h"
 #include "ADS/LSFromLevelSet.h"
+#include <ADS/app_namespaces.h>
 
 #include <ibamr/RelaxationLSMethod.h>
 
@@ -19,7 +20,6 @@
 #include "SAMRAI_config.h"
 #include "StandardTagAndInitialize.h"
 #include "tbox/Pointer.h"
-#include <ADS/app_namespaces.h>
 
 #include <petscsys.h>
 

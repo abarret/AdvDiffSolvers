@@ -6,6 +6,7 @@
 #include "ADS/SBAdvDiffIntegrator.h"
 #include "ADS/SBBoundaryConditions.h"
 #include "ADS/SBIntegrator.h"
+#include <ADS/app_namespaces.h>
 
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
@@ -22,7 +23,6 @@
 #include <ibtk/IBTKInit.h>
 
 #include "tbox/Pointer.h"
-#include <ADS/app_namespaces.h>
 
 #include <libmesh/boundary_mesh.h>
 #include <libmesh/communicator.h>

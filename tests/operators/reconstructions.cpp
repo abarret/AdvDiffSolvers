@@ -7,6 +7,7 @@
 #include "ADS/RBFReconstructions.h"
 #include "ADS/ZSplineReconstructions.h"
 #include "ADS/ls_utilities.h"
+#include <ADS/app_namespaces.h>
 
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
@@ -25,7 +26,6 @@
 #include "PoissonSpecifications.h"
 #include "Variable.h"
 #include "tbox/Pointer.h"
-#include <ADS/app_namespaces.h>
 
 #include <BergerRigoutsos.h>
 #include <CartesianGridGeometry.h>
