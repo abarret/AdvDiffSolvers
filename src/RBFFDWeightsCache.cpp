@@ -156,12 +156,12 @@ RBFFDWeightsCache::sortLagDOFsToCells()
         ghost_box.grow(ls_data->getGhostCellWidth());
 
         // First start by collecting all points into a vector
-        std::vector<FDCachedPoint> pts;
+        std::vector<FDPoint> pts;
         for (CellIterator<NDIM> ci(ghost_box); ci; ci++)
         {
             const CellIndex<NDIM>& idx = ci();
             const double ls_val = ADS::node_to_cell(idx, *ls_data);
-            if (ls_val < -d_eps) pts.push_back(FDCachedPoint(patch, idx));
+            if (ls_val < -d_eps) pts.push_back(FDPoint(patch, idx));
         }
         // Now add in the points in d_idx_node_vec
         for (const auto& node : d_idx_node_ghost_vec[patch.getPointer()])
@@ -173,11 +173,11 @@ RBFFDWeightsCache::sortLagDOFsToCells()
                 dof_map.dof_indices(node, dofs, d);
                 node_pt[d] = (*X_vec)(dofs[0]);
             }
-            pts.push_back(FDCachedPoint(node_pt, node, false));
+            pts.push_back(FDPoint(node_pt, node, false));
         }
 
         // Now create KD tree
-        tree::KDTree<FDCachedPoint> tree(pts);
+        tree::KDTree<FDPoint> tree(pts);
         // We have a tree, now we need to find closest points for each point.
         // Start with Eulerian points
         for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
@@ -188,18 +188,18 @@ RBFFDWeightsCache::sortLagDOFsToCells()
             {
                 std::vector<int> idx_vec;
                 std::vector<double> distance_vec;
-                FDCachedPoint base_pt(patch, idx);
+                FDPoint base_pt(patch, idx);
                 d_base_pt_set[patch.getPointer()].insert(base_pt);
                 d_pair_pt_map[patch.getPointer()][base_pt].reserve(d_stencil_size);
 #if (1)
                 // Use KNN search.
-                tree.knnSearch(FDCachedPoint(patch, idx), d_stencil_size, idx_vec, distance_vec);
+                tree.knnSearch(FDPoint(patch, idx), d_stencil_size, idx_vec, distance_vec);
 #else
                 // Use a bounding box search
                 VectorNd bbox;
                 bbox(0) = 2.0 * dx[0];
                 bbox(1) = 2.0 * dx[1];
-                tree.cuboid_query(FDCachedPoint(patch, idx), bbox, idx_vec, distance_vec);
+                tree.cuboid_query(FDPoint(patch, idx), bbox, idx_vec, distance_vec);
 #endif
                 // Add these points to the vector
                 for (const auto& idx_in_pts : idx_vec)
@@ -218,10 +218,10 @@ RBFFDWeightsCache::sortLagDOFsToCells()
             }
             std::vector<int> idx_vec;
             std::vector<double> distance_vec;
-            FDCachedPoint base_pt(node_pt, node, false);
+            FDPoint base_pt(node_pt, node, false);
             d_base_pt_set[patch.getPointer()].insert(base_pt);
             d_pair_pt_map[patch.getPointer()][base_pt].reserve(d_stencil_size);
-            tree.knnSearch(FDCachedPoint(node_pt, node, false), d_stencil_size, idx_vec, distance_vec);
+            tree.knnSearch(FDPoint(node_pt, node, false), d_stencil_size, idx_vec, distance_vec);
             // Add these points to the vector
             for (const auto& idx_in_pts : idx_vec)
                 d_pair_pt_map[patch.getPointer()][base_pt].push_back(pts[idx_in_pts]);
@@ -248,7 +248,7 @@ RBFFDWeightsCache::findRBFFDWeights()
         // All data have been sorted. We need to loop through d_base_pt_vec.
         for (const auto& base_pt : d_base_pt_set[patch.getPointer()])
         {
-            const std::vector<FDCachedPoint>& pt_vec = d_pair_pt_map[patch.getPointer()][base_pt];
+            const std::vector<FDPoint>& pt_vec = d_pair_pt_map[patch.getPointer()][base_pt];
             const std::vector<VectorNd>& shft_vec = Reconstruct::shift_pts(pt_vec, IBTK::VectorNd::Zero());
             d_pt_weight_map[patch.getPointer()][base_pt].reserve(pt_vec.size());
             // Note if we use a KNN search, interp_size is fixed.
