@@ -5,9 +5,9 @@
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include <ADS/GhostPoints.h>
-
 #include <ibtk/config.h>
+
+#include <ADS/GhostPoints.h>
 
 #include <ibtk/ibtk_utilities.h>
 
@@ -28,15 +28,15 @@ namespace ADS
 /*
  * Helper function to get the physical location of a patch and cell index pair.
  */
-inline IBTK::VectorNd getPt(const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch, const SAMRAI::pdat::CellIndex<NDIM>& idx)
+inline IBTK::VectorNd
+getPt(const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch, const SAMRAI::pdat::CellIndex<NDIM>& idx)
 {
     SAMRAI::tbox::Pointer<SAMRAI::geom::CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
     const double* const dx = pgeom->getDx();
     const double* const xlow = pgeom->getXLower();
     const SAMRAI::hier::Index<NDIM>& idx_low = patch->getBox().lower();
     IBTK::VectorNd x;
-    for (int d = 0; d < NDIM; ++d)
-        x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
+    for (int d = 0; d < NDIM; ++d) x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
     return x;
 }
 
@@ -146,13 +146,13 @@ public:
     {
         out << "   location: " << pt.d_pt.transpose() << "\n";
         if (pt.isNode())
-            out << "   node id: " << pt.d_node->id() << "\n";
+            out << "   node id: " << pt.d_node->id();
         else if (pt.isIdx())
-            out << "   idx:     " << pt.d_idx << "\n";
+            out << "   idx:     " << pt.d_idx;
         else if (pt.isGhost())
-            out << "   ghost id: " << pt.d_ghost_point->getId() << "\n";
+            out << "   ghost id: " << pt.d_ghost_point->getId();
         else
-            out << "   pt is neither node nor index\n";
+            out << "   pt is neither node nor index";
         return out;
     }
 
@@ -293,5 +293,5 @@ private:
     std::array<int, NDIM - 1> d_max_idx;
     bool d_empty = false;
 };
-} // namespace
+} // namespace ADS
 #endif
