@@ -144,16 +144,16 @@ GlobalIndexing::setupDOFs()
     std::vector<int> ghost_dofs(tot_ghost_dofs, 0);
     petsc_dofs.resize(tot_ghost_dofs, 0);
     size_t ghost_counter = ghost_offset;
-    const std::vector<std::unique_ptr<Node>>& eul_ghost_nodes = d_ghost_pts->getEulerianGhostNodes();
-    const std::vector<std::unique_ptr<Node>>& lag_ghost_nodes = d_ghost_pts->getLagrangianGhostNodes();
+    const std::vector<GhostPoint>& eul_ghost_nodes = d_ghost_pts->getEulerianGhostNodes();
+    const std::vector<GhostPoint>& lag_ghost_nodes = d_ghost_pts->getLagrangianGhostNodes();
     for (const auto& eul_ghost_node : eul_ghost_nodes)
     {
-        ghost_dofs[ghost_counter] = eul_ghost_node->id();
+        ghost_dofs[ghost_counter] = eul_ghost_node.getId();
         petsc_dofs[ghost_counter++] = counter++;
     }
     for (const auto& lag_ghost_node : lag_ghost_nodes)
     {
-        ghost_dofs[ghost_counter] = lag_ghost_node->id();
+        ghost_dofs[ghost_counter] = lag_ghost_node.getId();
         petsc_dofs[ghost_counter++] = counter++;
     }
 

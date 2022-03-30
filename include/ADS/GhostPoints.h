@@ -13,6 +13,41 @@
 namespace ADS
 {
 /*!
+ * GhostPoint is a point that lies outside the physical domain. Ghost points can contain knowledge of the "parent node" which is either the libMesh node or SAMRAI index that this ghost point is generated from.
+ */
+class GhostPoint
+{
+public:
+    GhostPoint(const IBTK::VectorNd& x, size_t id)
+: d_x(x), d_id(id)
+    {
+        // intentionally blank
+    }
+
+    ~GhostPoint() = default;
+
+    inline const IBTK::VectorNd& getX() const
+    {
+        return d_x;
+    }
+
+    inline size_t getId() const
+    {
+        return d_id;
+    }
+
+    inline double operator()(unsigned int d) const
+    {
+        return d_x(d);
+    }
+
+private:
+    IBTK::VectorNd d_x;
+    size_t d_id;
+};
+
+
+/*!
  * GhostPoints maintains a list of ghost nodes useful in solving RBF-FD discretized linear systems. It maintains ghost
  * points outside the SAMRAI domain as well as inside the finite element mesh. The width of ghost cells is given in the
  * constructor.
@@ -86,7 +121,7 @@ public:
     /*!
      * \brief Return the Eulerian ghost nodes.
      */
-    inline const std::vector<std::unique_ptr<libMesh::Node>>& getEulerianGhostNodes()
+    inline const std::vector<GhostPoint>& getEulerianGhostNodes()
     {
         return d_eul_ghost_nodes;
     };
@@ -94,7 +129,7 @@ public:
     /*!
      * \brief Return the Lagrangian ghost nodes.
      */
-    inline const std::vector<std::unique_ptr<libMesh::Node>>& getLagrangianGhostNodes()
+    inline const std::vector<GhostPoint>& getLagrangianGhostNodes()
     {
         return d_lag_ghost_nodes;
     };
@@ -121,7 +156,7 @@ protected:
 
     std::shared_ptr<FEMeshPartitioner> d_fe_mesh_partitioner;
 
-    std::vector<std::unique_ptr<libMesh::Node>> d_eul_ghost_nodes, d_lag_ghost_nodes;
+    std::vector<GhostPoint> d_eul_ghost_nodes, d_lag_ghost_nodes;
 
     std::string d_normal_sys_name = "normal";
     double d_ds = std::numeric_limits<double>::quiet_NaN();
