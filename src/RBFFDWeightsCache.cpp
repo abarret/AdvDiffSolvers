@@ -173,7 +173,7 @@ RBFFDWeightsCache::sortLagDOFsToCells()
                 dof_map.dof_indices(node, dofs, d);
                 node_pt[d] = (*X_vec)(dofs[0]);
             }
-            pts.push_back(FDPoint(node_pt, node, false));
+            pts.push_back(FDPoint(node_pt, node));
         }
 
         // Now create KD tree
@@ -218,10 +218,10 @@ RBFFDWeightsCache::sortLagDOFsToCells()
             }
             std::vector<int> idx_vec;
             std::vector<double> distance_vec;
-            FDPoint base_pt(node_pt, node, false);
+            FDPoint base_pt(node_pt, node);
             d_base_pt_set[patch.getPointer()].insert(base_pt);
             d_pair_pt_map[patch.getPointer()][base_pt].reserve(d_stencil_size);
-            tree.knnSearch(FDPoint(node_pt, node, false), d_stencil_size, idx_vec, distance_vec);
+            tree.knnSearch(FDPoint(node_pt, node), d_stencil_size, idx_vec, distance_vec);
             // Add these points to the vector
             for (const auto& idx_in_pts : idx_vec)
                 d_pair_pt_map[patch.getPointer()][base_pt].push_back(pts[idx_in_pts]);

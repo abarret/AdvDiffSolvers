@@ -7,6 +7,8 @@
 
 #include <ibtk/config.h>
 
+#include <ADS/GhostPoints.h>
+
 #include <ibtk/ibtk_utilities.h>
 
 #include "Box.h"
@@ -20,6 +22,24 @@
 
 #include <string>
 #include <vector>
+
+namespace ADS
+{
+/*
+ * Helper function to get the physical location of a patch and cell index pair.
+ */
+inline IBTK::VectorNd
+getPt(const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch, const SAMRAI::pdat::CellIndex<NDIM>& idx)
+{
+    SAMRAI::tbox::Pointer<SAMRAI::geom::CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+    const double* const dx = pgeom->getDx();
+    const double* const xlow = pgeom->getXLower();
+    const SAMRAI::hier::Index<NDIM>& idx_low = patch->getBox().lower();
+    IBTK::VectorNd x;
+    for (int d = 0; d < NDIM; ++d) x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
+    return x;
+}
+
 /*!
  * The class FDPoint generalizes the notion of a degree of freedom. It is either a SAMRAI index, a libMesh Node, or a
  * boundary Node. This allows for efficient caching of points, and quick lookups of individual points.
@@ -46,7 +66,15 @@ public:
     /*!
      * \brief Constructor that makes either a libmesh or boundary point.
      */
-    FDPoint(const IBTK::VectorNd& pt, libMesh::Node* node, bool bdry_pt) : d_pt(pt), d_node(node), d_bdry_pt(bdry_pt)
+    FDPoint(const IBTK::VectorNd& pt, libMesh::Node* node) : d_pt(pt), d_node(node)
+    {
+        // intentionally blank
+    }
+
+    /*!
+     * \brief Constructor that makes a ghost point.
+     */
+    FDPoint(GhostPoint* ghost_point) : d_pt(ghost_point->getX()), d_ghost_point(ghost_point)
     {
         // intentionally blank
     }
@@ -72,7 +100,7 @@ public:
     }
 
     /*!
-     * \brief Compute the distance between a point and the cached point.
+     * \brief Compute the distance between a point and this FDPoint.
      */
     double dist(const IBTK::VectorNd& x) const
     {
@@ -80,7 +108,7 @@ public:
     }
 
     /*!
-     * \brief Compute the distance between another cached point and this point.
+     * \brief Compute the distance between another FDPoint and this FDPoint.
      */
     double dist(const FDPoint& pt) const
     {
@@ -88,9 +116,17 @@ public:
     }
 
     /*!
-     * \brief Return a copy of the ith point of the point.
+     * \brief Return a copy of the ith point of the FDPoint.
      */
     double operator()(const size_t i) const
+    {
+        return d_pt(i);
+    }
+
+    /*!
+     * \brief Return a reference of the ith point of the FDPoint.
+     */
+    double& operator()(const size_t i)
     {
         return d_pt(i);
     }
@@ -109,11 +145,12 @@ public:
     friend std::ostream& operator<<(std::ostream& out, const FDPoint& pt)
     {
         out << "   location: " << pt.d_pt.transpose() << "\n";
-        out << "   is located on boundary: " << pt.d_bdry_pt << "\n";
         if (pt.isNode())
             out << "   node id: " << pt.d_node->id();
-        else if (!pt.isEmpty())
+        else if (pt.isIdx())
             out << "   idx:     " << pt.d_idx;
+        else if (pt.isGhost())
+            out << "   ghost id: " << pt.d_ghost_point->getId();
         else
             out << "   pt is neither node nor index";
         return out;
@@ -126,11 +163,15 @@ public:
     {
         if (lhs.isNode() && rhs.isNode())
         {
-            return (lhs.d_bdry_pt == rhs.d_bdry_pt) && (lhs.d_node == rhs.d_node);
+            return lhs.d_node == rhs.d_node;
         }
         else if (lhs.isIdx() && rhs.isIdx())
         {
             return lhs.d_idx == rhs.d_idx;
+        }
+        else if (lhs.isGhost() && rhs.isGhost())
+        {
+            return lhs.d_ghost_point == rhs.d_ghost_point;
         }
         else
         {
@@ -142,7 +183,7 @@ public:
      * \brief Comparison operator. Used for compatibility with STL containers.
      *
      * The order of indexes is as follows:
-     * SAMRAI < libMesh < bdry < empty
+     * SAMRAI < libMesh < ghost < empty
      */
     friend bool operator<(const FDPoint& lhs, const FDPoint& rhs)
     {
@@ -165,14 +206,14 @@ public:
         {
             if (rhs.isEmpty()) return true;
             if (rhs.isIdx()) return false;
-            if (rhs.isBdry()) return true;
+            if (rhs.isGhost()) return true;
             return lhs.d_node->id() < rhs.d_node->id();
         }
-        else if (lhs.isBdry())
+        else if (lhs.isGhost())
         {
             if (rhs.isEmpty()) return true;
-            if (!rhs.isBdry()) return false;
-            return lhs.d_node->id() < rhs.d_node->id();
+            if (!rhs.isGhost()) return false;
+            return lhs.d_ghost_point->getId() < rhs.d_ghost_point->getId();
         }
         return false;
     }
@@ -190,7 +231,7 @@ public:
      */
     bool isNode() const
     {
-        return !d_bdry_pt && d_node != nullptr;
+        return d_node != nullptr;
     }
 
     /*!
@@ -198,15 +239,15 @@ public:
      */
     bool isIdx() const
     {
-        return !isNode() && !isEmpty();
+        return !isNode() && !isGhost() && !isEmpty();
     }
 
     /*!
      * \brief Is this point a boundary node?
      */
-    bool isBdry() const
+    bool isGhost() const
     {
-        return d_bdry_pt;
+        return d_ghost_point != nullptr;
     }
 
     /*!
@@ -214,7 +255,7 @@ public:
      */
     const libMesh::Node* const getNode() const
     {
-        if (d_bdry_pt || !isNode()) TBOX_ERROR("Not at a node\n");
+        if (!isNode()) TBOX_ERROR("Not at a node\n");
         return d_node;
     }
 
@@ -223,9 +264,17 @@ public:
      */
     const SAMRAI::pdat::CellIndex<NDIM>& getIndex() const
     {
-        if (isNode()) TBOX_ERROR("At at node\n");
-        if (d_empty) TBOX_ERROR("Not a point\n");
+        if (!isIdx()) TBOX_ERROR("Not an index\n");
         return d_idx;
+    }
+
+    /*!
+     * \brief Get the ghost point
+     */
+    const GhostPoint* getGhostPoint() const
+    {
+        if (!isGhost()) TBOX_ERROR("Not a ghost point!\n");
+        return d_ghost_point;
     }
 
     /*!
@@ -239,9 +288,10 @@ public:
 private:
     IBTK::VectorNd d_pt;
     libMesh::Node* d_node = nullptr;
+    GhostPoint* d_ghost_point = nullptr;
     SAMRAI::pdat::CellIndex<NDIM> d_idx;
     std::array<int, NDIM - 1> d_max_idx;
     bool d_empty = false;
-    bool d_bdry_pt = false;
 };
+} // namespace ADS
 #endif

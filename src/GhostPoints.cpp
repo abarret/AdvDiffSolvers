@@ -99,10 +99,20 @@ GhostPoints::setupGhostNodes()
                 {
                     const CellIndex<NDIM>& idx = ci();
                     // Now we are looping over the boundary box. Create a node.
-                    libMesh::Point pt;
+                    VectorNd pt, normal(VectorNd::Zero());
                     for (int d = 0; d < NDIM; ++d)
                         pt(d) = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
-                    d_eul_ghost_nodes.push_back(Node::build(pt, d_local_dofs++));
+                    int location_index = bdry_boxes[i].getLocationIndex();
+                    if (location_index < 2)
+                        normal(0) = location_index == 0 ? -1.0 : +1.0;
+                    else if (location_index < 4)
+                        normal(1) = location_index == 2 ? -1.0 : +1.0;
+                    else
+                    {
+                        TBOX_ASSERT(NDIM == 3);
+                        normal(2) = location_index == 4 ? -1.0 : +1.0;
+                    }
+                    d_eul_ghost_nodes.push_back(GhostPoint(pt, d_local_dofs++));
                 }
             }
         }
@@ -124,15 +134,18 @@ GhostPoints::setupGhostNodes()
     for (; ni != ni_end; ++ni)
     {
         const Node* const node = *ni;
-        libMesh::Point pt;
+        VectorNd pt, normal;
         std::vector<dof_id_type> X_dofs, N_dofs;
         X_dof_map.dof_indices(node, X_dofs);
         N_dof_map.dof_indices(node, N_dofs);
-        for (unsigned int d = 0; d < NDIM; ++d) pt(d) = (*X_vec)(X_dofs[d]);
-        // Now move ds in normal direction
-        for (unsigned int d = 0; d < NDIM; ++d) pt(d) += d_ds * (*N_vec)(N_dofs[d]);
+        for (unsigned int d = 0; d < NDIM; ++d)
+        {
+            pt(d) = (*X_vec)(X_dofs[d]);
+            normal(d) = (*N_vec)(N_dofs[d]);
+        }
+        pt += d_ds * normal;
         // Now add this point to the list of Lagrangian ghost nodes
-        d_lag_ghost_nodes.push_back(Node::build(pt, d_local_dofs++));
+        d_lag_ghost_nodes.push_back(GhostPoint(pt, d_local_dofs++));
     }
 
     d_global_dofs = IBTK_MPI::sumReduction(static_cast<int>(d_local_dofs));
