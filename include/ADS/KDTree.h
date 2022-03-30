@@ -52,11 +52,11 @@ public:
     {
         return d_npoints;
     } ///< the number of points in the kd-tree
-    Point getPoint(const int j)
+    const Point& getPoint(const int j)
     {
         return d_points[j];
     }
-    std::vector<Point> getPoints()
+    const std::vector<Point>& getPoints()
     {
         return d_points;
     }
