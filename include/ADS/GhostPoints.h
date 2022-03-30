@@ -13,13 +13,13 @@
 namespace ADS
 {
 /*!
- * GhostPoint is a point that lies outside the physical domain. Ghost points can contain knowledge of the "parent node" which is either the libMesh node or SAMRAI index that this ghost point is generated from.
+ * GhostPoint is a point that lies outside the physical domain. Ghost points can contain knowledge of the "parent node"
+ * which is either the libMesh node or SAMRAI index that this ghost point is generated from.
  */
 class GhostPoint
 {
 public:
-    GhostPoint(const IBTK::VectorNd& x, size_t id)
-: d_x(x), d_id(id)
+    GhostPoint(const IBTK::VectorNd& x, size_t id) : d_x(x), d_id(id)
     {
         // intentionally blank
     }
@@ -45,7 +45,6 @@ private:
     IBTK::VectorNd d_x;
     size_t d_id;
 };
-
 
 /*!
  * GhostPoints maintains a list of ghost nodes useful in solving RBF-FD discretized linear systems. It maintains ghost
