@@ -54,9 +54,6 @@ LinearReconstructions::applyReconstruction(const int Q_idx, const int N_idx, con
         {
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-            const double* const xlow = pgeom->getXLower();
-
             const Box<NDIM>& box = patch->getBox();
 
             Pointer<CellData<NDIM, double>> xstar_data = patch->getPatchData(path_idx);

@@ -7,6 +7,7 @@
 
 #include <ibtk/config.h>
 
+#include <ADS/FDPoint.h>
 #include <ADS/FEMeshPartitioner.h>
 #include <ADS/GhostPoints.h>
 
@@ -49,7 +50,7 @@ public:
      *
      * \note This patch data index has ghost cell width equal to that specified in the constructor.
      */
-    inline int getEulerianMap()
+    inline int getEulerianMap() const
     {
         return d_eul_idx_idx;
     }
@@ -57,7 +58,7 @@ public:
     /*!
      * \brief Return the map between libMesh dof's and the global dof's.
      */
-    inline const std::map<int, int>& getLagrangianMap()
+    inline const std::map<int, int>& getLagrangianMap() const
     {
         return d_lag_petsc_dof_map;
     }
@@ -65,7 +66,7 @@ public:
     /*!
      * \brief Return the map between the ghost dof's and the global dof's.
      */
-    inline const std::map<int, int>& getGhostMap()
+    inline const std::map<int, int>& getGhostMap() const
     {
         return d_ghost_petsc_dof_map;
     }
@@ -73,7 +74,7 @@ public:
     /*!
      * \brief Return the number of dof's per processor.
      */
-    inline const std::vector<int>& getDofsPerProc()
+    inline const std::vector<int>& getDofsPerProc() const
     {
         return d_petsc_dofs_per_proc;
     }
@@ -113,6 +114,32 @@ protected:
     unsigned int d_depth = 1;
 };
 
+inline int
+getDofIndex(const FDPoint& pt,
+            SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
+            const libMesh::DofMap& dof_map,
+            const GlobalIndexing& cache)
+{
+    if (pt.isIdx())
+    {
+        SAMRAI::tbox::Pointer<SAMRAI::pdat::CellData<NDIM, int>> idx_data = patch->getPatchData(cache.getEulerianMap());
+        return (*idx_data)(pt.getIndex());
+    }
+    else if (pt.isNode())
+    {
+        const std::map<int, int>& lag_petsc_dof_map = cache.getLagrangianMap();
+        std::vector<libMesh::dof_id_type> dof_idxs;
+        dof_map.dof_indices(pt.getNode(), dof_idxs);
+        return lag_petsc_dof_map.at(dof_idxs[0]);
+    }
+    else if (pt.isGhost())
+    {
+        const std::map<int, int>& ghost_petsc_dof_map = cache.getGhostMap();
+        return ghost_petsc_dof_map.at(pt.getGhostPoint()->getId());
+    }
+    TBOX_ERROR("Should not reach this statement\n");
+    return IBTK::invalid_index;
+}
 } // namespace ADS
 
 #endif // included_ADS_GlobalIndexing
