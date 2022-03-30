@@ -190,7 +190,8 @@ RBFFDWeightsCache::sortLagDOFsToCells()
                 std::vector<double> distance_vec;
                 FDPoint base_pt(patch, idx);
                 d_base_pt_set[patch.getPointer()].insert(base_pt);
-                d_pair_pt_map[patch.getPointer()][base_pt].reserve(d_stencil_size);
+                std::vector<FDPoint> fd_pts;
+                fd_pts.reserve(d_stencil_size);
 #if (1)
                 // Use KNN search.
                 tree.knnSearch(FDPoint(patch, idx), d_stencil_size, idx_vec, distance_vec);
@@ -202,8 +203,8 @@ RBFFDWeightsCache::sortLagDOFsToCells()
                 tree.cuboid_query(FDPoint(patch, idx), bbox, idx_vec, distance_vec);
 #endif
                 // Add these points to the vector
-                for (const auto& idx_in_pts : idx_vec)
-                    d_pair_pt_map[patch.getPointer()][base_pt].push_back(pts[idx_in_pts]);
+                for (const auto& idx_in_pts : idx_vec) fd_pts.push_back(pts[idx_in_pts]);
+                d_pair_pt_map[patch.getPointer()].insert(std::make_pair(base_pt, fd_pts));
             }
         }
         // Now do Lagrangian points
@@ -220,11 +221,12 @@ RBFFDWeightsCache::sortLagDOFsToCells()
             std::vector<double> distance_vec;
             FDPoint base_pt(node_pt, node);
             d_base_pt_set[patch.getPointer()].insert(base_pt);
-            d_pair_pt_map[patch.getPointer()][base_pt].reserve(d_stencil_size);
+            std::vector<FDPoint> fd_pts;
+            fd_pts.reserve(d_stencil_size);
             tree.knnSearch(FDPoint(node_pt, node), d_stencil_size, idx_vec, distance_vec);
             // Add these points to the vector
-            for (const auto& idx_in_pts : idx_vec)
-                d_pair_pt_map[patch.getPointer()][base_pt].push_back(pts[idx_in_pts]);
+            for (const auto& idx_in_pts : idx_vec) fd_pts.push_back(pts[idx_in_pts]);
+            d_pair_pt_map[patch.getPointer()].insert(std::make_pair(base_pt, fd_pts));
         }
     }
 }
@@ -248,43 +250,48 @@ RBFFDWeightsCache::findRBFFDWeights()
         // All data have been sorted. We need to loop through d_base_pt_vec.
         for (const auto& base_pt : d_base_pt_set[patch.getPointer()])
         {
-            const std::vector<FDPoint>& pt_vec = d_pair_pt_map[patch.getPointer()][base_pt];
-            const std::vector<VectorNd>& shft_vec = Reconstruct::shift_pts(pt_vec, IBTK::VectorNd::Zero());
-            d_pt_weight_map[patch.getPointer()][base_pt].reserve(pt_vec.size());
-            // Note if we use a KNN search, interp_size is fixed.
-            const int interp_size = pt_vec.size();
-#if !defined(NDEBUG)
-            TBOX_ASSERT(interp_size == d_stencil_size);
-#endif
-            MatrixXd A(MatrixXd::Zero(interp_size, interp_size));
-            MatrixXd B = PolynomialBasis::formMonomials(shft_vec, d_poly_degree, dx[0], base_pt.getVec());
-            const int poly_size = B.cols();
-            VectorXd U(VectorXd::Zero(interp_size + poly_size));
-            VectorNd pt0 = base_pt.getVec();
-            for (int i = 0; i < interp_size; ++i)
+            auto pt_iters = d_pair_pt_map[patch.getPointer()].equal_range(base_pt);
+            for (auto it = pt_iters.first; it != pt_iters.second; ++it)
             {
-                VectorNd pti = pt_vec[i].getVec();
-                for (int j = 0; j < interp_size; ++j)
+                const std::vector<FDPoint>& pt_vec = it->second;
+                std::vector<double> wgts;
+                wgts.reserve(pt_vec.size());
+                // Note if we use a KNN search, interp_size is fixed.
+                const int interp_size = pt_vec.size();
+#if !defined(NDEBUG)
+                TBOX_ASSERT(interp_size == d_stencil_size);
+#endif
+                MatrixXd A(MatrixXd::Zero(interp_size, interp_size));
+                MatrixXd B = PolynomialBasis::formMonomials(pt_vec, d_poly_degree, dx[0], base_pt);
+                const int poly_size = B.cols();
+                VectorXd U(VectorXd::Zero(interp_size + poly_size));
+                VectorNd pt0 = base_pt.getVec();
+                for (int i = 0; i < interp_size; ++i)
                 {
-                    VectorNd ptj = pt_vec[j].getVec();
-                    A(i, j) = d_rbf_fcn((pti - ptj).norm());
+                    VectorNd pti = pt_vec[i].getVec();
+                    for (int j = 0; j < interp_size; ++j)
+                    {
+                        VectorNd ptj = pt_vec[j].getVec();
+                        A(i, j) = d_rbf_fcn((pti - ptj).norm());
+                    }
+                    // Determine rhs
+                    U(i) = d_Lrbf_fcn((pt0 - pti).norm());
                 }
-                // Determine rhs
-                U(i) = d_Lrbf_fcn((pt0 - pti).norm());
-            }
-            // Add quadratic polynomials
-            std::vector<VectorNd> zeros = { base_pt.getVec() };
-            MatrixXd Ulow = d_poly_fcn(zeros, d_poly_degree, dx[0], base_pt.getVec());
-            U.block(interp_size, 0, Ulow.cols(), 1) = Ulow.transpose();
-            MatrixXd final_mat(MatrixXd::Zero(interp_size + poly_size, interp_size + poly_size));
-            final_mat.block(0, 0, interp_size, interp_size) = A;
-            final_mat.block(0, interp_size, interp_size, poly_size) = B;
-            final_mat.block(interp_size, 0, poly_size, interp_size) = B.transpose();
+                // Add quadratic polynomials
+                std::vector<FDPoint> zeros = { base_pt };
+                MatrixXd Ulow = d_poly_fcn(zeros, d_poly_degree, dx[0], base_pt);
+                U.block(interp_size, 0, Ulow.cols(), 1) = Ulow.transpose();
+                MatrixXd final_mat(MatrixXd::Zero(interp_size + poly_size, interp_size + poly_size));
+                final_mat.block(0, 0, interp_size, interp_size) = A;
+                final_mat.block(0, interp_size, interp_size, poly_size) = B;
+                final_mat.block(interp_size, 0, poly_size, interp_size) = B.transpose();
 
-            VectorXd x = final_mat.colPivHouseholderQr().solve(U);
-            // Now cache FD stencil
-            VectorXd weights = x.block(0, 0, interp_size, 1);
-            for (int i = 0; i < interp_size; ++i) d_pt_weight_map[patch.getPointer()][base_pt].push_back(weights(i));
+                VectorXd x = final_mat.colPivHouseholderQr().solve(U);
+                // Now cache FD stencil
+                VectorXd weights = x.block(0, 0, interp_size, 1);
+                for (int i = 0; i < interp_size; ++i) wgts.push_back(weights(i));
+                d_pt_weight_map[patch.getPointer()].insert(std::make_pair(base_pt, wgts));
+            }
         }
     }
 }

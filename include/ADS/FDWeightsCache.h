@@ -67,13 +67,13 @@ public:
     /*!
      * \brief Get the map between a point and it's list of FD weights.
      */
-    const std::map<FDPoint, std::vector<double>>&
+    const std::multimap<FDPoint, std::vector<double>>&
     getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
 
     /*!
      * \brief Get the map between a point and it's list of FD points.
      */
-    const std::map<FDPoint, std::vector<FDPoint>>&
+    const std::multimap<FDPoint, std::vector<FDPoint>>&
     getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch);
 
     /*!
@@ -83,15 +83,19 @@ public:
 
     /*!
      * \brief Get the vector of FD weights for a given patch and point pair.
+     *
+     * \note This function returns a copy of the weights.
      */
-    const std::vector<double>& getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
-                                               const FDPoint& pt);
+    std::vector<std::vector<double>> getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
+                                                     const FDPoint& pt);
 
     /*!
      * \brief Get the vector of FD points for a given patch and point pair.
+     *
+     * \note This function returns a copy of the points.
      */
-    const std::vector<FDPoint>& getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
-                                               const FDPoint& pt);
+    std::vector<std::vector<FDPoint>> getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
+                                                     const FDPoint& pt);
 
     /*!
      * \brief Determine if this patch and point pair has associated FD weights
@@ -104,6 +108,11 @@ public:
     virtual void clearCache();
 
     /*!
+     * \brief Eliminate a point and it's associated weights from the cache.
+     */
+    void clearPoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDPoint& pt);
+
+    /*!
      * Debugging function. Prints all the cached points and their associated FD points to the given output.
      */
     virtual void printPtMap(std::ostream& os, SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
@@ -113,8 +122,8 @@ protected:
 
     // Weight and point information
     using PtVecMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::set<FDPoint>>;
-    using PtPairVecMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::map<FDPoint, std::vector<FDPoint>>>;
-    using WeightVecMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::map<FDPoint, std::vector<double>>>;
+    using PtPairVecMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::multimap<FDPoint, std::vector<FDPoint>>>;
+    using WeightVecMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::multimap<FDPoint, std::vector<double>>>;
     PtVecMap d_base_pt_set;
     PtPairVecMap d_pair_pt_map;
     WeightVecMap d_pt_weight_map;

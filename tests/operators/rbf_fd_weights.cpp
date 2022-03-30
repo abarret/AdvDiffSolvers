@@ -274,7 +274,7 @@ main(int argc, char* argv[])
                                   patch_hierarchy,
                                   app_initializer->getComponentDatabase("RBFWeights"));
         auto poly_fcn =
-            [](const std::vector<VectorNd>& pt_vec, int poly_degree, double ds, const VectorNd& shft) -> MatrixXd {
+            [](const std::vector<FDPoint>& pt_vec, int poly_degree, double ds, const FDPoint& shft) -> MatrixXd {
             return PolynomialBasis::laplacianMonomials(pt_vec, poly_degree, ds, shft);
         };
         auto rbf_fcn = [](const double r) -> double { return r * r * r * r * r; };
@@ -299,22 +299,27 @@ main(int argc, char* argv[])
                 {
                     if (pt.isNode()) continue;
                     plog << "On point: " << pt << "\n";
-                    const std::vector<double>& weights = weights_op->getRBFFDWeights(patch, pt);
-                    const std::vector<FDPoint>& other_pts = weights_op->getRBFFDPoints(patch, pt);
-                    bool print_these = true;
-                    if (check_background_grid)
+                    const std::vector<std::vector<double>>& weights_vec = weights_op->getRBFFDWeights(patch, pt);
+                    const std::vector<std::vector<FDPoint>>& other_pts_vec = weights_op->getRBFFDPoints(patch, pt);
+                    for (size_t j = 0; j < weights_vec.size(); ++j)
                     {
-                        for (const auto other_pt : other_pts)
+                        const std::vector<double>& weights = weights_vec[j];
+                        const std::vector<FDPoint>& other_pts = other_pts_vec[j];
+                        bool print_these = true;
+                        if (check_background_grid)
                         {
-                            if (other_pt.isNode()) print_these = false;
+                            for (const auto& other_pt : other_pts)
+                            {
+                                if (other_pt.isNode()) print_these = false;
+                            }
                         }
+                        for (size_t i = 0; print_these && i < weights.size(); ++i)
+                        {
+                            plog << "pt[" << i << "]: " << other_pts[i] << "\n";
+                            plog << "With weight: " << weights[i] << "\n";
+                        }
+                        plog << "\n";
                     }
-                    for (size_t i = 0; print_these && i < weights.size(); ++i)
-                    {
-                        plog << "pt[" << i << "]: " << other_pts[i] << "\n";
-                        plog << "With weight: " << weights[i] << "\n";
-                    }
-                    plog << "\n";
                 }
             }
         }

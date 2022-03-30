@@ -31,7 +31,7 @@ formMonomials(const std::vector<Point>& pts, int deg, double ds, const Point& sh
     for (size_t row = 0; row < pts.size(); ++row)
     {
         Point pt = pts[row];
-        pt = (pt - shft) / ds;
+        for (unsigned int d = 0; d < NDIM; ++d) pt(d) = (pt(d) - shft(d)) / ds;
         int col = 0;
 #if (NDIM == 2)
         for (int i = 0; i <= deg; ++i)
@@ -81,7 +81,7 @@ laplacianMonomials(const std::vector<Point>& pts, int deg, double ds, const Poin
     for (size_t row = 0; row < pts.size(); ++row)
     {
         Point pt = pts[row];
-        pt = (pt - shft) / ds;
+        for (unsigned int d = 0; d < NDIM; ++d) pt(d) = (pt(d) - shft(d)) / ds;
         int col = 0;
 #if (NDIM == 2)
         for (int i = 0; i <= deg; ++i)
@@ -139,7 +139,7 @@ dPdxMonomials(const std::vector<Point>& pts, int deg, double ds, const Point& sh
     for (size_t row = 0; row < pts.size(); ++row)
     {
         Point pt = pts[row];
-        pt = (pt - shft) / ds;
+        for (unsigned int d = 0; d < NDIM; ++d) pt(d) = (pt(d) - shft(d)) / ds;
         int col = 0;
 #if (NDIM == 2)
         for (int i = 0; i <= deg; ++i)
@@ -190,7 +190,7 @@ dPdyMonomials(const std::vector<Point>& pts, int deg, double ds, const Point& sh
     for (size_t row = 0; row < pts.size(); ++row)
     {
         Point pt = pts[row];
-        pt = (pt - shft) / ds;
+        for (unsigned int d = 0; d < NDIM; ++d) pt(d) = (pt(d) - shft(d)) / ds;
         int col = 0;
 #if (NDIM == 2)
         for (int i = 0; i <= deg; ++i)
@@ -243,7 +243,7 @@ dPdzMonomials(const std::vector<Point>& pts, int deg, double ds, const Point& sh
     for (size_t row = 0; row < pts.size(); ++row)
     {
         Point pt = pts[row];
-        pt = (pt - shft) / ds;
+        for (unsigned int d = 0; d < NDIM; ++d) pt(d) = (pt(d) - shft(d)) / ds;
         int col = 0;
         for (int i = 0; i <= deg; ++i)
         {

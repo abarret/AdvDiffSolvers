@@ -96,7 +96,7 @@ RBFLaplaceOperator::RBFLaplaceOperator(const std::string& object_name,
 #endif
     };
 
-    d_polys = [this](const std::vector<VectorNd>& vec, int degree, double ds, const VectorNd& shft) -> MatrixXd {
+    d_polys = [this](const std::vector<FDPoint>& vec, int degree, double ds, const FDPoint& shft) -> MatrixXd {
         return d_C * PolynomialBasis::formMonomials(vec, degree, ds, shft) -
                d_D * PolynomialBasis::laplacianMonomials(vec, degree, ds, shft);
     };
@@ -353,8 +353,8 @@ RBFLaplaceOperator::applyToLagDOFs(const int x_idx, const int y_idx)
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
         const std::set<FDPoint>& base_pts = d_fd_weights->getRBFFDBasePoints(patch);
         if (base_pts.empty()) continue;
-        const std::map<FDPoint, std::vector<FDPoint>>& rbf_pts = d_fd_weights->getRBFFDPoints(patch);
-        const std::map<FDPoint, std::vector<double>>& weights = d_fd_weights->getRBFFDWeights(patch);
+        const std::multimap<FDPoint, std::vector<FDPoint>>& rbf_pts = d_fd_weights->getRBFFDPoints(patch);
+        const std::multimap<FDPoint, std::vector<double>>& weights = d_fd_weights->getRBFFDWeights(patch);
 
         Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         Pointer<CellData<NDIM, double>> x_data = patch->getPatchData(x_idx);
@@ -362,14 +362,23 @@ RBFLaplaceOperator::applyToLagDOFs(const int x_idx, const int y_idx)
         for (const auto& base_pt : base_pts)
         {
             if (base_pt.isNode()) continue;
-            const size_t interp_size = weights.at(base_pt).size();
-            double lap = 0.0;
-            for (size_t i = 0; i < interp_size; ++i)
+            auto wgt_iters = weights.equal_range(base_pt);
+            auto pt_iters = rbf_pts.equal_range(base_pt);
+            auto wgt_iter = wgt_iters.first;
+            auto pt_iter = pt_iters.first;
+            for (; wgt_iter != wgt_iters.second; ++wgt_iter, ++pt_iter)
             {
-                double w = weights.at(base_pt)[i];
-                lap += w * getSolVal(rbf_pts.at(base_pt)[i], *x_data, d_aug_x_vec);
+                const std::vector<FDPoint>& pt_vec = pt_iter->second;
+                const std::vector<double>& wgt_vec = wgt_iter->second;
+                const size_t interp_size = wgt_vec.size();
+                double lap = 0.0;
+                for (size_t i = 0; i < interp_size; ++i)
+                {
+                    double w = wgt_vec[i];
+                    lap += w * getSolVal(pt_vec[i], *x_data, d_aug_x_vec);
+                }
+                setSolVal(lap, base_pt, *y_data, d_aug_y_vec);
             }
-            setSolVal(lap, base_pt, *y_data, d_aug_y_vec);
         }
     }
     // We've set values, so we need to assemble the vector
