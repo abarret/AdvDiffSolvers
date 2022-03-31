@@ -45,6 +45,7 @@ SET(CXX_SRC
     VolumeBoundaryMeshMapping.cpp
     ZSplineReconstructions.cpp
 
+    solvers/ConditionCounter.cpp
     solvers/LSCutCellBoundaryConditions.cpp
     solvers/LSCutCellLaplaceOperator.cpp
     solvers/PETScAugmentedKrylovLinearSolver.cpp

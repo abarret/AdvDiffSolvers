@@ -83,49 +83,49 @@ FDWeightsCache::cachePoint(Pointer<Patch<NDIM>> patch,
 }
 
 const std::map<FDPoint, std::vector<double>>&
-FDWeightsCache::getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch)
+FDWeightsCache::getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) const
 {
-    return d_pt_weight_map[patch.getPointer()];
+    return d_pt_weight_map.at(patch.getPointer());
 }
 
 const std::map<FDPoint, std::vector<FDPoint>>&
-FDWeightsCache::getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch)
+FDWeightsCache::getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) const
 {
-    return d_pair_pt_map[patch.getPointer()];
+    return d_pair_pt_map.at(patch.getPointer());
 }
 
 const std::set<FDPoint>&
-FDWeightsCache::getRBFFDBasePoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch)
+FDWeightsCache::getRBFFDBasePoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) const
 {
-    return d_base_pt_set[patch.getPointer()];
+    return d_base_pt_set.at(patch.getPointer());
 }
 
 const std::vector<double>&
-FDWeightsCache::getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDPoint& pt)
+FDWeightsCache::getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDPoint& pt) const
 {
 #if !defined(NDEBUG)
     if (!isBasePoint(patch, pt)) TBOX_ERROR("pt " << pt << " is not a base point on this patch");
 #endif
-    return d_pt_weight_map[patch.getPointer()][pt];
+    return d_pt_weight_map.at(patch.getPointer()).at(pt);
 }
 
 const std::vector<FDPoint>&
-FDWeightsCache::getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDPoint& pt)
+FDWeightsCache::getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDPoint& pt) const
 {
 #if !defined(NDEBUG)
     if (!isBasePoint(patch, pt)) TBOX_ERROR("pt " << pt << " is not a base point on this patch");
 #endif
-    return d_pair_pt_map[patch.getPointer()][pt];
+    return d_pair_pt_map.at(patch.getPointer()).at(pt);
 }
 
 bool
-FDWeightsCache::isBasePoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDPoint& pt)
+FDWeightsCache::isBasePoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDPoint& pt) const
 {
-    return d_base_pt_set[patch.getPointer()].find(pt) != d_base_pt_set[patch.getPointer()].end();
+    return d_base_pt_set.at(patch.getPointer()).find(pt) != d_base_pt_set.at(patch.getPointer()).end();
 }
 
 void
-FDWeightsCache::printPtMap(std::ostream& os, Pointer<PatchHierarchy<NDIM>> hierarchy)
+FDWeightsCache::printPtMap(std::ostream& os, Pointer<PatchHierarchy<NDIM>> hierarchy) const
 {
     const int ln = hierarchy->getFinestLevelNumber();
     Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
@@ -134,10 +134,10 @@ FDWeightsCache::printPtMap(std::ostream& os, Pointer<PatchHierarchy<NDIM>> hiera
     {
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
         os << "On patch number: " << patch_num << "\n";
-        os << "There are " << d_base_pt_set[patch.getPointer()].size() << " key-value pairs present\n";
-        for (const auto& pt : d_base_pt_set[patch.getPointer()])
+        os << "There are " << d_base_pt_set.at(patch.getPointer()).size() << " key-value pairs present\n";
+        for (const auto& pt : d_base_pt_set.at(patch.getPointer()))
         {
-            const std::vector<FDPoint>& pt_vec = d_pair_pt_map[patch.getPointer()][pt];
+            const std::vector<FDPoint>& pt_vec = d_pair_pt_map.at(patch.getPointer()).at(pt);
             os << "  Looking at point:\n" << pt << "\n";
             os << "  Has points: \n";
             for (const auto& pt_from_vec : pt_vec) os << pt_from_vec << "\n";
