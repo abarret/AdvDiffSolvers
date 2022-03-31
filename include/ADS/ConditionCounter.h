@@ -17,11 +17,13 @@
 namespace ADS
 {
 /*!
- * ConditionCounter is a class that counts the number of conditions being applied to points. This is useful when we want
- * to enforce multiple conditions at a single location (e.g boundary condition and PDE operator).
+ * ConditionCounter is a class that counts the number of conditions being applied to points. This is useful when we have
+ * an explicit matrix representation of the operator. This class can keep track of which row in the matrix corresponds
+ * to which FDPoint.
  *
- * This class maintains a map between finite difference points and their global condition number. Note that each point
- * can contain multiple conditions.
+ * This class maintains a map between finite difference points and their global condition number. Each point can only
+ * hold one condition. For problems that expressive multiple conditions at a single point, you should have multiple
+ * condition counters.
  */
 class ConditionCounter
 {
@@ -46,7 +48,7 @@ public:
     /*!
      * \brief Get the number of conditions per processor.
      */
-    const std::vector<unsigned int>& getNumConditionsPerProc()
+    const std::vector<unsigned int>& getNumConditionsPerProc() const
     {
         return d_conditions_per_proc;
     }
@@ -54,11 +56,11 @@ public:
     /*!
      * \brief Get the map between FD points and the global condition index.
      */
-    const std::multimap<FDPoint, unsigned int>& getFDConditionMapPatch(SAMRAI::hier::Patch<NDIM>* p)
+    const std::map<FDPoint, unsigned int>& getFDConditionMapPatch(SAMRAI::hier::Patch<NDIM>* p) const
     {
         return d_fd_condition_map.at(p);
     }
-    const std::map<SAMRAI::hier::Patch<NDIM>*, std::multimap<FDPoint, unsigned int>>& getFDConditionMap()
+    const std::map<SAMRAI::hier::Patch<NDIM>*, std::map<FDPoint, unsigned int>>& getFDConditionMap() const
     {
         return d_fd_condition_map;
     }
@@ -90,8 +92,8 @@ public:
 private:
     std::string d_object_name;
 
-    // Map between a finite difference point and it's global condition number.
-    std::map<SAMRAI::hier::Patch<NDIM>*, std::multimap<FDPoint, unsigned int>> d_fd_condition_map;
+    // Map between a finite difference point and it's local condition number.
+    std::map<SAMRAI::hier::Patch<NDIM>*, std::map<FDPoint, unsigned int>> d_fd_condition_map;
     std::vector<unsigned int> d_conditions_per_proc;
 };
 } // namespace ADS

@@ -7,7 +7,8 @@
 
 namespace ADS
 {
-ConditionCounter::ConditionCounter(std::string object_name) : d_object_name(std::move(object_name))
+ConditionCounter::ConditionCounter(std::string object_name)
+    : d_object_name(std::move(object_name)), d_conditions_per_proc(IBTK_MPI::getNodes())
 {
     // intentionally blank
 }
@@ -15,7 +16,7 @@ ConditionCounter::ConditionCounter(std::string object_name) : d_object_name(std:
 ConditionCounter::ConditionCounter(std::string object_name,
                                    Pointer<PatchHierarchy<NDIM>> hierarchy,
                                    const FDWeightsCache& fd_cache)
-    : d_object_name(std::move(object_name))
+    : d_object_name(std::move(object_name)), d_conditions_per_proc(IBTK_MPI::getNodes())
 {
     addCondition(hierarchy, fd_cache);
     updateGlobalConditionCount();
@@ -32,14 +33,14 @@ unsigned int
 ConditionCounter::addCondition(Patch<NDIM>* patch, FDPoint pt)
 {
     int rank = IBTK_MPI::getRank();
-    d_fd_condition_map[patch].insert(std::make_pair(pt, d_conditions_per_proc[rank]));
+    d_fd_condition_map[patch][pt] = d_conditions_per_proc[rank];
     return d_conditions_per_proc[rank]++;
 }
 
 void
 ConditionCounter::addCondition(Pointer<PatchHierarchy<NDIM>> hierarchy, const FDWeightsCache& fd_cache)
 {
-    for (int ln = 0; ln <= hierarchy->getPatchLevel(ln); ++ln)
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
@@ -62,8 +63,7 @@ ConditionCounter::updateGlobalConditionCount()
     const int nodes = IBTK_MPI::getNodes();
     for (int i = 0; i < nodes; ++i)
     {
-        if (i == rank) continue;
-        d_conditions_per_proc[i] = 0;
+        if (i != rank) d_conditions_per_proc[i] = 0;
     }
     IBTK_MPI::sumReduction(d_conditions_per_proc.data(), nodes);
 }
