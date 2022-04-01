@@ -210,6 +210,7 @@ main(int argc, char* argv[])
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
             "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), &bdry_mesh);
         mesh_mapping->initializeEquationSystems();
+        mesh_mapping->getMeshPartitioner()->setPatchHierarchy(patch_hierarchy);
 
         gridding_algorithm->makeCoarsestLevel(patch_hierarchy, 0.0);
         int tag_buffer = 1;

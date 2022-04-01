@@ -19,6 +19,7 @@
 #include "ADS/app_namespaces.h" // IWYU pragma: keep
 #include "ADS/ls_functions.h"
 #include "ADS/reconstructions.h"
+#include <ADS/libmesh_utilities.h>
 
 #include "ibtk/CellNoCornersFillPattern.h"
 #include "ibtk/HierarchyMathOps.h"
@@ -103,7 +104,6 @@ RBFFDWeightsCache::sortLagDOFsToCells()
 
     // Clear old data structures.
     d_idx_node_vec.clear();
-    d_idx_node_ghost_vec.clear();
     d_base_pt_set.clear();
     d_pair_pt_map.clear();
     // Assume structure is on finest level
@@ -111,42 +111,41 @@ RBFFDWeightsCache::sortLagDOFsToCells()
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
 
     EquationSystems* eq_sys = d_fe_mesh_partitioner->getEquationSystems();
-    const MeshBase& mesh = eq_sys->get_mesh();
     const System& sys = eq_sys->get_system(d_fe_mesh_partitioner->COORDINATES_SYSTEM_NAME);
     const DofMap& dof_map = sys.get_dof_map();
     NumericVector<double>* X_vec = sys.current_local_solution.get();
+    // TODO: This is potentially expensive because we need to communicate
+    d_fe_mesh_partitioner->reinitElementMappings(s_num_ghost_cells);
+    NumericVector<double>* X_ghosted_vec = d_fe_mesh_partitioner->buildGhostedCoordsVector();
+
+    const std::vector<std::vector<Node*>>& active_nodes_map = d_fe_mesh_partitioner->getActivePatchNodeMap();
 
     // Loop through nodes
-    auto it_end = mesh.nodes_end();
-    for (auto it = mesh.nodes_begin(); it != it_end; ++it)
+    unsigned int patch_num = 0;
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
     {
-        Node* const node = *it;
-        // Get CellIndex of the node
-        VectorNd node_pt;
-        for (unsigned int d = 0; d < NDIM; ++d)
+        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+        const std::vector<Node*>& active_nodes = active_nodes_map[patch_num];
+        for (const auto& node : active_nodes)
         {
-            std::vector<dof_id_type> dofs;
-            dof_map.dof_indices(node, dofs, d);
-            node_pt[d] = (*X_vec)(dofs[0]);
-        }
-        const CellIndex<NDIM>& idx =
-            IndexUtilities::getCellIndex(node_pt, d_hierarchy->getGridGeometry(), level->getRatio());
-        // Sort nodes into patches
-        // We also need ghost nodes to include in our KD tree
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-        {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            const Box<NDIM>& box = patch->getBox();
-            if (box.contains(idx)) d_idx_node_vec[patch.getPointer()].push_back(node);
-            Box<NDIM> ghost_box = box;
-            ghost_box.grow(IntVector<NDIM>(s_num_ghost_cells));
-            if (ghost_box.contains(idx)) d_idx_node_ghost_vec[patch.getPointer()].push_back(node);
+            VectorNd node_pt;
+            for (unsigned int d = 0; d < NDIM; ++d)
+            {
+                std::vector<dof_id_type> dofs;
+                dof_map.dof_indices(node, dofs, d);
+                node_pt[d] = (*X_ghosted_vec)(dofs[0]);
+            }
+            const CellIndex<NDIM>& idx =
+                IndexUtilities::getCellIndex(node_pt, d_hierarchy->getGridGeometry(), level->getRatio());
+            if (patch->getBox().contains(idx)) d_idx_node_vec[patch.getPointer()].push_back(node);
         }
     }
-    // At this point, each node is associated with a patch
+    // At this point, each node is associated with a patch.
+
     // We now find the nearest neighbor of every point that needs an RBF reconstruction
     // We do this by finding a KD tree
-    for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+    patch_num = 0;
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
     {
         // We are on a patch that has points. We need to form a KD tree.
         // TODO: Need to determine when we need to use RBFs
@@ -163,15 +162,15 @@ RBFFDWeightsCache::sortLagDOFsToCells()
             const double ls_val = ADS::node_to_cell(idx, *ls_data);
             if (ls_val < -d_eps) pts.push_back(FDPoint(patch, idx));
         }
-        // Now add in the points in d_idx_node_vec
-        for (const auto& node : d_idx_node_ghost_vec[patch.getPointer()])
+        // Now add in lagrangian nodes
+        for (const auto& node : active_nodes_map[patch_num])
         {
             VectorNd node_pt;
             for (unsigned int d = 0; d < NDIM; ++d)
             {
                 std::vector<dof_id_type> dofs;
                 dof_map.dof_indices(node, dofs, d);
-                node_pt[d] = (*X_vec)(dofs[0]);
+                node_pt[d] = (*X_ghosted_vec)(dofs[0]);
             }
             pts.push_back(FDPoint(node_pt, node));
         }
