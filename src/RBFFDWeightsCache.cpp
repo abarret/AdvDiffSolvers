@@ -56,7 +56,6 @@ static Timer* t_initialize_operator_state;
 static Timer* t_deallocate_operator_state;
 } // namespace
 
-unsigned int RBFFDWeightsCache::s_num_ghost_cells = 3;
 /////////////////////////////// PUBLIC ///////////////////////////////////////
 
 RBFFDWeightsCache::RBFFDWeightsCache(std::string object_name,
@@ -69,6 +68,11 @@ RBFFDWeightsCache::RBFFDWeightsCache(std::string object_name,
     d_dist_to_bdry = input_db->getDouble("dist_to_bdry");
     d_eps = input_db->getDouble("eps");
     d_stencil_size = input_db->getInteger("stencil_size");
+    d_num_ghost_cells = input_db->getIntegerWithDefault("num_ghost_cells", d_num_ghost_cells);
+    if (d_num_ghost_cells < d_stencil_size)
+        TBOX_WARNING(
+            "Number of ghost cells is less than stencil size. This could force one-sided stencils near patch "
+            "boundaries.\n");
     // Setup Timers.
     IBTK_DO_ONCE(t_apply = TimerManager::getManager()->getTimer("IBTK::LaplaceOperator::apply()");
                  t_initialize_operator_state =
@@ -114,8 +118,11 @@ RBFFDWeightsCache::sortLagDOFsToCells()
     const System& sys = eq_sys->get_system(d_fe_mesh_partitioner->COORDINATES_SYSTEM_NAME);
     const DofMap& dof_map = sys.get_dof_map();
     NumericVector<double>* X_vec = sys.current_local_solution.get();
-    // TODO: This is potentially expensive because we need to communicate
-    d_fe_mesh_partitioner->reinitElementMappings(s_num_ghost_cells);
+
+    if (d_fe_mesh_partitioner->getGhostCellWidth().max() < d_num_ghost_cells)
+        TBOX_WARNING(
+            "   FEMeshPartitioner has less ghost cell width than the SAMRAI patch data.\n   This can result in one "
+            "sided stencils.\n");
     NumericVector<double>* X_ghosted_vec = d_fe_mesh_partitioner->buildGhostedCoordsVector();
 
     const std::vector<std::vector<Node*>>& active_nodes_map = d_fe_mesh_partitioner->getActivePatchNodeMap();
