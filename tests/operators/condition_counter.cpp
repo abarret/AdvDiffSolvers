@@ -253,12 +253,17 @@ main(int argc, char* argv[])
             TBOX_ERROR("UNKNOWN TYPE");
         }
 
+        std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner = mesh_mapping->getMeshPartitioner();
+        fe_mesh_partitioner->setPatchHierarchy(patch_hierarchy);
+        fe_mesh_partitioner->reinitElementMappings(3);
+
         // Set up reconstruction
         Pointer<RBFFDWeightsCache> weights_op =
             new RBFFDWeightsCache("RBFWeights",
                                   mesh_mapping->getMeshPartitioner(),
                                   patch_hierarchy,
                                   app_initializer->getComponentDatabase("RBFWeights"));
+        weights_op->setNumGhostCells(3);
         auto poly_fcn =
             [](const std::vector<VectorNd>& pt_vec, int poly_degree, double ds, const VectorNd& shft) -> MatrixXd {
             return PolynomialBasis::laplacianMonomials(pt_vec, poly_degree, ds, shft);

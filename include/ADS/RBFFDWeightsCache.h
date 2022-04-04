@@ -81,6 +81,15 @@ public:
     void sortLagDOFsToCells();
     void findRBFFDWeights();
 
+    void setNumGhostCells(int num_ghost_cells)
+    {
+        d_num_ghost_cells = num_ghost_cells;
+        if (d_num_ghost_cells < d_stencil_size)
+            TBOX_WARNING(
+                "Number of ghost cells is less than stencil size. This could force one-sided stencils near patch "
+                "boundaries.\n");
+    }
+
 private:
     /*!
      * \brief Default constructor.
@@ -111,7 +120,7 @@ private:
 
     std::string d_object_name;
 
-    static unsigned int s_num_ghost_cells;
+    int d_num_ghost_cells = 3;
     double d_eps = std::numeric_limits<double>::quiet_NaN();
 
     int d_ls_idx = IBTK::invalid_index;
@@ -125,7 +134,7 @@ private:
 
     // Lag structure info
     std::shared_ptr<FEMeshPartitioner> d_fe_mesh_partitioner;
-    std::map<SAMRAI::hier::Patch<NDIM>*, std::vector<libMesh::Node*>> d_idx_node_vec, d_idx_node_ghost_vec;
+    std::map<SAMRAI::hier::Patch<NDIM>*, std::vector<libMesh::Node*>> d_idx_node_vec;
 
     std::function<IBTK::MatrixXd(const std::vector<IBTK::VectorNd>&, int, double, const IBTK::VectorNd&)> d_poly_fcn;
     std::function<double(double)> d_rbf_fcn, d_Lrbf_fcn;

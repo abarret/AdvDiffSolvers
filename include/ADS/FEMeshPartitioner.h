@@ -218,7 +218,7 @@ public:
     /*!
      * \brief Reinitialize the mappings from elements to Cartesian grid patches.
      */
-    void reinitElementMappings();
+    void reinitElementMappings(const SAMRAI::hier::IntVector<NDIM>& ghost_width = 0);
 
     /*!
      * \return A pointer to the unghosted solution vector associated with the
@@ -301,44 +301,6 @@ private:
     FEMeshPartitioner& operator=(const FEMeshPartitioner& that) = delete;
 
     /*!
-     * Collect all of the active elements which are located within a local
-     * Cartesian grid patch grown by a ghost width of 1 (like
-     * IBTK::LEInteractor::getMinimumGhostWidth(), we assume that IB points
-     * are allowed to move no more than one cell width between regridding
-     * operations).
-     *
-     * The parameters refer to the levels of different objects:
-     * <ol>
-     *   <li>@p level_number - the level number in the patch hierarchy on which
-     *     we are identifying intersections.</li>
-     *   <li>@p coarsest_elem_ln - The minimum level number of elements we should
-     *     consider (see the main documentation of this class for an explanation
-     *     on how elements are assigned to particular levels)</li>
-     *   <li>@p finest_elem_ln - The maximum level number of elements we should
-     *     consider.</li>
-     * </ol>
-     *
-     * All three parameters are necessary because we use this function both to
-     * tag cells for refinement (i.e., we want to refine cells containing
-     * elements on levels higher than the present level) and to do IB
-     * calculations (where all three numbers will be the same).
-     *
-     * In this method, the determination as to whether an element is local or
-     * not is based on the position of the bounding box of the element.
-     */
-    void collectActivePatchElements(std::vector<std::vector<libMesh::Elem*>>& active_patch_elems,
-                                    int level_number,
-                                    int coarsest_elem_ln,
-                                    int finest_elem_ln);
-
-    /*!
-     * Collect all of the nodes of the active elements that are located within a
-     * local Cartesian grid patch grown by the specified ghost cell width.
-     */
-    void collectActivePatchNodes(std::vector<std::vector<libMesh::Node*>>& active_patch_nodes,
-                                 const std::vector<std::vector<libMesh::Elem*>>& active_patch_elems);
-
-    /*!
      * Store the association between subdomain ids and patch levels.
      */
     IBTK::SubdomainToPatchLevelTranslation d_level_lookup;
@@ -347,13 +309,6 @@ private:
      * Get the patch level on which an element lives.
      */
     int getPatchLevel(const libMesh::Elem* elem) const;
-
-    /*!
-     * Collect all ghost DOF indices for the specified collection of elements.
-     */
-    void collectGhostDOFIndices(std::vector<unsigned int>& ghost_dofs,
-                                const std::vector<libMesh::Elem*>& active_elems,
-                                const std::string& system_name);
 
     /*!
      * Reinitialize IB ghosted DOF data structures for the specified system.
@@ -399,19 +354,7 @@ private:
      * SAMRAI::hier::IntVector object which determines the required ghost cell
      * width of this class.
      */
-    const SAMRAI::hier::IntVector<NDIM> d_ghost_width;
-
-    /*!
-     * SAMRAI::hier::IntVector object which determines how many ghost cells we
-     * should enlarge a patch by when associating an element with a patch. An
-     * element is associated with a patch when its bounding box (defined as
-     * the bounding box of both its nodes and quadrature points) intersects
-     * the bounding box (including ghost cells) of that patch.
-     *
-     * @note At the present time this is always 1, which matches the
-     * assumption made by IBTK::LEInteractor::getMinimumGhostWidth().
-     */
-    const SAMRAI::hier::IntVector<NDIM> d_associated_elem_ghost_width = SAMRAI::hier::IntVector<NDIM>(1);
+    SAMRAI::hier::IntVector<NDIM> d_ghost_width;
 
     /*!
      * Data to manage mappings between mesh elements and grid patches.
@@ -419,7 +362,7 @@ private:
     std::vector<std::vector<std::vector<libMesh::Elem*>>> d_active_patch_elem_map;
     std::vector<std::vector<std::vector<libMesh::Node*>>> d_active_patch_node_map;
     std::map<std::string, std::vector<unsigned int>> d_active_patch_ghost_dofs;
-    std::vector<libMesh::Elem*> d_active_elems;
+    std::set<libMesh::Node*> d_active_nodes;
 
     /*!
      * Ghost vectors for the various equation systems.

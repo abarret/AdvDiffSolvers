@@ -1,6 +1,7 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
 #include "ADS/FEMeshPartitioner.h"
+#include <ADS/libmesh_utilities.h>
 
 #include "ibtk/FECache.h"
 #include "ibtk/FEMappingCache.h"
@@ -313,8 +314,9 @@ FEMeshPartitioner::getActivePatchNodeMap() const
 } // getActivePatchNodeMap
 
 void
-FEMeshPartitioner::reinitElementMappings()
+FEMeshPartitioner::reinitElementMappings(const IntVector<NDIM>& ghost_width)
 {
+    d_ghost_width = ghost_width;
     IBTK_TIMER_START(t_reinit_element_mappings);
 
     // We reinitialize mappings after repartitioning, so clear the cache since
@@ -327,7 +329,7 @@ FEMeshPartitioner::reinitElementMappings()
     d_active_patch_node_map.clear();
     d_active_patch_node_map.resize(d_max_level_number + 1);
     d_active_patch_ghost_dofs.clear();
-    d_active_elems.clear();
+    d_active_nodes.clear();
     d_system_ghost_vec.clear();
     d_system_ib_ghost_vec.clear();
 
@@ -335,19 +337,17 @@ FEMeshPartitioner::reinitElementMappings()
     // elements.
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
-        collectActivePatchElements(d_active_patch_elem_map[ln], ln, ln, ln);
-        collectActivePatchNodes(d_active_patch_node_map[ln], d_active_patch_elem_map[ln]);
+        collectActivePatchElements(d_active_patch_elem_map[ln],
+                                   d_fe_data,
+                                   COORDINATES_SYSTEM_NAME,
+                                   d_hierarchy->getPatchLevel(ln),
+                                   d_ghost_width);
+        collectActivePatchNodes(d_active_patch_node_map[ln], d_active_patch_elem_map[ln], d_fe_data);
     }
 
-    std::set<Elem*> elem_set;
-    for (const std::vector<std::vector<Elem*>>& level_elems : d_active_patch_elem_map)
-    {
-        for (const std::vector<Elem*>& patch_elems : level_elems)
-        {
-            elem_set.insert(patch_elems.begin(), patch_elems.end());
-        }
-    }
-    d_active_elems.assign(elem_set.begin(), elem_set.end());
+    for (const std::vector<std::vector<Node*>>& level_nodes : d_active_patch_node_map)
+        for (const std::vector<Node*>& patch_nodes : level_nodes)
+            d_active_nodes.insert(patch_nodes.begin(), patch_nodes.end());
 
     // If we are not regridding in the usual way (i.e., if
     // IBHierarchyIntegrator::d_regrid_cfl_interval > 1) then it is possible
@@ -541,210 +541,12 @@ FEMeshPartitioner::getLoggingEnabled() const
 } // getLoggingEnabled
 
 /////////////////////////////// PRIVATE //////////////////////////////////////
-void
-FEMeshPartitioner::collectActivePatchElements(std::vector<std::vector<Elem*>>& active_patch_elems,
-                                              const int level_number,
-                                              const int coarsest_elem_ln,
-                                              const int finest_elem_ln)
-{
-    // Get the necessary FE data.
-    const MeshBase& mesh = d_fe_data->getEquationSystems()->get_mesh();
-    System& X_system = d_fe_data->getEquationSystems()->get_system(COORDINATES_SYSTEM_NAME);
-
-    // Setup data structures used to assign elements to patches.
-    Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(level_number);
-    const Pointer<CartesianGridGeometry<NDIM>> grid_geom = level->getGridGeometry();
-    const int num_local_patches = level->getProcessorMapping().getNumberOfLocalIndices();
-    std::vector<std::set<Elem*>> local_patch_elems(num_local_patches);
-    active_patch_elems.resize(num_local_patches);
-
-    // Try to exit quickly if no patches will actually have elements (i.e., if
-    // there are no elements assigned to the range of levels we are working
-    // with)
-    bool levels_have_elements = false;
-    for (int ln = coarsest_elem_ln; ln <= finest_elem_ln; ++ln)
-    {
-        levels_have_elements = levels_have_elements || d_level_lookup.levelHasElements(ln);
-    }
-    if (!levels_have_elements) return;
-
-    // We associate an element with a Cartesian grid patch if the element's
-    // bounding box (which is computed based on the bounds of quadrature
-    // points) intersects the patch interior grown by
-    // d_associated_elem_ghost_width (which is presently assumed to be 1).
-    double dx_0 = std::numeric_limits<double>::max();
-    for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-    {
-        Pointer<Patch<NDIM>> patch = level->getPatch(p());
-        const Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-        dx_0 = std::min(dx_0, *std::min_element(pgeom->getDx(), pgeom->getDx() + NDIM));
-    }
-    dx_0 = IBTK_MPI::minReduction(dx_0);
-    TBOX_ASSERT(dx_0 != std::numeric_limits<double>::max());
-
-    // be a bit paranoid by computing bounding boxes for elements as the union
-    // of the bounding box of the nodes and the bounding box of the quadrature
-    // points:
-    const std::vector<libMeshWrappers::BoundingBox> local_bboxes = get_local_element_bounding_boxes(mesh, X_system);
-
-    const std::vector<libMeshWrappers::BoundingBox> global_bboxes =
-        get_global_element_bounding_boxes(mesh, local_bboxes);
-
-    int local_patch_num = 0;
-    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
-    {
-        std::set<Elem*>& elems = local_patch_elems[local_patch_num];
-        Pointer<Patch<NDIM>> patch = level->getPatch(p());
-        const Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-        const double* const dx = pgeom->getDx();
-        // TODO: reimplement this with an rtree description of SAMRAI's patches
-        libMeshWrappers::BoundingBox patch_bbox;
-        for (unsigned int d = 0; d < NDIM; ++d)
-        {
-            patch_bbox.first(d) = pgeom->getXLower()[d] - dx[d] * d_associated_elem_ghost_width(d);
-            patch_bbox.second(d) = pgeom->getXUpper()[d] + dx[d] * d_associated_elem_ghost_width(d);
-        }
-        for (unsigned int d = NDIM; d < LIBMESH_DIM; ++d)
-        {
-            patch_bbox.first(d) = 0.0;
-            patch_bbox.second(d) = 0.0;
-        }
-
-        auto el_it = mesh.elements_begin();
-        for (const libMeshWrappers::BoundingBox& bbox : global_bboxes)
-        {
-            if ((*el_it)->active())
-            {
-                const int elem_ln = getPatchLevel(*el_it);
-                if (coarsest_elem_ln <= elem_ln && elem_ln <= finest_elem_ln)
-                {
-#if LIBMESH_VERSION_LESS_THAN(1, 6, 0)
-                    if (bbox_intersects(bbox, patch_bbox)) elems.insert(*el_it);
-#else
-                    // New versions of libMesh have this function's performance
-                    // problems fixed
-                    if (bbox.intersects(patch_bbox)) elems.insert(*el_it);
-#endif
-                }
-            }
-            ++el_it;
-        }
-    }
-
-    // Set the active patch element data.
-    local_patch_num = 0;
-    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
-    {
-        const std::set<Elem*>& local_elems = local_patch_elems[local_patch_num];
-        std::vector<Elem*>& active_elems = active_patch_elems[local_patch_num];
-        active_elems.resize(local_elems.size());
-        std::copy(local_elems.begin(), local_elems.end(), active_elems.begin());
-    }
-    return;
-} // collectActivePatchElements
-
-void
-FEMeshPartitioner::collectActivePatchNodes(std::vector<std::vector<Node*>>& active_patch_nodes,
-                                           const std::vector<std::vector<Elem*>>& active_patch_elems)
-{
-    const MeshBase& mesh = d_fe_data->getEquationSystems()->get_mesh();
-    const unsigned int num_local_patches = active_patch_elems.size();
-    active_patch_nodes.resize(num_local_patches);
-    for (unsigned int k = 0; k < num_local_patches; ++k)
-    {
-        std::set<dof_id_type> active_node_ids;
-        for (const auto& elem : active_patch_elems[k])
-        {
-            for (unsigned int n = 0; n < elem->n_nodes(); ++n)
-            {
-                active_node_ids.insert(elem->node_id(n));
-            }
-        }
-        const unsigned int num_active_nodes = active_node_ids.size();
-        active_patch_nodes[k].reserve(num_active_nodes);
-        for (const auto& active_node_id : active_node_ids)
-        {
-            active_patch_nodes[k].push_back(const_cast<Node*>(mesh.node_ptr(active_node_id)));
-        }
-    }
-    return;
-}
 
 int
 FEMeshPartitioner::getPatchLevel(const Elem* elem) const
 {
     return d_level_lookup[elem->subdomain_id()];
 }
-
-void
-FEMeshPartitioner::collectGhostDOFIndices(std::vector<unsigned int>& ghost_dofs,
-                                          const std::vector<Elem*>& active_elems,
-                                          const std::string& system_name)
-{
-    System& system = d_fe_data->getEquationSystems()->get_system(system_name);
-    const unsigned int sys_num = system.number();
-    const DofMap& dof_map = system.get_dof_map();
-    const unsigned int first_local_dof = dof_map.first_dof();
-    const unsigned int end_local_dof = dof_map.end_dof();
-
-    // Include non-local DOF constraint dependencies for local DOFs in the list
-    // of ghost DOFs.
-    std::vector<unsigned int> constraint_dependency_dof_list;
-    for (auto i = dof_map.constraint_rows_begin(); i != dof_map.constraint_rows_end(); ++i)
-    {
-        const unsigned int constrained_dof = i->first;
-        if (constrained_dof >= first_local_dof && constrained_dof < end_local_dof)
-        {
-            const DofConstraintRow& constraint_row = i->second;
-            for (const auto& elem : constraint_row)
-            {
-                const unsigned int constraint_dependency = elem.first;
-                if (constraint_dependency < first_local_dof || constraint_dependency >= end_local_dof)
-                {
-                    constraint_dependency_dof_list.push_back(constraint_dependency);
-                }
-            }
-        }
-    }
-
-    // Record the local DOFs associated with the active local elements.
-    std::set<unsigned int> ghost_dof_set(constraint_dependency_dof_list.begin(), constraint_dependency_dof_list.end());
-    for (const auto& elem : active_elems)
-    {
-        // DOFs associated with the element.
-        for (unsigned int var_num = 0; var_num < elem->n_vars(sys_num); ++var_num)
-        {
-            if (elem->n_dofs(sys_num, var_num) > 0)
-            {
-                const unsigned int dof_index = elem->dof_number(sys_num, var_num, 0);
-                if (dof_index < first_local_dof || dof_index >= end_local_dof)
-                {
-                    ghost_dof_set.insert(dof_index);
-                }
-            }
-        }
-
-        // DOFs associated with the nodes of the element.
-        for (unsigned int k = 0; k < elem->n_nodes(); ++k)
-        {
-            const Node* const node = elem->node_ptr(k);
-            for (unsigned int var_num = 0; var_num < node->n_vars(sys_num); ++var_num)
-            {
-                if (node->n_dofs(sys_num, var_num) > 0)
-                {
-                    const unsigned int dof_index = node->dof_number(sys_num, var_num, 0);
-                    if (dof_index < first_local_dof || dof_index >= end_local_dof)
-                    {
-                        ghost_dof_set.insert(dof_index);
-                    }
-                }
-            }
-        }
-    }
-    ghost_dofs.clear();
-    ghost_dofs.insert(ghost_dofs.end(), ghost_dof_set.begin(), ghost_dof_set.end());
-    return;
-} // collectGhostDOFIndices
 
 void
 FEMeshPartitioner::reinitializeIBGhostedDOFs(const std::string& system_name)
@@ -756,7 +558,7 @@ FEMeshPartitioner::reinitializeIBGhostedDOFs(const std::string& system_name)
     {
         const System& system = d_fe_data->getEquationSystems()->get_system(system_name);
         std::vector<libMesh::dof_id_type> ib_ghost_dofs;
-        collectGhostDOFIndices(ib_ghost_dofs, d_active_elems, system_name);
+        collectGhostDOFIndices(ib_ghost_dofs, d_active_nodes, system_name, d_fe_data);
 
         // Match the expected vector sizes by using the solution for non-ghost
         // sizes:
