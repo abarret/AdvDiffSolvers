@@ -96,7 +96,7 @@ RBFLaplaceOperator::RBFLaplaceOperator(const std::string& object_name,
 #endif
     };
 
-    d_polys = [this](const std::vector<VectorNd>& vec, int degree, double ds, const VectorNd& shft) -> MatrixXd {
+    d_polys = [this](const std::vector<FDPoint>& vec, int degree, double ds, const FDPoint& shft) -> MatrixXd {
         return d_C * PolynomialBasis::formMonomials(vec, degree, ds, shft) -
                d_D * PolynomialBasis::laplacianMonomials(vec, degree, ds, shft);
     };
@@ -362,12 +362,14 @@ RBFLaplaceOperator::applyToLagDOFs(const int x_idx, const int y_idx)
         for (const auto& base_pt : base_pts)
         {
             if (base_pt.isNode()) continue;
-            const size_t interp_size = weights.at(base_pt).size();
+            const std::vector<FDPoint>& pt_vec = rbf_pts.at(base_pt);
+            const std::vector<double>& wgt_vec = weights.at(base_pt);
+            const size_t interp_size = wgt_vec.size();
             double lap = 0.0;
             for (size_t i = 0; i < interp_size; ++i)
             {
-                double w = weights.at(base_pt)[i];
-                lap += w * getSolVal(rbf_pts.at(base_pt)[i], *x_data, d_aug_x_vec);
+                double w = wgt_vec[i];
+                lap += w * getSolVal(pt_vec[i], *x_data, d_aug_x_vec);
             }
             setSolVal(lap, base_pt, *y_data, d_aug_y_vec);
         }

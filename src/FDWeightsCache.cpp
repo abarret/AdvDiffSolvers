@@ -68,16 +68,24 @@ FDWeightsCache::clearCache()
 }
 
 void
+FDWeightsCache::clearPoint(Pointer<Patch<NDIM>> patch, const FDPoint& pt)
+{
+    std::set<FDPoint>& base_pt_set = d_base_pt_set[patch.getPointer()];
+    auto it = base_pt_set.find(pt);
+    if (it == base_pt_set.end()) return;
+    base_pt_set.erase(it);
+    d_pair_pt_map[patch.getPointer()].erase(pt);
+    d_pt_weight_map[patch.getPointer()].erase(pt);
+}
+
+void
 FDWeightsCache::cachePoint(Pointer<Patch<NDIM>> patch,
                            const FDPoint& pt,
                            const std::vector<FDPoint>& fd_pts,
                            const std::vector<double>& fd_weights)
 {
     // Cache the point. Replace it if it already exists
-    std::set<FDPoint>& base_pt_set = d_base_pt_set[patch.getPointer()];
-    auto it = base_pt_set.find(pt);
-    if (it != base_pt_set.end()) base_pt_set.erase(it);
-    base_pt_set.insert(pt);
+    d_base_pt_set[patch.getPointer()].insert(pt);
     d_pair_pt_map[patch.getPointer()][pt] = fd_pts;
     d_pt_weight_map[patch.getPointer()][pt] = fd_weights;
 }
@@ -137,10 +145,14 @@ FDWeightsCache::printPtMap(std::ostream& os, Pointer<PatchHierarchy<NDIM>> hiera
         os << "There are " << d_base_pt_set.at(patch.getPointer()).size() << " key-value pairs present\n";
         for (const auto& pt : d_base_pt_set.at(patch.getPointer()))
         {
-            const std::vector<FDPoint>& pt_vec = d_pair_pt_map.at(patch.getPointer()).at(pt);
-            os << "  Looking at point:\n" << pt << "\n";
-            os << "  Has points: \n";
-            for (const auto& pt_from_vec : pt_vec) os << pt_from_vec << "\n";
+            os << "   On point " << pt << "\n";
+            const std::vector<FDPoint>& fd_pts = d_pair_pt_map.at(patch.getPointer()).at(pt);
+            const std::vector<double>& wgts = d_pt_weight_map.at(patch.getPointer()).at(pt);
+            for (size_t i = 0; i < fd_pts.size(); ++i)
+            {
+                os << "     FD point: " << fd_pts[i] << "\n";
+                os << "     weight:   " << wgts[i] << "\n";
+            }
         }
         os << "\n";
     }

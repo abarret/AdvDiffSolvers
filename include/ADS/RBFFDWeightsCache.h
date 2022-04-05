@@ -8,6 +8,7 @@
 #include <ibtk/config.h>
 
 #include "ADS/FEMeshPartitioner.h"
+#include <ADS/FDPoint.h>
 #include <ADS/FDWeightsCache.h>
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
@@ -67,10 +68,10 @@ public:
         d_ls_idx = ls_idx;
     }
 
-    void registerPolyFcn(
-        std::function<IBTK::MatrixXd(const std::vector<IBTK::VectorNd>&, int, double, const IBTK::VectorNd&)> poly_fcn,
-        std::function<double(double)> rbf_fcn,
-        std::function<double(double)> Lrbf_fcn)
+    void
+    registerPolyFcn(std::function<IBTK::MatrixXd(const std::vector<FDPoint>&, int, double, const FDPoint&)> poly_fcn,
+                    std::function<double(double)> rbf_fcn,
+                    std::function<double(double)> Lrbf_fcn)
     {
         d_poly_fcn = poly_fcn;
         d_rbf_fcn = rbf_fcn;
@@ -136,7 +137,7 @@ private:
     std::shared_ptr<FEMeshPartitioner> d_fe_mesh_partitioner;
     std::map<SAMRAI::hier::Patch<NDIM>*, std::vector<libMesh::Node*>> d_idx_node_vec;
 
-    std::function<IBTK::MatrixXd(const std::vector<IBTK::VectorNd>&, int, double, const IBTK::VectorNd&)> d_poly_fcn;
+    std::function<IBTK::MatrixXd(const std::vector<FDPoint>&, int, double, const FDPoint&)> d_poly_fcn;
     std::function<double(double)> d_rbf_fcn, d_Lrbf_fcn;
 
     bool d_weights_found = false;
