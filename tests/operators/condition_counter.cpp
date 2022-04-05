@@ -265,7 +265,7 @@ main(int argc, char* argv[])
                                   app_initializer->getComponentDatabase("RBFWeights"));
         weights_op->setNumGhostCells(3);
         auto poly_fcn =
-            [](const std::vector<VectorNd>& pt_vec, int poly_degree, double ds, const VectorNd& shft) -> MatrixXd {
+            [](const std::vector<FDPoint>& pt_vec, int poly_degree, double ds, const FDPoint& shft) -> MatrixXd {
             return PolynomialBasis::laplacianMonomials(pt_vec, poly_degree, ds, shft);
         };
         auto rbf_fcn = [](const double r) -> double { return r * r * r * r * r; };
