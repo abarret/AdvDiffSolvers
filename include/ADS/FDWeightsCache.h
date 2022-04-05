@@ -37,11 +37,8 @@ namespace ADS
  * \brief Class FDWeightsCache is a class that caches finite difference weights for general operators. This class
  * requires that finite difference weights be registered. No calculations are done by this class.
  *
- * Points are stored on a patch by patch basis. If you need that points on a patch, you need a pointer to the patch
- * object.
- *
- * TODO: FD weights should not be attached to a given point. As this is written, we can not store more weights than
- * points in the overall mesh. This means we can really only generate square matrices with this cache.
+ * Points are stored on a patch by patch basis. If you need the points on a patch, you need a pointer to the patch
+ * object. Note, only one set of points and weights can be attached to a FDPoint.
  */
 class FDWeightsCache
 {
@@ -83,12 +80,16 @@ public:
 
     /*!
      * \brief Get the vector of FD weights for a given patch and point pair.
+     *
+     * \note This function returns a copy of the weights.
      */
     const std::vector<double>& getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
                                                const FDPoint& pt) const;
 
     /*!
      * \brief Get the vector of FD points for a given patch and point pair.
+     *
+     * \note This function returns a copy of the points.
      */
     const std::vector<FDPoint>& getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
                                                const FDPoint& pt) const;
@@ -102,6 +103,11 @@ public:
      * \brief Clear the cache.
      */
     virtual void clearCache();
+
+    /*!
+     * \brief Eliminate a point and it's associated weights from the cache.
+     */
+    void clearPoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDPoint& pt);
 
     /*!
      * Debugging function. Prints all the cached points and their associated FD points to the given output.
