@@ -47,7 +47,7 @@ public:
     /*!
      * \brief Constructor that makes either a libmesh or boundary point.
      */
-    FDPoint(const IBTK::VectorNd& pt, libMesh::Node* node) : Point(pt), d_node(node)
+    FDPoint(const IBTK::VectorNd& pt, const libMesh::Node* node) : Point(pt), d_node(node)
     {
         // intentionally blank
     }
@@ -55,7 +55,7 @@ public:
     /*!
      * \brief Constructor that makes a ghost point.
      */
-    FDPoint(GhostPoint* ghost_point) : Point(ghost_point->getX()), d_ghost_point(ghost_point)
+    FDPoint(const GhostPoint* ghost_point) : Point(ghost_point->getX()), d_ghost_point(ghost_point)
     {
         // intentionally blank
     }
@@ -66,6 +66,16 @@ public:
      * \note This is used for compatibility with STL containers.
      */
     FDPoint() : Point(), d_empty(true)
+    {
+        // intentionally blank
+    }
+
+    /*!
+     * \brief Constructor that is based on base type.
+     *
+     * \note This should only be used for inherited operators
+     */
+    FDPoint(const Point& pt) : Point(pt), d_empty(true)
     {
         // intentionally blank
     }
@@ -227,8 +237,8 @@ public:
     }
 
 private:
-    libMesh::Node* d_node = nullptr;
-    GhostPoint* d_ghost_point = nullptr;
+    const libMesh::Node* d_node = nullptr;
+    const GhostPoint* d_ghost_point = nullptr;
     SAMRAI::pdat::CellIndex<NDIM> d_idx;
     std::array<int, NDIM - 1> d_max_idx;
     bool d_empty = false;

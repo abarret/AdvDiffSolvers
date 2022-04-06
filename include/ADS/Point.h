@@ -131,7 +131,7 @@ public:
     /*!
      * \brief Minus operator with another Point.
      */
-    virtual Point operator-(const Point& pt)
+    virtual Point operator-(const Point& pt) const
     {
         return Point(d_pt - pt.d_pt);
     }
@@ -139,7 +139,7 @@ public:
     /*!
      * \brief Plus operator with another Point.
      */
-    virtual Point operator+(const Point& pt)
+    virtual Point operator+(const Point& pt) const
     {
         return Point(d_pt + pt.d_pt);
     }
@@ -150,6 +150,14 @@ public:
     virtual double dot(const Point& pt) const
     {
         return d_pt.dot(pt.d_pt);
+    }
+
+    /*!
+     * \brief Dot product between point and Vector.
+     */
+    virtual double dot(const IBTK::VectorNd& pt) const
+    {
+        return d_pt.dot(pt);
     }
 
     /*!
