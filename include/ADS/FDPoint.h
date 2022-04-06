@@ -8,6 +8,7 @@
 #include <ibtk/config.h>
 
 #include <ADS/GhostPoints.h>
+#include <ADS/Point.h>
 
 #include <ibtk/ibtk_utilities.h>
 
@@ -25,48 +26,28 @@
 
 namespace ADS
 {
-/*
- * Helper function to get the physical location of a patch and cell index pair.
- */
-inline IBTK::VectorNd
-getPt(const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch, const SAMRAI::pdat::CellIndex<NDIM>& idx)
-{
-    SAMRAI::tbox::Pointer<SAMRAI::geom::CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-    const double* const dx = pgeom->getDx();
-    const double* const xlow = pgeom->getXLower();
-    const SAMRAI::hier::Index<NDIM>& idx_low = patch->getBox().lower();
-    IBTK::VectorNd x;
-    for (int d = 0; d < NDIM; ++d) x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
-    return x;
-}
-
 /*!
  * The class FDPoint generalizes the notion of a degree of freedom. It is either a SAMRAI index, a libMesh Node, or a
  * boundary Node. This allows for efficient caching of points, and quick lookups of individual points.
  */
-class FDPoint
+class FDPoint : public Point
 {
 public:
     /*!
      * \brief Constructor that makes a SAMRAI point.
      */
     FDPoint(const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch, const SAMRAI::pdat::CellIndex<NDIM>& idx)
-        : d_idx(idx)
+        : Point(patch, idx), d_idx(idx)
     {
-        SAMRAI::tbox::Pointer<SAMRAI::geom::CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-        const double* const dx = pgeom->getDx();
-        const double* const xlow = pgeom->getXLower();
         const SAMRAI::hier::Index<NDIM>& idx_low = patch->getBox().lower();
         const SAMRAI::hier::Index<NDIM>& idx_up = patch->getBox().upper();
-        for (unsigned int d = 0; d < NDIM; ++d)
-            d_pt[d] = xlow[d] + dx[d] * (static_cast<double>(d_idx(d) - idx_low(d)) + 0.5);
         for (unsigned int d = 0; d < (NDIM - 1); ++d) d_max_idx[d] = idx_up[d] - idx_low[d] + 1;
     }
 
     /*!
      * \brief Constructor that makes either a libmesh or boundary point.
      */
-    FDPoint(const IBTK::VectorNd& pt, libMesh::Node* node) : d_pt(pt), d_node(node)
+    FDPoint(const IBTK::VectorNd& pt, libMesh::Node* node) : Point(pt), d_node(node)
     {
         // intentionally blank
     }
@@ -74,7 +55,7 @@ public:
     /*!
      * \brief Constructor that makes a ghost point.
      */
-    FDPoint(GhostPoint* ghost_point) : d_pt(ghost_point->getX()), d_ghost_point(ghost_point)
+    FDPoint(GhostPoint* ghost_point) : Point(ghost_point->getX()), d_ghost_point(ghost_point)
     {
         // intentionally blank
     }
@@ -84,7 +65,7 @@ public:
      *
      * \note This is used for compatibility with STL containers.
      */
-    FDPoint() : d_empty(true)
+    FDPoint() : Point(), d_empty(true)
     {
         // intentionally blank
     }
@@ -94,49 +75,9 @@ public:
      *
      * \note This is used for creation of KD-trees.
      */
-    FDPoint(const std::vector<double>& pt) : d_empty(true)
+    FDPoint(const std::vector<double>& pt) : Point(pt), d_empty(true)
     {
-        for (unsigned int d = 0; d < NDIM; ++d) d_pt[d] = pt[d];
-    }
-
-    /*!
-     * \brief Compute the distance between a point and this FDPoint.
-     */
-    double dist(const IBTK::VectorNd& x) const
-    {
-        return (d_pt - x).norm();
-    }
-
-    /*!
-     * \brief Compute the distance between another FDPoint and this FDPoint.
-     */
-    double dist(const FDPoint& pt) const
-    {
-        return (d_pt - pt.getVec()).norm();
-    }
-
-    /*!
-     * \brief Return a copy of the ith point of the FDPoint.
-     */
-    double operator()(const size_t i) const
-    {
-        return d_pt(i);
-    }
-
-    /*!
-     * \brief Return a reference of the ith point of the FDPoint.
-     */
-    double& operator()(const size_t i)
-    {
-        return d_pt(i);
-    }
-
-    /*!
-     * \brief Return a copy of the ith point of the point.
-     */
-    double operator[](const size_t i) const
-    {
-        return d_pt[i];
+        // intentionally blank
     }
 
     /*!
@@ -286,7 +227,6 @@ public:
     }
 
 private:
-    IBTK::VectorNd d_pt;
     libMesh::Node* d_node = nullptr;
     GhostPoint* d_ghost_point = nullptr;
     SAMRAI::pdat::CellIndex<NDIM> d_idx;
