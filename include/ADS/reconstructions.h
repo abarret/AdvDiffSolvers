@@ -146,7 +146,7 @@ void RBFFDReconstruct(std::vector<double>& wgts,
                       std::function<double(double)> rbf,
                       std::function<double(const Point&, const Point&, void*)> L_rbf,
                       void* rbf_ctx,
-                      std::function<IBTK::MatrixXd(std::vector<Point>, int, double, const Point&, void*)> L_polys,
+                      std::function<IBTK::VectorXd(std::vector<Point>, int, double, const Point&, void*)> L_polys,
                       void* poly_ctx);
 } // namespace Reconstruct
 

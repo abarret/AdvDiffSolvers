@@ -18,7 +18,7 @@ RBFFDReconstruct(std::vector<double>& wgts,
                  std::function<double(double)> rbf,
                  std::function<double(const Point&, const Point&, void*)> L_rbf,
                  void* rbf_ctx,
-                 std::function<IBTK::MatrixXd(std::vector<Point>, int, double, const Point&, void*)> L_polys,
+                 std::function<IBTK::VectorXd(std::vector<Point>, int, double, const Point&, void*)> L_polys,
                  void* poly_ctx)
 {
     const int stencil_size = fd_pts.size();
@@ -39,7 +39,7 @@ RBFFDReconstruct(std::vector<double>& wgts,
     }
     std::vector<Point> base_pt_vec = { base_pt };
     IBTK::VectorXd Ulow = L_polys(base_pt_vec, poly_degree, dx[0], base_pt, poly_ctx);
-    U.block(stencil_size, 0, Ulow.cols(), 1) = Ulow.transpose();
+    U.block(stencil_size, 0, Ulow.rows(), 1) = Ulow;
     IBTK::MatrixXd final_mat(IBTK::MatrixXd::Zero(stencil_size + poly_size, stencil_size + poly_size));
     final_mat.block(0, 0, stencil_size, stencil_size) = A;
     final_mat.block(0, stencil_size, stencil_size, poly_size) = B;

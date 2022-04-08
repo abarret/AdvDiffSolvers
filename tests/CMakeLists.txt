@@ -18,7 +18,7 @@ ADD_CUSTOM_TARGET(tests)
 #    only compiles the IBFE tests.
 # 2. all input and output files in these source directories are symlinked into
 #    their corresponding build directories.
-SET(TEST_DIRECTORIES examples operators find_vol)
+SET(TEST_DIRECTORIES examples operators find_vol reconstructions)
 
 FOREACH(_dir ${TEST_DIRECTORIES})
   ADD_CUSTOM_TARGET("tests-${_dir}")
@@ -92,6 +92,7 @@ SETUP_2D(examples radial.cpp)
 
 SETUP_2D(find_vol find_vol.cpp)
 
+SETUP_2D(operators apply_rbf_matrix.cpp)
 SETUP_2D(operators copy_to_petsc.cpp)
 SETUP_2D(operators condition_counter.cpp)
 SETUP_2D(operators global_indexing.cpp)
@@ -101,6 +102,10 @@ SETUP_2D(operators reconstructions.cpp)
 
 SETUP_3D(operators global_indexing.cpp)
 SETUP_3D(operators rbf_fd_weights.cpp)
+
+SETUP_2D(reconstructions fd_weights.cpp)
+
+SETUP_3D(reconstructions fd_weights.cpp)
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
