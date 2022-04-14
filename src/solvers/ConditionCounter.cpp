@@ -46,6 +46,7 @@ ConditionCounter::addCondition(Pointer<PatchHierarchy<NDIM>> hierarchy, const FD
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            if (!fd_cache.patchHasPts(patch)) continue;
 
             const std::set<FDPoint>& fd_pts = fd_cache.getRBFFDBasePoints(patch);
             for (const auto& fd_pt : fd_pts)

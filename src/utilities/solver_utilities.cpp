@@ -130,4 +130,43 @@ copyDataFromPetsc(Vec& petsc_vec,
     ierr = VecRestoreArrayRead(petsc_vec, &x_petsc_data);
     IBTK_CHKERRQ(ierr);
 }
+
+void
+copyDataFromPetsc(Vec& petsc_vec,
+                  const SAMRAIVectorReal<NDIM, double>& x_eul_vec,
+                  Pointer<PatchHierarchy<NDIM>> hierarchy,
+                  System& x_lag_sys,
+                  const ConditionCounter& cc)
+{
+    TBOX_ASSERT(x_eul_vec.getNumberOfComponents() == 1);
+    // We are assuming the PETSc Vec has been allocated correctly.
+    int ierr;
+    const double* x_petsc_data;
+    ierr = VecGetArrayRead(petsc_vec, &x_petsc_data);
+    IBTK_CHKERRQ(ierr);
+    NumericVector<double>* x_lag_vec = x_lag_sys.solution.get();
+
+    Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(hierarchy->getFinestLevelNumber());
+    const std::map<Patch<NDIM>*, std::map<FDPoint, unsigned int>>& fd_cond_patch_map = cc.getFDConditionMap();
+    for (const auto& fd_cond_map_patch_pair : fd_cond_patch_map)
+    {
+        const Patch<NDIM>* patch = fd_cond_map_patch_pair.first;
+        Pointer<CellData<NDIM, double>> x_data = patch->getPatchData(x_eul_vec.getComponentDescriptorIndex(0));
+
+        for (const auto& fd_cond_pair : fd_cond_map_patch_pair.second)
+        {
+            const FDPoint& pt = fd_cond_pair.first;
+            const unsigned int cond = fd_cond_pair.second;
+            if (pt.isIdx())
+                (*x_data)(pt.getIndex()) = x_petsc_data[cond];
+            else if (pt.isNode())
+                x_lag_vec->set(pt.getNode()->dof_number(x_lag_sys.number(), 0, 0), x_petsc_data[cond]);
+        }
+    }
+
+    x_lag_vec->close();
+    x_lag_sys.update();
+    ierr = VecRestoreArrayRead(petsc_vec, &x_petsc_data);
+    IBTK_CHKERRQ(ierr);
+}
 } // namespace ADS

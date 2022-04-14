@@ -62,6 +62,14 @@ public:
                             const std::vector<double>& fd_weights);
 
     /*!
+     * \brief Returns true if the cache has points associated with the patch.
+     */
+    inline bool patchHasPts(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) const
+    {
+        return d_base_pt_set.find(patch.getPointer()) != d_base_pt_set.end();
+    }
+
+    /*!
      * \brief Get the map between a point and it's list of FD weights.
      */
     const std::map<FDPoint, std::vector<double>>&

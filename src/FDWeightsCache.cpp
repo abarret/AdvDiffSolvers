@@ -153,6 +153,7 @@ FDWeightsCache::printPtMap(std::ostream& os, Pointer<PatchHierarchy<NDIM>> hiera
                 os << "     FD point: " << fd_pts[i] << "\n";
                 os << "     weight:   " << wgts[i] << "\n";
             }
+            os << "\n";
         }
         os << "\n";
     }

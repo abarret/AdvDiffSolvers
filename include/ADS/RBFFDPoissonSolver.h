@@ -224,6 +224,36 @@ public:
         return d_petsc_x;
     }
 
+    inline const std::shared_ptr<GhostPoints>& getGhostPoints() const
+    {
+        return d_ghost_pts;
+    }
+
+    inline const std::shared_ptr<GlobalIndexing>& getGlobalIndexing() const
+    {
+        return d_index_ptr;
+    }
+
+    inline const std::unique_ptr<ConditionCounter>& getBulkConditionMap() const
+    {
+        return d_cc_bulk;
+    }
+
+    inline const std::unique_ptr<ConditionCounter>& getBdryConditionMap() const
+    {
+        return d_cc_bdry;
+    }
+
+    inline const std::unique_ptr<FDWeightsCache>& getBulkWeights() const
+    {
+        return d_bulk_weights;
+    }
+
+    inline const std::unique_ptr<FDWeightsCache>& getBdryWeights() const
+    {
+        return d_bdry_weights;
+    }
+
     void writeMatToFile(const std::string& filename);
 
 private:
@@ -299,13 +329,12 @@ private:
     // Functions for RBF-FD
     std::function<double(double)> d_rbf;
     std::function<double(const FDPoint&, const FDPoint&, void*)> d_lap_rbf, d_bdry_rbf;
-    std::function<IBTK::MatrixXd(const std::vector<FDPoint>&, int, double, const FDPoint&, void*)> d_lap_polys,
+    std::function<IBTK::VectorXd(const std::vector<FDPoint>&, int, double, const FDPoint&, void*)> d_lap_polys,
         d_bdry_polys;
 
-    double d_dist_to_bdry = std::numeric_limits<double>::quiet_NaN();
-    double d_eps = std::numeric_limits<double>::quiet_NaN();
     int d_stencil_size = -1;
     int d_poly_degree = -1;
+    double d_eps = std::numeric_limits<double>::quiet_NaN();
 
     double d_A = std::numeric_limits<double>::quiet_NaN(), d_B = std::numeric_limits<double>::quiet_NaN();
     double d_C = std::numeric_limits<double>::quiet_NaN(), d_D = std::numeric_limits<double>::quiet_NaN();

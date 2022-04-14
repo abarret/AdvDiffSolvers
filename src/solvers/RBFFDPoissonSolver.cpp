@@ -109,9 +109,11 @@ RBFFDPoissonSolver::RBFFDPoissonSolver(std::string object_name,
     };
 
     d_lap_polys = [&C,
-                   &D](const std::vector<FDPoint>& vec, int degree, double ds, const FDPoint& shft, void*) -> MatrixXd {
-        return C * PolynomialBasis::formMonomials(vec, degree, ds, shft) +
-               D * PolynomialBasis::laplacianMonomials(vec, degree, ds, shft);
+                   &D](const std::vector<FDPoint>& vec, int degree, double ds, const FDPoint& shft, void*) -> VectorXd {
+        VectorXd ret = (C * PolynomialBasis::formMonomials(vec, degree, ds, shft) +
+                        D * PolynomialBasis::laplacianMonomials(vec, degree, ds, shft))
+                           .transpose();
+        return ret;
     };
 
     d_bdry_rbf = [&A, &B](const FDPoint& x, const FDPoint& x0, void* ctx) -> double {
@@ -328,6 +330,7 @@ RBFFDPoissonSolver::initializeSolverState(const SAMRAIVectorReal<NDIM, double>& 
     IBTK_CHKERRQ(ierr);
 
     // Setup DOF indexing
+    d_ghost_pts->findNormals();
     d_ghost_pts->updateGhostNodeLocations(0.0);
     d_index_ptr->setupDOFs();
     // Get RBF-FD weights
@@ -402,10 +405,20 @@ RBFFDPoissonSolver::commonConstructor(Pointer<Database> input_db)
         if (input_db->keyExists("initial_guess_nonzero"))
             d_initial_guess_nonzero = input_db->getBool("initial_guess_nonzero");
         if (input_db->keyExists("enable_logging")) d_enable_logging = input_db->getBool("enable_logging");
-
-        d_dist_to_bdry = input_db->getDouble("dist_to_bdry");
+        d_poly_degree = input_db->getInteger("poly_degree");
+        d_stencil_size = input_db->getInteger("stencil_size");
         d_eps = input_db->getDouble("eps");
     }
+
+    d_ghost_pts =
+        std::make_shared<GhostPoints>(d_object_name + "::GhostPoints", input_db, d_hierarchy, d_fe_mesh_partitioner);
+    d_index_ptr = std::make_shared<GlobalIndexing>(d_object_name + "::GlobalIndexing",
+                                                   d_hierarchy,
+                                                   d_fe_mesh_partitioner,
+                                                   d_sys_x_name,
+                                                   d_ghost_pts,
+                                                   d_poly_degree);
+
     // Setup Timers.
     IBTK_DO_ONCE(t_solve_system = TimerManager::getManager()->getTimer("ADS::RBFPoissonSolver::solveSystem()");
                  t_initialize_solver_state =
@@ -421,7 +434,7 @@ RBFFDPoissonSolver::setupMatrixAndVec()
     // At this point we have the vectors and DOFs labeled. We need to create the matrix and vectors.
     // Determine the non-zero structure of the matrix.
     const std::vector<int>& dofs_per_proc = d_index_ptr->getDofsPerProc();
-    const std::vector<unsigned int>& bulk_eqs_per_proc = d_cc_bdry->getNumConditionsPerProc();
+    const std::vector<unsigned int>& bulk_eqs_per_proc = d_cc_bulk->getNumConditionsPerProc();
     const std::vector<unsigned int>& bdry_eqs_per_proc = d_cc_bdry->getNumConditionsPerProc();
     const int mpi_rank = IBTK_MPI::getRank();
 
@@ -460,9 +473,9 @@ RBFFDPoissonSolver::setupMatrixAndVec()
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
             // We should already have cached the FD weights
             // Start with bulk pts
-            const std::set<FDPoint>& bulk_pts = d_bulk_weights->getRBFFDBasePoints(patch);
-            if (!bulk_pts.empty())
+            if (d_bulk_weights->patchHasPts(patch))
             {
+                const std::set<FDPoint>& bulk_pts = d_bulk_weights->getRBFFDBasePoints(patch);
                 const std::map<FDPoint, std::vector<FDPoint>>& rbf_pts = d_bulk_weights->getRBFFDPoints(patch);
                 const std::map<FDPoint, unsigned int>& eq_nums = d_cc_bulk->getFDConditionMapPatch(patch.getPointer());
 
@@ -490,13 +503,13 @@ RBFFDPoissonSolver::setupMatrixAndVec()
             }
 
             // Now bdry pts
-            const std::set<FDPoint>& bdry_pts = d_bdry_weights->getRBFFDBasePoints(patch);
-            if (!bdry_pts.empty())
+            if (d_bdry_weights->patchHasPts(patch))
             {
+                const std::set<FDPoint>& bdry_pts = d_bdry_weights->getRBFFDBasePoints(patch);
                 const std::map<FDPoint, std::vector<FDPoint>>& rbf_pts = d_bdry_weights->getRBFFDPoints(patch);
                 const std::map<FDPoint, unsigned int>& eq_nums = d_cc_bdry->getFDConditionMapPatch(patch.getPointer());
 
-                for (const auto& base_pt : bulk_pts)
+                for (const auto& base_pt : bdry_pts)
                 {
                     const int dof_index = getDofIndex(base_pt, patch, dof_map, *d_index_ptr);
                     // Ensure that it is local
@@ -543,9 +556,9 @@ RBFFDPoissonSolver::setupMatrixAndVec()
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
             // The points should be cached.
             // Start with bulk equations
-            const std::set<FDPoint>& bulk_pts = d_bulk_weights->getRBFFDBasePoints(patch);
-            if (!bulk_pts.empty())
+            if (d_bulk_weights->patchHasPts(patch))
             {
+                const std::set<FDPoint>& bulk_pts = d_bulk_weights->getRBFFDBasePoints(patch);
                 const std::map<FDPoint, std::vector<FDPoint>>& rbf_pts = d_bulk_weights->getRBFFDPoints(patch);
                 const std::map<FDPoint, std::vector<double>>& rbf_weights = d_bulk_weights->getRBFFDWeights(patch);
                 const std::map<FDPoint, unsigned int>& eq_nums = d_cc_bulk->getFDConditionMapPatch(patch.getPointer());
@@ -581,9 +594,9 @@ RBFFDPoissonSolver::setupMatrixAndVec()
             }
 
             // Now bdry equations
-            const std::set<FDPoint>& bdry_pts = d_bdry_weights->getRBFFDBasePoints(patch);
-            if (!bdry_pts.empty())
+            if (d_bdry_weights->patchHasPts(patch))
             {
+                const std::set<FDPoint>& bdry_pts = d_bdry_weights->getRBFFDBasePoints(patch);
                 const std::map<FDPoint, std::vector<FDPoint>>& rbf_pts = d_bdry_weights->getRBFFDPoints(patch);
                 const std::map<FDPoint, std::vector<double>>& rbf_weights = d_bdry_weights->getRBFFDWeights(patch);
                 const std::map<FDPoint, unsigned int>& eq_nums = d_cc_bdry->getFDConditionMapPatch(patch.getPointer());
@@ -634,11 +647,13 @@ RBFFDPoissonSolver::findFDWeights()
     EquationSystems* eq_sys = d_fe_mesh_partitioner->getEquationSystems();
     const MeshBase& mesh = eq_sys->get_mesh();
     const System& sys = eq_sys->get_system(d_fe_mesh_partitioner->COORDINATES_SYSTEM_NAME);
-    const System& n_sys = eq_sys->get_system(d_sys_n_name);
+    const System& n_sys = eq_sys->get_system(d_ghost_pts->getNormalSysName());
     const DofMap& dof_map = sys.get_dof_map();
     const DofMap& n_dof_map = n_sys.get_dof_map();
     NumericVector<double>* X_vec = d_fe_mesh_partitioner->buildGhostedCoordsVector(true);
-    NumericVector<double>* N_vec = d_fe_mesh_partitioner->buildGhostedSolutionVector(d_sys_n_name, true);
+    NumericVector<double>* N_vec =
+        d_fe_mesh_partitioner->buildGhostedSolutionVector(d_ghost_pts->getNormalSysName(), true);
+    int ghost_idx = 0;
 
     // Loop through all the points and find FD weights
     // We do this on a patch by patch basis
@@ -651,10 +666,11 @@ RBFFDPoissonSolver::findFDWeights()
         {
             std::vector<FDPoint> global_fd_points;
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_ls_idx);
             for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
-                global_fd_points.push_back(FDPoint(patch, idx));
+                if (node_to_cell(idx, *ls_data) < -d_eps) global_fd_points.push_back(FDPoint(patch, idx));
             }
 
             if (ln == d_hierarchy->getFinestLevelNumber())
@@ -688,63 +704,79 @@ RBFFDPoissonSolver::findFDWeights()
             {
                 const CellIndex<NDIM>& idx = ci();
                 FDPoint base_pt(patch, idx);
-                std::vector<int> idx_vec;
-                std::vector<double> distance_vec;
                 std::vector<FDPoint> fd_pts;
-
-                tree.knnSearch(base_pt, d_stencil_size, idx_vec, distance_vec);
-                for (const auto& idx : idx_vec) fd_pts.push_back(global_fd_points[idx]);
-
-                // Now compute finite difference weights with these points.
                 std::vector<double> wgts;
-                Reconstruct::RBFFDReconstruct<FDPoint>(
-                    wgts, base_pt, fd_pts, d_poly_degree, dx, d_rbf, d_lap_rbf, nullptr, d_lap_polys, nullptr);
+
+                if (node_to_cell(idx, *ls_data) < -d_eps)
+                {
+                    std::vector<int> idx_vec;
+                    std::vector<double> distance_vec;
+                    tree.knnSearch(base_pt, d_stencil_size, idx_vec, distance_vec);
+                    for (const auto& idx : idx_vec) fd_pts.push_back(global_fd_points[idx]);
+                    // Now compute finite difference weights with these points.
+                    Reconstruct::RBFFDReconstruct<FDPoint>(
+                        wgts, base_pt, fd_pts, d_poly_degree, dx, d_rbf, d_lap_rbf, nullptr, d_lap_polys, nullptr);
+                }
+                else
+                {
+                    fd_pts = { base_pt };
+                    wgts = { 1.0 };
+                }
+
+                // Now cache the wgts
                 d_bulk_weights->cachePoint(patch, base_pt, fd_pts, wgts);
             }
 
             // Now loop over the boundary, if it exists
-            if (!pgeom->getTouchesRegularBoundary()) continue;
-            // We touch a regular boundary, now get that boundary
-            const tbox::Array<BoundaryBox<NDIM>>& bdry_boxes = pgeom->getCodimensionBoundaries(1);
-            const double* const xlow = pgeom->getXLower();
-            const hier::Index<NDIM>& idx_low = patch->getBox().lower();
-            for (int i = 0; i < bdry_boxes.size(); ++i)
+            if (pgeom->getTouchesRegularBoundary())
             {
-                const int axis = bdry_boxes[i].getLocationIndex() / 2;
-                VectorNd normal(VectorNd::Zero());
-                normal(axis) = bdry_boxes[i].getLocationIndex() % 2 == 0 ? -1.0 : 1.0;
-                for (SideIterator<NDIM> si(bdry_boxes[i].getBox(), axis); si; si++)
+                // We touch a regular boundary, now get that boundary
+                const tbox::Array<BoundaryBox<NDIM>>& bdry_boxes = pgeom->getCodimensionBoundaries(1);
+                const double* const xlow = pgeom->getXLower();
+                const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+                for (int i = 0; i < bdry_boxes.size(); ++i)
                 {
-                    const SideIndex<NDIM>& idx = si();
-                    std::vector<double> x(NDIM);
-                    for (int d = 0; d < NDIM; ++d)
-                        x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + axis == d ? 0.0 : 0.5);
-                    FDPoint pt(x);
-                    std::vector<int> idxs;
-                    std::vector<double> distances;
-                    std::vector<FDPoint> fd_pts;
-                    tree.knnSearch(pt, d_stencil_size, idxs, distances);
+                    const int axis = bdry_boxes[i].getLocationIndex() / 2;
+                    VectorNd normal(VectorNd::Zero());
+                    normal(axis) = bdry_boxes[i].getLocationIndex() % 2 == 0 ? -1.0 : 1.0;
+                    for (CellIterator<NDIM> ci(bdry_boxes[i].getBox()); ci; ci++)
+                    {
+                        const CellIndex<NDIM>& idx = ci();
+                        std::vector<double> x(NDIM);
+                        for (int d = 0; d < NDIM; ++d)
+                            x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) +
+                                                      (axis == d ? (0.5 - 0.5 * normal[axis]) : 0.5));
+                        FDPoint pt(x);
+                        std::vector<int> idxs;
+                        std::vector<double> distances;
+                        std::vector<FDPoint> fd_pts;
+                        tree.knnSearch(pt, d_stencil_size, idxs, distances);
 
-                    for (const auto& idx : idxs) fd_pts.push_back(global_fd_points[idx]);
+                        for (const auto& idx : idxs) fd_pts.push_back(global_fd_points[idx]);
 
-                    // Now compute finite difference weights with these points.
-                    std::vector<double> wgts;
-                    Reconstruct::RBFFDReconstruct<FDPoint>(wgts,
-                                                           pt,
-                                                           fd_pts,
-                                                           d_poly_degree,
-                                                           dx,
-                                                           d_rbf,
-                                                           d_lap_rbf,
-                                                           static_cast<void*>(&normal),
-                                                           d_lap_polys,
-                                                           static_cast<void*>(&normal));
-                    d_bdry_weights->cachePoint(patch, pt, fd_pts, wgts);
+                        // Now compute finite difference weights with these points.
+                        std::vector<double> wgts;
+                        Reconstruct::RBFFDReconstruct<FDPoint>(wgts,
+                                                               pt,
+                                                               fd_pts,
+                                                               d_poly_degree,
+                                                               dx,
+                                                               d_rbf,
+                                                               d_lap_rbf,
+                                                               static_cast<void*>(&normal),
+                                                               d_lap_polys,
+                                                               static_cast<void*>(&normal));
+                        // TODO: This is a potentially dangerous hack. FD weights must be associated with an FDPoint,
+                        // but we have no FDPoint's that live on the Eulerian boundary. The interior FDPoint can't be
+                        // the base pt, because then we would use the corner FDPoints multiple times. Instead, we
+                        // associate a unique, unrelated GhostPoint with the FDPoint.
+                        d_bdry_weights->cachePoint(patch, FDPoint(&eul_ghost_nodes[ghost_idx]), fd_pts, wgts);
+                        ghost_idx++;
+                    }
                 }
             }
 
             if (ln == d_hierarchy->getFinestLevelNumber())
-                ;
             {
                 // Note now we only loop over local nodes
                 auto it = mesh.local_nodes_begin();
