@@ -143,7 +143,7 @@ GhostPoints::setupGhostNodes()
             pt(d) = (*X_vec)(X_dofs[d]);
             normal(d) = (*N_vec)(N_dofs[d]);
         }
-        pt += d_ds * normal;
+        pt -= d_ds * normal;
         // Now add this point to the list of Lagrangian ghost nodes
         d_lag_ghost_nodes.push_back(GhostPoint(pt, d_local_dofs++));
     }
