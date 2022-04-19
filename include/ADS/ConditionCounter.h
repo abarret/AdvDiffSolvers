@@ -54,6 +54,14 @@ public:
     }
 
     /*!
+     * \brief Returns true if the patch has associated equations
+     */
+    bool patchHasConds(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) const
+    {
+        return d_fd_condition_map.find(patch.getPointer()) != d_fd_condition_map.end();
+    }
+
+    /*!
      * \brief Get the map between FD points and the global condition index.
      */
     const std::map<FDPoint, unsigned int>& getFDConditionMapPatch(SAMRAI::hier::Patch<NDIM>* p) const

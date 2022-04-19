@@ -1,25 +1,59 @@
-RADIUS = 1
-N = 8
+N = 16*2
 L = 4.0
+RADIUS = L / 4.0
 DX = L  / N
 MFAC = 1.0
 ELEM_TYPE = "HEX8"
 XCOM = 0.0
 YCOM = 0.0
-R = 1.0
-LS_TYPE = "LEVEL_SET"
-DT = 0.5 * 4.0 / 256
-CHECK_BACKGROUND_GRID_ONLY = TRUE
+ZCOM = 0.0
+C = 1.0
+D = 1.0
+A = 1.0
+B = 0.0
 
-RBFWeights {
- dist_to_bdry = 100000000.0
- eps = 0.5 * DX
- polynomial_degree = 3
- stencil_size = 7
+PoissonSolver {
+  a = A
+  b = B
+  c = C
+  d = D
+  eps = 0.25 * DX
+  rbffd_dist = 5.0 * DX
+  poly_degree = 3
+  stencil_size = 24
+
+  ds = DX
+  com = XCOM,YCOM,ZCOM
 }
 
 MeshMapping {
-max_level = 1
+  max_level = 1
+}
+
+Q {
+   l = L
+   function = "sin(4.0*PI*X_0/l)*sin(4.0*PI*X_1/l)*sin(4.0*PI*X_2/l)"
+}
+
+Laplacian {
+   c = C
+   d = D
+   l = L
+   r = RADIUS
+   xcom = XCOM
+   ycom = YCOM
+   zcom = ZCOM
+   eps = 0.3 * DX
+//   function = "sqrt((X_0-xcom)*(X_0-xcom) + (X_1-ycom)*(X_1-ycom) + (X_2-zcom)*(X_2-zcom)) < (r + eps) ? sin(4.0*PI*X_0/l)*sin(4.0*PI*X_1/l)*sin(4.0*PI*X_2/l) : (c - d*48.0*PI*PI/(l*l))*sin(4.0*PI*X_0/l)*sin(4.0*PI*X_1/l)*sin(4.0*PI*X_2/l)"
+   function = "(c - d*48.0*PI*PI/(l*l))*sin(4.0*PI*X_0/l)*sin(4.0*PI*X_1/l)*sin(4.0*PI*X_2/l)"
+}
+
+ls {
+   r = RADIUS
+   xcom = XCOM
+   ycom = YCOM
+   zcom = ZCOM
+   function = "r - sqrt((X_0-xcom)*(X_0-xcom) + (X_1-ycom)*(X_1-ycom) + (X_2-zcom)*(X_2-zcom))"
 }
 
 Main {
@@ -29,7 +63,7 @@ Main {
 
 // visualization dump parameters
    viz_writer = "VisIt"
-   viz_dump_dirname = "viz2d"
+   viz_dump_dirname = "viz3d"
    visit_number_procs_per_file = 1
 
 // timer dump parameters
@@ -40,7 +74,7 @@ CartesianGeometry {
    domain_boxes       = [(0,0,0), (N - 1,N - 1,N - 1)]
    x_lo               = -L/2, -L/2, -L/2      // lower end of computational domain.
    x_up               = L/2, L/2, L/2      // upper end of computational domain.
-   periodic_dimension = 1, 1, 1
+   periodic_dimension = 0, 0, 0
 }
 
 GriddingAlgorithm {
@@ -56,7 +90,7 @@ GriddingAlgorithm {
    }
 
    smallest_patch_size {
-      level_0 =   4, 4, 4          // smallest patch allowed in hierarchy
+      level_0 =   4,   4,   4          // smallest patch allowed in hierarchy
                                   // all finer levels will use same values as level_0...
    }
 
@@ -66,6 +100,10 @@ GriddingAlgorithm {
 }
 
 StandardTagAndInitialize {
+   tagging_method = "REFINE_BOXES"
+   RefineBoxes {
+      level_0 = [( N/4 , N/4 , N/4 ),( N/2 - 1 , N/2 - 1, N/2 - 1 )]
+   }
 }
 
 LoadBalancer {
@@ -76,6 +114,6 @@ LoadBalancer {
 TimerManager{
    print_exclusive = FALSE
    print_total = TRUE
-   print_threshold = 1.0
-   timer_list = "IBTK::*::*"
+   print_threshold = 0.01
+   timer_list = "IBTK::*::*","ADS::*::*"
 }

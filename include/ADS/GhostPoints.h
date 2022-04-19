@@ -89,7 +89,7 @@ public:
      * \name Get the FEMeshPartitioner.
      */
     //\{
-    virtual inline std::shared_ptr<FEMeshPartitioner>& getMeshPartitioner()
+    virtual inline const std::shared_ptr<FEMeshPartitioner>& getMeshPartitioner() const
     {
         return d_fe_mesh_partitioner;
     }
@@ -120,7 +120,7 @@ public:
     /*!
      * \brief Return the Eulerian ghost nodes.
      */
-    inline const std::vector<GhostPoint>& getEulerianGhostNodes()
+    inline const std::vector<GhostPoint>& getEulerianGhostNodes() const
     {
         return d_eul_ghost_nodes;
     };
@@ -128,7 +128,7 @@ public:
     /*!
      * \brief Return the Lagrangian ghost nodes.
      */
-    inline const std::vector<GhostPoint>& getLagrangianGhostNodes()
+    inline const std::vector<GhostPoint>& getLagrangianGhostNodes() const
     {
         return d_lag_ghost_nodes;
     };
@@ -136,7 +136,7 @@ public:
     /*!
      * \brief Return the number of local ghost nodes.
      */
-    inline size_t getLocalNumGhostNodes()
+    inline size_t getLocalNumGhostNodes() const
     {
         return d_local_dofs;
     }
@@ -144,9 +144,17 @@ public:
     /*!
      * \brief Return the global number of ghost nodes. This is just the sum of all local dofs.
      */
-    inline size_t getGlobalNumGhostNodes()
+    inline size_t getGlobalNumGhostNodes() const
     {
         return d_global_dofs;
+    }
+
+    /*!
+     * \brief Return the system name for the normals.
+     */
+    inline const std::string& getNormalSysName() const
+    {
+        return d_normal_sys_name;
     }
 
 protected:

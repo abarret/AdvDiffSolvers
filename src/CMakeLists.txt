@@ -50,8 +50,11 @@ SET(CXX_SRC
     solvers/LSCutCellLaplaceOperator.cpp
     solvers/PETScAugmentedKrylovLinearSolver.cpp
     solvers/PETScAugmentedLinearOperator.cpp
+    solvers/RBFFDPoissonSolver.cpp
     solvers/RBFLaplaceOperator.cpp
     solvers/SBBoundaryConditions.cpp
+
+    utilities/solver_utilities.cpp
     )
 
 TARGET_SOURCES(ADS2d PRIVATE ${FORTRAN_GENERATED_SRC2D} ${CXX_SRC})

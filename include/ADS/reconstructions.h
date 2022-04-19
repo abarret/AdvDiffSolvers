@@ -136,5 +136,20 @@ double bilinearReconstruction(const IBTK::VectorNd& x_loc,
                               const SAMRAI::pdat::CellIndex<NDIM>& idx_ll,
                               const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
                               const double* const dx);
+
+template <class Point>
+void
+RBFFDReconstruct(std::vector<double>& wgts,
+                 const Point& base_pt,
+                 const std::vector<Point>& fd_pts,
+                 const int poly_degree,
+                 const double* const dx,
+                 std::function<double(double)> rbf,
+                 std::function<double(const Point&, const Point&, void*)> L_rbf,
+                 void* rbf_ctx,
+                 std::function<IBTK::VectorXd(const std::vector<Point>&, int, double, const Point&, void*)> L_polys,
+                 void* poly_ctx);
 } // namespace Reconstruct
+
+#include <ADS/private/reconstructions_inc.h>
 #endif

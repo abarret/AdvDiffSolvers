@@ -1,20 +1,55 @@
-RADIUS = 1
-N = 16
+N = 32
 L = 4.0
+RADIUS = L / 4.0
 DX = L  / N
 MFAC = 1.0
 ELEM_TYPE = "TRI3"
 XCOM = 0.0
 YCOM = 0.0
-R = 1.0
+C = 1.0
+D = 1.0
+A = 1.0
+B = 0.0
 
-GhostPoints {
-   ds = DX
-   com = XCOM, YCOM
+PoissonSolver {
+  a = A
+  b = B
+  c = C
+  d = D
+  eps = 0.25 * DX
+  poly_degree = 3
+  stencil_size = 12
+  rbffd_dist = 1000000.0
+
+  ds = DX
+  com = XCOM,YCOM
 }
 
 MeshMapping {
-max_level = 1
+  max_level = 1
+}
+
+Q {
+   l = L
+   function = "sin(4.0*PI*X_0/l)*sin(4.0*PI*X_1/l)"
+}
+
+Laplacian {
+   c = C
+   d = D
+   l = L
+   r = RADIUS
+   xcom = XCOM
+   ycom = YCOM
+   eps = 0.25 * DX
+   function = "sqrt((X_0-xcom)*(X_0-xcom) + (X_1-ycom)*(X_1-ycom)) < (r + eps) ? sin(4.0*PI*X_0/l)*sin(4.0*PI*X_1/l) : (c - d * 32.0 * PI * PI / (l * l)) * sin(4.0*PI * X_0/l) * sin(4.0*PI * X_1/l)"
+}
+
+ls {
+   r = RADIUS
+   xcom = XCOM
+   ycom = YCOM
+   function = "r - sqrt((X_0-xcom)*(X_0-xcom) + (X_1-ycom)*(X_1-ycom))"
 }
 
 Main {
@@ -35,7 +70,7 @@ CartesianGeometry {
    domain_boxes       = [(0,0), (N - 1,N - 1)]
    x_lo               = -L/2, -L/2      // lower end of computational domain.
    x_up               = L/2, L/2      // upper end of computational domain.
-   periodic_dimension = 1, 1
+   periodic_dimension = 0, 0
 }
 
 GriddingAlgorithm {

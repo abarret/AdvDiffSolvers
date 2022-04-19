@@ -73,7 +73,7 @@ GlobalIndexing::setupDOFs()
     lag_local_dofs = dof_map.n_local_dofs();
 
     // Ghost
-    ghost_local_dofs = d_ghost_pts->getLocalNumGhostNodes() * d_depth;
+    ghost_local_dofs = d_ghost_pts ? d_ghost_pts->getLocalNumGhostNodes() * d_depth : 0;
 
     const int mpi_size = IBTK_MPI::getNodes();
     const int mpi_rank = IBTK_MPI::getRank();
@@ -144,17 +144,21 @@ GlobalIndexing::setupDOFs()
     std::vector<int> ghost_dofs(tot_ghost_dofs, 0);
     petsc_dofs.resize(tot_ghost_dofs, 0);
     size_t ghost_counter = ghost_offset;
-    const std::vector<GhostPoint>& eul_ghost_nodes = d_ghost_pts->getEulerianGhostNodes();
-    const std::vector<GhostPoint>& lag_ghost_nodes = d_ghost_pts->getLagrangianGhostNodes();
-    for (const auto& eul_ghost_node : eul_ghost_nodes)
+
+    if (d_ghost_pts)
     {
-        ghost_dofs[ghost_counter] = eul_ghost_node.getId();
-        petsc_dofs[ghost_counter++] = counter++;
-    }
-    for (const auto& lag_ghost_node : lag_ghost_nodes)
-    {
-        ghost_dofs[ghost_counter] = lag_ghost_node.getId();
-        petsc_dofs[ghost_counter++] = counter++;
+        const std::vector<GhostPoint>& eul_ghost_nodes = d_ghost_pts->getEulerianGhostNodes();
+        const std::vector<GhostPoint>& lag_ghost_nodes = d_ghost_pts->getLagrangianGhostNodes();
+        for (const auto& eul_ghost_node : eul_ghost_nodes)
+        {
+            ghost_dofs[ghost_counter] = eul_ghost_node.getId();
+            petsc_dofs[ghost_counter++] = counter++;
+        }
+        for (const auto& lag_ghost_node : lag_ghost_nodes)
+        {
+            ghost_dofs[ghost_counter] = lag_ghost_node.getId();
+            petsc_dofs[ghost_counter++] = counter++;
+        }
     }
 
     // Communicate ghost DOF data.

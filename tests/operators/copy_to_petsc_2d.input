@@ -1,20 +1,40 @@
 RADIUS = 1
-N = 16
+N = 64
 L = 4.0
 DX = L  / N
 MFAC = 1.0
 ELEM_TYPE = "TRI3"
 XCOM = 0.0
 YCOM = 0.0
-R = 1.0
+DT = 0.5 * 4.0 / 256
 
-GhostPoints {
-   ds = DX
-   com = XCOM, YCOM
+
+PoissonSolver {
+  c = 0.0
+  d = 0.0
+  dist_to_bdry = 40000.0 * DX
+  eps = 0.25 * DX
+  polynomial_degree = 3
+  stencil_size = 8
 }
 
 MeshMapping {
-max_level = 1
+  max_level = 1
+}
+
+Q {
+   function = "sin(PI*X_0)*sin(PI*X_1)"
+}
+
+B {
+   function = "2.0 * PI * PI * sin(PI * X_0) * sin(PI * X_1)"
+}
+
+ls {
+   r = RADIUS
+   xcom = XCOM
+   ycom = YCOM
+   function = "r - sqrt((X_0-xcom)*(X_0-xcom) + (X_1-ycom)*(X_1-ycom))"
 }
 
 Main {

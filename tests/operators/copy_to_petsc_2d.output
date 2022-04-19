@@ -1,0 +1,10 @@
+Allocating data
+Setting up solution data
+Creating finite element mesh
+Extracting boundary mesh
+Filling initial condition
+Mapping indices
+Checking copied data
+There are 0 Eulerian indices wrong
+There are 0 Lagrangian indices wrong
+There are 0 total indices wrong

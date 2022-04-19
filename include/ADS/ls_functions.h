@@ -370,7 +370,7 @@ node_to_cell(const SAMRAI::pdat::CellIndex<NDIM>& idx, SAMRAI::pdat::NodeData<ND
             }
         }
     }
-    return val / 6.0;
+    return val / 8.0;
 #endif
 }
 

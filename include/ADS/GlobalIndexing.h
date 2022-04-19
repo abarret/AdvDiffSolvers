@@ -37,7 +37,7 @@ public:
                    std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner,
                    std::string sys_name,
                    std::shared_ptr<GhostPoints> ghost_pts,
-                   int gcw = 1,
+                   int gcw = 0,
                    unsigned int depth = 1);
 
     /*!
