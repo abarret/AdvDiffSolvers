@@ -55,6 +55,8 @@ namespace
 static Timer* t_solve_system;
 static Timer* t_initialize_solver_state;
 static Timer* t_deallocate_solver_state;
+static Timer* t_setup_matrix_and_vectors;
+static Timer* t_find_rbffd_weights;
 } // namespace
 
 /////////////////////////////// PUBLIC ///////////////////////////////////////
@@ -408,6 +410,7 @@ RBFFDPoissonSolver::commonConstructor(Pointer<Database> input_db)
         d_poly_degree = input_db->getInteger("poly_degree");
         d_stencil_size = input_db->getInteger("stencil_size");
         d_eps = input_db->getDouble("eps");
+        d_switch_to_rbffd_dist = input_db->getDouble("rbffd_dist");
     }
 
     d_ghost_pts =
@@ -420,17 +423,21 @@ RBFFDPoissonSolver::commonConstructor(Pointer<Database> input_db)
                                                    d_poly_degree);
 
     // Setup Timers.
-    IBTK_DO_ONCE(t_solve_system = TimerManager::getManager()->getTimer("ADS::RBFPoissonSolver::solveSystem()");
-                 t_initialize_solver_state =
-                     TimerManager::getManager()->getTimer("ADS::RBFPoissonSolver::initializeSolverState()");
-                 t_deallocate_solver_state =
-                     TimerManager::getManager()->getTimer("ADS::RBFPoissonSolver::deallocateSolverState()"););
+    IBTK_DO_ONCE(
+        t_solve_system = TimerManager::getManager()->getTimer("ADS::RBFPoissonSolver::solveSystem()");
+        t_initialize_solver_state =
+            TimerManager::getManager()->getTimer("ADS::RBFPoissonSolver::initializeSolverState()");
+        t_deallocate_solver_state =
+            TimerManager::getManager()->getTimer("ADS::RBFPoissonSolver::deallocateSolverState()");
+        t_setup_matrix_and_vectors = TimerManager::getManager()->getTimer("ADS::RBFPoissonSolver::setupMatrixAndVec()");
+        t_find_rbffd_weights = TimerManager::getManager()->getTimer("ADS::RBFPoissonSolver::findRBFFDWeights()"););
     return;
 } // common_ctor
 
 void
 RBFFDPoissonSolver::setupMatrixAndVec()
 {
+    ADS_TIMER_START(t_setup_matrix_and_vectors);
     // At this point we have the vectors and DOFs labeled. We need to create the matrix and vectors.
     // Determine the non-zero structure of the matrix.
     const std::vector<int>& dofs_per_proc = d_index_ptr->getDofsPerProc();
@@ -570,6 +577,7 @@ RBFFDPoissonSolver::setupMatrixAndVec()
                     const unsigned int eq_num = eq_nums.at(base_pt);
                     int stencil_size = pt_vec.size();
                     std::vector<int> mat_cols(stencil_size);
+
                     // Get dof index for this point.
                     const int dof_index = getDofIndex(base_pt, patch, dof_map, *d_index_ptr);
                     // Ensure that it is local
@@ -638,11 +646,13 @@ RBFFDPoissonSolver::setupMatrixAndVec()
     IBTK_CHKERRQ(ierr);
     ierr = MatAssemblyEnd(d_petsc_mat, MAT_FINAL_ASSEMBLY);
     IBTK_CHKERRQ(ierr);
+    ADS_TIMER_STOP(t_setup_matrix_and_vectors);
 }
 
 void
 RBFFDPoissonSolver::findFDWeights()
 {
+    ADS_TIMER_START(t_find_rbffd_weights);
     // Add in libmesh nodes
     EquationSystems* eq_sys = d_fe_mesh_partitioner->getEquationSystems();
     const MeshBase& mesh = eq_sys->get_mesh();
@@ -707,7 +717,22 @@ RBFFDPoissonSolver::findFDWeights()
                 std::vector<FDPoint> fd_pts;
                 std::vector<double> wgts;
 
-                if (node_to_cell(idx, *ls_data) < -d_eps)
+                if (node_to_cell(idx, *ls_data) < -d_switch_to_rbffd_dist)
+                {
+                    // For efficiency, we reduce to standard laplacian away from boundary.
+                    std::vector<int> idx_vec;
+                    std::vector<double> distance_vec;
+#if (NDIM == 2)
+                    tree.knnSearch(base_pt, 5, idx_vec, distance_vec);
+#endif
+#if (NDIM == 3)
+                    tree.knnSearch(base_pt, 7, idx_vec, distance_vec);
+#endif
+                    for (const auto& idx : idx_vec) fd_pts.push_back(global_fd_points[idx]);
+                    Reconstruct::RBFFDReconstruct<FDPoint>(
+                        wgts, base_pt, fd_pts, d_poly_degree, dx, d_rbf, d_lap_rbf, nullptr, d_lap_polys, nullptr);
+                }
+                else if (node_to_cell(idx, *ls_data) < -d_eps)
                 {
                     std::vector<int> idx_vec;
                     std::vector<double> distance_vec;
@@ -769,7 +794,9 @@ RBFFDPoissonSolver::findFDWeights()
                         // TODO: This is a potentially dangerous hack. FD weights must be associated with an FDPoint,
                         // but we have no FDPoint's that live on the Eulerian boundary. The interior FDPoint can't be
                         // the base pt, because then we would use the corner FDPoints multiple times. Instead, we
-                        // associate a unique, unrelated GhostPoint with the FDPoint.
+                        // associate a unique, possibly unrelated GhostPoint with the FD weights.
+                        //
+                        // TODO: This will break if the structure is near the computational boundary.
                         d_bdry_weights->cachePoint(patch, FDPoint(&eul_ghost_nodes[ghost_idx]), fd_pts, wgts);
                         ghost_idx++;
                     }
@@ -823,6 +850,7 @@ RBFFDPoissonSolver::findFDWeights()
             }
         }
     }
+    ADS_TIMER_STOP(t_find_rbffd_weights);
 }
 
 void

@@ -2,6 +2,7 @@
 #define ADS_reconstructions_inc
 
 #include <ADS/PolynomialBasis.h>
+#include <ADS/ls_functions.h>
 #include <ADS/reconstructions.h>
 
 #include <Eigen/Dense>
@@ -18,7 +19,7 @@ RBFFDReconstruct(std::vector<double>& wgts,
                  std::function<double(double)> rbf,
                  std::function<double(const Point&, const Point&, void*)> L_rbf,
                  void* rbf_ctx,
-                 std::function<IBTK::VectorXd(std::vector<Point>, int, double, const Point&, void*)> L_polys,
+                 std::function<IBTK::VectorXd(const std::vector<Point>&, int, double, const Point&, void*)> L_polys,
                  void* poly_ctx)
 {
     const int stencil_size = fd_pts.size();
@@ -44,8 +45,10 @@ RBFFDReconstruct(std::vector<double>& wgts,
     final_mat.block(0, 0, stencil_size, stencil_size) = A;
     final_mat.block(0, stencil_size, stencil_size, poly_size) = B;
     final_mat.block(stencil_size, 0, poly_size, stencil_size) = B.transpose();
+    final_mat.block(stencil_size, stencil_size, poly_size, poly_size).setZero();
 
     IBTK::VectorXd x = final_mat.colPivHouseholderQr().solve(U);
+
     // Now cache the stencil
     const IBTK::VectorXd& weights = x.block(0, 0, stencil_size, 1);
     wgts.resize(stencil_size);

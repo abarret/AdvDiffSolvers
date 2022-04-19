@@ -335,6 +335,7 @@ private:
     int d_stencil_size = -1;
     int d_poly_degree = -1;
     double d_eps = std::numeric_limits<double>::quiet_NaN();
+    double d_switch_to_rbffd_dist = std::numeric_limits<double>::quiet_NaN();
 
     double d_A = std::numeric_limits<double>::quiet_NaN(), d_B = std::numeric_limits<double>::quiet_NaN();
     double d_C = std::numeric_limits<double>::quiet_NaN(), d_D = std::numeric_limits<double>::quiet_NaN();

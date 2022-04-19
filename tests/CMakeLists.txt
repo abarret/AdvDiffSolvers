@@ -100,6 +100,7 @@ SETUP_2D(operators laplace.cpp)
 SETUP_2D(operators rbf_fd_weights.cpp)
 SETUP_2D(operators reconstructions.cpp)
 
+SETUP_3D(operators apply_rbf_matrix.cpp)
 SETUP_3D(operators global_indexing.cpp)
 SETUP_3D(operators rbf_fd_weights.cpp)
 

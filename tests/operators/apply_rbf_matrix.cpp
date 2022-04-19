@@ -41,22 +41,23 @@ static double c, d, L;
 static int ierr;
 
 double
-exact(const VectorNd& p)
-{
-#if (NDIM == 2)
-    return (c - 32.0 * d * M_PI * M_PI / (L * L)) * std::sin(4.0 * M_PI * p(0) / L) * std::sin(4.0 * M_PI * p(1) / L);
-#else
-    return (c - 3.0 * d * M_PI * M_PI) * std::sin(M_PI * p(0)) * std::sin(M_PI * p(1)) * std::sin(M_PI * p(2));
-#endif
-}
-
-double
 X(const VectorNd& p)
 {
 #if (NDIM == 2)
     return std::sin(4.0 * M_PI * p(0) / L) * std::sin(4.0 * M_PI * p(1) / L);
 #else
-    return std::sin(M_PI * p(0)) * std::sin(M_PI * p(1)) * std::sin(M_PI * p(2));
+    return std::sin(4.0 * M_PI * p(0) / L) * std::sin(4.0 * M_PI * p(1) / L) * std::sin(4.0 * M_PI * p(2) / L);
+#endif
+}
+
+double
+exact(const VectorNd& p)
+{
+#if (NDIM == 2)
+    return (c - 32.0 * d * M_PI * M_PI / (L * L)) * std::sin(4.0 * M_PI * p(0) / L) * std::sin(4.0 * M_PI * p(1) / L);
+#else
+    return (c - 48.0 * d * M_PI * M_PI / (L * L)) * std::sin(4.0 * M_PI * p(0) / L) * std::sin(4.0 * M_PI * p(1) / L) *
+           std::sin(4.0 * M_PI * p(2) / L);
 #endif
 }
 
@@ -99,6 +100,10 @@ fillGhostCells(Vec& x, const std::shared_ptr<GhostPoints>& ghosts, const std::sh
         ierr = VecSetValue(x, ghost_idx_map.at(ghost.getId()), X(ghost.getX()), INSERT_VALUES);
         IBTK_CHKERRQ(ierr);
     }
+    ierr = VecAssemblyBegin(x);
+    IBTK_CHKERRQ(ierr);
+    ierr = VecAssemblyEnd(x);
+    IBTK_CHKERRQ(ierr);
 }
 
 /*******************************************************************************
@@ -247,6 +252,9 @@ main(int argc, char* argv[])
         bdry_info.sync(bdry_mesh);
         bdry_mesh.prepare_for_use();
 
+        MeshTools::Modification::all_tri(bdry_mesh);
+        bdry_mesh.prepare_for_use();
+
 // Uncomment to output visualization.
 #define DRAW_OUTPUT
 #ifdef DRAW_OUTPUT
@@ -326,15 +334,30 @@ main(int argc, char* argv[])
             for (PatchLevel<NDIM>::Iterator p(level); p; p++)
             {
                 Pointer<Patch<NDIM>> patch = level->getPatch(p());
+                Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+                const double* const dx = pgeom->getDx();
+                const double* const xlow = pgeom->getXLower();
+                const hier::Index<NDIM>& idx_low = patch->getBox().lower();
                 Pointer<CellData<NDIM, double>> wgt_data = patch->getPatchData(wgt_idx);
                 Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+                Pointer<CellData<NDIM, double>> exact_data = patch->getPatchData(exact_idx);
                 for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
                     // EXCLUDE CUT CELLS
                     const double ls = node_to_cell(idx, *ls_data);
+                    VectorNd x;
+                    for (int d = 0; d < NDIM; ++d)
+                        x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
                     if (ls > -app_initializer->getComponentDatabase("PoissonSolver")->getDouble("eps"))
+                    {
                         (*wgt_data)(idx) = 0.0;
+                        (*exact_data)(idx) = X(x);
+                    }
+                    else
+                    {
+                        (*exact_data)(idx) = exact(x);
+                    }
                 }
             }
         }
@@ -379,5 +402,7 @@ main(int argc, char* argv[])
             level->deallocatePatchData(error_idx);
             level->deallocatePatchData(ls_idx);
         }
+
+        TimerManager::getManager()->print(plog);
     } // cleanup dynamically allocated objects prior to shutdown
 } // main
