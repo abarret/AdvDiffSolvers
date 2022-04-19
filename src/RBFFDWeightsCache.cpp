@@ -243,6 +243,13 @@ RBFFDWeightsCache::findRBFFDWeights()
     sortLagDOFsToCells();
     d_pt_weight_map.clear();
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(d_hierarchy->getFinestLevelNumber());
+    auto Lrbf_fcn = [this](const FDPoint& pti, const FDPoint& ptj, void*) -> double {
+        return d_Lrbf_fcn((pti - ptj).norm());
+    };
+    auto Lpoly_fcn =
+        [this](const std::vector<FDPoint>& pts, int poly_deg, double ds, const FDPoint& base_pt, void*) -> VectorXd {
+        return d_poly_fcn(pts, poly_deg, ds, base_pt).transpose();
+    };
     for (PatchLevel<NDIM>::Iterator p(level); p; p++)
     {
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
@@ -258,41 +265,8 @@ RBFFDWeightsCache::findRBFFDWeights()
         {
             const std::vector<FDPoint>& pt_vec = d_pair_pt_map.at(patch.getPointer()).at(base_pt);
             std::vector<double> wgts;
-            wgts.reserve(pt_vec.size());
-            // Note if we use a KNN search, interp_size is fixed.
-            const int interp_size = pt_vec.size();
-#if !defined(NDEBUG)
-            TBOX_ASSERT(interp_size == d_stencil_size);
-#endif
-            MatrixXd A(MatrixXd::Zero(interp_size, interp_size));
-            MatrixXd B = PolynomialBasis::formMonomials(pt_vec, d_poly_degree, dx[0], base_pt);
-            const int poly_size = B.cols();
-            VectorXd U(VectorXd::Zero(interp_size + poly_size));
-            VectorNd pt0 = base_pt.getVec();
-            for (int i = 0; i < interp_size; ++i)
-            {
-                VectorNd pti = pt_vec[i].getVec();
-                for (int j = 0; j < interp_size; ++j)
-                {
-                    VectorNd ptj = pt_vec[j].getVec();
-                    A(i, j) = d_rbf_fcn((pti - ptj).norm());
-                }
-                // Determine rhs
-                U(i) = d_Lrbf_fcn((pt0 - pti).norm());
-            }
-            // Add quadratic polynomials
-            std::vector<FDPoint> zeros = { base_pt };
-            MatrixXd Ulow = d_poly_fcn(zeros, d_poly_degree, dx[0], base_pt);
-            U.block(interp_size, 0, Ulow.cols(), 1) = Ulow.transpose();
-            MatrixXd final_mat(MatrixXd::Zero(interp_size + poly_size, interp_size + poly_size));
-            final_mat.block(0, 0, interp_size, interp_size) = A;
-            final_mat.block(0, interp_size, interp_size, poly_size) = B;
-            final_mat.block(interp_size, 0, poly_size, interp_size) = B.transpose();
-
-            VectorXd x = final_mat.colPivHouseholderQr().solve(U);
-            // Now cache FD stencil
-            VectorXd weights = x.block(0, 0, interp_size, 1);
-            for (int i = 0; i < interp_size; ++i) wgts.push_back(weights(i));
+            Reconstruct::RBFFDReconstruct<FDPoint>(
+                wgts, base_pt, pt_vec, d_poly_degree, dx, d_rbf_fcn, Lrbf_fcn, nullptr, Lpoly_fcn, nullptr);
             d_pt_weight_map[patch.getPointer()][base_pt] = std::move(wgts);
         }
     }

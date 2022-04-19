@@ -10,11 +10,11 @@ Applying matrix
 Copying data from petsc representation
 Checking errors
 Norms of error: 
-  L1-norm:  10.2936
-  L2-norm:  3.51398
-  max-norm: 1.92683
+  L1-norm:  19.9775
+  L2-norm:  5.87169
+  max-norm: 6.56299
 Structure errors:
-  L1-norm:  2.79263
-  L2-norm:  1.48994
-  max-norm: 1.07379
-2.792629272 1.489939867 1.073794785
+  L1-norm:  15.4662
+  L2-norm:  5.64195
+  max-norm: 4.14969
+15.46617579 5.641949618 4.14969437

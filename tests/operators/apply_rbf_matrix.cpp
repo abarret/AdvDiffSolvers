@@ -289,7 +289,6 @@ main(int argc, char* argv[])
                                   "b",
                                   "solver_",
                                   PETSC_COMM_WORLD);
-        input_db->printClassData(plog);
         mesh_mapping->initializeEquationSystems();
         fe_mesh_partitioner->setPatchHierarchy(patch_hierarchy);
         fe_mesh_partitioner->reinitElementMappings(3);
@@ -402,7 +401,5 @@ main(int argc, char* argv[])
             level->deallocatePatchData(error_idx);
             level->deallocatePatchData(ls_idx);
         }
-
-        TimerManager::getManager()->print(plog);
     } // cleanup dynamically allocated objects prior to shutdown
 } // main

@@ -13,7 +13,7 @@ CHECK_BACKGROUND_GRID_ONLY = TRUE
 
 RBFWeights {
  dist_to_bdry = 100000000.0
- eps = 2.0 * DX
+ eps = 0.5 * DX
  polynomial_degree = 3
  stencil_size = 7
 }

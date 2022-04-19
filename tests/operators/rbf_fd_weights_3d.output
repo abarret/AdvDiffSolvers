@@ -434,10 +434,10 @@ On point:    location: -0.75 -0.75 -1.75
    idx:     (2,2,0)
 pt[0]:    location: -0.75 -0.75 -1.75
    idx:     (2,2,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.75 -0.75 -2.25
    idx:     (2,2,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -0.75 -1.25 -1.75
    idx:     (2,1,0)
 With weight: 4
@@ -450,18 +450,18 @@ With weight: 4
 pt[5]:    location: -0.75 -0.25 -1.75
    idx:     (2,3,0)
 With weight: 4
-pt[6]:    location: -0.75 -1.25 -2.25
-   idx:     (2,1,-1)
-With weight: -5.7285e-16
+pt[6]:    location: -0.75 -0.75 -1.25
+   idx:     (2,2,1)
+With weight: 4
 
 On point:    location: -0.25 -0.75 -1.75
    idx:     (3,2,0)
 pt[0]:    location: -0.25 -0.75 -1.75
    idx:     (3,2,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.25 -0.75 -2.25
    idx:     (3,2,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -0.25 -1.25 -1.75
    idx:     (3,1,0)
 With weight: 4
@@ -474,18 +474,18 @@ With weight: 4
 pt[5]:    location: -0.25 -0.25 -1.75
    idx:     (3,3,0)
 With weight: 4
-pt[6]:    location: -0.25 -1.25 -2.25
-   idx:     (3,1,-1)
-With weight: -5.7285e-16
+pt[6]:    location: -0.25 -0.75 -1.25
+   idx:     (3,2,1)
+With weight: 4
 
 On point:    location:  0.25 -0.75 -1.75
    idx:     (4,2,0)
 pt[0]:    location:  0.25 -0.75 -1.75
    idx:     (4,2,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.25 -0.75 -2.25
    idx:     (4,2,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location:  0.25 -1.25 -1.75
    idx:     (4,1,0)
 With weight: 4
@@ -498,18 +498,18 @@ With weight: 4
 pt[5]:    location:  0.25 -0.25 -1.75
    idx:     (4,3,0)
 With weight: 4
-pt[6]:    location:  0.25 -1.25 -2.25
-   idx:     (4,1,-1)
-With weight: -5.7285e-16
+pt[6]:    location:  0.25 -0.75 -1.25
+   idx:     (4,2,1)
+With weight: 4
 
 On point:    location:  0.75 -0.75 -1.75
    idx:     (5,2,0)
 pt[0]:    location:  0.75 -0.75 -1.75
    idx:     (5,2,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.75 -0.75 -2.25
    idx:     (5,2,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location:  0.75 -1.25 -1.75
    idx:     (5,1,0)
 With weight: 4
@@ -522,9 +522,9 @@ With weight: 4
 pt[5]:    location:  0.75 -0.25 -1.75
    idx:     (5,3,0)
 With weight: 4
-pt[6]:    location:  0.75 -1.25 -2.25
-   idx:     (5,1,-1)
-With weight: -5.7285e-16
+pt[6]:    location:  0.75 -0.75 -1.25
+   idx:     (5,2,1)
+With weight: 4
 
 On point:    location:  1.25 -0.75 -1.75
    idx:     (6,2,0)
@@ -626,10 +626,10 @@ On point:    location: -0.75 -0.25 -1.75
    idx:     (2,3,0)
 pt[0]:    location: -0.75 -0.25 -1.75
    idx:     (2,3,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.75 -0.25 -2.25
    idx:     (2,3,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -0.75 -0.75 -1.75
    idx:     (2,2,0)
 With weight: 4
@@ -642,18 +642,18 @@ With weight: 4
 pt[5]:    location: -0.75  0.25 -1.75
    idx:     (2,4,0)
 With weight: 4
-pt[6]:    location: -0.75 -0.75 -2.25
-   idx:     (2,2,-1)
-With weight: -5.7285e-16
+pt[6]:    location: -0.75 -0.25 -1.25
+   idx:     (2,3,1)
+With weight: 4
 
 On point:    location: -0.25 -0.25 -1.75
    idx:     (3,3,0)
 pt[0]:    location: -0.25 -0.25 -1.75
    idx:     (3,3,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.25 -0.25 -2.25
    idx:     (3,3,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -0.25 -0.75 -1.75
    idx:     (3,2,0)
 With weight: 4
@@ -666,18 +666,18 @@ With weight: 4
 pt[5]:    location: -0.25  0.25 -1.75
    idx:     (3,4,0)
 With weight: 4
-pt[6]:    location: -0.25 -0.75 -2.25
-   idx:     (3,2,-1)
-With weight: -5.7285e-16
+pt[6]:    location: -0.25 -0.25 -1.25
+   idx:     (3,3,1)
+With weight: 4
 
 On point:    location:  0.25 -0.25 -1.75
    idx:     (4,3,0)
 pt[0]:    location:  0.25 -0.25 -1.75
    idx:     (4,3,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.25 -0.25 -2.25
    idx:     (4,3,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location:  0.25 -0.75 -1.75
    idx:     (4,2,0)
 With weight: 4
@@ -690,18 +690,18 @@ With weight: 4
 pt[5]:    location:  0.25  0.25 -1.75
    idx:     (4,4,0)
 With weight: 4
-pt[6]:    location:  0.25 -0.75 -2.25
-   idx:     (4,2,-1)
-With weight: -5.7285e-16
+pt[6]:    location:  0.25 -0.25 -1.25
+   idx:     (4,3,1)
+With weight: 4
 
 On point:    location:  0.75 -0.25 -1.75
    idx:     (5,3,0)
 pt[0]:    location:  0.75 -0.25 -1.75
    idx:     (5,3,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.75 -0.25 -2.25
    idx:     (5,3,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location:  0.75 -0.75 -1.75
    idx:     (5,2,0)
 With weight: 4
@@ -714,9 +714,9 @@ With weight: 4
 pt[5]:    location:  0.75  0.25 -1.75
    idx:     (5,4,0)
 With weight: 4
-pt[6]:    location:  0.75 -0.75 -2.25
-   idx:     (5,2,-1)
-With weight: -5.7285e-16
+pt[6]:    location:  0.75 -0.25 -1.25
+   idx:     (5,3,1)
+With weight: 4
 
 On point:    location:  1.25 -0.25 -1.75
    idx:     (6,3,0)
@@ -818,10 +818,10 @@ On point:    location: -0.75  0.25 -1.75
    idx:     (2,4,0)
 pt[0]:    location: -0.75  0.25 -1.75
    idx:     (2,4,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.75  0.25 -2.25
    idx:     (2,4,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -0.75 -0.25 -1.75
    idx:     (2,3,0)
 With weight: 4
@@ -834,18 +834,18 @@ With weight: 4
 pt[5]:    location: -0.75  0.75 -1.75
    idx:     (2,5,0)
 With weight: 4
-pt[6]:    location: -1.25  0.25 -2.25
-   idx:     (1,4,-1)
-With weight: 1.82407e-15
+pt[6]:    location: -0.75  0.25 -1.25
+   idx:     (2,4,1)
+With weight: 4
 
 On point:    location: -0.25  0.25 -1.75
    idx:     (3,4,0)
 pt[0]:    location: -0.25  0.25 -1.75
    idx:     (3,4,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.25  0.25 -2.25
    idx:     (3,4,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -0.25 -0.25 -1.75
    idx:     (3,3,0)
 With weight: 4
@@ -858,18 +858,18 @@ With weight: 4
 pt[5]:    location: -0.25  0.75 -1.75
    idx:     (3,5,0)
 With weight: 4
-pt[6]:    location: -0.75  0.25 -2.25
-   idx:     (2,4,-1)
-With weight: 1.82407e-15
+pt[6]:    location: -0.25  0.25 -1.25
+   idx:     (3,4,1)
+With weight: 4
 
 On point:    location:  0.25  0.25 -1.75
    idx:     (4,4,0)
 pt[0]:    location:  0.25  0.25 -1.75
    idx:     (4,4,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.25  0.25 -2.25
    idx:     (4,4,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location:  0.25 -0.25 -1.75
    idx:     (4,3,0)
 With weight: 4
@@ -882,18 +882,18 @@ With weight: 4
 pt[5]:    location:  0.25  0.75 -1.75
    idx:     (4,5,0)
 With weight: 4
-pt[6]:    location:  0.75  0.25 -2.25
-   idx:     (5,4,-1)
-With weight: -2.7135e-16
+pt[6]:    location:  0.25  0.25 -1.25
+   idx:     (4,4,1)
+With weight: 4
 
 On point:    location:  0.75  0.25 -1.75
    idx:     (5,4,0)
 pt[0]:    location:  0.75  0.25 -1.75
    idx:     (5,4,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.75  0.25 -2.25
    idx:     (5,4,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location:  0.75 -0.25 -1.75
    idx:     (5,3,0)
 With weight: 4
@@ -906,9 +906,9 @@ With weight: 4
 pt[5]:    location:  0.75  0.75 -1.75
    idx:     (5,5,0)
 With weight: 4
-pt[6]:    location:  0.25  0.25 -2.25
-   idx:     (4,4,-1)
-With weight: 1.82407e-15
+pt[6]:    location:  0.75  0.25 -1.25
+   idx:     (5,4,1)
+With weight: 4
 
 On point:    location:  1.25  0.25 -1.75
    idx:     (6,4,0)
@@ -1010,10 +1010,10 @@ On point:    location: -0.75  0.75 -1.75
    idx:     (2,5,0)
 pt[0]:    location: -0.75  0.75 -1.75
    idx:     (2,5,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.75  0.75 -2.25
    idx:     (2,5,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -0.75  0.25 -1.75
    idx:     (2,4,0)
 With weight: 4
@@ -1026,18 +1026,18 @@ With weight: 4
 pt[5]:    location: -0.75  1.25 -1.75
    idx:     (2,6,0)
 With weight: 4
-pt[6]:    location: -0.75  0.25 -2.25
-   idx:     (2,4,-1)
-With weight: -5.7285e-16
+pt[6]:    location: -0.75  0.75 -1.25
+   idx:     (2,5,1)
+With weight: 4
 
 On point:    location: -0.25  0.75 -1.75
    idx:     (3,5,0)
 pt[0]:    location: -0.25  0.75 -1.75
    idx:     (3,5,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.25  0.75 -2.25
    idx:     (3,5,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -0.25  0.25 -1.75
    idx:     (3,4,0)
 With weight: 4
@@ -1050,18 +1050,18 @@ With weight: 4
 pt[5]:    location: -0.25  1.25 -1.75
    idx:     (3,6,0)
 With weight: 4
-pt[6]:    location: -0.25  0.25 -2.25
-   idx:     (3,4,-1)
-With weight: -5.7285e-16
+pt[6]:    location: -0.25  0.75 -1.25
+   idx:     (3,5,1)
+With weight: 4
 
 On point:    location:  0.25  0.75 -1.75
    idx:     (4,5,0)
 pt[0]:    location:  0.25  0.75 -1.75
    idx:     (4,5,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.25  0.75 -2.25
    idx:     (4,5,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location:  0.25  0.25 -1.75
    idx:     (4,4,0)
 With weight: 4
@@ -1074,18 +1074,18 @@ With weight: 4
 pt[5]:    location:  0.25  1.25 -1.75
    idx:     (4,6,0)
 With weight: 4
-pt[6]:    location:  0.25  0.25 -2.25
-   idx:     (4,4,-1)
-With weight: -5.7285e-16
+pt[6]:    location:  0.25  0.75 -1.25
+   idx:     (4,5,1)
+With weight: 4
 
 On point:    location:  0.75  0.75 -1.75
    idx:     (5,5,0)
 pt[0]:    location:  0.75  0.75 -1.75
    idx:     (5,5,0)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.75  0.75 -2.25
    idx:     (5,5,-1)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location:  0.75  0.25 -1.75
    idx:     (5,4,0)
 With weight: 4
@@ -1098,9 +1098,9 @@ With weight: 4
 pt[5]:    location:  0.75  1.25 -1.75
    idx:     (5,6,0)
 With weight: 4
-pt[6]:    location:  0.75  0.25 -2.25
-   idx:     (5,4,-1)
-With weight: -5.7285e-16
+pt[6]:    location:  0.75  0.75 -1.25
+   idx:     (5,5,1)
+With weight: 4
 
 On point:    location:  1.25  0.75 -1.75
    idx:     (6,5,0)
@@ -1778,97 +1778,97 @@ On point:    location: -0.75 -1.25 -1.25
    idx:     (2,1,1)
 pt[0]:    location: -0.75 -1.25 -1.25
    idx:     (2,1,1)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location: -0.75 -1.25 -1.75
    idx:     (2,1,0)
-With weight: 0.784314
+With weight: 4
 pt[2]:    location: -0.75 -1.75 -1.25
    idx:     (2,0,1)
-With weight: 3.29412
+With weight: 4
 pt[3]:    location: -1.25 -1.25 -1.25
    idx:     (1,1,1)
 With weight: 4
 pt[4]:    location: -0.25 -1.25 -1.25
    idx:     (3,1,1)
 With weight: 4
-pt[5]:    location: -0.25 -1.25 -1.75
-   idx:     (3,1,0)
-With weight: -1.78054e-15
-pt[6]:    location: -0.75 -0.75 -1.75
-   idx:     (2,2,0)
-With weight: 1.88235
+pt[5]:    location: -0.75 -0.75 -1.25
+   idx:     (2,2,1)
+With weight: 4
+pt[6]:    location: -0.75 -1.25 -0.75
+   idx:     (2,1,2)
+With weight: 4
 
 On point:    location: -0.25 -1.25 -1.25
    idx:     (3,1,1)
 pt[0]:    location: -0.25 -1.25 -1.25
    idx:     (3,1,1)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location: -0.25 -1.25 -1.75
    idx:     (3,1,0)
-With weight: 0.784314
+With weight: 4
 pt[2]:    location: -0.25 -1.75 -1.25
    idx:     (3,0,1)
-With weight: 3.29412
+With weight: 4
 pt[3]:    location: -0.75 -1.25 -1.25
    idx:     (2,1,1)
 With weight: 4
 pt[4]:    location:  0.25 -1.25 -1.25
    idx:     (4,1,1)
 With weight: 4
-pt[5]:    location: -0.75 -1.25 -1.75
-   idx:     (2,1,0)
-With weight: -8.73475e-16
-pt[6]:    location: -0.25 -0.75 -1.75
-   idx:     (3,2,0)
-With weight: 1.88235
+pt[5]:    location: -0.25 -0.75 -1.25
+   idx:     (3,2,1)
+With weight: 4
+pt[6]:    location: -0.25 -1.25 -0.75
+   idx:     (3,1,2)
+With weight: 4
 
 On point:    location:  0.25 -1.25 -1.25
    idx:     (4,1,1)
 pt[0]:    location:  0.25 -1.25 -1.25
    idx:     (4,1,1)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location:  0.25 -1.25 -1.75
    idx:     (4,1,0)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location:  0.25 -1.75 -1.25
    idx:     (4,0,1)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -0.25 -1.25 -1.25
    idx:     (3,1,1)
 With weight: 4
 pt[4]:    location:  0.75 -1.25 -1.25
    idx:     (5,1,1)
 With weight: 4
-pt[5]:    location:  0.75 -1.25 -1.75
-   idx:     (5,1,0)
-With weight: 5.16489e-16
-pt[6]:    location:  0.75 -1.75 -1.25
-   idx:     (5,0,1)
-With weight: 5.20671e-16
+pt[5]:    location:  0.25 -0.75 -1.25
+   idx:     (4,2,1)
+With weight: 4
+pt[6]:    location:  0.25 -1.25 -0.75
+   idx:     (4,1,2)
+With weight: 4
 
 On point:    location:  0.75 -1.25 -1.25
    idx:     (5,1,1)
 pt[0]:    location:  0.75 -1.25 -1.25
    idx:     (5,1,1)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location:  0.75 -1.25 -1.75
    idx:     (5,1,0)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location:  0.75 -1.75 -1.25
    idx:     (5,0,1)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location:  0.25 -1.25 -1.25
    idx:     (4,1,1)
 With weight: 4
 pt[4]:    location:  1.25 -1.25 -1.25
    idx:     (6,1,1)
 With weight: 4
-pt[5]:    location:  0.25 -1.25 -1.75
-   idx:     (4,1,0)
-With weight: 5.38239e-16
-pt[6]:    location:  1.25 -1.25 -1.75
-   idx:     (6,1,0)
-With weight: 1.1751e-15
+pt[5]:    location:  0.75 -0.75 -1.25
+   idx:     (5,2,1)
+With weight: 4
+pt[6]:    location:  0.75 -1.25 -0.75
+   idx:     (5,1,2)
+With weight: 4
 
 On point:    location:  1.25 -1.25 -1.25
    idx:     (6,1,1)
@@ -1946,49 +1946,103 @@ On point:    location: -1.25 -0.75 -1.25
    idx:     (1,2,1)
 pt[0]:    location: -1.25 -0.75 -1.25
    idx:     (1,2,1)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location: -1.25 -0.75 -1.75
    idx:     (1,2,0)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -1.25 -1.25 -1.25
    idx:     (1,1,1)
 With weight: 4
 pt[3]:    location: -1.75 -0.75 -1.25
    idx:     (0,2,1)
-With weight: 2.66667
-pt[4]:    location: -1.25 -0.25 -1.25
+With weight: 4
+pt[4]:    location: -0.75 -0.75 -1.25
+   idx:     (2,2,1)
+With weight: 4
+pt[5]:    location: -1.25 -0.25 -1.25
    idx:     (1,3,1)
 With weight: 4
-pt[5]:    location: -1.25 -1.25 -1.75
-   idx:     (1,1,0)
-With weight: -4.09907e-16
-pt[6]:    location: -1.75 -0.75 -1.75
-   idx:     (0,2,0)
-With weight: 1.05205e-15
+pt[6]:    location: -1.25 -0.75 -0.75
+   idx:     (1,2,2)
+With weight: 4
+
+On point:    location: -0.75 -0.75 -1.25
+   idx:     (2,2,1)
+pt[0]:    location: -0.75 -0.75 -1.25
+   idx:     (2,2,1)
+With weight: -24
+pt[1]:    location: -0.75 -0.75 -1.75
+   idx:     (2,2,0)
+With weight: 4
+pt[2]:    location: -0.75 -1.25 -1.25
+   idx:     (2,1,1)
+With weight: 4
+pt[3]:    location: -1.25 -0.75 -1.25
+   idx:     (1,2,1)
+With weight: 4
+pt[4]:    location: -0.25 -0.75 -1.25
+   idx:     (3,2,1)
+With weight: 4
+pt[5]:    location: -0.75 -0.25 -1.25
+   idx:     (2,3,1)
+With weight: 4
+pt[6]:    location: -0.75 -0.75 -0.75
+   idx:     (2,2,2)
+With weight: 4
+
+On point:    location: -0.25 -0.75 -1.25
+   idx:     (3,2,1)
+
+On point:    location:  0.25 -0.75 -1.25
+   idx:     (4,2,1)
+
+On point:    location:  0.75 -0.75 -1.25
+   idx:     (5,2,1)
+pt[0]:    location:  0.75 -0.75 -1.25
+   idx:     (5,2,1)
+With weight: -24
+pt[1]:    location:  0.75 -0.75 -1.75
+   idx:     (5,2,0)
+With weight: 4
+pt[2]:    location:  0.75 -1.25 -1.25
+   idx:     (5,1,1)
+With weight: 4
+pt[3]:    location:  0.25 -0.75 -1.25
+   idx:     (4,2,1)
+With weight: 4
+pt[4]:    location:  1.25 -0.75 -1.25
+   idx:     (6,2,1)
+With weight: 4
+pt[5]:    location:  0.75 -0.25 -1.25
+   idx:     (5,3,1)
+With weight: 4
+pt[6]:    location:  0.75 -0.75 -0.75
+   idx:     (5,2,2)
+With weight: 4
 
 On point:    location:  1.25 -0.75 -1.25
    idx:     (6,2,1)
 pt[0]:    location:  1.25 -0.75 -1.25
    idx:     (6,2,1)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location:  1.25 -0.75 -1.75
    idx:     (6,2,0)
-With weight: 0.784314
+With weight: 4
 pt[2]:    location:  1.25 -1.25 -1.25
    idx:     (6,1,1)
 With weight: 4
-pt[3]:    location:  1.75 -0.75 -1.25
+pt[3]:    location:  0.75 -0.75 -1.25
+   idx:     (5,2,1)
+With weight: 4
+pt[4]:    location:  1.75 -0.75 -1.25
    idx:     (7,2,1)
-With weight: 3.29412
-pt[4]:    location:  1.25 -0.25 -1.25
+With weight: 4
+pt[5]:    location:  1.25 -0.25 -1.25
    idx:     (6,3,1)
 With weight: 4
-pt[5]:    location:  1.25 -1.25 -1.75
-   idx:     (6,1,0)
-With weight: 3.35952e-17
-pt[6]:    location:  0.75 -0.75 -1.75
-   idx:     (5,2,0)
-With weight: 1.88235
+pt[6]:    location:  1.25 -0.75 -0.75
+   idx:     (6,2,2)
+With weight: 4
 
 On point:    location:  1.75 -0.75 -1.25
    idx:     (7,2,1)
@@ -2042,49 +2096,61 @@ On point:    location: -1.25 -0.25 -1.25
    idx:     (1,3,1)
 pt[0]:    location: -1.25 -0.25 -1.25
    idx:     (1,3,1)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location: -1.25 -0.25 -1.75
    idx:     (1,3,0)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -1.25 -0.75 -1.25
    idx:     (1,2,1)
 With weight: 4
 pt[3]:    location: -1.75 -0.25 -1.25
    idx:     (0,3,1)
-With weight: 2.66667
-pt[4]:    location: -1.25  0.25 -1.25
+With weight: 4
+pt[4]:    location: -0.75 -0.25 -1.25
+   idx:     (2,3,1)
+With weight: 4
+pt[5]:    location: -1.25  0.25 -1.25
    idx:     (1,4,1)
 With weight: 4
-pt[5]:    location: -1.25 -0.75 -1.75
-   idx:     (1,2,0)
-With weight: -4.09907e-16
-pt[6]:    location: -1.75 -0.25 -1.75
-   idx:     (0,3,0)
-With weight: 1.05205e-15
+pt[6]:    location: -1.25 -0.25 -0.75
+   idx:     (1,3,2)
+With weight: 4
+
+On point:    location: -0.75 -0.25 -1.25
+   idx:     (2,3,1)
+
+On point:    location: -0.25 -0.25 -1.25
+   idx:     (3,3,1)
+
+On point:    location:  0.25 -0.25 -1.25
+   idx:     (4,3,1)
+
+On point:    location:  0.75 -0.25 -1.25
+   idx:     (5,3,1)
 
 On point:    location:  1.25 -0.25 -1.25
    idx:     (6,3,1)
 pt[0]:    location:  1.25 -0.25 -1.25
    idx:     (6,3,1)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location:  1.25 -0.25 -1.75
    idx:     (6,3,0)
-With weight: 0.784314
+With weight: 4
 pt[2]:    location:  1.25 -0.75 -1.25
    idx:     (6,2,1)
 With weight: 4
-pt[3]:    location:  1.75 -0.25 -1.25
+pt[3]:    location:  0.75 -0.25 -1.25
+   idx:     (5,3,1)
+With weight: 4
+pt[4]:    location:  1.75 -0.25 -1.25
    idx:     (7,3,1)
-With weight: 3.29412
-pt[4]:    location:  1.25  0.25 -1.25
+With weight: 4
+pt[5]:    location:  1.25  0.25 -1.25
    idx:     (6,4,1)
 With weight: 4
-pt[5]:    location:  1.25 -0.75 -1.75
-   idx:     (6,2,0)
-With weight: 3.35952e-17
-pt[6]:    location:  0.75 -0.25 -1.75
-   idx:     (5,3,0)
-With weight: 1.88235
+pt[6]:    location:  1.25 -0.25 -0.75
+   idx:     (6,3,2)
+With weight: 4
 
 On point:    location:  1.75 -0.25 -1.25
    idx:     (7,3,1)
@@ -2138,49 +2204,61 @@ On point:    location: -1.25  0.25 -1.25
    idx:     (1,4,1)
 pt[0]:    location: -1.25  0.25 -1.25
    idx:     (1,4,1)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location: -1.25  0.25 -1.75
    idx:     (1,4,0)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -1.25 -0.25 -1.25
    idx:     (1,3,1)
 With weight: 4
 pt[3]:    location: -1.75  0.25 -1.25
    idx:     (0,4,1)
-With weight: 2.66667
-pt[4]:    location: -1.25  0.75 -1.25
+With weight: 4
+pt[4]:    location: -0.75  0.25 -1.25
+   idx:     (2,4,1)
+With weight: 4
+pt[5]:    location: -1.25  0.75 -1.25
    idx:     (1,5,1)
 With weight: 4
-pt[5]:    location: -1.75  0.25 -1.75
-   idx:     (0,4,0)
-With weight: -1.50293e-16
-pt[6]:    location: -1.25  0.75 -1.75
-   idx:     (1,5,0)
-With weight: -7.34622e-16
+pt[6]:    location: -1.25  0.25 -0.75
+   idx:     (1,4,2)
+With weight: 4
+
+On point:    location: -0.75  0.25 -1.25
+   idx:     (2,4,1)
+
+On point:    location: -0.25  0.25 -1.25
+   idx:     (3,4,1)
+
+On point:    location:  0.25  0.25 -1.25
+   idx:     (4,4,1)
+
+On point:    location:  0.75  0.25 -1.25
+   idx:     (5,4,1)
 
 On point:    location:  1.25  0.25 -1.25
    idx:     (6,4,1)
 pt[0]:    location:  1.25  0.25 -1.25
    idx:     (6,4,1)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location:  1.25  0.25 -1.75
    idx:     (6,4,0)
-With weight: -1.30741e-15
+With weight: 4
 pt[2]:    location:  1.25 -0.25 -1.25
    idx:     (6,3,1)
 With weight: 4
-pt[3]:    location:  1.75  0.25 -1.25
+pt[3]:    location:  0.75  0.25 -1.25
+   idx:     (5,4,1)
+With weight: 4
+pt[4]:    location:  1.75  0.25 -1.25
    idx:     (7,4,1)
-With weight: 2.66667
-pt[4]:    location:  1.25  0.75 -1.25
+With weight: 4
+pt[5]:    location:  1.25  0.75 -1.25
    idx:     (6,5,1)
 With weight: 4
-pt[5]:    location:  0.75  0.25 -1.75
-   idx:     (5,4,0)
-With weight: 2
-pt[6]:    location:  1.75  0.25 -1.75
-   idx:     (7,4,0)
-With weight: 0.666667
+pt[6]:    location:  1.25  0.25 -0.75
+   idx:     (6,4,2)
+With weight: 4
 
 On point:    location:  1.75  0.25 -1.25
    idx:     (7,4,1)
@@ -2234,49 +2312,103 @@ On point:    location: -1.25  0.75 -1.25
    idx:     (1,5,1)
 pt[0]:    location: -1.25  0.75 -1.25
    idx:     (1,5,1)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location: -1.25  0.75 -1.75
    idx:     (1,5,0)
-With weight: 2.66667
+With weight: 4
 pt[2]:    location: -1.25  0.25 -1.25
    idx:     (1,4,1)
 With weight: 4
 pt[3]:    location: -1.75  0.75 -1.25
    idx:     (0,5,1)
-With weight: 2.66667
-pt[4]:    location: -1.25  1.25 -1.25
+With weight: 4
+pt[4]:    location: -0.75  0.75 -1.25
+   idx:     (2,5,1)
+With weight: 4
+pt[5]:    location: -1.25  1.25 -1.25
    idx:     (1,6,1)
 With weight: 4
-pt[5]:    location: -1.75  0.75 -1.75
-   idx:     (0,5,0)
-With weight: 1.50293e-16
-pt[6]:    location: -1.75  0.25 -1.25
-   idx:     (0,4,1)
-With weight: -1.24779e-15
+pt[6]:    location: -1.25  0.75 -0.75
+   idx:     (1,5,2)
+With weight: 4
+
+On point:    location: -0.75  0.75 -1.25
+   idx:     (2,5,1)
+pt[0]:    location: -0.75  0.75 -1.25
+   idx:     (2,5,1)
+With weight: -24
+pt[1]:    location: -0.75  0.75 -1.75
+   idx:     (2,5,0)
+With weight: 4
+pt[2]:    location: -0.75  0.25 -1.25
+   idx:     (2,4,1)
+With weight: 4
+pt[3]:    location: -1.25  0.75 -1.25
+   idx:     (1,5,1)
+With weight: 4
+pt[4]:    location: -0.25  0.75 -1.25
+   idx:     (3,5,1)
+With weight: 4
+pt[5]:    location: -0.75  1.25 -1.25
+   idx:     (2,6,1)
+With weight: 4
+pt[6]:    location: -0.75  0.75 -0.75
+   idx:     (2,5,2)
+With weight: 4
+
+On point:    location: -0.25  0.75 -1.25
+   idx:     (3,5,1)
+
+On point:    location:  0.25  0.75 -1.25
+   idx:     (4,5,1)
+
+On point:    location:  0.75  0.75 -1.25
+   idx:     (5,5,1)
+pt[0]:    location:  0.75  0.75 -1.25
+   idx:     (5,5,1)
+With weight: -24
+pt[1]:    location:  0.75  0.75 -1.75
+   idx:     (5,5,0)
+With weight: 4
+pt[2]:    location:  0.75  0.25 -1.25
+   idx:     (5,4,1)
+With weight: 4
+pt[3]:    location:  0.25  0.75 -1.25
+   idx:     (4,5,1)
+With weight: 4
+pt[4]:    location:  1.25  0.75 -1.25
+   idx:     (6,5,1)
+With weight: 4
+pt[5]:    location:  0.75  1.25 -1.25
+   idx:     (5,6,1)
+With weight: 4
+pt[6]:    location:  0.75  0.75 -0.75
+   idx:     (5,5,2)
+With weight: 4
 
 On point:    location:  1.25  0.75 -1.25
    idx:     (6,5,1)
 pt[0]:    location:  1.25  0.75 -1.25
    idx:     (6,5,1)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location:  1.25  0.75 -1.75
    idx:     (6,5,0)
-With weight: 0.784314
+With weight: 4
 pt[2]:    location:  1.25  0.25 -1.25
    idx:     (6,4,1)
 With weight: 4
-pt[3]:    location:  1.75  0.75 -1.25
+pt[3]:    location:  0.75  0.75 -1.25
+   idx:     (5,5,1)
+With weight: 4
+pt[4]:    location:  1.75  0.75 -1.25
    idx:     (7,5,1)
-With weight: 3.29412
-pt[4]:    location:  1.25  1.25 -1.25
+With weight: 4
+pt[5]:    location:  1.25  1.25 -1.25
    idx:     (6,6,1)
 With weight: 4
-pt[5]:    location:  1.25  0.25 -1.75
-   idx:     (6,4,0)
-With weight: 3.35952e-17
-pt[6]:    location:  0.75  0.75 -1.75
-   idx:     (5,5,0)
-With weight: 1.88235
+pt[6]:    location:  1.25  0.75 -0.75
+   idx:     (6,5,2)
+With weight: 4
 
 On point:    location:  1.75  0.75 -1.25
    idx:     (7,5,1)
@@ -2354,97 +2486,97 @@ On point:    location: -0.75  1.25 -1.25
    idx:     (2,6,1)
 pt[0]:    location: -0.75  1.25 -1.25
    idx:     (2,6,1)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location: -0.75  1.25 -1.75
    idx:     (2,6,0)
-With weight: 0.784314
-pt[2]:    location: -1.25  1.25 -1.25
+With weight: 4
+pt[2]:    location: -0.75  0.75 -1.25
+   idx:     (2,5,1)
+With weight: 4
+pt[3]:    location: -1.25  1.25 -1.25
    idx:     (1,6,1)
 With weight: 4
-pt[3]:    location: -0.25  1.25 -1.25
+pt[4]:    location: -0.25  1.25 -1.25
    idx:     (3,6,1)
 With weight: 4
-pt[4]:    location: -0.75  1.75 -1.25
+pt[5]:    location: -0.75  1.75 -1.25
    idx:     (2,7,1)
-With weight: 3.29412
-pt[5]:    location: -0.75  0.75 -1.75
-   idx:     (2,5,0)
-With weight: 1.88235
-pt[6]:    location: -0.25  1.25 -1.75
-   idx:     (3,6,0)
-With weight: 2.01571e-16
+With weight: 4
+pt[6]:    location: -0.75  1.25 -0.75
+   idx:     (2,6,2)
+With weight: 4
 
 On point:    location: -0.25  1.25 -1.25
    idx:     (3,6,1)
 pt[0]:    location: -0.25  1.25 -1.25
    idx:     (3,6,1)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location: -0.25  1.25 -1.75
    idx:     (3,6,0)
-With weight: 0.784314
-pt[2]:    location: -0.75  1.25 -1.25
+With weight: 4
+pt[2]:    location: -0.25  0.75 -1.25
+   idx:     (3,5,1)
+With weight: 4
+pt[3]:    location: -0.75  1.25 -1.25
    idx:     (2,6,1)
 With weight: 4
-pt[3]:    location:  0.25  1.25 -1.25
+pt[4]:    location:  0.25  1.25 -1.25
    idx:     (4,6,1)
 With weight: 4
-pt[4]:    location: -0.25  1.75 -1.25
+pt[5]:    location: -0.25  1.75 -1.25
    idx:     (3,7,1)
-With weight: 3.29412
-pt[5]:    location: -0.25  0.75 -1.75
-   idx:     (3,5,0)
-With weight: 1.88235
-pt[6]:    location: -0.75  1.25 -1.75
-   idx:     (2,6,0)
-With weight: -1.94852e-15
+With weight: 4
+pt[6]:    location: -0.25  1.25 -0.75
+   idx:     (3,6,2)
+With weight: 4
 
 On point:    location:  0.25  1.25 -1.25
    idx:     (4,6,1)
 pt[0]:    location:  0.25  1.25 -1.25
    idx:     (4,6,1)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location:  0.25  1.25 -1.75
    idx:     (4,6,0)
-With weight: 0.784314
-pt[2]:    location: -0.25  1.25 -1.25
+With weight: 4
+pt[2]:    location:  0.25  0.75 -1.25
+   idx:     (4,5,1)
+With weight: 4
+pt[3]:    location: -0.25  1.25 -1.25
    idx:     (3,6,1)
 With weight: 4
-pt[3]:    location:  0.75  1.25 -1.25
+pt[4]:    location:  0.75  1.25 -1.25
    idx:     (5,6,1)
 With weight: 4
-pt[4]:    location:  0.25  1.75 -1.25
+pt[5]:    location:  0.25  1.75 -1.25
    idx:     (4,7,1)
-With weight: 3.29412
-pt[5]:    location:  0.25  0.75 -1.75
-   idx:     (4,5,0)
-With weight: 1.88235
-pt[6]:    location:  0.75  1.25 -1.75
-   idx:     (5,6,0)
-With weight: 2.01571e-16
+With weight: 4
+pt[6]:    location:  0.25  1.25 -0.75
+   idx:     (4,6,2)
+With weight: 4
 
 On point:    location:  0.75  1.25 -1.25
    idx:     (5,6,1)
 pt[0]:    location:  0.75  1.25 -1.25
    idx:     (5,6,1)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location:  0.75  1.25 -1.75
    idx:     (5,6,0)
-With weight: 0.784314
-pt[2]:    location:  0.25  1.25 -1.25
+With weight: 4
+pt[2]:    location:  0.75  0.75 -1.25
+   idx:     (5,5,1)
+With weight: 4
+pt[3]:    location:  0.25  1.25 -1.25
    idx:     (4,6,1)
 With weight: 4
-pt[3]:    location:  1.25  1.25 -1.25
+pt[4]:    location:  1.25  1.25 -1.25
    idx:     (6,6,1)
 With weight: 4
-pt[4]:    location:  0.75  1.75 -1.25
+pt[5]:    location:  0.75  1.75 -1.25
    idx:     (5,7,1)
-With weight: 3.29412
-pt[5]:    location:  0.75  0.75 -1.75
-   idx:     (5,5,0)
-With weight: 1.88235
-pt[6]:    location:  0.25  1.25 -1.75
-   idx:     (4,6,0)
-With weight: -1.94852e-15
+With weight: 4
+pt[6]:    location:  0.75  1.25 -0.75
+   idx:     (5,6,2)
+With weight: 4
 
 On point:    location:  1.25  1.25 -1.25
    idx:     (6,6,1)
@@ -2738,97 +2870,97 @@ On point:    location: -0.75 -1.75 -0.75
    idx:     (2,0,2)
 pt[0]:    location: -0.75 -1.75 -0.75
    idx:     (2,0,2)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.75 -1.75 -1.25
    idx:     (2,0,1)
 With weight: 4
 pt[2]:    location: -0.75 -2.25 -0.75
    idx:     (2,-1,2)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -1.25 -1.75 -0.75
    idx:     (1,0,2)
 With weight: 4
 pt[4]:    location: -0.25 -1.75 -0.75
    idx:     (3,0,2)
 With weight: 4
-pt[5]:    location: -0.75 -1.75 -0.25
+pt[5]:    location: -0.75 -1.25 -0.75
+   idx:     (2,1,2)
+With weight: 4
+pt[6]:    location: -0.75 -1.75 -0.25
    idx:     (2,0,3)
 With weight: 4
-pt[6]:    location: -0.75 -2.25 -1.25
-   idx:     (2,-1,1)
-With weight: 1.05525e-15
 
 On point:    location: -0.25 -1.75 -0.75
    idx:     (3,0,2)
 pt[0]:    location: -0.25 -1.75 -0.75
    idx:     (3,0,2)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.25 -1.75 -1.25
    idx:     (3,0,1)
 With weight: 4
 pt[2]:    location: -0.25 -2.25 -0.75
    idx:     (3,-1,2)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -0.75 -1.75 -0.75
    idx:     (2,0,2)
 With weight: 4
 pt[4]:    location:  0.25 -1.75 -0.75
    idx:     (4,0,2)
 With weight: 4
-pt[5]:    location: -0.25 -1.75 -0.25
+pt[5]:    location: -0.25 -1.25 -0.75
+   idx:     (3,1,2)
+With weight: 4
+pt[6]:    location: -0.25 -1.75 -0.25
    idx:     (3,0,3)
 With weight: 4
-pt[6]:    location: -0.25 -2.25 -1.25
-   idx:     (3,-1,1)
-With weight: 1.05525e-15
 
 On point:    location:  0.25 -1.75 -0.75
    idx:     (4,0,2)
 pt[0]:    location:  0.25 -1.75 -0.75
    idx:     (4,0,2)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.25 -1.75 -1.25
    idx:     (4,0,1)
 With weight: 4
 pt[2]:    location:  0.25 -2.25 -0.75
    idx:     (4,-1,2)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -0.25 -1.75 -0.75
    idx:     (3,0,2)
 With weight: 4
 pt[4]:    location:  0.75 -1.75 -0.75
    idx:     (5,0,2)
 With weight: 4
-pt[5]:    location:  0.25 -1.75 -0.25
+pt[5]:    location:  0.25 -1.25 -0.75
+   idx:     (4,1,2)
+With weight: 4
+pt[6]:    location:  0.25 -1.75 -0.25
    idx:     (4,0,3)
 With weight: 4
-pt[6]:    location:  0.25 -2.25 -1.25
-   idx:     (4,-1,1)
-With weight: 1.05525e-15
 
 On point:    location:  0.75 -1.75 -0.75
    idx:     (5,0,2)
 pt[0]:    location:  0.75 -1.75 -0.75
    idx:     (5,0,2)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.75 -1.75 -1.25
    idx:     (5,0,1)
 With weight: 4
 pt[2]:    location:  0.75 -2.25 -0.75
    idx:     (5,-1,2)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location:  0.25 -1.75 -0.75
    idx:     (4,0,2)
 With weight: 4
 pt[4]:    location:  1.25 -1.75 -0.75
    idx:     (6,0,2)
 With weight: 4
-pt[5]:    location:  0.75 -1.75 -0.25
+pt[5]:    location:  0.75 -1.25 -0.75
+   idx:     (5,1,2)
+With weight: 4
+pt[6]:    location:  0.75 -1.75 -0.25
    idx:     (5,0,3)
 With weight: 4
-pt[6]:    location:  0.75 -2.25 -1.25
-   idx:     (5,-1,1)
-With weight: 1.05525e-15
 
 On point:    location:  1.25 -1.75 -0.75
    idx:     (6,0,2)
@@ -2906,49 +3038,103 @@ On point:    location: -1.25 -1.25 -0.75
    idx:     (1,1,2)
 pt[0]:    location: -1.25 -1.25 -0.75
    idx:     (1,1,2)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location: -1.25 -1.25 -1.25
    idx:     (1,1,1)
 With weight: 4
 pt[2]:    location: -1.25 -1.75 -0.75
    idx:     (1,0,2)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -1.75 -1.25 -0.75
    idx:     (0,1,2)
-With weight: 2.66667
-pt[4]:    location: -1.25 -1.25 -0.25
+With weight: 4
+pt[4]:    location: -0.75 -1.25 -0.75
+   idx:     (2,1,2)
+With weight: 4
+pt[5]:    location: -1.25 -0.75 -0.75
+   idx:     (1,2,2)
+With weight: 4
+pt[6]:    location: -1.25 -1.25 -0.25
    idx:     (1,1,3)
 With weight: 4
-pt[5]:    location: -1.25 -1.75 -1.25
-   idx:     (1,0,1)
-With weight: -9.11452e-17
-pt[6]:    location: -1.75 -1.25 -1.25
-   idx:     (0,1,1)
-With weight: -7.36121e-16
+
+On point:    location: -0.75 -1.25 -0.75
+   idx:     (2,1,2)
+pt[0]:    location: -0.75 -1.25 -0.75
+   idx:     (2,1,2)
+With weight: -24
+pt[1]:    location: -0.75 -1.25 -1.25
+   idx:     (2,1,1)
+With weight: 4
+pt[2]:    location: -0.75 -1.75 -0.75
+   idx:     (2,0,2)
+With weight: 4
+pt[3]:    location: -1.25 -1.25 -0.75
+   idx:     (1,1,2)
+With weight: 4
+pt[4]:    location: -0.25 -1.25 -0.75
+   idx:     (3,1,2)
+With weight: 4
+pt[5]:    location: -0.75 -0.75 -0.75
+   idx:     (2,2,2)
+With weight: 4
+pt[6]:    location: -0.75 -1.25 -0.25
+   idx:     (2,1,3)
+With weight: 4
+
+On point:    location: -0.25 -1.25 -0.75
+   idx:     (3,1,2)
+
+On point:    location:  0.25 -1.25 -0.75
+   idx:     (4,1,2)
+
+On point:    location:  0.75 -1.25 -0.75
+   idx:     (5,1,2)
+pt[0]:    location:  0.75 -1.25 -0.75
+   idx:     (5,1,2)
+With weight: -24
+pt[1]:    location:  0.75 -1.25 -1.25
+   idx:     (5,1,1)
+With weight: 4
+pt[2]:    location:  0.75 -1.75 -0.75
+   idx:     (5,0,2)
+With weight: 4
+pt[3]:    location:  0.25 -1.25 -0.75
+   idx:     (4,1,2)
+With weight: 4
+pt[4]:    location:  1.25 -1.25 -0.75
+   idx:     (6,1,2)
+With weight: 4
+pt[5]:    location:  0.75 -0.75 -0.75
+   idx:     (5,2,2)
+With weight: 4
+pt[6]:    location:  0.75 -1.25 -0.25
+   idx:     (5,1,3)
+With weight: 4
 
 On point:    location:  1.25 -1.25 -0.75
    idx:     (6,1,2)
 pt[0]:    location:  1.25 -1.25 -0.75
    idx:     (6,1,2)
-With weight: -14.1867
+With weight: -24
 pt[1]:    location:  1.25 -1.25 -1.25
    idx:     (6,1,1)
-With weight: 2.72
+With weight: 4
 pt[2]:    location:  1.25 -1.75 -0.75
    idx:     (6,0,2)
-With weight: 1.38667
-pt[3]:    location:  1.75 -1.25 -0.75
+With weight: 4
+pt[3]:    location:  0.75 -1.25 -0.75
+   idx:     (5,1,2)
+With weight: 4
+pt[4]:    location:  1.75 -1.25 -0.75
    idx:     (7,1,2)
-With weight: 3.52
-pt[4]:    location:  1.25 -1.25 -0.25
+With weight: 4
+pt[5]:    location:  1.25 -0.75 -0.75
+   idx:     (6,2,2)
+With weight: 4
+pt[6]:    location:  1.25 -1.25 -0.25
    idx:     (6,1,3)
 With weight: 4
-pt[5]:    location:  0.75 -1.25 -1.25
-   idx:     (5,1,1)
-With weight: 1.28
-pt[6]:    location:  0.75 -1.75 -0.75
-   idx:     (5,0,2)
-With weight: 1.28
 
 On point:    location:  1.75 -1.25 -0.75
    idx:     (7,1,2)
@@ -2978,7 +3164,7 @@ On point:    location: -1.75 -0.75 -0.75
    idx:     (0,2,2)
 pt[0]:    location: -1.75 -0.75 -0.75
    idx:     (0,2,2)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75 -0.75 -1.25
    idx:     (0,2,1)
 With weight: 4
@@ -2987,46 +3173,100 @@ pt[2]:    location: -1.75 -1.25 -0.75
 With weight: 4
 pt[3]:    location: -2.25 -0.75 -0.75
    idx:     (-1,2,2)
-With weight: 2.66667
-pt[4]:    location: -1.75 -0.25 -0.75
+With weight: 4
+pt[4]:    location: -1.25 -0.75 -0.75
+   idx:     (1,2,2)
+With weight: 4
+pt[5]:    location: -1.75 -0.25 -0.75
    idx:     (0,3,2)
 With weight: 4
-pt[5]:    location: -1.75 -0.75 -0.25
+pt[6]:    location: -1.75 -0.75 -0.25
    idx:     (0,2,3)
 With weight: 4
-pt[6]:    location: -2.25 -0.75 -1.25
-   idx:     (-1,2,1)
-With weight: 1.13062e-15
+
+On point:    location: -1.25 -0.75 -0.75
+   idx:     (1,2,2)
+pt[0]:    location: -1.25 -0.75 -0.75
+   idx:     (1,2,2)
+With weight: -24
+pt[1]:    location: -1.25 -0.75 -1.25
+   idx:     (1,2,1)
+With weight: 4
+pt[2]:    location: -1.25 -1.25 -0.75
+   idx:     (1,1,2)
+With weight: 4
+pt[3]:    location: -1.75 -0.75 -0.75
+   idx:     (0,2,2)
+With weight: 4
+pt[4]:    location: -0.75 -0.75 -0.75
+   idx:     (2,2,2)
+With weight: 4
+pt[5]:    location: -1.25 -0.25 -0.75
+   idx:     (1,3,2)
+With weight: 4
+pt[6]:    location: -1.25 -0.75 -0.25
+   idx:     (1,2,3)
+With weight: 4
+
+On point:    location: -0.75 -0.75 -0.75
+   idx:     (2,2,2)
+
+On point:    location:  0.75 -0.75 -0.75
+   idx:     (5,2,2)
+
+On point:    location:  1.25 -0.75 -0.75
+   idx:     (6,2,2)
+pt[0]:    location:  1.25 -0.75 -0.75
+   idx:     (6,2,2)
+With weight: -24
+pt[1]:    location:  1.25 -0.75 -1.25
+   idx:     (6,2,1)
+With weight: 4
+pt[2]:    location:  1.25 -1.25 -0.75
+   idx:     (6,1,2)
+With weight: 4
+pt[3]:    location:  0.75 -0.75 -0.75
+   idx:     (5,2,2)
+With weight: 4
+pt[4]:    location:  1.75 -0.75 -0.75
+   idx:     (7,2,2)
+With weight: 4
+pt[5]:    location:  1.25 -0.25 -0.75
+   idx:     (6,3,2)
+With weight: 4
+pt[6]:    location:  1.25 -0.75 -0.25
+   idx:     (6,2,3)
+With weight: 4
 
 On point:    location:  1.75 -0.75 -0.75
    idx:     (7,2,2)
 pt[0]:    location:  1.75 -0.75 -0.75
    idx:     (7,2,2)
-With weight: -19.2941
+With weight: -24
 pt[1]:    location:  1.75 -0.75 -1.25
    idx:     (7,2,1)
-With weight: 2.11765
+With weight: 4
 pt[2]:    location:  1.75 -1.25 -0.75
    idx:     (7,1,2)
 With weight: 4
-pt[3]:    location:  2.25 -0.75 -0.75
+pt[3]:    location:  1.25 -0.75 -0.75
+   idx:     (6,2,2)
+With weight: 4
+pt[4]:    location:  2.25 -0.75 -0.75
    idx:     (8,2,2)
-With weight: 3.29412
-pt[4]:    location:  1.75 -0.25 -0.75
+With weight: 4
+pt[5]:    location:  1.75 -0.25 -0.75
    idx:     (7,3,2)
 With weight: 4
-pt[5]:    location:  1.75 -0.75 -0.25
+pt[6]:    location:  1.75 -0.75 -0.25
    idx:     (7,2,3)
 With weight: 4
-pt[6]:    location:  1.25 -0.75 -1.25
-   idx:     (6,2,1)
-With weight: 1.88235
 
 On point:    location: -1.75 -0.25 -0.75
    idx:     (0,3,2)
 pt[0]:    location: -1.75 -0.25 -0.75
    idx:     (0,3,2)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75 -0.25 -1.25
    idx:     (0,3,1)
 With weight: 4
@@ -3035,46 +3275,52 @@ pt[2]:    location: -1.75 -0.75 -0.75
 With weight: 4
 pt[3]:    location: -2.25 -0.25 -0.75
    idx:     (-1,3,2)
-With weight: 2.66667
-pt[4]:    location: -1.75  0.25 -0.75
+With weight: 4
+pt[4]:    location: -1.25 -0.25 -0.75
+   idx:     (1,3,2)
+With weight: 4
+pt[5]:    location: -1.75  0.25 -0.75
    idx:     (0,4,2)
 With weight: 4
-pt[5]:    location: -1.75 -0.25 -0.25
+pt[6]:    location: -1.75 -0.25 -0.25
    idx:     (0,3,3)
 With weight: 4
-pt[6]:    location: -2.25 -0.25 -1.25
-   idx:     (-1,3,1)
-With weight: 1.13062e-15
+
+On point:    location: -1.25 -0.25 -0.75
+   idx:     (1,3,2)
+
+On point:    location:  1.25 -0.25 -0.75
+   idx:     (6,3,2)
 
 On point:    location:  1.75 -0.25 -0.75
    idx:     (7,3,2)
 pt[0]:    location:  1.75 -0.25 -0.75
    idx:     (7,3,2)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  1.75 -0.25 -1.25
    idx:     (7,3,1)
 With weight: 4
 pt[2]:    location:  1.75 -0.75 -0.75
    idx:     (7,2,2)
 With weight: 4
-pt[3]:    location:  2.25 -0.25 -0.75
+pt[3]:    location:  1.25 -0.25 -0.75
+   idx:     (6,3,2)
+With weight: 4
+pt[4]:    location:  2.25 -0.25 -0.75
    idx:     (8,3,2)
-With weight: 2.66667
-pt[4]:    location:  1.75  0.25 -0.75
+With weight: 4
+pt[5]:    location:  1.75  0.25 -0.75
    idx:     (7,4,2)
 With weight: 4
-pt[5]:    location:  1.75 -0.25 -0.25
+pt[6]:    location:  1.75 -0.25 -0.25
    idx:     (7,3,3)
 With weight: 4
-pt[6]:    location:  1.75 -0.75 -1.25
-   idx:     (7,2,1)
-With weight: -7.27074e-16
 
 On point:    location: -1.75  0.25 -0.75
    idx:     (0,4,2)
 pt[0]:    location: -1.75  0.25 -0.75
    idx:     (0,4,2)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75  0.25 -1.25
    idx:     (0,4,1)
 With weight: 4
@@ -3083,46 +3329,52 @@ pt[2]:    location: -1.75 -0.25 -0.75
 With weight: 4
 pt[3]:    location: -2.25  0.25 -0.75
    idx:     (-1,4,2)
-With weight: 2.66667
-pt[4]:    location: -1.75  0.75 -0.75
+With weight: 4
+pt[4]:    location: -1.25  0.25 -0.75
+   idx:     (1,4,2)
+With weight: 4
+pt[5]:    location: -1.75  0.75 -0.75
    idx:     (0,5,2)
 With weight: 4
-pt[5]:    location: -1.75  0.25 -0.25
+pt[6]:    location: -1.75  0.25 -0.25
    idx:     (0,4,3)
 With weight: 4
-pt[6]:    location: -2.25  0.25 -1.25
-   idx:     (-1,4,1)
-With weight: 1.13062e-15
+
+On point:    location: -1.25  0.25 -0.75
+   idx:     (1,4,2)
+
+On point:    location:  1.25  0.25 -0.75
+   idx:     (6,4,2)
 
 On point:    location:  1.75  0.25 -0.75
    idx:     (7,4,2)
 pt[0]:    location:  1.75  0.25 -0.75
    idx:     (7,4,2)
-With weight: -19.2941
+With weight: -24
 pt[1]:    location:  1.75  0.25 -1.25
    idx:     (7,4,1)
-With weight: 2.11765
+With weight: 4
 pt[2]:    location:  1.75 -0.25 -0.75
    idx:     (7,3,2)
 With weight: 4
-pt[3]:    location:  2.25  0.25 -0.75
+pt[3]:    location:  1.25  0.25 -0.75
+   idx:     (6,4,2)
+With weight: 4
+pt[4]:    location:  2.25  0.25 -0.75
    idx:     (8,4,2)
-With weight: 3.29412
-pt[4]:    location:  1.75  0.75 -0.75
+With weight: 4
+pt[5]:    location:  1.75  0.75 -0.75
    idx:     (7,5,2)
 With weight: 4
-pt[5]:    location:  1.75  0.25 -0.25
+pt[6]:    location:  1.75  0.25 -0.25
    idx:     (7,4,3)
 With weight: 4
-pt[6]:    location:  1.25  0.25 -1.25
-   idx:     (6,4,1)
-With weight: 1.88235
 
 On point:    location: -1.75  0.75 -0.75
    idx:     (0,5,2)
 pt[0]:    location: -1.75  0.75 -0.75
    idx:     (0,5,2)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75  0.75 -1.25
    idx:     (0,5,1)
 With weight: 4
@@ -3131,40 +3383,94 @@ pt[2]:    location: -1.75  0.25 -0.75
 With weight: 4
 pt[3]:    location: -2.25  0.75 -0.75
    idx:     (-1,5,2)
-With weight: 2.66667
-pt[4]:    location: -1.75  1.25 -0.75
+With weight: 4
+pt[4]:    location: -1.25  0.75 -0.75
+   idx:     (1,5,2)
+With weight: 4
+pt[5]:    location: -1.75  1.25 -0.75
    idx:     (0,6,2)
 With weight: 4
-pt[5]:    location: -1.75  0.75 -0.25
+pt[6]:    location: -1.75  0.75 -0.25
    idx:     (0,5,3)
 With weight: 4
-pt[6]:    location: -2.25  0.75 -1.25
-   idx:     (-1,5,1)
-With weight: 1.13062e-15
+
+On point:    location: -1.25  0.75 -0.75
+   idx:     (1,5,2)
+pt[0]:    location: -1.25  0.75 -0.75
+   idx:     (1,5,2)
+With weight: -24
+pt[1]:    location: -1.25  0.75 -1.25
+   idx:     (1,5,1)
+With weight: 4
+pt[2]:    location: -1.25  0.25 -0.75
+   idx:     (1,4,2)
+With weight: 4
+pt[3]:    location: -1.75  0.75 -0.75
+   idx:     (0,5,2)
+With weight: 4
+pt[4]:    location: -0.75  0.75 -0.75
+   idx:     (2,5,2)
+With weight: 4
+pt[5]:    location: -1.25  1.25 -0.75
+   idx:     (1,6,2)
+With weight: 4
+pt[6]:    location: -1.25  0.75 -0.25
+   idx:     (1,5,3)
+With weight: 4
+
+On point:    location: -0.75  0.75 -0.75
+   idx:     (2,5,2)
+
+On point:    location:  0.75  0.75 -0.75
+   idx:     (5,5,2)
+
+On point:    location:  1.25  0.75 -0.75
+   idx:     (6,5,2)
+pt[0]:    location:  1.25  0.75 -0.75
+   idx:     (6,5,2)
+With weight: -24
+pt[1]:    location:  1.25  0.75 -1.25
+   idx:     (6,5,1)
+With weight: 4
+pt[2]:    location:  1.25  0.25 -0.75
+   idx:     (6,4,2)
+With weight: 4
+pt[3]:    location:  0.75  0.75 -0.75
+   idx:     (5,5,2)
+With weight: 4
+pt[4]:    location:  1.75  0.75 -0.75
+   idx:     (7,5,2)
+With weight: 4
+pt[5]:    location:  1.25  1.25 -0.75
+   idx:     (6,6,2)
+With weight: 4
+pt[6]:    location:  1.25  0.75 -0.25
+   idx:     (6,5,3)
+With weight: 4
 
 On point:    location:  1.75  0.75 -0.75
    idx:     (7,5,2)
 pt[0]:    location:  1.75  0.75 -0.75
    idx:     (7,5,2)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  1.75  0.75 -1.25
    idx:     (7,5,1)
 With weight: 4
 pt[2]:    location:  1.75  0.25 -0.75
    idx:     (7,4,2)
 With weight: 4
-pt[3]:    location:  2.25  0.75 -0.75
+pt[3]:    location:  1.25  0.75 -0.75
+   idx:     (6,5,2)
+With weight: 4
+pt[4]:    location:  2.25  0.75 -0.75
    idx:     (8,5,2)
-With weight: 2.66667
-pt[4]:    location:  1.75  1.25 -0.75
+With weight: 4
+pt[5]:    location:  1.75  1.25 -0.75
    idx:     (7,6,2)
 With weight: 4
-pt[5]:    location:  1.75  0.75 -0.25
+pt[6]:    location:  1.75  0.75 -0.25
    idx:     (7,5,3)
 With weight: 4
-pt[6]:    location:  1.75  0.25 -1.25
-   idx:     (7,4,1)
-With weight: -7.27074e-16
 
 On point:    location: -1.75  1.25 -0.75
    idx:     (0,6,2)
@@ -3194,49 +3500,103 @@ On point:    location: -1.25  1.25 -0.75
    idx:     (1,6,2)
 pt[0]:    location: -1.25  1.25 -0.75
    idx:     (1,6,2)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location: -1.25  1.25 -1.25
    idx:     (1,6,1)
-With weight: 1.33333
-pt[2]:    location: -1.75  1.25 -0.75
+With weight: 4
+pt[2]:    location: -1.25  0.75 -0.75
+   idx:     (1,5,2)
+With weight: 4
+pt[3]:    location: -1.75  1.25 -0.75
    idx:     (0,6,2)
-With weight: 2.66667
-pt[3]:    location: -1.25  1.75 -0.75
+With weight: 4
+pt[4]:    location: -0.75  1.25 -0.75
+   idx:     (2,6,2)
+With weight: 4
+pt[5]:    location: -1.25  1.75 -0.75
    idx:     (1,7,2)
-With weight: 2.66667
-pt[4]:    location: -1.25  1.25 -0.25
+With weight: 4
+pt[6]:    location: -1.25  1.25 -0.25
    idx:     (1,6,3)
 With weight: 4
-pt[5]:    location: -1.25  0.75 -1.25
-   idx:     (1,5,1)
-With weight: 2
-pt[6]:    location: -1.25  1.75 -1.25
-   idx:     (1,7,1)
-With weight: 0.666667
+
+On point:    location: -0.75  1.25 -0.75
+   idx:     (2,6,2)
+pt[0]:    location: -0.75  1.25 -0.75
+   idx:     (2,6,2)
+With weight: -24
+pt[1]:    location: -0.75  1.25 -1.25
+   idx:     (2,6,1)
+With weight: 4
+pt[2]:    location: -0.75  0.75 -0.75
+   idx:     (2,5,2)
+With weight: 4
+pt[3]:    location: -1.25  1.25 -0.75
+   idx:     (1,6,2)
+With weight: 4
+pt[4]:    location: -0.25  1.25 -0.75
+   idx:     (3,6,2)
+With weight: 4
+pt[5]:    location: -0.75  1.75 -0.75
+   idx:     (2,7,2)
+With weight: 4
+pt[6]:    location: -0.75  1.25 -0.25
+   idx:     (2,6,3)
+With weight: 4
+
+On point:    location: -0.25  1.25 -0.75
+   idx:     (3,6,2)
+
+On point:    location:  0.25  1.25 -0.75
+   idx:     (4,6,2)
+
+On point:    location:  0.75  1.25 -0.75
+   idx:     (5,6,2)
+pt[0]:    location:  0.75  1.25 -0.75
+   idx:     (5,6,2)
+With weight: -24
+pt[1]:    location:  0.75  1.25 -1.25
+   idx:     (5,6,1)
+With weight: 4
+pt[2]:    location:  0.75  0.75 -0.75
+   idx:     (5,5,2)
+With weight: 4
+pt[3]:    location:  0.25  1.25 -0.75
+   idx:     (4,6,2)
+With weight: 4
+pt[4]:    location:  1.25  1.25 -0.75
+   idx:     (6,6,2)
+With weight: 4
+pt[5]:    location:  0.75  1.75 -0.75
+   idx:     (5,7,2)
+With weight: 4
+pt[6]:    location:  0.75  1.25 -0.25
+   idx:     (5,6,3)
+With weight: 4
 
 On point:    location:  1.25  1.25 -0.75
    idx:     (6,6,2)
 pt[0]:    location:  1.25  1.25 -0.75
    idx:     (6,6,2)
-With weight: -14.5882
+With weight: -24
 pt[1]:    location:  1.25  1.25 -1.25
    idx:     (6,6,1)
-With weight: 0.235294
-pt[2]:    location:  1.75  1.25 -0.75
+With weight: 4
+pt[2]:    location:  1.25  0.75 -0.75
+   idx:     (6,5,2)
+With weight: 4
+pt[3]:    location:  0.75  1.25 -0.75
+   idx:     (5,6,2)
+With weight: 4
+pt[4]:    location:  1.75  1.25 -0.75
    idx:     (7,6,2)
-With weight: 3.29412
-pt[3]:    location:  1.25  1.75 -0.75
+With weight: 4
+pt[5]:    location:  1.25  1.75 -0.75
    idx:     (6,7,2)
-With weight: 3.29412
-pt[4]:    location:  1.25  1.25 -0.25
+With weight: 4
+pt[6]:    location:  1.25  1.25 -0.25
    idx:     (6,6,3)
 With weight: 4
-pt[5]:    location:  1.25  0.75 -1.25
-   idx:     (6,5,1)
-With weight: 1.88235
-pt[6]:    location:  0.75  1.25 -1.25
-   idx:     (5,6,1)
-With weight: 1.88235
 
 On point:    location:  1.75  1.25 -0.75
    idx:     (7,6,2)
@@ -3314,97 +3674,97 @@ On point:    location: -0.75  1.75 -0.75
    idx:     (2,7,2)
 pt[0]:    location: -0.75  1.75 -0.75
    idx:     (2,7,2)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.75  1.75 -1.25
    idx:     (2,7,1)
 With weight: 4
-pt[2]:    location: -1.25  1.75 -0.75
+pt[2]:    location: -0.75  1.25 -0.75
+   idx:     (2,6,2)
+With weight: 4
+pt[3]:    location: -1.25  1.75 -0.75
    idx:     (1,7,2)
 With weight: 4
-pt[3]:    location: -0.25  1.75 -0.75
+pt[4]:    location: -0.25  1.75 -0.75
    idx:     (3,7,2)
 With weight: 4
-pt[4]:    location: -0.75  2.25 -0.75
+pt[5]:    location: -0.75  2.25 -0.75
    idx:     (2,8,2)
-With weight: 2.66667
-pt[5]:    location: -0.75  1.75 -0.25
+With weight: 4
+pt[6]:    location: -0.75  1.75 -0.25
    idx:     (2,7,3)
 With weight: 4
-pt[6]:    location: -0.25  1.75 -1.25
-   idx:     (3,7,1)
-With weight: 1.09747e-15
 
 On point:    location: -0.25  1.75 -0.75
    idx:     (3,7,2)
 pt[0]:    location: -0.25  1.75 -0.75
    idx:     (3,7,2)
-With weight: -19.2941
+With weight: -24
 pt[1]:    location: -0.25  1.75 -1.25
    idx:     (3,7,1)
-With weight: 2.11765
-pt[2]:    location: -0.75  1.75 -0.75
+With weight: 4
+pt[2]:    location: -0.25  1.25 -0.75
+   idx:     (3,6,2)
+With weight: 4
+pt[3]:    location: -0.75  1.75 -0.75
    idx:     (2,7,2)
 With weight: 4
-pt[3]:    location:  0.25  1.75 -0.75
+pt[4]:    location:  0.25  1.75 -0.75
    idx:     (4,7,2)
 With weight: 4
-pt[4]:    location: -0.25  2.25 -0.75
+pt[5]:    location: -0.25  2.25 -0.75
    idx:     (3,8,2)
-With weight: 3.29412
-pt[5]:    location: -0.25  1.75 -0.25
+With weight: 4
+pt[6]:    location: -0.25  1.75 -0.25
    idx:     (3,7,3)
 With weight: 4
-pt[6]:    location: -0.25  1.25 -1.25
-   idx:     (3,6,1)
-With weight: 1.88235
 
 On point:    location:  0.25  1.75 -0.75
    idx:     (4,7,2)
 pt[0]:    location:  0.25  1.75 -0.75
    idx:     (4,7,2)
-With weight: -19.2941
+With weight: -24
 pt[1]:    location:  0.25  1.75 -1.25
    idx:     (4,7,1)
-With weight: 2.11765
-pt[2]:    location: -0.25  1.75 -0.75
+With weight: 4
+pt[2]:    location:  0.25  1.25 -0.75
+   idx:     (4,6,2)
+With weight: 4
+pt[3]:    location: -0.25  1.75 -0.75
    idx:     (3,7,2)
 With weight: 4
-pt[3]:    location:  0.75  1.75 -0.75
+pt[4]:    location:  0.75  1.75 -0.75
    idx:     (5,7,2)
 With weight: 4
-pt[4]:    location:  0.25  2.25 -0.75
+pt[5]:    location:  0.25  2.25 -0.75
    idx:     (4,8,2)
-With weight: 3.29412
-pt[5]:    location:  0.25  1.75 -0.25
+With weight: 4
+pt[6]:    location:  0.25  1.75 -0.25
    idx:     (4,7,3)
 With weight: 4
-pt[6]:    location:  0.25  1.25 -1.25
-   idx:     (4,6,1)
-With weight: 1.88235
 
 On point:    location:  0.75  1.75 -0.75
    idx:     (5,7,2)
 pt[0]:    location:  0.75  1.75 -0.75
    idx:     (5,7,2)
-With weight: -19.2941
+With weight: -24
 pt[1]:    location:  0.75  1.75 -1.25
    idx:     (5,7,1)
-With weight: 2.11765
-pt[2]:    location:  0.25  1.75 -0.75
+With weight: 4
+pt[2]:    location:  0.75  1.25 -0.75
+   idx:     (5,6,2)
+With weight: 4
+pt[3]:    location:  0.25  1.75 -0.75
    idx:     (4,7,2)
 With weight: 4
-pt[3]:    location:  1.25  1.75 -0.75
+pt[4]:    location:  1.25  1.75 -0.75
    idx:     (6,7,2)
 With weight: 4
-pt[4]:    location:  0.75  2.25 -0.75
+pt[5]:    location:  0.75  2.25 -0.75
    idx:     (5,8,2)
-With weight: 3.29412
-pt[5]:    location:  0.75  1.75 -0.25
+With weight: 4
+pt[6]:    location:  0.75  1.75 -0.25
    idx:     (5,7,3)
 With weight: 4
-pt[6]:    location:  0.75  1.25 -1.25
-   idx:     (5,6,1)
-With weight: 1.88235
 
 On point:    location:  1.25  1.75 -0.75
    idx:     (6,7,2)
@@ -3506,97 +3866,97 @@ On point:    location: -0.75 -1.75 -0.25
    idx:     (2,0,3)
 pt[0]:    location: -0.75 -1.75 -0.25
    idx:     (2,0,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.75 -1.75 -0.75
    idx:     (2,0,2)
 With weight: 4
 pt[2]:    location: -0.75 -2.25 -0.25
    idx:     (2,-1,3)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -1.25 -1.75 -0.25
    idx:     (1,0,3)
 With weight: 4
 pt[4]:    location: -0.25 -1.75 -0.25
    idx:     (3,0,3)
 With weight: 4
-pt[5]:    location: -0.75 -1.75  0.25
+pt[5]:    location: -0.75 -1.25 -0.25
+   idx:     (2,1,3)
+With weight: 4
+pt[6]:    location: -0.75 -1.75  0.25
    idx:     (2,0,4)
 With weight: 4
-pt[6]:    location: -0.75 -2.25 -0.75
-   idx:     (2,-1,2)
-With weight: 1.05525e-15
 
 On point:    location: -0.25 -1.75 -0.25
    idx:     (3,0,3)
 pt[0]:    location: -0.25 -1.75 -0.25
    idx:     (3,0,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.25 -1.75 -0.75
    idx:     (3,0,2)
 With weight: 4
 pt[2]:    location: -0.25 -2.25 -0.25
    idx:     (3,-1,3)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -0.75 -1.75 -0.25
    idx:     (2,0,3)
 With weight: 4
 pt[4]:    location:  0.25 -1.75 -0.25
    idx:     (4,0,3)
 With weight: 4
-pt[5]:    location: -0.25 -1.75  0.25
+pt[5]:    location: -0.25 -1.25 -0.25
+   idx:     (3,1,3)
+With weight: 4
+pt[6]:    location: -0.25 -1.75  0.25
    idx:     (3,0,4)
 With weight: 4
-pt[6]:    location: -0.25 -2.25 -0.75
-   idx:     (3,-1,2)
-With weight: 1.05525e-15
 
 On point:    location:  0.25 -1.75 -0.25
    idx:     (4,0,3)
 pt[0]:    location:  0.25 -1.75 -0.25
    idx:     (4,0,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.25 -1.75 -0.75
    idx:     (4,0,2)
 With weight: 4
 pt[2]:    location:  0.25 -2.25 -0.25
    idx:     (4,-1,3)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -0.25 -1.75 -0.25
    idx:     (3,0,3)
 With weight: 4
 pt[4]:    location:  0.75 -1.75 -0.25
    idx:     (5,0,3)
 With weight: 4
-pt[5]:    location:  0.25 -1.75  0.25
+pt[5]:    location:  0.25 -1.25 -0.25
+   idx:     (4,1,3)
+With weight: 4
+pt[6]:    location:  0.25 -1.75  0.25
    idx:     (4,0,4)
 With weight: 4
-pt[6]:    location:  0.25 -2.25 -0.75
-   idx:     (4,-1,2)
-With weight: 1.05525e-15
 
 On point:    location:  0.75 -1.75 -0.25
    idx:     (5,0,3)
 pt[0]:    location:  0.75 -1.75 -0.25
    idx:     (5,0,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.75 -1.75 -0.75
    idx:     (5,0,2)
 With weight: 4
 pt[2]:    location:  0.75 -2.25 -0.25
    idx:     (5,-1,3)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location:  0.25 -1.75 -0.25
    idx:     (4,0,3)
 With weight: 4
 pt[4]:    location:  1.25 -1.75 -0.25
    idx:     (6,0,3)
 With weight: 4
-pt[5]:    location:  0.75 -1.75  0.25
+pt[5]:    location:  0.75 -1.25 -0.25
+   idx:     (5,1,3)
+With weight: 4
+pt[6]:    location:  0.75 -1.75  0.25
    idx:     (5,0,4)
 With weight: 4
-pt[6]:    location:  0.75 -2.25 -0.75
-   idx:     (5,-1,2)
-With weight: 1.05525e-15
 
 On point:    location:  1.25 -1.75 -0.25
    idx:     (6,0,3)
@@ -3674,49 +4034,61 @@ On point:    location: -1.25 -1.25 -0.25
    idx:     (1,1,3)
 pt[0]:    location: -1.25 -1.25 -0.25
    idx:     (1,1,3)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location: -1.25 -1.25 -0.75
    idx:     (1,1,2)
 With weight: 4
 pt[2]:    location: -1.25 -1.75 -0.25
    idx:     (1,0,3)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -1.75 -1.25 -0.25
    idx:     (0,1,3)
-With weight: 2.66667
-pt[4]:    location: -1.25 -1.25  0.25
+With weight: 4
+pt[4]:    location: -0.75 -1.25 -0.25
+   idx:     (2,1,3)
+With weight: 4
+pt[5]:    location: -1.25 -0.75 -0.25
+   idx:     (1,2,3)
+With weight: 4
+pt[6]:    location: -1.25 -1.25  0.25
    idx:     (1,1,4)
 With weight: 4
-pt[5]:    location: -1.25 -1.75 -0.75
-   idx:     (1,0,2)
-With weight: -9.11452e-17
-pt[6]:    location: -1.75 -1.25 -0.75
-   idx:     (0,1,2)
-With weight: -7.36121e-16
+
+On point:    location: -0.75 -1.25 -0.25
+   idx:     (2,1,3)
+
+On point:    location: -0.25 -1.25 -0.25
+   idx:     (3,1,3)
+
+On point:    location:  0.25 -1.25 -0.25
+   idx:     (4,1,3)
+
+On point:    location:  0.75 -1.25 -0.25
+   idx:     (5,1,3)
 
 On point:    location:  1.25 -1.25 -0.25
    idx:     (6,1,3)
 pt[0]:    location:  1.25 -1.25 -0.25
    idx:     (6,1,3)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location:  1.25 -1.25 -0.75
    idx:     (6,1,2)
 With weight: 4
 pt[2]:    location:  1.25 -1.75 -0.25
    idx:     (6,0,3)
-With weight: 2.66667
-pt[3]:    location:  1.75 -1.25 -0.25
+With weight: 4
+pt[3]:    location:  0.75 -1.25 -0.25
+   idx:     (5,1,3)
+With weight: 4
+pt[4]:    location:  1.75 -1.25 -0.25
    idx:     (7,1,3)
-With weight: 2.66667
-pt[4]:    location:  1.25 -1.25  0.25
+With weight: 4
+pt[5]:    location:  1.25 -0.75 -0.25
+   idx:     (6,2,3)
+With weight: 4
+pt[6]:    location:  1.25 -1.25  0.25
    idx:     (6,1,4)
 With weight: 4
-pt[5]:    location:  1.25 -1.75 -0.75
-   idx:     (6,0,2)
-With weight: -9.11452e-17
-pt[6]:    location:  1.75 -1.25 -0.75
-   idx:     (7,1,2)
-With weight: -7.36121e-16
 
 On point:    location:  1.75 -1.25 -0.25
    idx:     (7,1,3)
@@ -3746,7 +4118,7 @@ On point:    location: -1.75 -0.75 -0.25
    idx:     (0,2,3)
 pt[0]:    location: -1.75 -0.75 -0.25
    idx:     (0,2,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75 -0.75 -0.75
    idx:     (0,2,2)
 With weight: 4
@@ -3755,46 +4127,52 @@ pt[2]:    location: -1.75 -1.25 -0.25
 With weight: 4
 pt[3]:    location: -2.25 -0.75 -0.25
    idx:     (-1,2,3)
-With weight: 2.66667
-pt[4]:    location: -1.75 -0.25 -0.25
+With weight: 4
+pt[4]:    location: -1.25 -0.75 -0.25
+   idx:     (1,2,3)
+With weight: 4
+pt[5]:    location: -1.75 -0.25 -0.25
    idx:     (0,3,3)
 With weight: 4
-pt[5]:    location: -1.75 -0.75  0.25
+pt[6]:    location: -1.75 -0.75  0.25
    idx:     (0,2,4)
 With weight: 4
-pt[6]:    location: -1.75 -1.25 -0.75
-   idx:     (0,1,2)
-With weight: -7.27074e-16
+
+On point:    location: -1.25 -0.75 -0.25
+   idx:     (1,2,3)
+
+On point:    location:  1.25 -0.75 -0.25
+   idx:     (6,2,3)
 
 On point:    location:  1.75 -0.75 -0.25
    idx:     (7,2,3)
 pt[0]:    location:  1.75 -0.75 -0.25
    idx:     (7,2,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  1.75 -0.75 -0.75
    idx:     (7,2,2)
 With weight: 4
 pt[2]:    location:  1.75 -1.25 -0.25
    idx:     (7,1,3)
 With weight: 4
-pt[3]:    location:  2.25 -0.75 -0.25
+pt[3]:    location:  1.25 -0.75 -0.25
+   idx:     (6,2,3)
+With weight: 4
+pt[4]:    location:  2.25 -0.75 -0.25
    idx:     (8,2,3)
-With weight: 2.66667
-pt[4]:    location:  1.75 -0.25 -0.25
+With weight: 4
+pt[5]:    location:  1.75 -0.25 -0.25
    idx:     (7,3,3)
 With weight: 4
-pt[5]:    location:  1.75 -0.75  0.25
+pt[6]:    location:  1.75 -0.75  0.25
    idx:     (7,2,4)
 With weight: 4
-pt[6]:    location:  1.75 -1.25 -0.75
-   idx:     (7,1,2)
-With weight: -7.27074e-16
 
 On point:    location: -1.75 -0.25 -0.25
    idx:     (0,3,3)
 pt[0]:    location: -1.75 -0.25 -0.25
    idx:     (0,3,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75 -0.25 -0.75
    idx:     (0,3,2)
 With weight: 4
@@ -3803,46 +4181,52 @@ pt[2]:    location: -1.75 -0.75 -0.25
 With weight: 4
 pt[3]:    location: -2.25 -0.25 -0.25
    idx:     (-1,3,3)
-With weight: 2.66667
-pt[4]:    location: -1.75  0.25 -0.25
+With weight: 4
+pt[4]:    location: -1.25 -0.25 -0.25
+   idx:     (1,3,3)
+With weight: 4
+pt[5]:    location: -1.75  0.25 -0.25
    idx:     (0,4,3)
 With weight: 4
-pt[5]:    location: -1.75 -0.25  0.25
+pt[6]:    location: -1.75 -0.25  0.25
    idx:     (0,3,4)
 With weight: 4
-pt[6]:    location: -1.75 -0.75 -0.75
-   idx:     (0,2,2)
-With weight: -7.27074e-16
+
+On point:    location: -1.25 -0.25 -0.25
+   idx:     (1,3,3)
+
+On point:    location:  1.25 -0.25 -0.25
+   idx:     (6,3,3)
 
 On point:    location:  1.75 -0.25 -0.25
    idx:     (7,3,3)
 pt[0]:    location:  1.75 -0.25 -0.25
    idx:     (7,3,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  1.75 -0.25 -0.75
    idx:     (7,3,2)
 With weight: 4
 pt[2]:    location:  1.75 -0.75 -0.25
    idx:     (7,2,3)
 With weight: 4
-pt[3]:    location:  2.25 -0.25 -0.25
+pt[3]:    location:  1.25 -0.25 -0.25
+   idx:     (6,3,3)
+With weight: 4
+pt[4]:    location:  2.25 -0.25 -0.25
    idx:     (8,3,3)
-With weight: 2.66667
-pt[4]:    location:  1.75  0.25 -0.25
+With weight: 4
+pt[5]:    location:  1.75  0.25 -0.25
    idx:     (7,4,3)
 With weight: 4
-pt[5]:    location:  1.75 -0.25  0.25
+pt[6]:    location:  1.75 -0.25  0.25
    idx:     (7,3,4)
 With weight: 4
-pt[6]:    location:  1.75 -0.75 -0.75
-   idx:     (7,2,2)
-With weight: -7.27074e-16
 
 On point:    location: -1.75  0.25 -0.25
    idx:     (0,4,3)
 pt[0]:    location: -1.75  0.25 -0.25
    idx:     (0,4,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75  0.25 -0.75
    idx:     (0,4,2)
 With weight: 4
@@ -3851,46 +4235,52 @@ pt[2]:    location: -1.75 -0.25 -0.25
 With weight: 4
 pt[3]:    location: -2.25  0.25 -0.25
    idx:     (-1,4,3)
-With weight: 2.66667
-pt[4]:    location: -1.75  0.75 -0.25
+With weight: 4
+pt[4]:    location: -1.25  0.25 -0.25
+   idx:     (1,4,3)
+With weight: 4
+pt[5]:    location: -1.75  0.75 -0.25
    idx:     (0,5,3)
 With weight: 4
-pt[5]:    location: -1.75  0.25  0.25
+pt[6]:    location: -1.75  0.25  0.25
    idx:     (0,4,4)
 With weight: 4
-pt[6]:    location: -2.25  0.25 -0.75
-   idx:     (-1,4,2)
-With weight: 1.13062e-15
+
+On point:    location: -1.25  0.25 -0.25
+   idx:     (1,4,3)
+
+On point:    location:  1.25  0.25 -0.25
+   idx:     (6,4,3)
 
 On point:    location:  1.75  0.25 -0.25
    idx:     (7,4,3)
 pt[0]:    location:  1.75  0.25 -0.25
    idx:     (7,4,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  1.75  0.25 -0.75
    idx:     (7,4,2)
 With weight: 4
 pt[2]:    location:  1.75 -0.25 -0.25
    idx:     (7,3,3)
 With weight: 4
-pt[3]:    location:  2.25  0.25 -0.25
+pt[3]:    location:  1.25  0.25 -0.25
+   idx:     (6,4,3)
+With weight: 4
+pt[4]:    location:  2.25  0.25 -0.25
    idx:     (8,4,3)
-With weight: 2.66667
-pt[4]:    location:  1.75  0.75 -0.25
+With weight: 4
+pt[5]:    location:  1.75  0.75 -0.25
    idx:     (7,5,3)
 With weight: 4
-pt[5]:    location: 1.75 0.25 0.25
+pt[6]:    location: 1.75 0.25 0.25
    idx:     (7,4,4)
 With weight: 4
-pt[6]:    location:  2.25  0.25 -0.75
-   idx:     (8,4,2)
-With weight: 1.13062e-15
 
 On point:    location: -1.75  0.75 -0.25
    idx:     (0,5,3)
 pt[0]:    location: -1.75  0.75 -0.25
    idx:     (0,5,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75  0.75 -0.75
    idx:     (0,5,2)
 With weight: 4
@@ -3899,40 +4289,46 @@ pt[2]:    location: -1.75  0.25 -0.25
 With weight: 4
 pt[3]:    location: -2.25  0.75 -0.25
    idx:     (-1,5,3)
-With weight: 2.66667
-pt[4]:    location: -1.75  1.25 -0.25
+With weight: 4
+pt[4]:    location: -1.25  0.75 -0.25
+   idx:     (1,5,3)
+With weight: 4
+pt[5]:    location: -1.75  1.25 -0.25
    idx:     (0,6,3)
 With weight: 4
-pt[5]:    location: -1.75  0.75  0.25
+pt[6]:    location: -1.75  0.75  0.25
    idx:     (0,5,4)
 With weight: 4
-pt[6]:    location: -1.75  0.25 -0.75
-   idx:     (0,4,2)
-With weight: -7.27074e-16
+
+On point:    location: -1.25  0.75 -0.25
+   idx:     (1,5,3)
+
+On point:    location:  1.25  0.75 -0.25
+   idx:     (6,5,3)
 
 On point:    location:  1.75  0.75 -0.25
    idx:     (7,5,3)
 pt[0]:    location:  1.75  0.75 -0.25
    idx:     (7,5,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  1.75  0.75 -0.75
    idx:     (7,5,2)
 With weight: 4
 pt[2]:    location:  1.75  0.25 -0.25
    idx:     (7,4,3)
 With weight: 4
-pt[3]:    location:  2.25  0.75 -0.25
+pt[3]:    location:  1.25  0.75 -0.25
+   idx:     (6,5,3)
+With weight: 4
+pt[4]:    location:  2.25  0.75 -0.25
    idx:     (8,5,3)
-With weight: 2.66667
-pt[4]:    location:  1.75  1.25 -0.25
+With weight: 4
+pt[5]:    location:  1.75  1.25 -0.25
    idx:     (7,6,3)
 With weight: 4
-pt[5]:    location: 1.75 0.75 0.25
+pt[6]:    location: 1.75 0.75 0.25
    idx:     (7,5,4)
 With weight: 4
-pt[6]:    location:  1.75  0.25 -0.75
-   idx:     (7,4,2)
-With weight: -7.27074e-16
 
 On point:    location: -1.75  1.25 -0.25
    idx:     (0,6,3)
@@ -3962,49 +4358,61 @@ On point:    location: -1.25  1.25 -0.25
    idx:     (1,6,3)
 pt[0]:    location: -1.25  1.25 -0.25
    idx:     (1,6,3)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location: -1.25  1.25 -0.75
    idx:     (1,6,2)
 With weight: 4
-pt[2]:    location: -1.75  1.25 -0.25
+pt[2]:    location: -1.25  0.75 -0.25
+   idx:     (1,5,3)
+With weight: 4
+pt[3]:    location: -1.75  1.25 -0.25
    idx:     (0,6,3)
-With weight: 0.784314
-pt[3]:    location: -1.25  1.75 -0.25
+With weight: 4
+pt[4]:    location: -0.75  1.25 -0.25
+   idx:     (2,6,3)
+With weight: 4
+pt[5]:    location: -1.25  1.75 -0.25
    idx:     (1,7,3)
-With weight: 3.29412
-pt[4]:    location: -1.25  1.25  0.25
+With weight: 4
+pt[6]:    location: -1.25  1.25  0.25
    idx:     (1,6,4)
 With weight: 4
-pt[5]:    location: -1.75  1.25 -0.75
-   idx:     (0,6,2)
-With weight: -7.39094e-16
-pt[6]:    location: -1.75  0.75 -0.25
-   idx:     (0,5,3)
-With weight: 1.88235
+
+On point:    location: -0.75  1.25 -0.25
+   idx:     (2,6,3)
+
+On point:    location: -0.25  1.25 -0.25
+   idx:     (3,6,3)
+
+On point:    location:  0.25  1.25 -0.25
+   idx:     (4,6,3)
+
+On point:    location:  0.75  1.25 -0.25
+   idx:     (5,6,3)
 
 On point:    location:  1.25  1.25 -0.25
    idx:     (6,6,3)
 pt[0]:    location:  1.25  1.25 -0.25
    idx:     (6,6,3)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location:  1.25  1.25 -0.75
    idx:     (6,6,2)
 With weight: 4
-pt[2]:    location:  1.75  1.25 -0.25
+pt[2]:    location:  1.25  0.75 -0.25
+   idx:     (6,5,3)
+With weight: 4
+pt[3]:    location:  0.75  1.25 -0.25
+   idx:     (5,6,3)
+With weight: 4
+pt[4]:    location:  1.75  1.25 -0.25
    idx:     (7,6,3)
-With weight: 2.66667
-pt[3]:    location:  1.25  1.75 -0.25
+With weight: 4
+pt[5]:    location:  1.25  1.75 -0.25
    idx:     (6,7,3)
-With weight: 2.66667
-pt[4]:    location: 1.25 1.25 0.25
+With weight: 4
+pt[6]:    location: 1.25 1.25 0.25
    idx:     (6,6,4)
 With weight: 4
-pt[5]:    location:  1.75  1.25 -0.75
-   idx:     (7,6,2)
-With weight: 3.03817e-17
-pt[6]:    location:  1.25  1.75 -0.75
-   idx:     (6,7,2)
-With weight: -3.14198e-16
 
 On point:    location:  1.75  1.25 -0.25
    idx:     (7,6,3)
@@ -4082,97 +4490,97 @@ On point:    location: -0.75  1.75 -0.25
    idx:     (2,7,3)
 pt[0]:    location: -0.75  1.75 -0.25
    idx:     (2,7,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.75  1.75 -0.75
    idx:     (2,7,2)
 With weight: 4
-pt[2]:    location: -1.25  1.75 -0.25
+pt[2]:    location: -0.75  1.25 -0.25
+   idx:     (2,6,3)
+With weight: 4
+pt[3]:    location: -1.25  1.75 -0.25
    idx:     (1,7,3)
 With weight: 4
-pt[3]:    location: -0.25  1.75 -0.25
+pt[4]:    location: -0.25  1.75 -0.25
    idx:     (3,7,3)
 With weight: 4
-pt[4]:    location: -0.75  2.25 -0.25
+pt[5]:    location: -0.75  2.25 -0.25
    idx:     (2,8,3)
-With weight: 2.66667
-pt[5]:    location: -0.75  1.75  0.25
+With weight: 4
+pt[6]:    location: -0.75  1.75  0.25
    idx:     (2,7,4)
 With weight: 4
-pt[6]:    location: -1.25  1.75 -0.75
-   idx:     (1,7,2)
-With weight: 8.23102e-16
 
 On point:    location: -0.25  1.75 -0.25
    idx:     (3,7,3)
 pt[0]:    location: -0.25  1.75 -0.25
    idx:     (3,7,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.25  1.75 -0.75
    idx:     (3,7,2)
 With weight: 4
-pt[2]:    location: -0.75  1.75 -0.25
+pt[2]:    location: -0.25  1.25 -0.25
+   idx:     (3,6,3)
+With weight: 4
+pt[3]:    location: -0.75  1.75 -0.25
    idx:     (2,7,3)
 With weight: 4
-pt[3]:    location:  0.25  1.75 -0.25
+pt[4]:    location:  0.25  1.75 -0.25
    idx:     (4,7,3)
 With weight: 4
-pt[4]:    location: -0.25  2.25 -0.25
+pt[5]:    location: -0.25  2.25 -0.25
    idx:     (3,8,3)
-With weight: 2.66667
-pt[5]:    location: -0.25  1.75  0.25
+With weight: 4
+pt[6]:    location: -0.25  1.75  0.25
    idx:     (3,7,4)
 With weight: 4
-pt[6]:    location: -0.75  1.75 -0.75
-   idx:     (2,7,2)
-With weight: 8.23102e-16
 
 On point:    location:  0.25  1.75 -0.25
    idx:     (4,7,3)
 pt[0]:    location:  0.25  1.75 -0.25
    idx:     (4,7,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.25  1.75 -0.75
    idx:     (4,7,2)
 With weight: 4
-pt[2]:    location: -0.25  1.75 -0.25
+pt[2]:    location:  0.25  1.25 -0.25
+   idx:     (4,6,3)
+With weight: 4
+pt[3]:    location: -0.25  1.75 -0.25
    idx:     (3,7,3)
 With weight: 4
-pt[3]:    location:  0.75  1.75 -0.25
+pt[4]:    location:  0.75  1.75 -0.25
    idx:     (5,7,3)
 With weight: 4
-pt[4]:    location:  0.25  2.25 -0.25
+pt[5]:    location:  0.25  2.25 -0.25
    idx:     (4,8,3)
-With weight: 2.66667
-pt[5]:    location: 0.25 1.75 0.25
+With weight: 4
+pt[6]:    location: 0.25 1.75 0.25
    idx:     (4,7,4)
 With weight: 4
-pt[6]:    location:  0.75  1.75 -0.75
-   idx:     (5,7,2)
-With weight: 1.09747e-15
 
 On point:    location:  0.75  1.75 -0.25
    idx:     (5,7,3)
 pt[0]:    location:  0.75  1.75 -0.25
    idx:     (5,7,3)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.75  1.75 -0.75
    idx:     (5,7,2)
 With weight: 4
-pt[2]:    location:  0.25  1.75 -0.25
+pt[2]:    location:  0.75  1.25 -0.25
+   idx:     (5,6,3)
+With weight: 4
+pt[3]:    location:  0.25  1.75 -0.25
    idx:     (4,7,3)
 With weight: 4
-pt[3]:    location:  1.25  1.75 -0.25
+pt[4]:    location:  1.25  1.75 -0.25
    idx:     (6,7,3)
 With weight: 4
-pt[4]:    location:  0.75  2.25 -0.25
+pt[5]:    location:  0.75  2.25 -0.25
    idx:     (5,8,3)
-With weight: 2.66667
-pt[5]:    location: 0.75 1.75 0.25
+With weight: 4
+pt[6]:    location: 0.75 1.75 0.25
    idx:     (5,7,4)
 With weight: 4
-pt[6]:    location:  0.25  1.75 -0.75
-   idx:     (4,7,2)
-With weight: 8.23102e-16
 
 On point:    location:  1.25  1.75 -0.25
    idx:     (6,7,3)
@@ -4274,97 +4682,97 @@ On point:    location: -0.75 -1.75  0.25
    idx:     (2,0,4)
 pt[0]:    location: -0.75 -1.75  0.25
    idx:     (2,0,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.75 -1.75 -0.25
    idx:     (2,0,3)
 With weight: 4
 pt[2]:    location: -0.75 -2.25  0.25
    idx:     (2,-1,4)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -1.25 -1.75  0.25
    idx:     (1,0,4)
 With weight: 4
 pt[4]:    location: -0.25 -1.75  0.25
    idx:     (3,0,4)
 With weight: 4
-pt[5]:    location: -0.75 -1.75  0.75
+pt[5]:    location: -0.75 -1.25  0.25
+   idx:     (2,1,4)
+With weight: 4
+pt[6]:    location: -0.75 -1.75  0.75
    idx:     (2,0,5)
 With weight: 4
-pt[6]:    location: -1.25 -2.25  0.25
-   idx:     (1,-1,4)
-With weight: 6.03e-16
 
 On point:    location: -0.25 -1.75  0.25
    idx:     (3,0,4)
 pt[0]:    location: -0.25 -1.75  0.25
    idx:     (3,0,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.25 -1.75 -0.25
    idx:     (3,0,3)
 With weight: 4
 pt[2]:    location: -0.25 -2.25  0.25
    idx:     (3,-1,4)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -0.75 -1.75  0.25
    idx:     (2,0,4)
 With weight: 4
 pt[4]:    location:  0.25 -1.75  0.25
    idx:     (4,0,4)
 With weight: 4
-pt[5]:    location: -0.25 -1.75  0.75
+pt[5]:    location: -0.25 -1.25  0.25
+   idx:     (3,1,4)
+With weight: 4
+pt[6]:    location: -0.25 -1.75  0.75
    idx:     (3,0,5)
 With weight: 4
-pt[6]:    location: -0.75 -2.25  0.25
-   idx:     (2,-1,4)
-With weight: 6.03e-16
 
 On point:    location:  0.25 -1.75  0.25
    idx:     (4,0,4)
 pt[0]:    location:  0.25 -1.75  0.25
    idx:     (4,0,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.25 -1.75 -0.25
    idx:     (4,0,3)
 With weight: 4
 pt[2]:    location:  0.25 -2.25  0.25
    idx:     (4,-1,4)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -0.25 -1.75  0.25
    idx:     (3,0,4)
 With weight: 4
 pt[4]:    location:  0.75 -1.75  0.25
    idx:     (5,0,4)
 With weight: 4
-pt[5]:    location:  0.25 -1.75  0.75
+pt[5]:    location:  0.25 -1.25  0.25
+   idx:     (4,1,4)
+With weight: 4
+pt[6]:    location:  0.25 -1.75  0.75
    idx:     (4,0,5)
 With weight: 4
-pt[6]:    location:  0.75 -2.25  0.25
-   idx:     (5,-1,4)
-With weight: -6.85912e-16
 
 On point:    location:  0.75 -1.75  0.25
    idx:     (5,0,4)
 pt[0]:    location:  0.75 -1.75  0.25
    idx:     (5,0,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.75 -1.75 -0.25
    idx:     (5,0,3)
 With weight: 4
 pt[2]:    location:  0.75 -2.25  0.25
    idx:     (5,-1,4)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location:  0.25 -1.75  0.25
    idx:     (4,0,4)
 With weight: 4
 pt[4]:    location:  1.25 -1.75  0.25
    idx:     (6,0,4)
 With weight: 4
-pt[5]:    location:  0.75 -1.75  0.75
+pt[5]:    location:  0.75 -1.25  0.25
+   idx:     (5,1,4)
+With weight: 4
+pt[6]:    location:  0.75 -1.75  0.75
    idx:     (5,0,5)
 With weight: 4
-pt[6]:    location:  0.25 -2.25  0.25
-   idx:     (4,-1,4)
-With weight: 6.03e-16
 
 On point:    location:  1.25 -1.75  0.25
    idx:     (6,0,4)
@@ -4442,49 +4850,61 @@ On point:    location: -1.25 -1.25  0.25
    idx:     (1,1,4)
 pt[0]:    location: -1.25 -1.25  0.25
    idx:     (1,1,4)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location: -1.25 -1.25 -0.25
    idx:     (1,1,3)
 With weight: 4
 pt[2]:    location: -1.25 -1.75  0.25
    idx:     (1,0,4)
-With weight: 3.29412
+With weight: 4
 pt[3]:    location: -1.75 -1.25  0.25
    idx:     (0,1,4)
-With weight: 0.784314
-pt[4]:    location: -1.25 -1.25  0.75
+With weight: 4
+pt[4]:    location: -0.75 -1.25  0.25
+   idx:     (2,1,4)
+With weight: 4
+pt[5]:    location: -1.25 -0.75  0.25
+   idx:     (1,2,4)
+With weight: 4
+pt[6]:    location: -1.25 -1.25  0.75
    idx:     (1,1,5)
 With weight: 4
-pt[5]:    location: -1.75 -0.75  0.25
-   idx:     (0,2,4)
-With weight: 1.88235
-pt[6]:    location: -1.25 -1.75  0.75
-   idx:     (1,0,5)
-With weight: -1.55529e-15
+
+On point:    location: -0.75 -1.25  0.25
+   idx:     (2,1,4)
+
+On point:    location: -0.25 -1.25  0.25
+   idx:     (3,1,4)
+
+On point:    location:  0.25 -1.25  0.25
+   idx:     (4,1,4)
+
+On point:    location:  0.75 -1.25  0.25
+   idx:     (5,1,4)
 
 On point:    location:  1.25 -1.25  0.25
    idx:     (6,1,4)
 pt[0]:    location:  1.25 -1.25  0.25
    idx:     (6,1,4)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location:  1.25 -1.25 -0.25
    idx:     (6,1,3)
 With weight: 4
 pt[2]:    location:  1.25 -1.75  0.25
    idx:     (6,0,4)
-With weight: 6.03419e-16
-pt[3]:    location:  1.75 -1.25  0.25
+With weight: 4
+pt[3]:    location:  0.75 -1.25  0.25
+   idx:     (5,1,4)
+With weight: 4
+pt[4]:    location:  1.75 -1.25  0.25
    idx:     (7,1,4)
-With weight: 2.66667
-pt[4]:    location:  1.25 -1.25  0.75
+With weight: 4
+pt[5]:    location:  1.25 -0.75  0.25
+   idx:     (6,2,4)
+With weight: 4
+pt[6]:    location:  1.25 -1.25  0.75
    idx:     (6,1,5)
 With weight: 4
-pt[5]:    location:  0.75 -1.75  0.25
-   idx:     (5,0,4)
-With weight: 2
-pt[6]:    location:  1.75 -1.75  0.25
-   idx:     (7,0,4)
-With weight: 0.666667
 
 On point:    location:  1.75 -1.25  0.25
    idx:     (7,1,4)
@@ -4514,7 +4934,7 @@ On point:    location: -1.75 -0.75  0.25
    idx:     (0,2,4)
 pt[0]:    location: -1.75 -0.75  0.25
    idx:     (0,2,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75 -0.75 -0.25
    idx:     (0,2,3)
 With weight: 4
@@ -4523,46 +4943,52 @@ pt[2]:    location: -1.75 -1.25  0.25
 With weight: 4
 pt[3]:    location: -2.25 -0.75  0.25
    idx:     (-1,2,4)
-With weight: 2.66667
-pt[4]:    location: -1.75 -0.25  0.25
+With weight: 4
+pt[4]:    location: -1.25 -0.75  0.25
+   idx:     (1,2,4)
+With weight: 4
+pt[5]:    location: -1.75 -0.25  0.25
    idx:     (0,3,4)
 With weight: 4
-pt[5]:    location: -1.75 -0.75  0.75
+pt[6]:    location: -1.75 -0.75  0.75
    idx:     (0,2,5)
 With weight: 4
-pt[6]:    location: -2.25 -1.25  0.25
-   idx:     (-1,1,4)
-With weight: 1.3869e-15
+
+On point:    location: -1.25 -0.75  0.25
+   idx:     (1,2,4)
+
+On point:    location:  1.25 -0.75  0.25
+   idx:     (6,2,4)
 
 On point:    location:  1.75 -0.75  0.25
    idx:     (7,2,4)
 pt[0]:    location:  1.75 -0.75  0.25
    idx:     (7,2,4)
-With weight: -19.2941
+With weight: -24
 pt[1]:    location:  1.75 -0.75 -0.25
    idx:     (7,2,3)
 With weight: 4
 pt[2]:    location:  1.75 -1.25  0.25
    idx:     (7,1,4)
-With weight: 2.11765
-pt[3]:    location:  2.25 -0.75  0.25
+With weight: 4
+pt[3]:    location:  1.25 -0.75  0.25
+   idx:     (6,2,4)
+With weight: 4
+pt[4]:    location:  2.25 -0.75  0.25
    idx:     (8,2,4)
-With weight: 3.29412
-pt[4]:    location:  1.75 -0.25  0.25
+With weight: 4
+pt[5]:    location:  1.75 -0.25  0.25
    idx:     (7,3,4)
 With weight: 4
-pt[5]:    location:  1.75 -0.75  0.75
+pt[6]:    location:  1.75 -0.75  0.75
    idx:     (7,2,5)
 With weight: 4
-pt[6]:    location:  1.25 -1.25  0.25
-   idx:     (6,1,4)
-With weight: 1.88235
 
 On point:    location: -1.75 -0.25  0.25
    idx:     (0,3,4)
 pt[0]:    location: -1.75 -0.25  0.25
    idx:     (0,3,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75 -0.25 -0.25
    idx:     (0,3,3)
 With weight: 4
@@ -4571,46 +4997,52 @@ pt[2]:    location: -1.75 -0.75  0.25
 With weight: 4
 pt[3]:    location: -2.25 -0.25  0.25
    idx:     (-1,3,4)
-With weight: 2.66667
-pt[4]:    location: -1.75  0.25  0.25
+With weight: 4
+pt[4]:    location: -1.25 -0.25  0.25
+   idx:     (1,3,4)
+With weight: 4
+pt[5]:    location: -1.75  0.25  0.25
    idx:     (0,4,4)
 With weight: 4
-pt[5]:    location: -1.75 -0.25  0.75
+pt[6]:    location: -1.75 -0.25  0.75
    idx:     (0,3,5)
 With weight: 4
-pt[6]:    location: -2.25 -0.75  0.25
-   idx:     (-1,2,4)
-With weight: 1.3869e-15
+
+On point:    location: -1.25 -0.25  0.25
+   idx:     (1,3,4)
+
+On point:    location:  1.25 -0.25  0.25
+   idx:     (6,3,4)
 
 On point:    location:  1.75 -0.25  0.25
    idx:     (7,3,4)
 pt[0]:    location:  1.75 -0.25  0.25
    idx:     (7,3,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  1.75 -0.25 -0.25
    idx:     (7,3,3)
 With weight: 4
 pt[2]:    location:  1.75 -0.75  0.25
    idx:     (7,2,4)
 With weight: 4
-pt[3]:    location:  2.25 -0.25  0.25
+pt[3]:    location:  1.25 -0.25  0.25
+   idx:     (6,3,4)
+With weight: 4
+pt[4]:    location:  2.25 -0.25  0.25
    idx:     (8,3,4)
-With weight: 2.66667
-pt[4]:    location: 1.75 0.25 0.25
+With weight: 4
+pt[5]:    location: 1.75 0.25 0.25
    idx:     (7,4,4)
 With weight: 4
-pt[5]:    location:  1.75 -0.25  0.75
+pt[6]:    location:  1.75 -0.25  0.75
    idx:     (7,3,5)
 With weight: 4
-pt[6]:    location:  2.25 -0.75  0.25
-   idx:     (8,2,4)
-With weight: 1.3869e-15
 
 On point:    location: -1.75  0.25  0.25
    idx:     (0,4,4)
 pt[0]:    location: -1.75  0.25  0.25
    idx:     (0,4,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75  0.25 -0.25
    idx:     (0,4,3)
 With weight: 4
@@ -4619,46 +5051,52 @@ pt[2]:    location: -1.75 -0.25  0.25
 With weight: 4
 pt[3]:    location: -2.25  0.25  0.25
    idx:     (-1,4,4)
-With weight: 2.66667
-pt[4]:    location: -1.75  0.75  0.25
+With weight: 4
+pt[4]:    location: -1.25  0.25  0.25
+   idx:     (1,4,4)
+With weight: 4
+pt[5]:    location: -1.75  0.75  0.25
    idx:     (0,5,4)
 With weight: 4
-pt[5]:    location: -1.75  0.25  0.75
+pt[6]:    location: -1.75  0.25  0.75
    idx:     (0,4,5)
 With weight: 4
-pt[6]:    location: -2.25  0.75  0.25
-   idx:     (-1,5,4)
-With weight: -1.47735e-15
+
+On point:    location: -1.25  0.25  0.25
+   idx:     (1,4,4)
+
+On point:    location: 1.25 0.25 0.25
+   idx:     (6,4,4)
 
 On point:    location: 1.75 0.25 0.25
    idx:     (7,4,4)
 pt[0]:    location: 1.75 0.25 0.25
    idx:     (7,4,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  1.75  0.25 -0.25
    idx:     (7,4,3)
 With weight: 4
 pt[2]:    location:  1.75 -0.25  0.25
    idx:     (7,3,4)
 With weight: 4
-pt[3]:    location: 2.25 0.25 0.25
+pt[3]:    location: 1.25 0.25 0.25
+   idx:     (6,4,4)
+With weight: 4
+pt[4]:    location: 2.25 0.25 0.25
    idx:     (8,4,4)
-With weight: 2.66667
-pt[4]:    location: 1.75 0.75 0.25
+With weight: 4
+pt[5]:    location: 1.75 0.75 0.25
    idx:     (7,5,4)
 With weight: 4
-pt[5]:    location: 1.75 0.25 0.75
+pt[6]:    location: 1.75 0.25 0.75
    idx:     (7,4,5)
 With weight: 4
-pt[6]:    location: 2.25 0.75 0.25
-   idx:     (8,5,4)
-With weight: -1.47735e-15
 
 On point:    location: -1.75  0.75  0.25
    idx:     (0,5,4)
 pt[0]:    location: -1.75  0.75  0.25
    idx:     (0,5,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75  0.75 -0.25
    idx:     (0,5,3)
 With weight: 4
@@ -4667,40 +5105,46 @@ pt[2]:    location: -1.75  0.25  0.25
 With weight: 4
 pt[3]:    location: -2.25  0.75  0.25
    idx:     (-1,5,4)
-With weight: 2.66667
-pt[4]:    location: -1.75  1.25  0.25
+With weight: 4
+pt[4]:    location: -1.25  0.75  0.25
+   idx:     (1,5,4)
+With weight: 4
+pt[5]:    location: -1.75  1.25  0.25
    idx:     (0,6,4)
 With weight: 4
-pt[5]:    location: -1.75  0.75  0.75
+pt[6]:    location: -1.75  0.75  0.75
    idx:     (0,5,5)
 With weight: 4
-pt[6]:    location: -2.25  0.25  0.25
-   idx:     (-1,4,4)
-With weight: 1.3869e-15
+
+On point:    location: -1.25  0.75  0.25
+   idx:     (1,5,4)
+
+On point:    location: 1.25 0.75 0.25
+   idx:     (6,5,4)
 
 On point:    location: 1.75 0.75 0.25
    idx:     (7,5,4)
 pt[0]:    location: 1.75 0.75 0.25
    idx:     (7,5,4)
-With weight: -19.2941
+With weight: -24
 pt[1]:    location:  1.75  0.75 -0.25
    idx:     (7,5,3)
 With weight: 4
 pt[2]:    location: 1.75 0.25 0.25
    idx:     (7,4,4)
 With weight: 4
-pt[3]:    location: 2.25 0.75 0.25
+pt[3]:    location: 1.25 0.75 0.25
+   idx:     (6,5,4)
+With weight: 4
+pt[4]:    location: 2.25 0.75 0.25
    idx:     (8,5,4)
-With weight: 3.29412
-pt[4]:    location: 1.75 1.25 0.25
+With weight: 4
+pt[5]:    location: 1.75 1.25 0.25
    idx:     (7,6,4)
-With weight: 2.11765
-pt[5]:    location: 1.75 0.75 0.75
+With weight: 4
+pt[6]:    location: 1.75 0.75 0.75
    idx:     (7,5,5)
 With weight: 4
-pt[6]:    location: 1.25 1.25 0.25
-   idx:     (6,6,4)
-With weight: 1.88235
 
 On point:    location: -1.75  1.25  0.25
    idx:     (0,6,4)
@@ -4730,49 +5174,61 @@ On point:    location: -1.25  1.25  0.25
    idx:     (1,6,4)
 pt[0]:    location: -1.25  1.25  0.25
    idx:     (1,6,4)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location: -1.25  1.25 -0.25
    idx:     (1,6,3)
 With weight: 4
-pt[2]:    location: -1.75  1.25  0.25
+pt[2]:    location: -1.25  0.75  0.25
+   idx:     (1,5,4)
+With weight: 4
+pt[3]:    location: -1.75  1.25  0.25
    idx:     (0,6,4)
-With weight: 2.66667
-pt[3]:    location: -1.25  1.75  0.25
+With weight: 4
+pt[4]:    location: -0.75  1.25  0.25
+   idx:     (2,6,4)
+With weight: 4
+pt[5]:    location: -1.25  1.75  0.25
    idx:     (1,7,4)
-With weight: 2.66667
-pt[4]:    location: -1.25  1.25  0.75
+With weight: 4
+pt[6]:    location: -1.25  1.25  0.75
    idx:     (1,6,5)
 With weight: 4
-pt[5]:    location: -1.75  1.75  0.25
-   idx:     (0,7,4)
-With weight: 4.50879e-16
-pt[6]:    location: -1.75  1.25  0.75
-   idx:     (0,6,5)
-With weight: 1.30313e-16
+
+On point:    location: -0.75  1.25  0.25
+   idx:     (2,6,4)
+
+On point:    location: -0.25  1.25  0.25
+   idx:     (3,6,4)
+
+On point:    location: 0.25 1.25 0.25
+   idx:     (4,6,4)
+
+On point:    location: 0.75 1.25 0.25
+   idx:     (5,6,4)
 
 On point:    location: 1.25 1.25 0.25
    idx:     (6,6,4)
 pt[0]:    location: 1.25 1.25 0.25
    idx:     (6,6,4)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location:  1.25  1.25 -0.25
    idx:     (6,6,3)
 With weight: 4
-pt[2]:    location: 1.75 1.25 0.25
+pt[2]:    location: 1.25 0.75 0.25
+   idx:     (6,5,4)
+With weight: 4
+pt[3]:    location: 0.75 1.25 0.25
+   idx:     (5,6,4)
+With weight: 4
+pt[4]:    location: 1.75 1.25 0.25
    idx:     (7,6,4)
-With weight: 2.66667
-pt[3]:    location: 1.25 1.75 0.25
+With weight: 4
+pt[5]:    location: 1.25 1.75 0.25
    idx:     (6,7,4)
-With weight: -2.16225e-15
-pt[4]:    location: 1.25 1.25 0.75
+With weight: 4
+pt[6]:    location: 1.25 1.25 0.75
    idx:     (6,6,5)
 With weight: 4
-pt[5]:    location: 0.75 1.75 0.25
-   idx:     (5,7,4)
-With weight: 2
-pt[6]:    location: 1.75 1.75 0.25
-   idx:     (7,7,4)
-With weight: 0.666667
 
 On point:    location: 1.75 1.25 0.25
    idx:     (7,6,4)
@@ -4850,97 +5306,97 @@ On point:    location: -0.75  1.75  0.25
    idx:     (2,7,4)
 pt[0]:    location: -0.75  1.75  0.25
    idx:     (2,7,4)
-With weight: -19.2941
+With weight: -24
 pt[1]:    location: -0.75  1.75 -0.25
    idx:     (2,7,3)
 With weight: 4
-pt[2]:    location: -1.25  1.75  0.25
+pt[2]:    location: -0.75  1.25  0.25
+   idx:     (2,6,4)
+With weight: 4
+pt[3]:    location: -1.25  1.75  0.25
    idx:     (1,7,4)
-With weight: 2.11765
-pt[3]:    location: -0.25  1.75  0.25
+With weight: 4
+pt[4]:    location: -0.25  1.75  0.25
    idx:     (3,7,4)
 With weight: 4
-pt[4]:    location: -0.75  2.25  0.25
+pt[5]:    location: -0.75  2.25  0.25
    idx:     (2,8,4)
-With weight: 3.29412
-pt[5]:    location: -0.75  1.75  0.75
+With weight: 4
+pt[6]:    location: -0.75  1.75  0.75
    idx:     (2,7,5)
 With weight: 4
-pt[6]:    location: -1.25  1.25  0.25
-   idx:     (1,6,4)
-With weight: 1.88235
 
 On point:    location: -0.25  1.75  0.25
    idx:     (3,7,4)
 pt[0]:    location: -0.25  1.75  0.25
    idx:     (3,7,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.25  1.75 -0.25
    idx:     (3,7,3)
 With weight: 4
-pt[2]:    location: -0.75  1.75  0.25
+pt[2]:    location: -0.25  1.25  0.25
+   idx:     (3,6,4)
+With weight: 4
+pt[3]:    location: -0.75  1.75  0.25
    idx:     (2,7,4)
 With weight: 4
-pt[3]:    location: 0.25 1.75 0.25
+pt[4]:    location: 0.25 1.75 0.25
    idx:     (4,7,4)
 With weight: 4
-pt[4]:    location: -0.25  2.25  0.25
+pt[5]:    location: -0.25  2.25  0.25
    idx:     (3,8,4)
-With weight: 2.66667
-pt[5]:    location: -0.25  1.75  0.75
+With weight: 4
+pt[6]:    location: -0.25  1.75  0.75
    idx:     (3,7,5)
 With weight: 4
-pt[6]:    location: -0.75  2.25  0.25
-   idx:     (2,8,4)
-With weight: -5.87925e-16
 
 On point:    location: 0.25 1.75 0.25
    idx:     (4,7,4)
 pt[0]:    location: 0.25 1.75 0.25
    idx:     (4,7,4)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.25  1.75 -0.25
    idx:     (4,7,3)
 With weight: 4
-pt[2]:    location: -0.25  1.75  0.25
+pt[2]:    location: 0.25 1.25 0.25
+   idx:     (4,6,4)
+With weight: 4
+pt[3]:    location: -0.25  1.75  0.25
    idx:     (3,7,4)
 With weight: 4
-pt[3]:    location: 0.75 1.75 0.25
+pt[4]:    location: 0.75 1.75 0.25
    idx:     (5,7,4)
 With weight: 4
-pt[4]:    location: 0.25 2.25 0.25
+pt[5]:    location: 0.25 2.25 0.25
    idx:     (4,8,4)
-With weight: 2.66667
-pt[5]:    location: 0.25 1.75 0.75
+With weight: 4
+pt[6]:    location: 0.25 1.75 0.75
    idx:     (4,7,5)
 With weight: 4
-pt[6]:    location: 0.75 2.25 0.25
-   idx:     (5,8,4)
-With weight: -7.31137e-16
 
 On point:    location: 0.75 1.75 0.25
    idx:     (5,7,4)
 pt[0]:    location: 0.75 1.75 0.25
    idx:     (5,7,4)
-With weight: -19.2941
+With weight: -24
 pt[1]:    location:  0.75  1.75 -0.25
    idx:     (5,7,3)
 With weight: 4
-pt[2]:    location: 0.25 1.75 0.25
+pt[2]:    location: 0.75 1.25 0.25
+   idx:     (5,6,4)
+With weight: 4
+pt[3]:    location: 0.25 1.75 0.25
    idx:     (4,7,4)
 With weight: 4
-pt[3]:    location: 1.25 1.75 0.25
+pt[4]:    location: 1.25 1.75 0.25
    idx:     (6,7,4)
-With weight: 2.11765
-pt[4]:    location: 0.75 2.25 0.25
+With weight: 4
+pt[5]:    location: 0.75 2.25 0.25
    idx:     (5,8,4)
-With weight: 3.29412
-pt[5]:    location: 0.75 1.75 0.75
+With weight: 4
+pt[6]:    location: 0.75 1.75 0.75
    idx:     (5,7,5)
 With weight: 4
-pt[6]:    location: 1.25 1.25 0.25
-   idx:     (6,6,4)
-With weight: 1.88235
 
 On point:    location: 1.25 1.75 0.25
    idx:     (6,7,4)
@@ -5042,97 +5498,97 @@ On point:    location: -0.75 -1.75  0.75
    idx:     (2,0,5)
 pt[0]:    location: -0.75 -1.75  0.75
    idx:     (2,0,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.75 -1.75  0.25
    idx:     (2,0,4)
 With weight: 4
 pt[2]:    location: -0.75 -2.25  0.75
    idx:     (2,-1,5)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -1.25 -1.75  0.75
    idx:     (1,0,5)
 With weight: 4
 pt[4]:    location: -0.25 -1.75  0.75
    idx:     (3,0,5)
 With weight: 4
-pt[5]:    location: -0.75 -1.75  1.25
+pt[5]:    location: -0.75 -1.25  0.75
+   idx:     (2,1,5)
+With weight: 4
+pt[6]:    location: -0.75 -1.75  1.25
    idx:     (2,0,6)
 With weight: 4
-pt[6]:    location: -0.75 -2.25  0.25
-   idx:     (2,-1,4)
-With weight: 1.05525e-15
 
 On point:    location: -0.25 -1.75  0.75
    idx:     (3,0,5)
 pt[0]:    location: -0.25 -1.75  0.75
    idx:     (3,0,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.25 -1.75  0.25
    idx:     (3,0,4)
 With weight: 4
 pt[2]:    location: -0.25 -2.25  0.75
    idx:     (3,-1,5)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -0.75 -1.75  0.75
    idx:     (2,0,5)
 With weight: 4
 pt[4]:    location:  0.25 -1.75  0.75
    idx:     (4,0,5)
 With weight: 4
-pt[5]:    location: -0.25 -1.75  1.25
+pt[5]:    location: -0.25 -1.25  0.75
+   idx:     (3,1,5)
+With weight: 4
+pt[6]:    location: -0.25 -1.75  1.25
    idx:     (3,0,6)
 With weight: 4
-pt[6]:    location: -0.25 -2.25  0.25
-   idx:     (3,-1,4)
-With weight: 1.05525e-15
 
 On point:    location:  0.25 -1.75  0.75
    idx:     (4,0,5)
 pt[0]:    location:  0.25 -1.75  0.75
    idx:     (4,0,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.25 -1.75  0.25
    idx:     (4,0,4)
 With weight: 4
 pt[2]:    location:  0.25 -2.25  0.75
    idx:     (4,-1,5)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -0.25 -1.75  0.75
    idx:     (3,0,5)
 With weight: 4
 pt[4]:    location:  0.75 -1.75  0.75
    idx:     (5,0,5)
 With weight: 4
-pt[5]:    location:  0.25 -1.75  1.25
+pt[5]:    location:  0.25 -1.25  0.75
+   idx:     (4,1,5)
+With weight: 4
+pt[6]:    location:  0.25 -1.75  1.25
    idx:     (4,0,6)
 With weight: 4
-pt[6]:    location:  0.25 -2.25  0.25
-   idx:     (4,-1,4)
-With weight: 1.05525e-15
 
 On point:    location:  0.75 -1.75  0.75
    idx:     (5,0,5)
 pt[0]:    location:  0.75 -1.75  0.75
    idx:     (5,0,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  0.75 -1.75  0.25
    idx:     (5,0,4)
 With weight: 4
 pt[2]:    location:  0.75 -2.25  0.75
    idx:     (5,-1,5)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location:  0.25 -1.75  0.75
    idx:     (4,0,5)
 With weight: 4
 pt[4]:    location:  1.25 -1.75  0.75
    idx:     (6,0,5)
 With weight: 4
-pt[5]:    location:  0.75 -1.75  1.25
+pt[5]:    location:  0.75 -1.25  0.75
+   idx:     (5,1,5)
+With weight: 4
+pt[6]:    location:  0.75 -1.75  1.25
    idx:     (5,0,6)
 With weight: 4
-pt[6]:    location:  0.75 -2.25  0.25
-   idx:     (5,-1,4)
-With weight: 1.05525e-15
 
 On point:    location:  1.25 -1.75  0.75
    idx:     (6,0,5)
@@ -5210,49 +5666,103 @@ On point:    location: -1.25 -1.25  0.75
    idx:     (1,1,5)
 pt[0]:    location: -1.25 -1.25  0.75
    idx:     (1,1,5)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location: -1.25 -1.25  0.25
    idx:     (1,1,4)
 With weight: 4
 pt[2]:    location: -1.25 -1.75  0.75
    idx:     (1,0,5)
-With weight: 2.66667
+With weight: 4
 pt[3]:    location: -1.75 -1.25  0.75
    idx:     (0,1,5)
-With weight: 2.66667
-pt[4]:    location: -1.25 -1.25  1.25
+With weight: 4
+pt[4]:    location: -0.75 -1.25  0.75
+   idx:     (2,1,5)
+With weight: 4
+pt[5]:    location: -1.25 -0.75  0.75
+   idx:     (1,2,5)
+With weight: 4
+pt[6]:    location: -1.25 -1.25  1.25
    idx:     (1,1,6)
 With weight: 4
-pt[5]:    location: -1.75 -1.25  0.25
-   idx:     (0,1,4)
-With weight: -1.19224e-15
-pt[6]:    location: -1.75 -1.75  0.75
-   idx:     (0,0,5)
-With weight: 1.05205e-15
+
+On point:    location: -0.75 -1.25  0.75
+   idx:     (2,1,5)
+pt[0]:    location: -0.75 -1.25  0.75
+   idx:     (2,1,5)
+With weight: -24
+pt[1]:    location: -0.75 -1.25  0.25
+   idx:     (2,1,4)
+With weight: 4
+pt[2]:    location: -0.75 -1.75  0.75
+   idx:     (2,0,5)
+With weight: 4
+pt[3]:    location: -1.25 -1.25  0.75
+   idx:     (1,1,5)
+With weight: 4
+pt[4]:    location: -0.25 -1.25  0.75
+   idx:     (3,1,5)
+With weight: 4
+pt[5]:    location: -0.75 -0.75  0.75
+   idx:     (2,2,5)
+With weight: 4
+pt[6]:    location: -0.75 -1.25  1.25
+   idx:     (2,1,6)
+With weight: 4
+
+On point:    location: -0.25 -1.25  0.75
+   idx:     (3,1,5)
+
+On point:    location:  0.25 -1.25  0.75
+   idx:     (4,1,5)
+
+On point:    location:  0.75 -1.25  0.75
+   idx:     (5,1,5)
+pt[0]:    location:  0.75 -1.25  0.75
+   idx:     (5,1,5)
+With weight: -24
+pt[1]:    location:  0.75 -1.25  0.25
+   idx:     (5,1,4)
+With weight: 4
+pt[2]:    location:  0.75 -1.75  0.75
+   idx:     (5,0,5)
+With weight: 4
+pt[3]:    location:  0.25 -1.25  0.75
+   idx:     (4,1,5)
+With weight: 4
+pt[4]:    location:  1.25 -1.25  0.75
+   idx:     (6,1,5)
+With weight: 4
+pt[5]:    location:  0.75 -0.75  0.75
+   idx:     (5,2,5)
+With weight: 4
+pt[6]:    location:  0.75 -1.25  1.25
+   idx:     (5,1,6)
+With weight: 4
 
 On point:    location:  1.25 -1.25  0.75
    idx:     (6,1,5)
 pt[0]:    location:  1.25 -1.25  0.75
    idx:     (6,1,5)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location:  1.25 -1.25  0.25
    idx:     (6,1,4)
 With weight: 4
 pt[2]:    location:  1.25 -1.75  0.75
    idx:     (6,0,5)
-With weight: 0.784314
-pt[3]:    location:  1.75 -1.25  0.75
+With weight: 4
+pt[3]:    location:  0.75 -1.25  0.75
+   idx:     (5,1,5)
+With weight: 4
+pt[4]:    location:  1.75 -1.25  0.75
    idx:     (7,1,5)
-With weight: 3.29412
-pt[4]:    location:  1.25 -1.25  1.25
+With weight: 4
+pt[5]:    location:  1.25 -0.75  0.75
+   idx:     (6,2,5)
+With weight: 4
+pt[6]:    location:  1.25 -1.25  1.25
    idx:     (6,1,6)
 With weight: 4
-pt[5]:    location:  1.25 -1.75  0.25
-   idx:     (6,0,4)
-With weight: -6.71904e-17
-pt[6]:    location:  0.75 -1.75  0.75
-   idx:     (5,0,5)
-With weight: 1.88235
 
 On point:    location:  1.75 -1.25  0.75
    idx:     (7,1,5)
@@ -5282,7 +5792,7 @@ On point:    location: -1.75 -0.75  0.75
    idx:     (0,2,5)
 pt[0]:    location: -1.75 -0.75  0.75
    idx:     (0,2,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75 -0.75  0.25
    idx:     (0,2,4)
 With weight: 4
@@ -5291,46 +5801,100 @@ pt[2]:    location: -1.75 -1.25  0.75
 With weight: 4
 pt[3]:    location: -2.25 -0.75  0.75
    idx:     (-1,2,5)
-With weight: 2.66667
-pt[4]:    location: -1.75 -0.25  0.75
+With weight: 4
+pt[4]:    location: -1.25 -0.75  0.75
+   idx:     (1,2,5)
+With weight: 4
+pt[5]:    location: -1.75 -0.25  0.75
    idx:     (0,3,5)
 With weight: 4
-pt[5]:    location: -1.75 -0.75  1.25
+pt[6]:    location: -1.75 -0.75  1.25
    idx:     (0,2,6)
 With weight: 4
-pt[6]:    location: -2.25 -0.75  0.25
-   idx:     (-1,2,4)
-With weight: 1.13062e-15
+
+On point:    location: -1.25 -0.75  0.75
+   idx:     (1,2,5)
+pt[0]:    location: -1.25 -0.75  0.75
+   idx:     (1,2,5)
+With weight: -24
+pt[1]:    location: -1.25 -0.75  0.25
+   idx:     (1,2,4)
+With weight: 4
+pt[2]:    location: -1.25 -1.25  0.75
+   idx:     (1,1,5)
+With weight: 4
+pt[3]:    location: -1.75 -0.75  0.75
+   idx:     (0,2,5)
+With weight: 4
+pt[4]:    location: -0.75 -0.75  0.75
+   idx:     (2,2,5)
+With weight: 4
+pt[5]:    location: -1.25 -0.25  0.75
+   idx:     (1,3,5)
+With weight: 4
+pt[6]:    location: -1.25 -0.75  1.25
+   idx:     (1,2,6)
+With weight: 4
+
+On point:    location: -0.75 -0.75  0.75
+   idx:     (2,2,5)
+
+On point:    location:  0.75 -0.75  0.75
+   idx:     (5,2,5)
+
+On point:    location:  1.25 -0.75  0.75
+   idx:     (6,2,5)
+pt[0]:    location:  1.25 -0.75  0.75
+   idx:     (6,2,5)
+With weight: -24
+pt[1]:    location:  1.25 -0.75  0.25
+   idx:     (6,2,4)
+With weight: 4
+pt[2]:    location:  1.25 -1.25  0.75
+   idx:     (6,1,5)
+With weight: 4
+pt[3]:    location:  0.75 -0.75  0.75
+   idx:     (5,2,5)
+With weight: 4
+pt[4]:    location:  1.75 -0.75  0.75
+   idx:     (7,2,5)
+With weight: 4
+pt[5]:    location:  1.25 -0.25  0.75
+   idx:     (6,3,5)
+With weight: 4
+pt[6]:    location:  1.25 -0.75  1.25
+   idx:     (6,2,6)
+With weight: 4
 
 On point:    location:  1.75 -0.75  0.75
    idx:     (7,2,5)
 pt[0]:    location:  1.75 -0.75  0.75
    idx:     (7,2,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  1.75 -0.75  0.25
    idx:     (7,2,4)
 With weight: 4
 pt[2]:    location:  1.75 -1.25  0.75
    idx:     (7,1,5)
 With weight: 4
-pt[3]:    location:  2.25 -0.75  0.75
+pt[3]:    location:  1.25 -0.75  0.75
+   idx:     (6,2,5)
+With weight: 4
+pt[4]:    location:  2.25 -0.75  0.75
    idx:     (8,2,5)
-With weight: 2.66667
-pt[4]:    location:  1.75 -0.25  0.75
+With weight: 4
+pt[5]:    location:  1.75 -0.25  0.75
    idx:     (7,3,5)
 With weight: 4
-pt[5]:    location:  1.75 -0.75  1.25
+pt[6]:    location:  1.75 -0.75  1.25
    idx:     (7,2,6)
 With weight: 4
-pt[6]:    location:  1.75 -0.25  0.25
-   idx:     (7,3,4)
-With weight: 2.60649e-16
 
 On point:    location: -1.75 -0.25  0.75
    idx:     (0,3,5)
 pt[0]:    location: -1.75 -0.25  0.75
    idx:     (0,3,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75 -0.25  0.25
    idx:     (0,3,4)
 With weight: 4
@@ -5339,46 +5903,52 @@ pt[2]:    location: -1.75 -0.75  0.75
 With weight: 4
 pt[3]:    location: -2.25 -0.25  0.75
    idx:     (-1,3,5)
-With weight: 2.66667
-pt[4]:    location: -1.75  0.25  0.75
+With weight: 4
+pt[4]:    location: -1.25 -0.25  0.75
+   idx:     (1,3,5)
+With weight: 4
+pt[5]:    location: -1.75  0.25  0.75
    idx:     (0,4,5)
 With weight: 4
-pt[5]:    location: -1.75 -0.25  1.25
+pt[6]:    location: -1.75 -0.25  1.25
    idx:     (0,3,6)
 With weight: 4
-pt[6]:    location: -1.75 -0.75  0.25
-   idx:     (0,2,4)
-With weight: -7.27074e-16
+
+On point:    location: -1.25 -0.25  0.75
+   idx:     (1,3,5)
+
+On point:    location:  1.25 -0.25  0.75
+   idx:     (6,3,5)
 
 On point:    location:  1.75 -0.25  0.75
    idx:     (7,3,5)
 pt[0]:    location:  1.75 -0.25  0.75
    idx:     (7,3,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location:  1.75 -0.25  0.25
    idx:     (7,3,4)
 With weight: 4
 pt[2]:    location:  1.75 -0.75  0.75
    idx:     (7,2,5)
 With weight: 4
-pt[3]:    location:  2.25 -0.25  0.75
+pt[3]:    location:  1.25 -0.25  0.75
+   idx:     (6,3,5)
+With weight: 4
+pt[4]:    location:  2.25 -0.25  0.75
    idx:     (8,3,5)
-With weight: 2.66667
-pt[4]:    location: 1.75 0.25 0.75
+With weight: 4
+pt[5]:    location: 1.75 0.25 0.75
    idx:     (7,4,5)
 With weight: 4
-pt[5]:    location:  1.75 -0.25  1.25
+pt[6]:    location:  1.75 -0.25  1.25
    idx:     (7,3,6)
 With weight: 4
-pt[6]:    location:  1.75 -0.75  0.25
-   idx:     (7,2,4)
-With weight: -7.27074e-16
 
 On point:    location: -1.75  0.25  0.75
    idx:     (0,4,5)
 pt[0]:    location: -1.75  0.25  0.75
    idx:     (0,4,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75  0.25  0.25
    idx:     (0,4,4)
 With weight: 4
@@ -5387,46 +5957,52 @@ pt[2]:    location: -1.75 -0.25  0.75
 With weight: 4
 pt[3]:    location: -2.25  0.25  0.75
    idx:     (-1,4,5)
-With weight: 2.66667
-pt[4]:    location: -1.75  0.75  0.75
+With weight: 4
+pt[4]:    location: -1.25  0.25  0.75
+   idx:     (1,4,5)
+With weight: 4
+pt[5]:    location: -1.75  0.75  0.75
    idx:     (0,5,5)
 With weight: 4
-pt[5]:    location: -1.75  0.25  1.25
+pt[6]:    location: -1.75  0.25  1.25
    idx:     (0,4,6)
 With weight: 4
-pt[6]:    location: -2.25  0.25  0.25
-   idx:     (-1,4,4)
-With weight: 1.13062e-15
+
+On point:    location: -1.25  0.25  0.75
+   idx:     (1,4,5)
+
+On point:    location: 1.25 0.25 0.75
+   idx:     (6,4,5)
 
 On point:    location: 1.75 0.25 0.75
    idx:     (7,4,5)
 pt[0]:    location: 1.75 0.25 0.75
    idx:     (7,4,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: 1.75 0.25 0.25
    idx:     (7,4,4)
 With weight: 4
 pt[2]:    location:  1.75 -0.25  0.75
    idx:     (7,3,5)
 With weight: 4
-pt[3]:    location: 2.25 0.25 0.75
+pt[3]:    location: 1.25 0.25 0.75
+   idx:     (6,4,5)
+With weight: 4
+pt[4]:    location: 2.25 0.25 0.75
    idx:     (8,4,5)
-With weight: 2.66667
-pt[4]:    location: 1.75 0.75 0.75
+With weight: 4
+pt[5]:    location: 1.75 0.75 0.75
    idx:     (7,5,5)
 With weight: 4
-pt[5]:    location: 1.75 0.25 1.25
+pt[6]:    location: 1.75 0.25 1.25
    idx:     (7,4,6)
 With weight: 4
-pt[6]:    location: 1.75 0.75 0.25
-   idx:     (7,5,4)
-With weight: 2.60649e-16
 
 On point:    location: -1.75  0.75  0.75
    idx:     (0,5,5)
 pt[0]:    location: -1.75  0.75  0.75
    idx:     (0,5,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -1.75  0.75  0.25
    idx:     (0,5,4)
 With weight: 4
@@ -5435,40 +6011,94 @@ pt[2]:    location: -1.75  0.25  0.75
 With weight: 4
 pt[3]:    location: -2.25  0.75  0.75
    idx:     (-1,5,5)
-With weight: 2.66667
-pt[4]:    location: -1.75  1.25  0.75
+With weight: 4
+pt[4]:    location: -1.25  0.75  0.75
+   idx:     (1,5,5)
+With weight: 4
+pt[5]:    location: -1.75  1.25  0.75
    idx:     (0,6,5)
 With weight: 4
-pt[5]:    location: -1.75  0.75  1.25
+pt[6]:    location: -1.75  0.75  1.25
    idx:     (0,5,6)
 With weight: 4
-pt[6]:    location: -1.75  0.25  0.25
-   idx:     (0,4,4)
-With weight: -7.27074e-16
+
+On point:    location: -1.25  0.75  0.75
+   idx:     (1,5,5)
+pt[0]:    location: -1.25  0.75  0.75
+   idx:     (1,5,5)
+With weight: -24
+pt[1]:    location: -1.25  0.75  0.25
+   idx:     (1,5,4)
+With weight: 4
+pt[2]:    location: -1.25  0.25  0.75
+   idx:     (1,4,5)
+With weight: 4
+pt[3]:    location: -1.75  0.75  0.75
+   idx:     (0,5,5)
+With weight: 4
+pt[4]:    location: -0.75  0.75  0.75
+   idx:     (2,5,5)
+With weight: 4
+pt[5]:    location: -1.25  1.25  0.75
+   idx:     (1,6,5)
+With weight: 4
+pt[6]:    location: -1.25  0.75  1.25
+   idx:     (1,5,6)
+With weight: 4
+
+On point:    location: -0.75  0.75  0.75
+   idx:     (2,5,5)
+
+On point:    location: 0.75 0.75 0.75
+   idx:     (5,5,5)
+
+On point:    location: 1.25 0.75 0.75
+   idx:     (6,5,5)
+pt[0]:    location: 1.25 0.75 0.75
+   idx:     (6,5,5)
+With weight: -24
+pt[1]:    location: 1.25 0.75 0.25
+   idx:     (6,5,4)
+With weight: 4
+pt[2]:    location: 1.25 0.25 0.75
+   idx:     (6,4,5)
+With weight: 4
+pt[3]:    location: 0.75 0.75 0.75
+   idx:     (5,5,5)
+With weight: 4
+pt[4]:    location: 1.75 0.75 0.75
+   idx:     (7,5,5)
+With weight: 4
+pt[5]:    location: 1.25 1.25 0.75
+   idx:     (6,6,5)
+With weight: 4
+pt[6]:    location: 1.25 0.75 1.25
+   idx:     (6,5,6)
+With weight: 4
 
 On point:    location: 1.75 0.75 0.75
    idx:     (7,5,5)
 pt[0]:    location: 1.75 0.75 0.75
    idx:     (7,5,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: 1.75 0.75 0.25
    idx:     (7,5,4)
 With weight: 4
 pt[2]:    location: 1.75 0.25 0.75
    idx:     (7,4,5)
 With weight: 4
-pt[3]:    location: 2.25 0.75 0.75
+pt[3]:    location: 1.25 0.75 0.75
+   idx:     (6,5,5)
+With weight: 4
+pt[4]:    location: 2.25 0.75 0.75
    idx:     (8,5,5)
-With weight: 2.66667
-pt[4]:    location: 1.75 1.25 0.75
+With weight: 4
+pt[5]:    location: 1.75 1.25 0.75
    idx:     (7,6,5)
 With weight: 4
-pt[5]:    location: 1.75 0.75 1.25
+pt[6]:    location: 1.75 0.75 1.25
    idx:     (7,5,6)
 With weight: 4
-pt[6]:    location: 1.75 0.25 0.25
-   idx:     (7,4,4)
-With weight: -7.27074e-16
 
 On point:    location: -1.75  1.25  0.75
    idx:     (0,6,5)
@@ -5498,49 +6128,103 @@ On point:    location: -1.25  1.25  0.75
    idx:     (1,6,5)
 pt[0]:    location: -1.25  1.25  0.75
    idx:     (1,6,5)
-With weight: -13.3333
+With weight: -24
 pt[1]:    location: -1.25  1.25  0.25
    idx:     (1,6,4)
 With weight: 4
-pt[2]:    location: -1.75  1.25  0.75
+pt[2]:    location: -1.25  0.75  0.75
+   idx:     (1,5,5)
+With weight: 4
+pt[3]:    location: -1.75  1.25  0.75
    idx:     (0,6,5)
-With weight: 2.66667
-pt[3]:    location: -1.25  1.75  0.75
+With weight: 4
+pt[4]:    location: -0.75  1.25  0.75
+   idx:     (2,6,5)
+With weight: 4
+pt[5]:    location: -1.25  1.75  0.75
    idx:     (1,7,5)
-With weight: 2.66667
-pt[4]:    location: -1.25  1.25  1.25
+With weight: 4
+pt[6]:    location: -1.25  1.25  1.25
    idx:     (1,6,6)
 With weight: 4
-pt[5]:    location: -1.75  1.25  0.25
-   idx:     (0,6,4)
-With weight: 3.03817e-17
-pt[6]:    location: -1.25  1.75  0.25
-   idx:     (1,7,4)
-With weight: -3.14198e-16
+
+On point:    location: -0.75  1.25  0.75
+   idx:     (2,6,5)
+pt[0]:    location: -0.75  1.25  0.75
+   idx:     (2,6,5)
+With weight: -24
+pt[1]:    location: -0.75  1.25  0.25
+   idx:     (2,6,4)
+With weight: 4
+pt[2]:    location: -0.75  0.75  0.75
+   idx:     (2,5,5)
+With weight: 4
+pt[3]:    location: -1.25  1.25  0.75
+   idx:     (1,6,5)
+With weight: 4
+pt[4]:    location: -0.25  1.25  0.75
+   idx:     (3,6,5)
+With weight: 4
+pt[5]:    location: -0.75  1.75  0.75
+   idx:     (2,7,5)
+With weight: 4
+pt[6]:    location: -0.75  1.25  1.25
+   idx:     (2,6,6)
+With weight: 4
+
+On point:    location: -0.25  1.25  0.75
+   idx:     (3,6,5)
+
+On point:    location: 0.25 1.25 0.75
+   idx:     (4,6,5)
+
+On point:    location: 0.75 1.25 0.75
+   idx:     (5,6,5)
+pt[0]:    location: 0.75 1.25 0.75
+   idx:     (5,6,5)
+With weight: -24
+pt[1]:    location: 0.75 1.25 0.25
+   idx:     (5,6,4)
+With weight: 4
+pt[2]:    location: 0.75 0.75 0.75
+   idx:     (5,5,5)
+With weight: 4
+pt[3]:    location: 0.25 1.25 0.75
+   idx:     (4,6,5)
+With weight: 4
+pt[4]:    location: 1.25 1.25 0.75
+   idx:     (6,6,5)
+With weight: 4
+pt[5]:    location: 0.75 1.75 0.75
+   idx:     (5,7,5)
+With weight: 4
+pt[6]:    location: 0.75 1.25 1.25
+   idx:     (5,6,6)
+With weight: 4
 
 On point:    location: 1.25 1.25 0.75
    idx:     (6,6,5)
 pt[0]:    location: 1.25 1.25 0.75
    idx:     (6,6,5)
-With weight: -13.9608
+With weight: -24
 pt[1]:    location: 1.25 1.25 0.25
    idx:     (6,6,4)
 With weight: 4
-pt[2]:    location: 1.75 1.25 0.75
+pt[2]:    location: 1.25 0.75 0.75
+   idx:     (6,5,5)
+With weight: 4
+pt[3]:    location: 0.75 1.25 0.75
+   idx:     (5,6,5)
+With weight: 4
+pt[4]:    location: 1.75 1.25 0.75
    idx:     (7,6,5)
-With weight: 3.29412
-pt[3]:    location: 1.25 1.75 0.75
+With weight: 4
+pt[5]:    location: 1.25 1.75 0.75
    idx:     (6,7,5)
-With weight: 0.784314
-pt[4]:    location: 1.25 1.25 1.25
+With weight: 4
+pt[6]:    location: 1.25 1.25 1.25
    idx:     (6,6,6)
 With weight: 4
-pt[5]:    location: 1.25 1.75 0.25
-   idx:     (6,7,4)
-With weight: 2.01571e-16
-pt[6]:    location: 0.75 1.75 0.75
-   idx:     (5,7,5)
-With weight: 1.88235
 
 On point:    location: 1.75 1.25 0.75
    idx:     (7,6,5)
@@ -5618,97 +6302,97 @@ On point:    location: -0.75  1.75  0.75
    idx:     (2,7,5)
 pt[0]:    location: -0.75  1.75  0.75
    idx:     (2,7,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.75  1.75  0.25
    idx:     (2,7,4)
 With weight: 4
-pt[2]:    location: -1.25  1.75  0.75
+pt[2]:    location: -0.75  1.25  0.75
+   idx:     (2,6,5)
+With weight: 4
+pt[3]:    location: -1.25  1.75  0.75
    idx:     (1,7,5)
 With weight: 4
-pt[3]:    location: -0.25  1.75  0.75
+pt[4]:    location: -0.25  1.75  0.75
    idx:     (3,7,5)
 With weight: 4
-pt[4]:    location: -0.75  2.25  0.75
+pt[5]:    location: -0.75  2.25  0.75
    idx:     (2,8,5)
-With weight: 2.66667
-pt[5]:    location: -0.75  1.75  1.25
+With weight: 4
+pt[6]:    location: -0.75  1.75  1.25
    idx:     (2,7,6)
 With weight: 4
-pt[6]:    location: -0.25  1.75  0.25
-   idx:     (3,7,4)
-With weight: 1.09747e-15
 
 On point:    location: -0.25  1.75  0.75
    idx:     (3,7,5)
 pt[0]:    location: -0.25  1.75  0.75
    idx:     (3,7,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: -0.25  1.75  0.25
    idx:     (3,7,4)
 With weight: 4
-pt[2]:    location: -0.75  1.75  0.75
+pt[2]:    location: -0.25  1.25  0.75
+   idx:     (3,6,5)
+With weight: 4
+pt[3]:    location: -0.75  1.75  0.75
    idx:     (2,7,5)
 With weight: 4
-pt[3]:    location: 0.25 1.75 0.75
+pt[4]:    location: 0.25 1.75 0.75
    idx:     (4,7,5)
 With weight: 4
-pt[4]:    location: -0.25  2.25  0.75
+pt[5]:    location: -0.25  2.25  0.75
    idx:     (3,8,5)
-With weight: 2.66667
-pt[5]:    location: -0.25  1.75  1.25
+With weight: 4
+pt[6]:    location: -0.25  1.75  1.25
    idx:     (3,7,6)
 With weight: 4
-pt[6]:    location: -0.75  1.75  0.25
-   idx:     (2,7,4)
-With weight: 8.23102e-16
 
 On point:    location: 0.25 1.75 0.75
    idx:     (4,7,5)
 pt[0]:    location: 0.25 1.75 0.75
    idx:     (4,7,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: 0.25 1.75 0.25
    idx:     (4,7,4)
 With weight: 4
-pt[2]:    location: -0.25  1.75  0.75
+pt[2]:    location: 0.25 1.25 0.75
+   idx:     (4,6,5)
+With weight: 4
+pt[3]:    location: -0.25  1.75  0.75
    idx:     (3,7,5)
 With weight: 4
-pt[3]:    location: 0.75 1.75 0.75
+pt[4]:    location: 0.75 1.75 0.75
    idx:     (5,7,5)
 With weight: 4
-pt[4]:    location: 0.25 2.25 0.75
+pt[5]:    location: 0.25 2.25 0.75
    idx:     (4,8,5)
-With weight: 2.66667
-pt[5]:    location: 0.25 1.75 1.25
+With weight: 4
+pt[6]:    location: 0.25 1.75 1.25
    idx:     (4,7,6)
 With weight: 4
-pt[6]:    location: 0.75 1.75 0.25
-   idx:     (5,7,4)
-With weight: 1.09747e-15
 
 On point:    location: 0.75 1.75 0.75
    idx:     (5,7,5)
 pt[0]:    location: 0.75 1.75 0.75
    idx:     (5,7,5)
-With weight: -18.6667
+With weight: -24
 pt[1]:    location: 0.75 1.75 0.25
    idx:     (5,7,4)
 With weight: 4
-pt[2]:    location: 0.25 1.75 0.75
+pt[2]:    location: 0.75 1.25 0.75
+   idx:     (5,6,5)
+With weight: 4
+pt[3]:    location: 0.25 1.75 0.75
    idx:     (4,7,5)
 With weight: 4
-pt[3]:    location: 1.25 1.75 0.75
+pt[4]:    location: 1.25 1.75 0.75
    idx:     (6,7,5)
 With weight: 4
-pt[4]:    location: 0.75 2.25 0.75
+pt[5]:    location: 0.75 2.25 0.75
    idx:     (5,8,5)
-With weight: 2.66667
-pt[5]:    location: 0.75 1.75 1.25
+With weight: 4
+pt[6]:    location: 0.75 1.75 1.25
    idx:     (5,7,6)
 With weight: 4
-pt[6]:    location: 0.25 1.75 0.25
-   idx:     (4,7,4)
-With weight: 8.23102e-16
 
 On point:    location: 1.25 1.75 0.75
    idx:     (6,7,5)
@@ -6002,97 +6686,97 @@ On point:    location: -0.75 -1.25  1.25
    idx:     (2,1,6)
 pt[0]:    location: -0.75 -1.25  1.25
    idx:     (2,1,6)
-With weight: -13.9608
-pt[1]:    location: -0.75 -1.75  1.25
+With weight: -24
+pt[1]:    location: -0.75 -1.25  0.75
+   idx:     (2,1,5)
+With weight: 4
+pt[2]:    location: -0.75 -1.75  1.25
    idx:     (2,0,6)
-With weight: 0.784314
-pt[2]:    location: -1.25 -1.25  1.25
+With weight: 4
+pt[3]:    location: -1.25 -1.25  1.25
    idx:     (1,1,6)
 With weight: 4
-pt[3]:    location: -0.25 -1.25  1.25
+pt[4]:    location: -0.25 -1.25  1.25
    idx:     (3,1,6)
 With weight: 4
-pt[4]:    location: -0.75 -1.25  1.75
+pt[5]:    location: -0.75 -0.75  1.25
+   idx:     (2,2,6)
+With weight: 4
+pt[6]:    location: -0.75 -1.25  1.75
    idx:     (2,1,7)
-With weight: 3.29412
-pt[5]:    location: -0.75 -1.75  0.75
-   idx:     (2,0,5)
-With weight: 1.88235
-pt[6]:    location: -0.25 -1.75  1.25
-   idx:     (3,0,6)
-With weight: 6.38308e-16
+With weight: 4
 
 On point:    location: -0.25 -1.25  1.25
    idx:     (3,1,6)
 pt[0]:    location: -0.25 -1.25  1.25
    idx:     (3,1,6)
-With weight: -13.9608
-pt[1]:    location: -0.25 -1.75  1.25
+With weight: -24
+pt[1]:    location: -0.25 -1.25  0.75
+   idx:     (3,1,5)
+With weight: 4
+pt[2]:    location: -0.25 -1.75  1.25
    idx:     (3,0,6)
-With weight: 0.784314
-pt[2]:    location: -0.75 -1.25  1.25
+With weight: 4
+pt[3]:    location: -0.75 -1.25  1.25
    idx:     (2,1,6)
 With weight: 4
-pt[3]:    location:  0.25 -1.25  1.25
+pt[4]:    location:  0.25 -1.25  1.25
    idx:     (4,1,6)
 With weight: 4
-pt[4]:    location: -0.25 -1.25  1.75
+pt[5]:    location: -0.25 -0.75  1.25
+   idx:     (3,2,6)
+With weight: 4
+pt[6]:    location: -0.25 -1.25  1.75
    idx:     (3,1,7)
-With weight: 3.29412
-pt[5]:    location: -0.25 -1.75  0.75
-   idx:     (3,0,5)
-With weight: 1.88235
-pt[6]:    location: -0.75 -1.75  1.25
-   idx:     (2,0,6)
-With weight: -7.72689e-16
+With weight: 4
 
 On point:    location:  0.25 -1.25  1.25
    idx:     (4,1,6)
 pt[0]:    location:  0.25 -1.25  1.25
    idx:     (4,1,6)
-With weight: -13.9608
-pt[1]:    location:  0.25 -1.75  1.25
+With weight: -24
+pt[1]:    location:  0.25 -1.25  0.75
+   idx:     (4,1,5)
+With weight: 4
+pt[2]:    location:  0.25 -1.75  1.25
    idx:     (4,0,6)
-With weight: 0.784314
-pt[2]:    location: -0.25 -1.25  1.25
+With weight: 4
+pt[3]:    location: -0.25 -1.25  1.25
    idx:     (3,1,6)
 With weight: 4
-pt[3]:    location:  0.75 -1.25  1.25
+pt[4]:    location:  0.75 -1.25  1.25
    idx:     (5,1,6)
 With weight: 4
-pt[4]:    location:  0.25 -1.25  1.75
+pt[5]:    location:  0.25 -0.75  1.25
+   idx:     (4,2,6)
+With weight: 4
+pt[6]:    location:  0.25 -1.25  1.75
    idx:     (4,1,7)
-With weight: 3.29412
-pt[5]:    location:  0.25 -1.75  0.75
-   idx:     (4,0,5)
-With weight: 1.88235
-pt[6]:    location:  0.75 -1.75  1.25
-   idx:     (5,0,6)
-With weight: 6.38308e-16
+With weight: 4
 
 On point:    location:  0.75 -1.25  1.25
    idx:     (5,1,6)
 pt[0]:    location:  0.75 -1.25  1.25
    idx:     (5,1,6)
-With weight: -14.1867
-pt[1]:    location:  0.75 -1.75  1.25
+With weight: -24
+pt[1]:    location:  0.75 -1.25  0.75
+   idx:     (5,1,5)
+With weight: 4
+pt[2]:    location:  0.75 -1.75  1.25
    idx:     (5,0,6)
-With weight: 1.38667
-pt[2]:    location:  0.25 -1.25  1.25
+With weight: 4
+pt[3]:    location:  0.25 -1.25  1.25
    idx:     (4,1,6)
 With weight: 4
-pt[3]:    location:  1.25 -1.25  1.25
+pt[4]:    location:  1.25 -1.25  1.25
    idx:     (6,1,6)
-With weight: 2.72
-pt[4]:    location:  0.75 -1.25  1.75
+With weight: 4
+pt[5]:    location:  0.75 -0.75  1.25
+   idx:     (5,2,6)
+With weight: 4
+pt[6]:    location:  0.75 -1.25  1.75
    idx:     (5,1,7)
-With weight: 3.52
-pt[5]:    location:  0.75 -1.75  0.75
-   idx:     (5,0,5)
-With weight: 1.28
-pt[6]:    location:  1.25 -1.25  0.75
-   idx:     (6,1,5)
-With weight: 1.28
+With weight: 4
 
 On point:    location:  1.25 -1.25  1.25
    idx:     (6,1,6)
@@ -6170,49 +6854,103 @@ On point:    location: -1.25 -0.75  1.25
    idx:     (1,2,6)
 pt[0]:    location: -1.25 -0.75  1.25
    idx:     (1,2,6)
-With weight: -13.9608
-pt[1]:    location: -1.25 -1.25  1.25
+With weight: -24
+pt[1]:    location: -1.25 -0.75  0.75
+   idx:     (1,2,5)
+With weight: 4
+pt[2]:    location: -1.25 -1.25  1.25
    idx:     (1,1,6)
 With weight: 4
-pt[2]:    location: -1.75 -0.75  1.25
+pt[3]:    location: -1.75 -0.75  1.25
    idx:     (0,2,6)
-With weight: 0.784314
-pt[3]:    location: -1.25 -0.25  1.25
+With weight: 4
+pt[4]:    location: -0.75 -0.75  1.25
+   idx:     (2,2,6)
+With weight: 4
+pt[5]:    location: -1.25 -0.25  1.25
    idx:     (1,3,6)
 With weight: 4
-pt[4]:    location: -1.25 -0.75  1.75
+pt[6]:    location: -1.25 -0.75  1.75
    idx:     (1,2,7)
-With weight: 3.29412
-pt[5]:    location: -1.75 -0.75  0.75
-   idx:     (0,2,5)
-With weight: 1.88235
-pt[6]:    location: -1.75 -0.25  1.25
-   idx:     (0,3,6)
-With weight: 4.70333e-16
+With weight: 4
+
+On point:    location: -0.75 -0.75  1.25
+   idx:     (2,2,6)
+pt[0]:    location: -0.75 -0.75  1.25
+   idx:     (2,2,6)
+With weight: -24
+pt[1]:    location: -0.75 -0.75  0.75
+   idx:     (2,2,5)
+With weight: 4
+pt[2]:    location: -0.75 -1.25  1.25
+   idx:     (2,1,6)
+With weight: 4
+pt[3]:    location: -1.25 -0.75  1.25
+   idx:     (1,2,6)
+With weight: 4
+pt[4]:    location: -0.25 -0.75  1.25
+   idx:     (3,2,6)
+With weight: 4
+pt[5]:    location: -0.75 -0.25  1.25
+   idx:     (2,3,6)
+With weight: 4
+pt[6]:    location: -0.75 -0.75  1.75
+   idx:     (2,2,7)
+With weight: 4
+
+On point:    location: -0.25 -0.75  1.25
+   idx:     (3,2,6)
+
+On point:    location:  0.25 -0.75  1.25
+   idx:     (4,2,6)
+
+On point:    location:  0.75 -0.75  1.25
+   idx:     (5,2,6)
+pt[0]:    location:  0.75 -0.75  1.25
+   idx:     (5,2,6)
+With weight: -24
+pt[1]:    location:  0.75 -0.75  0.75
+   idx:     (5,2,5)
+With weight: 4
+pt[2]:    location:  0.75 -1.25  1.25
+   idx:     (5,1,6)
+With weight: 4
+pt[3]:    location:  0.25 -0.75  1.25
+   idx:     (4,2,6)
+With weight: 4
+pt[4]:    location:  1.25 -0.75  1.25
+   idx:     (6,2,6)
+With weight: 4
+pt[5]:    location:  0.75 -0.25  1.25
+   idx:     (5,3,6)
+With weight: 4
+pt[6]:    location:  0.75 -0.75  1.75
+   idx:     (5,2,7)
+With weight: 4
 
 On point:    location:  1.25 -0.75  1.25
    idx:     (6,2,6)
 pt[0]:    location:  1.25 -0.75  1.25
    idx:     (6,2,6)
-With weight: -14.1867
-pt[1]:    location:  1.25 -1.25  1.25
+With weight: -24
+pt[1]:    location:  1.25 -0.75  0.75
+   idx:     (6,2,5)
+With weight: 4
+pt[2]:    location:  1.25 -1.25  1.25
    idx:     (6,1,6)
-With weight: 2.72
-pt[2]:    location:  1.75 -0.75  1.25
+With weight: 4
+pt[3]:    location:  0.75 -0.75  1.25
+   idx:     (5,2,6)
+With weight: 4
+pt[4]:    location:  1.75 -0.75  1.25
    idx:     (7,2,6)
-With weight: 1.38667
-pt[3]:    location:  1.25 -0.25  1.25
+With weight: 4
+pt[5]:    location:  1.25 -0.25  1.25
    idx:     (6,3,6)
 With weight: 4
-pt[4]:    location:  1.25 -0.75  1.75
+pt[6]:    location:  1.25 -0.75  1.75
    idx:     (6,2,7)
-With weight: 3.52
-pt[5]:    location:  1.25 -1.25  0.75
-   idx:     (6,1,5)
-With weight: 1.28
-pt[6]:    location:  1.75 -0.75  0.75
-   idx:     (7,2,5)
-With weight: 1.28
+With weight: 4
 
 On point:    location:  1.75 -0.75  1.25
    idx:     (7,2,6)
@@ -6266,49 +7004,61 @@ On point:    location: -1.25 -0.25  1.25
    idx:     (1,3,6)
 pt[0]:    location: -1.25 -0.25  1.25
    idx:     (1,3,6)
-With weight: -13.9608
-pt[1]:    location: -1.25 -0.75  1.25
+With weight: -24
+pt[1]:    location: -1.25 -0.25  0.75
+   idx:     (1,3,5)
+With weight: 4
+pt[2]:    location: -1.25 -0.75  1.25
    idx:     (1,2,6)
 With weight: 4
-pt[2]:    location: -1.75 -0.25  1.25
+pt[3]:    location: -1.75 -0.25  1.25
    idx:     (0,3,6)
-With weight: 0.784314
-pt[3]:    location: -1.25  0.25  1.25
+With weight: 4
+pt[4]:    location: -0.75 -0.25  1.25
+   idx:     (2,3,6)
+With weight: 4
+pt[5]:    location: -1.25  0.25  1.25
    idx:     (1,4,6)
 With weight: 4
-pt[4]:    location: -1.25 -0.25  1.75
+pt[6]:    location: -1.25 -0.25  1.75
    idx:     (1,3,7)
-With weight: 3.29412
-pt[5]:    location: -1.75 -0.25  0.75
-   idx:     (0,3,5)
-With weight: 1.88235
-pt[6]:    location: -1.75 -0.75  1.25
-   idx:     (0,2,6)
-With weight: -6.71904e-16
+With weight: 4
+
+On point:    location: -0.75 -0.25  1.25
+   idx:     (2,3,6)
+
+On point:    location: -0.25 -0.25  1.25
+   idx:     (3,3,6)
+
+On point:    location:  0.25 -0.25  1.25
+   idx:     (4,3,6)
+
+On point:    location:  0.75 -0.25  1.25
+   idx:     (5,3,6)
 
 On point:    location:  1.25 -0.25  1.25
    idx:     (6,3,6)
 pt[0]:    location:  1.25 -0.25  1.25
    idx:     (6,3,6)
-With weight: -13.9608
-pt[1]:    location:  1.25 -0.75  1.25
+With weight: -24
+pt[1]:    location:  1.25 -0.25  0.75
+   idx:     (6,3,5)
+With weight: 4
+pt[2]:    location:  1.25 -0.75  1.25
    idx:     (6,2,6)
 With weight: 4
-pt[2]:    location:  1.75 -0.25  1.25
+pt[3]:    location:  0.75 -0.25  1.25
+   idx:     (5,3,6)
+With weight: 4
+pt[4]:    location:  1.75 -0.25  1.25
    idx:     (7,3,6)
-With weight: 0.784314
-pt[3]:    location: 1.25 0.25 1.25
+With weight: 4
+pt[5]:    location: 1.25 0.25 1.25
    idx:     (6,4,6)
 With weight: 4
-pt[4]:    location:  1.25 -0.25  1.75
+pt[6]:    location:  1.25 -0.25  1.75
    idx:     (6,3,7)
-With weight: 3.29412
-pt[5]:    location:  1.75 -0.25  0.75
-   idx:     (7,3,5)
-With weight: 1.88235
-pt[6]:    location:  1.75 -0.75  1.25
-   idx:     (7,2,6)
-With weight: -6.71904e-16
+With weight: 4
 
 On point:    location:  1.75 -0.25  1.25
    idx:     (7,3,6)
@@ -6362,49 +7112,61 @@ On point:    location: -1.25  0.25  1.25
    idx:     (1,4,6)
 pt[0]:    location: -1.25  0.25  1.25
    idx:     (1,4,6)
-With weight: -13.9608
-pt[1]:    location: -1.25 -0.25  1.25
+With weight: -24
+pt[1]:    location: -1.25  0.25  0.75
+   idx:     (1,4,5)
+With weight: 4
+pt[2]:    location: -1.25 -0.25  1.25
    idx:     (1,3,6)
 With weight: 4
-pt[2]:    location: -1.75  0.25  1.25
+pt[3]:    location: -1.75  0.25  1.25
    idx:     (0,4,6)
-With weight: 0.784314
-pt[3]:    location: -1.25  0.75  1.25
+With weight: 4
+pt[4]:    location: -0.75  0.25  1.25
+   idx:     (2,4,6)
+With weight: 4
+pt[5]:    location: -1.25  0.75  1.25
    idx:     (1,5,6)
 With weight: 4
-pt[4]:    location: -1.25  0.25  1.75
+pt[6]:    location: -1.25  0.25  1.75
    idx:     (1,4,7)
-With weight: 3.29412
-pt[5]:    location: -1.75  0.25  0.75
-   idx:     (0,4,5)
-With weight: 1.88235
-pt[6]:    location: -1.75  0.75  1.25
-   idx:     (0,5,6)
-With weight: 4.70333e-16
+With weight: 4
+
+On point:    location: -0.75  0.25  1.25
+   idx:     (2,4,6)
+
+On point:    location: -0.25  0.25  1.25
+   idx:     (3,4,6)
+
+On point:    location: 0.25 0.25 1.25
+   idx:     (4,4,6)
+
+On point:    location: 0.75 0.25 1.25
+   idx:     (5,4,6)
 
 On point:    location: 1.25 0.25 1.25
    idx:     (6,4,6)
 pt[0]:    location: 1.25 0.25 1.25
    idx:     (6,4,6)
-With weight: -14.8571
-pt[1]:    location:  1.25 -0.25  1.25
+With weight: -24
+pt[1]:    location: 1.25 0.25 0.75
+   idx:     (6,4,5)
+With weight: 4
+pt[2]:    location:  1.25 -0.25  1.25
    idx:     (6,3,6)
 With weight: 4
-pt[2]:    location: 1.75 0.25 1.25
+pt[3]:    location: 0.75 0.25 1.25
+   idx:     (5,4,6)
+With weight: 4
+pt[4]:    location: 1.75 0.25 1.25
    idx:     (7,4,6)
-With weight: 1.14286
-pt[3]:    location: 1.25 0.75 1.25
+With weight: 4
+pt[5]:    location: 1.25 0.75 1.25
    idx:     (6,5,6)
 With weight: 4
-pt[4]:    location: 1.25 0.25 1.75
+pt[6]:    location: 1.25 0.25 1.75
    idx:     (6,4,7)
-With weight: 1.14286
-pt[5]:    location: 1.75 0.25 0.75
-   idx:     (7,4,5)
-With weight: 2.28571
-pt[6]:    location: 0.75 0.25 1.75
-   idx:     (5,4,7)
-With weight: 2.28571
+With weight: 4
 
 On point:    location: 1.75 0.25 1.25
    idx:     (7,4,6)
@@ -6458,49 +7220,103 @@ On point:    location: -1.25  0.75  1.25
    idx:     (1,5,6)
 pt[0]:    location: -1.25  0.75  1.25
    idx:     (1,5,6)
-With weight: -13.9608
-pt[1]:    location: -1.25  0.25  1.25
+With weight: -24
+pt[1]:    location: -1.25  0.75  0.75
+   idx:     (1,5,5)
+With weight: 4
+pt[2]:    location: -1.25  0.25  1.25
    idx:     (1,4,6)
 With weight: 4
-pt[2]:    location: -1.75  0.75  1.25
+pt[3]:    location: -1.75  0.75  1.25
    idx:     (0,5,6)
-With weight: 0.784314
-pt[3]:    location: -1.25  1.25  1.25
+With weight: 4
+pt[4]:    location: -0.75  0.75  1.25
+   idx:     (2,5,6)
+With weight: 4
+pt[5]:    location: -1.25  1.25  1.25
    idx:     (1,6,6)
 With weight: 4
-pt[4]:    location: -1.25  0.75  1.75
+pt[6]:    location: -1.25  0.75  1.75
    idx:     (1,5,7)
-With weight: 3.29412
-pt[5]:    location: -1.75  0.75  0.75
-   idx:     (0,5,5)
-With weight: 1.88235
-pt[6]:    location: -1.75  0.25  1.25
-   idx:     (0,4,6)
-With weight: -6.71904e-16
+With weight: 4
+
+On point:    location: -0.75  0.75  1.25
+   idx:     (2,5,6)
+pt[0]:    location: -0.75  0.75  1.25
+   idx:     (2,5,6)
+With weight: -24
+pt[1]:    location: -0.75  0.75  0.75
+   idx:     (2,5,5)
+With weight: 4
+pt[2]:    location: -0.75  0.25  1.25
+   idx:     (2,4,6)
+With weight: 4
+pt[3]:    location: -1.25  0.75  1.25
+   idx:     (1,5,6)
+With weight: 4
+pt[4]:    location: -0.25  0.75  1.25
+   idx:     (3,5,6)
+With weight: 4
+pt[5]:    location: -0.75  1.25  1.25
+   idx:     (2,6,6)
+With weight: 4
+pt[6]:    location: -0.75  0.75  1.75
+   idx:     (2,5,7)
+With weight: 4
+
+On point:    location: -0.25  0.75  1.25
+   idx:     (3,5,6)
+
+On point:    location: 0.25 0.75 1.25
+   idx:     (4,5,6)
+
+On point:    location: 0.75 0.75 1.25
+   idx:     (5,5,6)
+pt[0]:    location: 0.75 0.75 1.25
+   idx:     (5,5,6)
+With weight: -24
+pt[1]:    location: 0.75 0.75 0.75
+   idx:     (5,5,5)
+With weight: 4
+pt[2]:    location: 0.75 0.25 1.25
+   idx:     (5,4,6)
+With weight: 4
+pt[3]:    location: 0.25 0.75 1.25
+   idx:     (4,5,6)
+With weight: 4
+pt[4]:    location: 1.25 0.75 1.25
+   idx:     (6,5,6)
+With weight: 4
+pt[5]:    location: 0.75 1.25 1.25
+   idx:     (5,6,6)
+With weight: 4
+pt[6]:    location: 0.75 0.75 1.75
+   idx:     (5,5,7)
+With weight: 4
 
 On point:    location: 1.25 0.75 1.25
    idx:     (6,5,6)
 pt[0]:    location: 1.25 0.75 1.25
    idx:     (6,5,6)
-With weight: -14.1867
-pt[1]:    location: 1.25 0.25 1.25
+With weight: -24
+pt[1]:    location: 1.25 0.75 0.75
+   idx:     (6,5,5)
+With weight: 4
+pt[2]:    location: 1.25 0.25 1.25
    idx:     (6,4,6)
 With weight: 4
-pt[2]:    location: 1.75 0.75 1.25
+pt[3]:    location: 0.75 0.75 1.25
+   idx:     (5,5,6)
+With weight: 4
+pt[4]:    location: 1.75 0.75 1.25
    idx:     (7,5,6)
-With weight: 1.38667
-pt[3]:    location: 1.25 1.25 1.25
+With weight: 4
+pt[5]:    location: 1.25 1.25 1.25
    idx:     (6,6,6)
-With weight: 2.72
-pt[4]:    location: 1.25 0.75 1.75
+With weight: 4
+pt[6]:    location: 1.25 0.75 1.75
    idx:     (6,5,7)
-With weight: 3.52
-pt[5]:    location: 1.75 0.75 0.75
-   idx:     (7,5,5)
-With weight: 1.28
-pt[6]:    location: 1.25 1.25 0.75
-   idx:     (6,6,5)
-With weight: 1.28
+With weight: 4
 
 On point:    location: 1.75 0.75 1.25
    idx:     (7,5,6)
@@ -6578,97 +7394,97 @@ On point:    location: -0.75  1.25  1.25
    idx:     (2,6,6)
 pt[0]:    location: -0.75  1.25  1.25
    idx:     (2,6,6)
-With weight: -13.9608
-pt[1]:    location: -1.25  1.25  1.25
+With weight: -24
+pt[1]:    location: -0.75  1.25  0.75
+   idx:     (2,6,5)
+With weight: 4
+pt[2]:    location: -0.75  0.75  1.25
+   idx:     (2,5,6)
+With weight: 4
+pt[3]:    location: -1.25  1.25  1.25
    idx:     (1,6,6)
 With weight: 4
-pt[2]:    location: -0.25  1.25  1.25
+pt[4]:    location: -0.25  1.25  1.25
    idx:     (3,6,6)
 With weight: 4
-pt[3]:    location: -0.75  1.75  1.25
+pt[5]:    location: -0.75  1.75  1.25
    idx:     (2,7,6)
-With weight: 0.784314
-pt[4]:    location: -0.75  1.25  1.75
+With weight: 4
+pt[6]:    location: -0.75  1.25  1.75
    idx:     (2,6,7)
-With weight: 3.29412
-pt[5]:    location: -0.75  1.75  0.75
-   idx:     (2,7,5)
-With weight: 1.88235
-pt[6]:    location: -0.25  1.75  1.25
-   idx:     (3,7,6)
-With weight: -1.27662e-15
+With weight: 4
 
 On point:    location: -0.25  1.25  1.25
    idx:     (3,6,6)
 pt[0]:    location: -0.25  1.25  1.25
    idx:     (3,6,6)
-With weight: -13.9608
-pt[1]:    location: -0.75  1.25  1.25
+With weight: -24
+pt[1]:    location: -0.25  1.25  0.75
+   idx:     (3,6,5)
+With weight: 4
+pt[2]:    location: -0.25  0.75  1.25
+   idx:     (3,5,6)
+With weight: 4
+pt[3]:    location: -0.75  1.25  1.25
    idx:     (2,6,6)
 With weight: 4
-pt[2]:    location: 0.25 1.25 1.25
+pt[4]:    location: 0.25 1.25 1.25
    idx:     (4,6,6)
 With weight: 4
-pt[3]:    location: -0.25  1.75  1.25
+pt[5]:    location: -0.25  1.75  1.25
    idx:     (3,7,6)
-With weight: 0.784314
-pt[4]:    location: -0.25  1.25  1.75
+With weight: 4
+pt[6]:    location: -0.25  1.25  1.75
    idx:     (3,6,7)
-With weight: 3.29412
-pt[5]:    location: -0.25  1.75  0.75
-   idx:     (3,7,5)
-With weight: 1.88235
-pt[6]:    location: -0.75  1.75  1.25
-   idx:     (2,7,6)
-With weight: 0
+With weight: 4
 
 On point:    location: 0.25 1.25 1.25
    idx:     (4,6,6)
 pt[0]:    location: 0.25 1.25 1.25
    idx:     (4,6,6)
-With weight: -13.9608
-pt[1]:    location: -0.25  1.25  1.25
+With weight: -24
+pt[1]:    location: 0.25 1.25 0.75
+   idx:     (4,6,5)
+With weight: 4
+pt[2]:    location: 0.25 0.75 1.25
+   idx:     (4,5,6)
+With weight: 4
+pt[3]:    location: -0.25  1.25  1.25
    idx:     (3,6,6)
 With weight: 4
-pt[2]:    location: 0.75 1.25 1.25
+pt[4]:    location: 0.75 1.25 1.25
    idx:     (5,6,6)
 With weight: 4
-pt[3]:    location: 0.25 1.75 1.25
+pt[5]:    location: 0.25 1.75 1.25
    idx:     (4,7,6)
-With weight: 3.29412
-pt[4]:    location: 0.25 1.25 1.75
+With weight: 4
+pt[6]:    location: 0.25 1.25 1.75
    idx:     (4,6,7)
-With weight: 0.784314
-pt[5]:    location: 0.75 1.75 1.25
-   idx:     (5,7,6)
-With weight: -6.31835e-16
-pt[6]:    location: 0.25 0.75 1.75
-   idx:     (4,5,7)
-With weight: 1.88235
+With weight: 4
 
 On point:    location: 0.75 1.25 1.25
    idx:     (5,6,6)
 pt[0]:    location: 0.75 1.25 1.25
    idx:     (5,6,6)
-With weight: -13.9608
-pt[1]:    location: 0.25 1.25 1.25
+With weight: -24
+pt[1]:    location: 0.75 1.25 0.75
+   idx:     (5,6,5)
+With weight: 4
+pt[2]:    location: 0.75 0.75 1.25
+   idx:     (5,5,6)
+With weight: 4
+pt[3]:    location: 0.25 1.25 1.25
    idx:     (4,6,6)
 With weight: 4
-pt[2]:    location: 1.25 1.25 1.25
+pt[4]:    location: 1.25 1.25 1.25
    idx:     (6,6,6)
-With weight: 2.11765
-pt[3]:    location: 0.75 1.75 1.25
+With weight: 4
+pt[5]:    location: 0.75 1.75 1.25
    idx:     (5,7,6)
-With weight: 2.66667
-pt[4]:    location: 0.75 1.25 1.75
+With weight: 4
+pt[6]:    location: 0.75 1.25 1.75
    idx:     (5,6,7)
-With weight: 3.29412
-pt[5]:    location: 1.25 1.25 0.75
-   idx:     (6,6,5)
-With weight: 1.88235
-pt[6]:    location: 0.25 1.75 1.25
-   idx:     (4,7,6)
-With weight: -9.72009e-16
+With weight: 4
 
 On point:    location: 1.25 1.25 1.25
    idx:     (6,6,6)
@@ -7346,97 +8162,97 @@ On point:    location: -0.75 -0.75  1.75
    idx:     (2,2,7)
 pt[0]:    location: -0.75 -0.75  1.75
    idx:     (2,2,7)
-With weight: -18.6667
-pt[1]:    location: -0.75 -1.25  1.75
+With weight: -24
+pt[1]:    location: -0.75 -0.75  1.25
+   idx:     (2,2,6)
+With weight: 4
+pt[2]:    location: -0.75 -1.25  1.75
    idx:     (2,1,7)
 With weight: 4
-pt[2]:    location: -1.25 -0.75  1.75
+pt[3]:    location: -1.25 -0.75  1.75
    idx:     (1,2,7)
 With weight: 4
-pt[3]:    location: -0.25 -0.75  1.75
+pt[4]:    location: -0.25 -0.75  1.75
    idx:     (3,2,7)
 With weight: 4
-pt[4]:    location: -0.75 -0.25  1.75
+pt[5]:    location: -0.75 -0.25  1.75
    idx:     (2,3,7)
 With weight: 4
-pt[5]:    location: -0.75 -0.75  2.25
+pt[6]:    location: -0.75 -0.75  2.25
    idx:     (2,2,8)
-With weight: 2.66667
-pt[6]:    location: -0.25 -1.25  1.75
-   idx:     (3,1,7)
-With weight: 1.65992e-15
+With weight: 4
 
 On point:    location: -0.25 -0.75  1.75
    idx:     (3,2,7)
 pt[0]:    location: -0.25 -0.75  1.75
    idx:     (3,2,7)
-With weight: -19.2941
-pt[1]:    location: -0.25 -1.25  1.75
+With weight: -24
+pt[1]:    location: -0.25 -0.75  1.25
+   idx:     (3,2,6)
+With weight: 4
+pt[2]:    location: -0.25 -1.25  1.75
    idx:     (3,1,7)
-With weight: 2.11765
-pt[2]:    location: -0.75 -0.75  1.75
+With weight: 4
+pt[3]:    location: -0.75 -0.75  1.75
    idx:     (2,2,7)
 With weight: 4
-pt[3]:    location:  0.25 -0.75  1.75
+pt[4]:    location:  0.25 -0.75  1.75
    idx:     (4,2,7)
 With weight: 4
-pt[4]:    location: -0.25 -0.25  1.75
+pt[5]:    location: -0.25 -0.25  1.75
    idx:     (3,3,7)
 With weight: 4
-pt[5]:    location: -0.25 -0.75  2.25
+pt[6]:    location: -0.25 -0.75  2.25
    idx:     (3,2,8)
-With weight: 3.29412
-pt[6]:    location: -0.25 -1.25  1.25
-   idx:     (3,1,6)
-With weight: 1.88235
+With weight: 4
 
 On point:    location:  0.25 -0.75  1.75
    idx:     (4,2,7)
 pt[0]:    location:  0.25 -0.75  1.75
    idx:     (4,2,7)
-With weight: -19.2941
-pt[1]:    location:  0.25 -1.25  1.75
+With weight: -24
+pt[1]:    location:  0.25 -0.75  1.25
+   idx:     (4,2,6)
+With weight: 4
+pt[2]:    location:  0.25 -1.25  1.75
    idx:     (4,1,7)
-With weight: 2.11765
-pt[2]:    location: -0.25 -0.75  1.75
+With weight: 4
+pt[3]:    location: -0.25 -0.75  1.75
    idx:     (3,2,7)
 With weight: 4
-pt[3]:    location:  0.75 -0.75  1.75
+pt[4]:    location:  0.75 -0.75  1.75
    idx:     (5,2,7)
 With weight: 4
-pt[4]:    location:  0.25 -0.25  1.75
+pt[5]:    location:  0.25 -0.25  1.75
    idx:     (4,3,7)
 With weight: 4
-pt[5]:    location:  0.25 -0.75  2.25
+pt[6]:    location:  0.25 -0.75  2.25
    idx:     (4,2,8)
-With weight: 3.29412
-pt[6]:    location:  0.25 -1.25  1.25
-   idx:     (4,1,6)
-With weight: 1.88235
+With weight: 4
 
 On point:    location:  0.75 -0.75  1.75
    idx:     (5,2,7)
 pt[0]:    location:  0.75 -0.75  1.75
    idx:     (5,2,7)
-With weight: -19.2941
-pt[1]:    location:  0.75 -1.25  1.75
+With weight: -24
+pt[1]:    location:  0.75 -0.75  1.25
+   idx:     (5,2,6)
+With weight: 4
+pt[2]:    location:  0.75 -1.25  1.75
    idx:     (5,1,7)
-With weight: 2.11765
-pt[2]:    location:  0.25 -0.75  1.75
+With weight: 4
+pt[3]:    location:  0.25 -0.75  1.75
    idx:     (4,2,7)
 With weight: 4
-pt[3]:    location:  1.25 -0.75  1.75
+pt[4]:    location:  1.25 -0.75  1.75
    idx:     (6,2,7)
 With weight: 4
-pt[4]:    location:  0.75 -0.25  1.75
+pt[5]:    location:  0.75 -0.25  1.75
    idx:     (5,3,7)
 With weight: 4
-pt[5]:    location:  0.75 -0.75  2.25
+pt[6]:    location:  0.75 -0.75  2.25
    idx:     (5,2,8)
-With weight: 3.29412
-pt[6]:    location:  0.75 -1.25  1.25
-   idx:     (5,1,6)
-With weight: 1.88235
+With weight: 4
 
 On point:    location:  1.25 -0.75  1.75
    idx:     (6,2,7)
@@ -7538,97 +8354,97 @@ On point:    location: -0.75 -0.25  1.75
    idx:     (2,3,7)
 pt[0]:    location: -0.75 -0.25  1.75
    idx:     (2,3,7)
-With weight: -19.2941
-pt[1]:    location: -0.75 -0.75  1.75
+With weight: -24
+pt[1]:    location: -0.75 -0.25  1.25
+   idx:     (2,3,6)
+With weight: 4
+pt[2]:    location: -0.75 -0.75  1.75
    idx:     (2,2,7)
 With weight: 4
-pt[2]:    location: -1.25 -0.25  1.75
+pt[3]:    location: -1.25 -0.25  1.75
    idx:     (1,3,7)
-With weight: 2.11765
-pt[3]:    location: -0.25 -0.25  1.75
+With weight: 4
+pt[4]:    location: -0.25 -0.25  1.75
    idx:     (3,3,7)
 With weight: 4
-pt[4]:    location: -0.75  0.25  1.75
+pt[5]:    location: -0.75  0.25  1.75
    idx:     (2,4,7)
 With weight: 4
-pt[5]:    location: -0.75 -0.25  2.25
+pt[6]:    location: -0.75 -0.25  2.25
    idx:     (2,3,8)
-With weight: 3.29412
-pt[6]:    location: -1.25 -0.25  1.25
-   idx:     (1,3,6)
-With weight: 1.88235
+With weight: 4
 
 On point:    location: -0.25 -0.25  1.75
    idx:     (3,3,7)
 pt[0]:    location: -0.25 -0.25  1.75
    idx:     (3,3,7)
-With weight: -18.6667
-pt[1]:    location: -0.25 -0.75  1.75
+With weight: -24
+pt[1]:    location: -0.25 -0.25  1.25
+   idx:     (3,3,6)
+With weight: 4
+pt[2]:    location: -0.25 -0.75  1.75
    idx:     (3,2,7)
 With weight: 4
-pt[2]:    location: -0.75 -0.25  1.75
+pt[3]:    location: -0.75 -0.25  1.75
    idx:     (2,3,7)
 With weight: 4
-pt[3]:    location:  0.25 -0.25  1.75
+pt[4]:    location:  0.25 -0.25  1.75
    idx:     (4,3,7)
 With weight: 4
-pt[4]:    location: -0.25  0.25  1.75
+pt[5]:    location: -0.25  0.25  1.75
    idx:     (3,4,7)
 With weight: 4
-pt[5]:    location: -0.25 -0.25  2.25
+pt[6]:    location: -0.25 -0.25  2.25
    idx:     (3,3,8)
-With weight: 2.66667
-pt[6]:    location: -0.75 -0.75  1.75
-   idx:     (2,2,7)
-With weight: 1.70108e-15
+With weight: 4
 
 On point:    location:  0.25 -0.25  1.75
    idx:     (4,3,7)
 pt[0]:    location:  0.25 -0.25  1.75
    idx:     (4,3,7)
-With weight: -18.6667
-pt[1]:    location:  0.25 -0.75  1.75
+With weight: -24
+pt[1]:    location:  0.25 -0.25  1.25
+   idx:     (4,3,6)
+With weight: 4
+pt[2]:    location:  0.25 -0.75  1.75
    idx:     (4,2,7)
 With weight: 4
-pt[2]:    location: -0.25 -0.25  1.75
+pt[3]:    location: -0.25 -0.25  1.75
    idx:     (3,3,7)
 With weight: 4
-pt[3]:    location:  0.75 -0.25  1.75
+pt[4]:    location:  0.75 -0.25  1.75
    idx:     (5,3,7)
 With weight: 4
-pt[4]:    location: 0.25 0.25 1.75
+pt[5]:    location: 0.25 0.25 1.75
    idx:     (4,4,7)
 With weight: 4
-pt[5]:    location:  0.25 -0.25  2.25
+pt[6]:    location:  0.25 -0.25  2.25
    idx:     (4,3,8)
-With weight: 2.66667
-pt[6]:    location:  0.75 -0.75  1.75
-   idx:     (5,2,7)
-With weight: 1.65992e-15
+With weight: 4
 
 On point:    location:  0.75 -0.25  1.75
    idx:     (5,3,7)
 pt[0]:    location:  0.75 -0.25  1.75
    idx:     (5,3,7)
-With weight: -19.2941
-pt[1]:    location:  0.75 -0.75  1.75
+With weight: -24
+pt[1]:    location:  0.75 -0.25  1.25
+   idx:     (5,3,6)
+With weight: 4
+pt[2]:    location:  0.75 -0.75  1.75
    idx:     (5,2,7)
 With weight: 4
-pt[2]:    location:  0.25 -0.25  1.75
+pt[3]:    location:  0.25 -0.25  1.75
    idx:     (4,3,7)
 With weight: 4
-pt[3]:    location:  1.25 -0.25  1.75
+pt[4]:    location:  1.25 -0.25  1.75
    idx:     (6,3,7)
-With weight: 2.11765
-pt[4]:    location: 0.75 0.25 1.75
+With weight: 4
+pt[5]:    location: 0.75 0.25 1.75
    idx:     (5,4,7)
 With weight: 4
-pt[5]:    location:  0.75 -0.25  2.25
+pt[6]:    location:  0.75 -0.25  2.25
    idx:     (5,3,8)
-With weight: 3.29412
-pt[6]:    location:  1.25 -0.25  1.25
-   idx:     (6,3,6)
-With weight: 1.88235
+With weight: 4
 
 On point:    location:  1.25 -0.25  1.75
    idx:     (6,3,7)
@@ -7730,97 +8546,97 @@ On point:    location: -0.75  0.25  1.75
    idx:     (2,4,7)
 pt[0]:    location: -0.75  0.25  1.75
    idx:     (2,4,7)
-With weight: -19.2941
-pt[1]:    location: -0.75 -0.25  1.75
+With weight: -24
+pt[1]:    location: -0.75  0.25  1.25
+   idx:     (2,4,6)
+With weight: 4
+pt[2]:    location: -0.75 -0.25  1.75
    idx:     (2,3,7)
 With weight: 4
-pt[2]:    location: -1.25  0.25  1.75
+pt[3]:    location: -1.25  0.25  1.75
    idx:     (1,4,7)
-With weight: 2.11765
-pt[3]:    location: -0.25  0.25  1.75
+With weight: 4
+pt[4]:    location: -0.25  0.25  1.75
    idx:     (3,4,7)
 With weight: 4
-pt[4]:    location: -0.75  0.75  1.75
+pt[5]:    location: -0.75  0.75  1.75
    idx:     (2,5,7)
 With weight: 4
-pt[5]:    location: -0.75  0.25  2.25
+pt[6]:    location: -0.75  0.25  2.25
    idx:     (2,4,8)
-With weight: 3.29412
-pt[6]:    location: -1.25  0.25  1.25
-   idx:     (1,4,6)
-With weight: 1.88235
+With weight: 4
 
 On point:    location: -0.25  0.25  1.75
    idx:     (3,4,7)
 pt[0]:    location: -0.25  0.25  1.75
    idx:     (3,4,7)
-With weight: -18.6667
-pt[1]:    location: -0.25 -0.25  1.75
+With weight: -24
+pt[1]:    location: -0.25  0.25  1.25
+   idx:     (3,4,6)
+With weight: 4
+pt[2]:    location: -0.25 -0.25  1.75
    idx:     (3,3,7)
 With weight: 4
-pt[2]:    location: -0.75  0.25  1.75
+pt[3]:    location: -0.75  0.25  1.75
    idx:     (2,4,7)
 With weight: 4
-pt[3]:    location: 0.25 0.25 1.75
+pt[4]:    location: 0.25 0.25 1.75
    idx:     (4,4,7)
 With weight: 4
-pt[4]:    location: -0.25  0.75  1.75
+pt[5]:    location: -0.25  0.75  1.75
    idx:     (3,5,7)
 With weight: 4
-pt[5]:    location: -0.25  0.25  2.25
+pt[6]:    location: -0.25  0.25  2.25
    idx:     (3,4,8)
-With weight: 2.66667
-pt[6]:    location: -0.75  0.75  1.75
-   idx:     (2,5,7)
-With weight: -5.76172e-16
+With weight: 4
 
 On point:    location: 0.25 0.25 1.75
    idx:     (4,4,7)
 pt[0]:    location: 0.25 0.25 1.75
    idx:     (4,4,7)
-With weight: -18.6667
-pt[1]:    location:  0.25 -0.25  1.75
+With weight: -24
+pt[1]:    location: 0.25 0.25 1.25
+   idx:     (4,4,6)
+With weight: 4
+pt[2]:    location:  0.25 -0.25  1.75
    idx:     (4,3,7)
 With weight: 4
-pt[2]:    location: -0.25  0.25  1.75
+pt[3]:    location: -0.25  0.25  1.75
    idx:     (3,4,7)
 With weight: 4
-pt[3]:    location: 0.75 0.25 1.75
+pt[4]:    location: 0.75 0.25 1.75
    idx:     (5,4,7)
 With weight: 4
-pt[4]:    location: 0.25 0.75 1.75
+pt[5]:    location: 0.25 0.75 1.75
    idx:     (4,5,7)
 With weight: 4
-pt[5]:    location: 0.25 0.25 2.25
+pt[6]:    location: 0.25 0.25 2.25
    idx:     (4,4,8)
-With weight: 2.66667
-pt[6]:    location: 0.75 0.75 1.75
-   idx:     (5,5,7)
-With weight: -0
+With weight: 4
 
 On point:    location: 0.75 0.25 1.75
    idx:     (5,4,7)
 pt[0]:    location: 0.75 0.25 1.75
    idx:     (5,4,7)
-With weight: -19.2941
-pt[1]:    location:  0.75 -0.25  1.75
+With weight: -24
+pt[1]:    location: 0.75 0.25 1.25
+   idx:     (5,4,6)
+With weight: 4
+pt[2]:    location:  0.75 -0.25  1.75
    idx:     (5,3,7)
 With weight: 4
-pt[2]:    location: 0.25 0.25 1.75
+pt[3]:    location: 0.25 0.25 1.75
    idx:     (4,4,7)
 With weight: 4
-pt[3]:    location: 1.25 0.25 1.75
+pt[4]:    location: 1.25 0.25 1.75
    idx:     (6,4,7)
-With weight: 2.11765
-pt[4]:    location: 0.75 0.75 1.75
+With weight: 4
+pt[5]:    location: 0.75 0.75 1.75
    idx:     (5,5,7)
 With weight: 4
-pt[5]:    location: 0.75 0.25 2.25
+pt[6]:    location: 0.75 0.25 2.25
    idx:     (5,4,8)
-With weight: 3.29412
-pt[6]:    location: 1.25 0.25 1.25
-   idx:     (6,4,6)
-With weight: 1.88235
+With weight: 4
 
 On point:    location: 1.25 0.25 1.75
    idx:     (6,4,7)
@@ -7922,97 +8738,97 @@ On point:    location: -0.75  0.75  1.75
    idx:     (2,5,7)
 pt[0]:    location: -0.75  0.75  1.75
    idx:     (2,5,7)
-With weight: -19.2941
-pt[1]:    location: -0.75  0.25  1.75
+With weight: -24
+pt[1]:    location: -0.75  0.75  1.25
+   idx:     (2,5,6)
+With weight: 4
+pt[2]:    location: -0.75  0.25  1.75
    idx:     (2,4,7)
 With weight: 4
-pt[2]:    location: -1.25  0.75  1.75
+pt[3]:    location: -1.25  0.75  1.75
    idx:     (1,5,7)
 With weight: 4
-pt[3]:    location: -0.25  0.75  1.75
+pt[4]:    location: -0.25  0.75  1.75
    idx:     (3,5,7)
 With weight: 4
-pt[4]:    location: -0.75  1.25  1.75
+pt[5]:    location: -0.75  1.25  1.75
    idx:     (2,6,7)
-With weight: 2.11765
-pt[5]:    location: -0.75  0.75  2.25
+With weight: 4
+pt[6]:    location: -0.75  0.75  2.25
    idx:     (2,5,8)
-With weight: 3.29412
-pt[6]:    location: -0.75  1.25  1.25
-   idx:     (2,6,6)
-With weight: 1.88235
+With weight: 4
 
 On point:    location: -0.25  0.75  1.75
    idx:     (3,5,7)
 pt[0]:    location: -0.25  0.75  1.75
    idx:     (3,5,7)
-With weight: -19.2941
-pt[1]:    location: -0.25  0.25  1.75
+With weight: -24
+pt[1]:    location: -0.25  0.75  1.25
+   idx:     (3,5,6)
+With weight: 4
+pt[2]:    location: -0.25  0.25  1.75
    idx:     (3,4,7)
 With weight: 4
-pt[2]:    location: -0.75  0.75  1.75
+pt[3]:    location: -0.75  0.75  1.75
    idx:     (2,5,7)
 With weight: 4
-pt[3]:    location: 0.25 0.75 1.75
+pt[4]:    location: 0.25 0.75 1.75
    idx:     (4,5,7)
 With weight: 4
-pt[4]:    location: -0.25  1.25  1.75
+pt[5]:    location: -0.25  1.25  1.75
    idx:     (3,6,7)
-With weight: 2.11765
-pt[5]:    location: -0.25  0.75  2.25
+With weight: 4
+pt[6]:    location: -0.25  0.75  2.25
    idx:     (3,5,8)
-With weight: 3.29412
-pt[6]:    location: -0.25  1.25  1.25
-   idx:     (3,6,6)
-With weight: 1.88235
+With weight: 4
 
 On point:    location: 0.25 0.75 1.75
    idx:     (4,5,7)
 pt[0]:    location: 0.25 0.75 1.75
    idx:     (4,5,7)
-With weight: -19.2941
-pt[1]:    location: 0.25 0.25 1.75
+With weight: -24
+pt[1]:    location: 0.25 0.75 1.25
+   idx:     (4,5,6)
+With weight: 4
+pt[2]:    location: 0.25 0.25 1.75
    idx:     (4,4,7)
 With weight: 4
-pt[2]:    location: -0.25  0.75  1.75
+pt[3]:    location: -0.25  0.75  1.75
    idx:     (3,5,7)
 With weight: 4
-pt[3]:    location: 0.75 0.75 1.75
+pt[4]:    location: 0.75 0.75 1.75
    idx:     (5,5,7)
 With weight: 4
-pt[4]:    location: 0.25 1.25 1.75
+pt[5]:    location: 0.25 1.25 1.75
    idx:     (4,6,7)
-With weight: 2.11765
-pt[5]:    location: 0.25 0.75 2.25
+With weight: 4
+pt[6]:    location: 0.25 0.75 2.25
    idx:     (4,5,8)
-With weight: 3.29412
-pt[6]:    location: 0.25 1.25 1.25
-   idx:     (4,6,6)
-With weight: 1.88235
+With weight: 4
 
 On point:    location: 0.75 0.75 1.75
    idx:     (5,5,7)
 pt[0]:    location: 0.75 0.75 1.75
    idx:     (5,5,7)
-With weight: -19.2941
-pt[1]:    location: 0.75 0.25 1.75
+With weight: -24
+pt[1]:    location: 0.75 0.75 1.25
+   idx:     (5,5,6)
+With weight: 4
+pt[2]:    location: 0.75 0.25 1.75
    idx:     (5,4,7)
 With weight: 4
-pt[2]:    location: 0.25 0.75 1.75
+pt[3]:    location: 0.25 0.75 1.75
    idx:     (4,5,7)
 With weight: 4
-pt[3]:    location: 1.25 0.75 1.75
+pt[4]:    location: 1.25 0.75 1.75
    idx:     (6,5,7)
 With weight: 4
-pt[4]:    location: 0.75 1.25 1.75
+pt[5]:    location: 0.75 1.25 1.75
    idx:     (5,6,7)
-With weight: 2.11765
-pt[5]:    location: 0.75 0.75 2.25
+With weight: 4
+pt[6]:    location: 0.75 0.75 2.25
    idx:     (5,5,8)
-With weight: 3.29412
-pt[6]:    location: 0.75 1.25 1.25
-   idx:     (5,6,6)
-With weight: 1.88235
+With weight: 4
 
 On point:    location: 1.25 0.75 1.75
    idx:     (6,5,7)
