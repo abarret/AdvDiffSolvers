@@ -256,7 +256,7 @@ main(int argc, char* argv[])
         bdry_mesh.prepare_for_use();
 
 // Uncomment to output visualization.
-#define DRAW_OUTPUT
+// #define DRAW_OUTPUT
 #ifdef DRAW_OUTPUT
         // Set up visualization
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
