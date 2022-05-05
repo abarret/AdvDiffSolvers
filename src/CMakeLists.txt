@@ -54,6 +54,8 @@ SET(CXX_SRC
     solvers/RBFLaplaceOperator.cpp
     solvers/SBBoundaryConditions.cpp
 
+    rbffd/PointList.cpp
+
     utilities/solver_utilities.cpp
     )
 
