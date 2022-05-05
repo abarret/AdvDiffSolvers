@@ -84,10 +84,20 @@ FDWeightsCache::cachePoint(Pointer<Patch<NDIM>> patch,
                            const std::vector<FDPoint>& fd_pts,
                            const std::vector<double>& fd_weights)
 {
-    // Cache the point. Replace it if it already exists
-    d_base_pt_set[patch.getPointer()].insert(pt);
-    d_pair_pt_map[patch.getPointer()][pt] = fd_pts;
-    d_pt_weight_map[patch.getPointer()][pt] = fd_weights;
+    cachePoint(patch, pt, pt, fd_pts, fd_weights);
+}
+
+void
+FDWeightsCache::cachePoint(Pointer<Patch<NDIM>> patch,
+                           const FDPoint& base_pt,
+                           const Point& pt,
+                           const std::vector<FDPoint>& fd_pts,
+                           const std::vector<double>& fd_weights)
+{
+    d_base_pt_set[patch.getPointer()].insert(base_pt);
+    d_pair_pt_map[patch.getPointer()][base_pt] = fd_pts;
+    d_pt_weight_map[patch.getPointer()][base_pt] = fd_weights;
+    d_base_pt_pt_map[patch.getPointer()][base_pt] = pt;
 }
 
 const std::map<FDPoint, std::vector<double>>&
@@ -124,6 +134,21 @@ FDWeightsCache::getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> 
     if (!isBasePoint(patch, pt)) TBOX_ERROR("pt " << pt << " is not a base point on this patch");
 #endif
     return d_pair_pt_map.at(patch.getPointer()).at(pt);
+}
+
+const Point&
+FDWeightsCache::getFDLocation(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDPoint& pt) const
+{
+#if !defined(NDEBUG)
+    if (!isBasePoint(patch, pt)) TBOX_ERROR("pt " << pt << " is not a base point on this patch");
+#endif
+    return d_base_pt_pt_map.at(patch.getPointer()).at(pt);
+}
+
+const std::map<FDPoint, Point>&
+FDWeightsCache::getFDLocation(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) const
+{
+    return d_base_pt_pt_map.at(patch.getPointer());
 }
 
 bool

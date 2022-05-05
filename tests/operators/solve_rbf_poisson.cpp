@@ -38,18 +38,19 @@
 #include <StandardTagAndInitialize.h>
 
 static double c, d, L;
-static int ierr;
 
 double
 X(const VectorNd& p)
 {
-    double val = 1.0;
-    for (int d = 0; d < NDIM; ++d) val *= std::sin(4.0 * M_PI * p(d) / L);
-    return val;
+#if (NDIM == 2)
+    return std::sin(4.0 * M_PI * p(0) / L) * std::sin(4.0 * M_PI * p(1) / L);
+#else
+    return std::sin(4.0 * M_PI * p(0) / L) * std::sin(4.0 * M_PI * p(1) / L) * std::sin(4.0 * M_PI * p(2) / L);
+#endif
 }
 
 double
-exact(const VectorNd& p)
+B(const VectorNd& p)
 {
 #if (NDIM == 2)
     return (c - 32.0 * d * M_PI * M_PI / (L * L)) * std::sin(4.0 * M_PI * p(0) / L) * std::sin(4.0 * M_PI * p(1) / L);
@@ -60,9 +61,9 @@ exact(const VectorNd& p)
 }
 
 double
-bdry(const VectorNd& p)
+bdryConds(const VectorNd& x, double a, double /*b*/)
 {
-    return X(p);
+    return a * X(x);
 }
 
 void
@@ -86,28 +87,6 @@ fillSoln(EquationSystems* eq_sys, std::string sys_name, std::function<double(con
     }
     vec->close();
     sys.update();
-}
-
-void
-fillGhostCells(Vec& x, const std::shared_ptr<GhostPoints>& ghosts, const std::shared_ptr<GlobalIndexing>& indexing)
-{
-    const std::map<int, int>& ghost_idx_map = indexing->getGhostMap();
-    const std::vector<GhostPoint>& eul_ghosts = ghosts->getEulerianGhostNodes();
-    for (const auto& ghost : eul_ghosts)
-    {
-        ierr = VecSetValue(x, ghost_idx_map.at(ghost.getId()), X(ghost.getX()), INSERT_VALUES);
-        IBTK_CHKERRQ(ierr);
-    }
-    const std::vector<GhostPoint>& lag_ghosts = ghosts->getLagrangianGhostNodes();
-    for (const auto& ghost : lag_ghosts)
-    {
-        ierr = VecSetValue(x, ghost_idx_map.at(ghost.getId()), X(ghost.getX()), INSERT_VALUES);
-        IBTK_CHKERRQ(ierr);
-    }
-    ierr = VecAssemblyBegin(x);
-    IBTK_CHKERRQ(ierr);
-    ierr = VecAssemblyEnd(x);
-    IBTK_CHKERRQ(ierr);
 }
 
 /*******************************************************************************
@@ -207,13 +186,12 @@ main(int argc, char* argv[])
 
         // Setup exact solutions.
         pout << "Setting up solution data\n";
-        muParserCartGridFunction exact_fcn(
-            "Laplacian", app_initializer->getComponentDatabase("Laplacian"), grid_geometry);
-        muParserCartGridFunction x_fcn("Q", app_initializer->getComponentDatabase("Q"), grid_geometry);
+        muParserCartGridFunction b_fcn("B", app_initializer->getComponentDatabase("Bvec"), grid_geometry);
+        muParserCartGridFunction x_fcn("X", app_initializer->getComponentDatabase("Xvec"), grid_geometry);
         muParserCartGridFunction ls_fcn("ls", app_initializer->getComponentDatabase("ls"), grid_geometry);
 
-        exact_fcn.setDataOnPatchHierarchy(exact_idx, exact_var, patch_hierarchy, 0.0);
-        x_fcn.setDataOnPatchHierarchy(x_idx, x_var, patch_hierarchy, 0.0);
+        b_fcn.setDataOnPatchHierarchy(b_idx, b_var, patch_hierarchy, 0.0);
+        x_fcn.setDataOnPatchHierarchy(exact_idx, exact_var, patch_hierarchy, 0.0);
         ls_fcn.setDataOnPatchHierarchy(ls_idx, ls_var, patch_hierarchy, 0.0);
 
         // Set up the finite element mesh
@@ -259,8 +237,8 @@ main(int argc, char* argv[])
         MeshTools::Modification::all_tri(bdry_mesh);
         bdry_mesh.prepare_for_use();
 
-// Uncomment to output visualization.
-// #define DRAW_OUTPUT
+        // Uncomment to output visualization.
+#define DRAW_OUTPUT
 #ifdef DRAW_OUTPUT
         // Set up visualization
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
@@ -297,35 +275,19 @@ main(int argc, char* argv[])
         fe_mesh_partitioner->setPatchHierarchy(patch_hierarchy);
         fe_mesh_partitioner->reinitElementMappings(3);
         pout << "Filling initial condition\n";
-        fillSoln(bdry_eq_sys, "x", X);
-        fillSoln(bdry_eq_sys, "exact", exact);
+        fillSoln(bdry_eq_sys, "exact", X);
+        fillSoln(bdry_eq_sys, "b", B);
 
         solver.setLSIdx(ls_idx);
+        solver.setBdryFcn(bdryConds);
         pout << "Initializing solver state\n";
-        solver.initializeSolverState(exact_eul_vec, exact_eul_vec);
-        // Pull out vector and matrix
-        Vec& x_vec = solver.getX();
-        Mat& mat = solver.getMat();
+        solver.initializeSolverState(x_eul_vec, b_eul_vec);
 
-        // Copy data to x_vec
-        pout << "Copying data to petsc representation\n";
-        const std::shared_ptr<GlobalIndexing>& global_indexing = solver.getGlobalIndexing();
-        const int eul_map = global_indexing->getEulerianMap();
-        const std::map<int, int>& lag_map = global_indexing->getLagrangianMap();
-        const std::vector<int> dofs_per_proc = global_indexing->getDofsPerProc();
-        copyDataToPetsc(x_vec, x_eul_vec, patch_hierarchy, x_bdry_sys, eul_map, lag_map, dofs_per_proc);
-        fillGhostCells(x_vec, solver.getGhostPoints(), global_indexing);
+        // Solve system
+        pout << "Solving system\n";
+        solver.solveSystem(x_eul_vec, b_eul_vec);
 
-        // Now we can apply the matrix
-        pout << "Applying matrix\n";
-        Vec b_vec;
-        ierr = VecDuplicate(x_vec, &b_vec);
-        IBTK_CHKERRQ(ierr);
-        ierr = MatMult(mat, x_vec, b_vec);
-        IBTK_CHKERRQ(ierr);
-        // Now copy data back to original specifications
-        pout << "Copying data from petsc representation\n";
-        copyDataFromPetsc(b_vec, b_eul_vec, patch_hierarchy, b_bdry_sys, *solver.getBulkConditionMap());
+        solver.writeMatToFile("mat");
 
         pout << "Checking errors\n";
         // Compute errors
@@ -355,17 +317,17 @@ main(int argc, char* argv[])
                     if (ls > -app_initializer->getComponentDatabase("PoissonSolver")->getDouble("eps"))
                     {
                         (*wgt_data)(idx) = 0.0;
-                        (*exact_data)(idx) = X(x);
+                        (*exact_data)(idx) = B(x);
                     }
                     else
                     {
-                        (*exact_data)(idx) = exact(x);
+                        (*exact_data)(idx) = X(x);
                     }
                 }
             }
         }
-        hier_cc_data_ops.subtract(error_idx, b_idx, exact_idx);
-        pout << "Eulerian errors: \n"
+        hier_cc_data_ops.subtract(error_idx, x_idx, exact_idx);
+        pout << "Norms of error: \n"
              << "  L1-norm:  " << hier_cc_data_ops.L1Norm(error_idx, wgt_idx) << "\n"
              << "  L2-norm:  " << hier_cc_data_ops.L2Norm(error_idx, wgt_idx) << "\n"
              << "  max-norm: " << hier_cc_data_ops.maxNorm(error_idx, wgt_idx) << "\n";
@@ -375,74 +337,18 @@ main(int argc, char* argv[])
             [](const libMesh::Point& p, const Parameters&, const std::string&, const std::string&) -> double {
                 IBTK::VectorNd x;
                 for (int d = 0; d < NDIM; ++d) x[d] = p(d);
-                return exact(x);
+                return X(x);
             });
-        error_estimator.compute_error("b", "b");
+        error_estimator.compute_error("x", "x");
         double Q_error[3];
-        Q_error[0] = error_estimator.l1_error("b", "b");
-        Q_error[1] = error_estimator.l2_error("b", "b");
-        Q_error[2] = error_estimator.l_inf_error("b", "b");
+        Q_error[0] = error_estimator.l1_error("x", "x");
+        Q_error[1] = error_estimator.l2_error("x", "x");
+        Q_error[2] = error_estimator.l_inf_error("x", "x");
         pout << "Structure errors:\n"
              << "  L1-norm:  " << Q_error[0] << "\n"
              << "  L2-norm:  " << Q_error[1] << "\n"
              << "  max-norm: " << Q_error[2] << "\n";
         pout << std::setprecision(10) << Q_error[0] << " " << Q_error[1] << " " << Q_error[2] << "\n";
-
-        pout << "Boundary errors:\n";
-        Vec bdry_vec, bdry_exact_vec;
-        const std::shared_ptr<GhostPoints>& ghost_pts = solver.getGhostPoints();
-        const std::shared_ptr<GlobalIndexing>& indexing = solver.getGlobalIndexing();
-        const std::map<int, int>& ghost_petsc_map = indexing->getGhostMap();
-        unsigned int num_ghost_pts = ghost_pts->getLocalNumGhostNodes();
-        ierr = VecCreateMPI(PETSC_COMM_WORLD, num_ghost_pts, PETSC_DETERMINE, &bdry_vec);
-        IBTK_CHKERRQ(ierr);
-        ierr = VecDuplicate(bdry_vec, &bdry_exact_vec);
-        IBTK_CHKERRQ(ierr);
-        const double* b_vals;
-        ierr = VecGetArrayRead(b_vec, &b_vals);
-        IBTK_CHKERRQ(ierr);
-        // First Eulerian ghost nodes
-        for (const auto& ghost_node : ghost_pts->getEulerianGhostNodes())
-        {
-            int ghost_idx = ghost_node.getId();
-            int petsc_idx = ghost_petsc_map.at(ghost_idx);
-            ierr = VecSetValue(bdry_exact_vec, ghost_idx, bdry(ghost_node.getX()), INSERT_VALUES);
-            IBTK_CHKERRQ(ierr);
-            ierr = VecSetValue(bdry_vec, ghost_idx, b_vals[petsc_idx], INSERT_VALUES);
-            IBTK_CHKERRQ(ierr);
-        }
-        // Now Lagrangian ghost nodes
-        for (const auto& ghost_node : ghost_pts->getLagrangianGhostNodes())
-        {
-            int ghost_idx = ghost_node.getId();
-            int petsc_idx = ghost_petsc_map.at(ghost_idx);
-            ierr = VecSetValue(bdry_exact_vec, ghost_idx, bdry(ghost_node.getX()), INSERT_VALUES);
-            IBTK_CHKERRQ(ierr);
-            ierr = VecSetValue(bdry_vec, ghost_idx, b_vals[petsc_idx], INSERT_VALUES);
-            IBTK_CHKERRQ(ierr);
-        }
-        ierr = VecAssemblyBegin(bdry_exact_vec);
-        IBTK_CHKERRQ(ierr);
-        ierr = VecAssemblyEnd(bdry_exact_vec);
-        IBTK_CHKERRQ(ierr);
-        ierr = VecAssemblyBegin(bdry_vec);
-        IBTK_CHKERRQ(ierr);
-        ierr = VecAssemblyEnd(bdry_vec);
-        IBTK_CHKERRQ(ierr);
-        ierr = VecRestoreArrayRead(b_vec, &b_vals);
-        IBTK_CHKERRQ(ierr);
-        // Compute error
-        ierr = VecAXPY(bdry_vec, -1.0, bdry_exact_vec);
-        IBTK_CHKERRQ(ierr);
-        double norm;
-        ierr = VecNorm(bdry_vec, NORM_MAX, &norm);
-        IBTK_CHKERRQ(ierr);
-        pout << "  max-norm: " << norm << "\n";
-        ierr = VecDestroy(&bdry_vec);
-        IBTK_CHKERRQ(ierr);
-        ierr = VecDestroy(&bdry_exact_vec);
-        IBTK_CHKERRQ(ierr);
-
 #ifdef DRAW_OUTPUT
         visit_data_writer->writePlotData(patch_hierarchy, 0, 0.0);
         bdry_io->write_timestep(bdry_dirname, *bdry_eq_sys, 1, 0.0);
@@ -450,8 +356,6 @@ main(int argc, char* argv[])
 
         // Now deallocate
         solver.deallocateSolverState();
-        ierr = VecDestroy(&b_vec);
-        IBTK_CHKERRQ(ierr);
         for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
         {
             Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);

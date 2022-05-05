@@ -89,53 +89,48 @@ RBFFDPoissonSolver::RBFFDPoissonSolver(std::string object_name,
     d_C = input_db->getDouble("c");
     d_D = input_db->getDouble("d");
 
-    const double& A = d_A;
-    const double& B = d_B;
-    const double& C = d_C;
-    const double& D = d_D;
-
     d_bulk_weights = libmesh_make_unique<FDWeightsCache>(d_object_name + "::bulk_wgts");
     d_bdry_weights = libmesh_make_unique<FDWeightsCache>(d_object_name + "::bdry_wgts");
     // Make a function for the weights
     d_rbf = [](const double r) -> double { return PolynomialBasis::pow(r, 5); };
-    d_lap_rbf = [&C, &D](const FDPoint& x, const FDPoint& x0, void*) -> double {
+    d_lap_rbf = [this](const FDPoint& x, const FDPoint& x0, void*) -> double {
         double r = 1.0;
         for (int d = 0; d < NDIM; ++d) r += (x(d) - x0(d)) * (x(d) - x0(d));
         r = std::sqrt(r);
 #if (NDIM == 2)
-        return C * PolynomialBasis::pow(r, 5) + D * 25.0 * PolynomialBasis::pow(r, 4);
+        return d_C * PolynomialBasis::pow(r, 5) + d_D * 25.0 * PolynomialBasis::pow(r, 4);
 #endif
 #if (NDIM == 3)
-        return C * PolynomialBasis::pow(r, 5) + D * 30.0 * PolynomialBasis::pow(r, 4);
+        return d_C * PolynomialBasis::pow(r, 5) + d_D * 30.0 * PolynomialBasis::pow(r, 4);
 #endif
     };
 
-    d_lap_polys = [&C,
-                   &D](const std::vector<FDPoint>& vec, int degree, double ds, const FDPoint& shft, void*) -> VectorXd {
-        VectorXd ret = (C * PolynomialBasis::formMonomials(vec, degree, ds, shft) +
-                        D * PolynomialBasis::laplacianMonomials(vec, degree, ds, shft))
-                           .transpose();
-        return ret;
+    d_lap_polys =
+        [this](const std::vector<FDPoint>& vec, int degree, double ds, const FDPoint& shft, void*) -> VectorXd {
+        return (d_C * PolynomialBasis::formMonomials(vec, degree, ds, shft) +
+                d_D * PolynomialBasis::laplacianMonomials(vec, degree, ds, shft))
+            .transpose();
     };
 
-    d_bdry_rbf = [&A, &B](const FDPoint& x, const FDPoint& x0, void* ctx) -> double {
+    d_bdry_rbf = [this](const FDPoint& x, const FDPoint& x0, void* ctx) -> double {
         const IBTK::VectorNd& n = *(static_cast<IBTK::VectorNd*>(ctx));
         double r = 1.0;
         for (int d = 0; d < NDIM; ++d) r += (x(d) - x0(d)) * (x(d) - x0(d));
         r = std::sqrt(r);
-        return A * PolynomialBasis::pow(r, 5) + B * PolynomialBasis::pow(r, 3) * 5 * (x - x0).dot(n);
+        return d_A * PolynomialBasis::pow(r, 5) + d_B * PolynomialBasis::pow(r, 3) * 5 * (x - x0).dot(n);
     };
 
     d_bdry_polys =
-        [&A, &B](const std::vector<FDPoint>& vec, int degree, double ds, const FDPoint& shft, void* ctx) -> MatrixXd {
+        [this](const std::vector<FDPoint>& vec, int degree, double ds, const FDPoint& shft, void* ctx) -> MatrixXd {
         const IBTK::VectorNd& n = *(static_cast<IBTK::VectorNd*>(ctx));
-        return A * PolynomialBasis::formMonomials(vec, degree, ds, shft) +
-               n(0) * PolynomialBasis::dPdxMonomials(vec, degree, ds, shft) +
-               n(1) * PolynomialBasis::dPdyMonomials(vec, degree, ds, shft)
+        return (d_A * PolynomialBasis::formMonomials(vec, degree, ds, shft) +
+                d_B * (n(0) * PolynomialBasis::dPdxMonomials(vec, degree, ds, shft) +
+                       n(1) * PolynomialBasis::dPdyMonomials(vec, degree, ds, shft)
 #if (NDIM == 3)
-               + n(2) * PolynomialBasis::dPdzMonomials(vec, degree, ds, shft)
+                       + n(2) * PolynomialBasis::dPdzMonomials(vec, degree, ds, shft)
 #endif
-            ;
+                           ))
+            .transpose();
     };
 
     // Common constructor functionality.
@@ -202,6 +197,12 @@ RBFFDPoissonSolver::solveSystem(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
                     d_index_ptr->getEulerianMap(),
                     d_index_ptr->getLagrangianMap(),
                     d_index_ptr->getDofsPerProc());
+
+    // Fill in the RHS boundary conditions
+    setRHSForBoundaries();
+
+    ierr = KSPGMRESSetRestart(d_petsc_ksp, 10000);
+    IBTK_CHKERRQ(ierr);
 
     // Now solve the system
     ierr = KSPSolve(d_petsc_ksp, d_petsc_b, d_petsc_x);
@@ -573,7 +574,7 @@ RBFFDPoissonSolver::setupMatrixAndVec()
                 for (const auto& base_pt : bulk_pts)
                 {
                     const std::vector<FDPoint>& pt_vec = rbf_pts.at(base_pt);
-                    const std::vector<double>& wgt_vec = rbf_weights.at(base_pt);
+                    std::vector<double> wgt_vec = rbf_weights.at(base_pt);
                     const unsigned int eq_num = eq_nums.at(base_pt);
                     int stencil_size = pt_vec.size();
                     std::vector<int> mat_cols(stencil_size);
@@ -612,7 +613,7 @@ RBFFDPoissonSolver::setupMatrixAndVec()
                 for (const auto& base_pt : bdry_pts)
                 {
                     const std::vector<FDPoint>& pt_vec = rbf_pts.at(base_pt);
-                    const std::vector<double>& wgt_vec = rbf_weights.at(base_pt);
+                    std::vector<double> wgt_vec = rbf_weights.at(base_pt);
                     // Bdry eq_num is the local bulk number + bdry_number
                     const unsigned int eq_num = eq_nums.at(base_pt) + bulk_eqs_local;
                     int stencil_size = pt_vec.size();
@@ -749,6 +750,7 @@ RBFFDPoissonSolver::findFDWeights()
                 }
 
                 // Now cache the wgts
+                // Note this FD stencil is for evaluating operator at base_pt
                 d_bulk_weights->cachePoint(patch, base_pt, fd_pts, wgts);
             }
 
@@ -787,9 +789,9 @@ RBFFDPoissonSolver::findFDWeights()
                                                                d_poly_degree,
                                                                dx,
                                                                d_rbf,
-                                                               d_lap_rbf,
+                                                               d_bdry_rbf,
                                                                static_cast<void*>(&normal),
-                                                               d_lap_polys,
+                                                               d_bdry_polys,
                                                                static_cast<void*>(&normal));
                         // TODO: This is a potentially dangerous hack. FD weights must be associated with an FDPoint,
                         // but we have no FDPoint's that live on the Eulerian boundary. The interior FDPoint can't be
@@ -797,7 +799,7 @@ RBFFDPoissonSolver::findFDWeights()
                         // associate a unique, possibly unrelated GhostPoint with the FD weights.
                         //
                         // TODO: This will break if the structure is near the computational boundary.
-                        d_bdry_weights->cachePoint(patch, FDPoint(&eul_ghost_nodes[ghost_idx]), fd_pts, wgts);
+                        d_bdry_weights->cachePoint(patch, FDPoint(&eul_ghost_nodes[ghost_idx]), pt, fd_pts, wgts);
                         ghost_idx++;
                     }
                 }
@@ -840,9 +842,9 @@ RBFFDPoissonSolver::findFDWeights()
                                                            d_poly_degree,
                                                            dx,
                                                            d_rbf,
-                                                           d_lap_rbf,
+                                                           d_bdry_rbf,
                                                            static_cast<void*>(&n),
-                                                           d_lap_polys,
+                                                           d_bdry_polys,
                                                            static_cast<void*>(&n));
                     d_bulk_weights->cachePoint(patch, base_pt, fd_pts, bulk_wgts);
                     d_bdry_weights->cachePoint(patch, base_pt, fd_pts, bdry_wgts);
@@ -908,6 +910,46 @@ RBFFDPoissonSolver::writeMatToFile(const std::string& filename)
     for (int i = 0; i < vec_size; ++i) sol_file << std::to_string(vec_vals[i]) << "\n";
     ierr = VecRestoreArray(d_petsc_b, &vec_vals);
     sol_file.close();
+    IBTK_CHKERRQ(ierr);
+    return;
+}
+
+void
+RBFFDPoissonSolver::setRHSForBoundaries()
+{
+    // Fill in the RHS vector for the boundary conditions.
+    // We need the total number of bulk conditions
+    const std::vector<unsigned int>& num_bulk_conds = d_cc_bulk->getNumConditionsPerProc();
+    const std::vector<unsigned int>& num_bdry_conds = d_cc_bdry->getNumConditionsPerProc();
+    const int rank = IBTK_MPI::getRank();
+    const int bulk_eqs_local = num_bulk_conds[rank];
+    const int bulk_eqs_lower = std::accumulate(num_bulk_conds.begin(), num_bulk_conds.begin() + rank, 0);
+    const int bdry_eqs_lower = std::accumulate(num_bdry_conds.begin(), num_bdry_conds.begin() + rank, 0);
+    const int eqs_lower = bdry_eqs_lower + bulk_eqs_lower;
+
+    // Assume structure is on finest level
+    Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(d_hierarchy->getFinestLevelNumber());
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+    {
+        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+        const std::set<FDPoint>& base_pts = d_bdry_weights->getRBFFDBasePoints(patch);
+        const std::map<FDPoint, unsigned int>& base_pt_cond_num_map =
+            d_cc_bdry->getFDConditionMapPatch(patch.getPointer());
+        const std::map<FDPoint, Point>& fd_loc_pts = d_bdry_weights->getFDLocation(patch);
+        for (const auto& base_pt : base_pts)
+        {
+            const double bdry_val = d_bdry_fcn(fd_loc_pts.at(base_pt).getVec(), d_A, d_B);
+            pout << "updating bdry values at index " << eqs_lower + bulk_eqs_local + base_pt_cond_num_map.at(base_pt)
+                 << "\n";
+            int ierr = VecSetValue(
+                d_petsc_b, eqs_lower + bulk_eqs_local + base_pt_cond_num_map.at(base_pt), bdry_val, INSERT_VALUES);
+            IBTK_CHKERRQ(ierr);
+        }
+    }
+
+    int ierr = VecAssemblyBegin(d_petsc_b);
+    IBTK_CHKERRQ(ierr);
+    ierr = VecAssemblyEnd(d_petsc_b);
     IBTK_CHKERRQ(ierr);
     return;
 }

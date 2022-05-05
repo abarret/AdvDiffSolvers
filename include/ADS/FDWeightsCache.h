@@ -54,10 +54,20 @@ public:
     virtual ~FDWeightsCache();
 
     /*!
-     * \brief Cache FD weights for a given point for a given patch.
+     * \brief Cache FD weights for a given point for a given patch. This assumes the FD weights are for evaluating an
+     * operator at pt.
      */
     virtual void cachePoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
                             const FDPoint& pt,
+                            const std::vector<FDPoint>& fd_pts,
+                            const std::vector<double>& fd_weights);
+
+    /*!
+     * \brief Cache FD weights for a given point for a given patch. The FD weights are for evaluating an operator at pt.
+     */
+    virtual void cachePoint(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
+                            const FDPoint& base_pt,
+                            const Point& pt,
                             const std::vector<FDPoint>& fd_pts,
                             const std::vector<double>& fd_weights);
 
@@ -88,19 +98,25 @@ public:
 
     /*!
      * \brief Get the vector of FD weights for a given patch and point pair.
-     *
-     * \note This function returns a copy of the weights.
      */
     const std::vector<double>& getRBFFDWeights(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
                                                const FDPoint& pt) const;
 
     /*!
      * \brief Get the vector of FD points for a given patch and point pair.
-     *
-     * \note This function returns a copy of the points.
      */
     const std::vector<FDPoint>& getRBFFDPoints(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
                                                const FDPoint& pt) const;
+
+    /*!
+     * \brief Get the location at which the FD weights are approximating an operator.
+     */
+    const Point& getFDLocation(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const FDPoint& pt) const;
+
+    /*!
+     * \brief Get all the locations at which the FD weights are approximating an operator.
+     */
+    const std::map<FDPoint, Point>& getFDLocation(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) const;
 
     /*!
      * \brief Determine if this patch and point pair has associated FD weights
@@ -130,9 +146,11 @@ protected:
     using PtVecMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::set<FDPoint>>;
     using PtPairVecMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::map<FDPoint, std::vector<FDPoint>>>;
     using WeightVecMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::map<FDPoint, std::vector<double>>>;
+    using BasePtPtMap = std::map<SAMRAI::hier::Patch<NDIM>*, std::map<FDPoint, Point>>;
     PtVecMap d_base_pt_set;
     PtPairVecMap d_pair_pt_map;
     WeightVecMap d_pt_weight_map;
+    BasePtPtMap d_base_pt_pt_map;
 
 private:
     /*!

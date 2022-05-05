@@ -254,6 +254,11 @@ public:
         return d_bdry_weights;
     }
 
+    inline void setBdryFcn(std::function<double(const IBTK::VectorNd&, double, double)> bdry_fcn)
+    {
+        d_bdry_fcn = bdry_fcn;
+    }
+
     void writeMatToFile(const std::string& filename);
 
 private:
@@ -297,6 +302,8 @@ private:
 
     void findFDWeights();
 
+    void setRHSForBoundaries();
+
     bool d_reinitializing_solver = false;
 
     // KSP data
@@ -339,6 +346,8 @@ private:
 
     double d_A = std::numeric_limits<double>::quiet_NaN(), d_B = std::numeric_limits<double>::quiet_NaN();
     double d_C = std::numeric_limits<double>::quiet_NaN(), d_D = std::numeric_limits<double>::quiet_NaN();
+
+    std::function<double(const IBTK::VectorNd&, double, double)> d_bdry_fcn;
 };
 } // namespace ADS
 
