@@ -12,12 +12,12 @@ namespace ADS
 {
 GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
                                                        Pointer<Database> input_db,
-                                                       MeshBase* bdry_mesh,
+                                                       MeshBase* base_mesh,
                                                        const std::string& restart_read_dirname,
                                                        const unsigned int restart_restore_number)
     : d_object_name(std::move(object_name)),
       d_input_db(input_db),
-      d_bdry_meshes({ bdry_mesh }),
+      d_base_meshes({ base_mesh }),
       d_own_bdry_mesh({ 0 }),
       d_restart_read_dirname(restart_read_dirname),
       d_restart_restore_num(restart_restore_number)
@@ -26,7 +26,7 @@ GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
 
 GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
                                                        Pointer<Database> input_db,
-                                                       const std::vector<MeshBase*>& bdry_mesh,
+                                                       const std::vector<MeshBase*>& base_mesh,
                                                        const std::string& restart_read_dirname,
                                                        const unsigned int restart_restore_number)
     : d_object_name(std::move(object_name)),
@@ -34,9 +34,9 @@ GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
       d_restart_read_dirname(restart_read_dirname),
       d_restart_restore_num(restart_restore_number)
 {
-    for (unsigned int part = 0; part < bdry_mesh.size(); ++part)
+    for (unsigned int part = 0; part < base_mesh.size(); ++part)
     {
-        d_bdry_meshes.push_back(bdry_mesh[part]);
+        d_base_meshes.push_back(base_mesh[part]);
         d_own_bdry_mesh.push_back(0);
     }
 }
@@ -105,8 +105,8 @@ void
 GeneralBoundaryMeshMapping::initializeEquationSystems()
 {
     const bool from_restart = RestartManager::getManager()->isFromRestart();
+    if (d_bdry_meshes.empty() || d_bdry_meshes[0] == nullptr) buildBoundaryMesh();
     unsigned int num_parts = d_bdry_meshes.size();
-    d_bdry_meshes.resize(num_parts);
     d_bdry_eq_sys_vec.resize(num_parts);
     d_fe_data.resize(num_parts);
     for (unsigned int part = 0; part < num_parts; ++part)
@@ -170,5 +170,11 @@ GeneralBoundaryMeshMapping::writeFEDataToRestartFile(const std::string& restart_
         const int write_mode = EquationSystems::WRITE_DATA | EquationSystems::WRITE_ADDITIONAL_DATA;
         d_bdry_eq_sys_vec[part]->write(file_name, xdr_mode, write_mode, /*partition_agnostic*/ true);
     }
+}
+
+void
+GeneralBoundaryMeshMapping::buildBoundaryMesh()
+{
+    d_bdry_meshes = d_base_meshes;
 }
 } // namespace ADS

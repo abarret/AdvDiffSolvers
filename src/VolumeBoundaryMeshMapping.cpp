@@ -20,8 +20,8 @@ VolumeBoundaryMeshMapping::VolumeBoundaryMeshMapping(std::string object_name,
     : GeneralBoundaryMeshMapping(std::move(object_name), input_db, mesh, restart_read_dirname, restart_restore_number),
       d_vol_meshes({ mesh }),
       d_vol_fe_data_managers({ fe_data_manager }),
-      d_bdry_ids(std::move(bdry_ids)),
-      d_parts({ 0 })
+      d_bdry_ids_vec(std::move(bdry_ids)),
+      d_vol_id_vec({ 0 })
 {
     // intentionally blank
 }
@@ -41,8 +41,8 @@ VolumeBoundaryMeshMapping::VolumeBoundaryMeshMapping(std::string object_name,
                                  restart_restore_number),
       d_vol_meshes(meshes),
       d_vol_fe_data_managers(fe_data_managers),
-      d_bdry_ids(std::move(bdry_ids)),
-      d_parts(std::move(parts))
+      d_bdry_ids_vec(std::move(bdry_ids)),
+      d_vol_id_vec(std::move(parts))
 {
     // intentionally blank
 }
@@ -104,55 +104,19 @@ VolumeBoundaryMeshMapping::updateBoundaryLocation(const double time,
 }
 
 void
-VolumeBoundaryMeshMapping::initializeEquationSystems()
+VolumeBoundaryMeshMapping::buildBoundaryMesh()
 {
-    const bool from_restart = RestartManager::getManager()->isFromRestart();
-    unsigned int num_parts = d_parts.size();
-    d_vol_id_vec.resize(num_parts);
+    unsigned int num_parts = d_vol_id_vec.size();
     d_bdry_meshes.resize(num_parts);
-    d_own_bdry_mesh.resize(num_parts);
-    d_bdry_eq_sys_vec.resize(num_parts);
-    d_fe_data.resize(num_parts);
-    for (unsigned int part = 0; part < num_parts; ++part)
+    for (unsigned int part = 0; part < d_vol_id_vec.size(); ++part)
     {
-        unsigned int vol_part = d_parts[part];
+        unsigned int vol_part = d_vol_id_vec[part];
         d_vol_id_vec[part] = vol_part;
         BoundaryMesh* bdry_mesh =
             new BoundaryMesh(d_vol_meshes[vol_part]->comm(), d_vol_meshes[vol_part]->spatial_dimension() - 1);
-        d_vol_meshes[vol_part]->boundary_info->sync(d_bdry_ids[part], *bdry_mesh);
-        d_bdry_meshes[part] = std::move(bdry_mesh);
+        d_vol_meshes[vol_part]->boundary_info->sync(d_bdry_ids_vec[part], *bdry_mesh);
+        d_bdry_meshes[part] = bdry_mesh;
         d_own_bdry_mesh[part] = 1;
-        d_bdry_eq_sys_vec[part] = std::move(libmesh_make_unique<EquationSystems>(*d_bdry_meshes[part]));
-        d_fe_data[part] = std::make_shared<FEData>(
-            d_object_name + "::FEData::" + std::to_string(part), *d_bdry_eq_sys_vec[part], true);
-
-        if (from_restart)
-        {
-            const std::string& file_name = get_libmesh_restart_file_name(
-                d_restart_read_dirname, d_object_name, d_restart_restore_num, part, d_libmesh_restart_file_extension);
-            const XdrMODE xdr_mode = (d_libmesh_restart_file_extension == "xdr" ? DECODE : READ);
-            const int read_mode =
-                EquationSystems::READ_HEADER | EquationSystems::READ_DATA | EquationSystems::READ_ADDITIONAL_DATA;
-            d_bdry_eq_sys_vec[part]->read(file_name, xdr_mode, read_mode, /*partition_agnostic*/ true);
-        }
-        else
-        {
-            auto& X_sys = d_bdry_eq_sys_vec[part]->add_system<ExplicitSystem>(d_coords_sys_name);
-            for (unsigned int d = 0; d < NDIM; ++d) X_sys.add_variable("X_" + std::to_string(d), FEType());
-            auto& dX_sys = d_bdry_eq_sys_vec[part]->add_system<ExplicitSystem>(d_disp_sys_name);
-            for (unsigned int d = 0; d < NDIM; ++d) dX_sys.add_variable("dX_" + std::to_string(d), FEType());
-            X_sys.assemble_before_solve = false;
-            X_sys.assemble();
-            dX_sys.assemble_before_solve = false;
-            dX_sys.assemble();
-        }
-        d_bdry_mesh_partitioners.push_back(
-            std::make_shared<FEMeshPartitioner>(d_object_name + "::FEMeshPartitioner::" + std::to_string(part),
-                                                d_input_db,
-                                                d_input_db->getInteger("max_level"),
-                                                IntVector<NDIM>(0),
-                                                d_fe_data[part],
-                                                d_coords_sys_name));
     }
 }
 } // namespace ADS
