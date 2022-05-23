@@ -69,8 +69,7 @@ public:
     void buildBoundaryMesh() override;
 
 private:
-    std::vector<libMesh::MeshBase*> d_vol_meshes;
-    std::vector<IBTK::FEDataManager*> d_vol_fe_data_managers;
+    std::vector<IBTK::FEDataManager*> d_base_fe_data_managers;
     std::vector<std::set<libMesh::boundary_id_type>> d_bdry_ids_vec;
     std::vector<unsigned int> d_vol_id_vec;
 };

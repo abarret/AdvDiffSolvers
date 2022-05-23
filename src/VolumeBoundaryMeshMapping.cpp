@@ -18,8 +18,7 @@ VolumeBoundaryMeshMapping::VolumeBoundaryMeshMapping(std::string object_name,
                                                      const std::string& restart_read_dirname,
                                                      unsigned int restart_restore_number)
     : GeneralBoundaryMeshMapping(std::move(object_name), input_db, mesh, restart_read_dirname, restart_restore_number),
-      d_vol_meshes({ mesh }),
-      d_vol_fe_data_managers({ fe_data_manager }),
+      d_base_fe_data_managers({ fe_data_manager }),
       d_bdry_ids_vec(std::move(bdry_ids)),
       d_vol_id_vec({ 0 })
 {
@@ -39,8 +38,7 @@ VolumeBoundaryMeshMapping::VolumeBoundaryMeshMapping(std::string object_name,
                                  meshes,
                                  restart_read_dirname,
                                  restart_restore_number),
-      d_vol_meshes(meshes),
-      d_vol_fe_data_managers(fe_data_managers),
+      d_base_fe_data_managers(fe_data_managers),
       d_bdry_ids_vec(std::move(bdry_ids)),
       d_vol_id_vec(std::move(parts))
 {
@@ -52,7 +50,7 @@ VolumeBoundaryMeshMapping::updateBoundaryLocation(const double time,
                                                   const unsigned int part,
                                                   const bool end_of_timestep)
 {
-    FEDataManager* fe_data_manager = d_vol_fe_data_managers[d_vol_id_vec[part]];
+    FEDataManager* fe_data_manager = d_base_fe_data_managers[d_vol_id_vec[part]];
     EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
 
     System& X_system = eq_sys->get_system(fe_data_manager->COORDINATES_SYSTEM_NAME);
@@ -73,7 +71,7 @@ VolumeBoundaryMeshMapping::updateBoundaryLocation(const double time,
     std::map<dof_id_type, dof_id_type> node_id_map;
     std::map<dof_id_type, unsigned char> side_id_map;
     auto bdry_mesh = static_cast<BoundaryMesh*>(d_bdry_meshes[part]);
-    d_vol_meshes[d_vol_id_vec[part]]->boundary_info->get_side_and_node_maps(*bdry_mesh, node_id_map, side_id_map);
+    d_base_meshes[d_vol_id_vec[part]]->boundary_info->get_side_and_node_maps(*bdry_mesh, node_id_map, side_id_map);
     auto node_it = d_bdry_meshes[part]->local_nodes_begin();
     auto node_end = d_bdry_meshes[part]->local_nodes_end();
     for (; node_it != node_end; ++node_it)
@@ -90,7 +88,7 @@ VolumeBoundaryMeshMapping::updateBoundaryLocation(const double time,
         std::vector<dof_id_type> X_dof_indices, X_bdry_dof_indices;
         for (int d = 0; d < NDIM; ++d)
         {
-            X_dof_map.dof_indices(d_vol_meshes[d_vol_id_vec[part]]->node_ptr(vol_node_id), X_dof_indices, d);
+            X_dof_map.dof_indices(d_base_meshes[d_vol_id_vec[part]]->node_ptr(vol_node_id), X_dof_indices, d);
             X_bdry_dof_map.dof_indices(node, X_bdry_dof_indices, d);
             X_bdry_vec->set(X_bdry_dof_indices[0], (*X_vec)(X_dof_indices[0]));
             dX_bdry_vec->set(X_bdry_dof_indices[0], (*X_vec)(X_dof_indices[0]) - (*node)(d));
@@ -113,8 +111,8 @@ VolumeBoundaryMeshMapping::buildBoundaryMesh()
         unsigned int vol_part = d_vol_id_vec[part];
         d_vol_id_vec[part] = vol_part;
         BoundaryMesh* bdry_mesh =
-            new BoundaryMesh(d_vol_meshes[vol_part]->comm(), d_vol_meshes[vol_part]->spatial_dimension() - 1);
-        d_vol_meshes[vol_part]->boundary_info->sync(d_bdry_ids_vec[part], *bdry_mesh);
+            new BoundaryMesh(d_base_meshes[vol_part]->comm(), d_base_meshes[vol_part]->spatial_dimension() - 1);
+        d_base_meshes[vol_part]->boundary_info->sync(d_bdry_ids_vec[part], *bdry_mesh);
         d_bdry_meshes[part] = bdry_mesh;
         d_own_bdry_mesh[part] = 1;
     }
