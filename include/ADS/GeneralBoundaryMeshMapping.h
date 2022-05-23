@@ -108,6 +108,8 @@ public:
      */
     virtual void initializeEquationSystems();
 
+    virtual void initializeFEData();
+
     /*!
      * \brief Write data to a restart file.
      */
@@ -116,6 +118,7 @@ public:
 protected:
     std::string d_object_name;
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
+    SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> d_input_db;
 
     std::vector<std::shared_ptr<IBTK::FEData>> d_fe_data;
     std::vector<std::shared_ptr<FEMeshPartitioner>> d_bdry_mesh_partitioners;
@@ -129,11 +132,10 @@ protected:
 
     // Restart data
     std::string d_libmesh_restart_file_extension = "xdr";
+    std::string d_restart_read_dirname = "";
+    unsigned int d_restart_restore_num = 0;
 
 private:
-    void commonConstructor(SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
-                           std::string restart_read_dirname,
-                           unsigned int restart_restore_number);
 };
 
 } // namespace ADS

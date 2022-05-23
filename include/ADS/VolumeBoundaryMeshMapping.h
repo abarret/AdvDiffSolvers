@@ -28,7 +28,7 @@ public:
                               SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
                               libMesh::MeshBase* vol_mesh,
                               IBTK::FEDataManager* vol_fe_data_manager,
-                              const std::vector<std::set<libMesh::boundary_id_type>>& bdry_ids_vec,
+                              std::vector<std::set<libMesh::boundary_id_type>> bdry_ids_vec,
                               const std::string& restart_read_dirname = "",
                               unsigned int restart_restore_number = 0);
 
@@ -39,8 +39,8 @@ public:
                               SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
                               const std::vector<libMesh::MeshBase*>& vol_meshes,
                               const std::vector<IBTK::FEDataManager*>& vol_fe_data_managers,
-                              const std::vector<std::set<libMesh::boundary_id_type>>& bdry_ids_vec,
-                              const std::vector<unsigned int>& part_vec,
+                              std::vector<std::set<libMesh::boundary_id_type>> bdry_ids_vec,
+                              std::vector<unsigned int> part_vec,
                               const std::string& restart_read_dirname = "",
                               unsigned int restart_restore_number = 0);
 
@@ -66,15 +66,13 @@ public:
 
     virtual void updateBoundaryLocation(double time, unsigned int part, bool end_of_timestep = false) override;
 
-private:
-    void commonConstructor(const std::vector<std::set<libMesh::boundary_id_type>>& bdry_ids,
-                           const std::vector<unsigned int>& parts,
-                           SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
-                           const std::string& restart_read_dirname,
-                           unsigned int restart_restore_number);
+    void initializeEquationSystems() override;
 
+private:
     std::vector<libMesh::MeshBase*> d_vol_meshes;
     std::vector<IBTK::FEDataManager*> d_vol_fe_data_managers;
+    std::vector<std::set<libMesh::boundary_id_type>> d_bdry_ids;
+    std::vector<unsigned int> d_parts;
 
     std::vector<unsigned int> d_vol_id_vec;
 };

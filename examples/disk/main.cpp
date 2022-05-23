@@ -238,6 +238,7 @@ main(int argc, char* argv[])
         // Setup boundary mesh mapping
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
             "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), &reaction_mesh);
+        mesh_mapping->initializeEquationSystems();
         adv_diff_integrator->registerGeneralBoundaryMeshMapping(mesh_mapping);
 
         // Setup the level set function
@@ -336,7 +337,7 @@ main(int argc, char* argv[])
             sb_data_manager->getFEMeshPartitioner()->getEquationSystems()->add_system<ExplicitSystem>(err_sys_name);
         sys.add_variable("Error");
 
-        mesh_mapping->initializeEquationSystems();
+        mesh_mapping->initializeFEData();
         sb_data_manager->fillInitialConditions();
         // Initialize hierarchy configuration and data on all patches.
         adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);

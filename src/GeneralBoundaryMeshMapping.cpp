@@ -15,11 +15,13 @@ GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
                                                        MeshBase* bdry_mesh,
                                                        const std::string& restart_read_dirname,
                                                        const unsigned int restart_restore_number)
-    : d_object_name(std::move(object_name))
+    : d_object_name(std::move(object_name)),
+      d_input_db(input_db),
+      d_bdry_meshes({ bdry_mesh }),
+      d_own_bdry_mesh({ 0 }),
+      d_restart_read_dirname(restart_read_dirname),
+      d_restart_restore_num(restart_restore_number)
 {
-    d_bdry_meshes.push_back(bdry_mesh);
-    d_own_bdry_mesh.push_back(0);
-    commonConstructor(input_db, restart_read_dirname, restart_restore_number);
 }
 
 GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
@@ -27,14 +29,16 @@ GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
                                                        const std::vector<MeshBase*>& bdry_mesh,
                                                        const std::string& restart_read_dirname,
                                                        const unsigned int restart_restore_number)
-    : d_object_name(std::move(object_name))
+    : d_object_name(std::move(object_name)),
+      d_input_db(input_db),
+      d_restart_read_dirname(restart_read_dirname),
+      d_restart_restore_num(restart_restore_number)
 {
     for (unsigned int part = 0; part < bdry_mesh.size(); ++part)
     {
         d_bdry_meshes.push_back(bdry_mesh[part]);
         d_own_bdry_mesh.push_back(0);
     }
-    commonConstructor(input_db, restart_read_dirname, restart_restore_number);
 }
 
 GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name) : d_object_name(std::move(object_name))
@@ -54,53 +58,6 @@ GeneralBoundaryMeshMapping::~GeneralBoundaryMeshMapping()
             d_own_bdry_mesh[part] = 0;
         }
     }
-}
-
-void
-GeneralBoundaryMeshMapping::commonConstructor(Pointer<Database> input_db,
-                                              std::string restart_read_dirname,
-                                              unsigned int restart_restore_number)
-{
-    const bool from_restart = RestartManager::getManager()->isFromRestart();
-    unsigned int num_parts = d_bdry_meshes.size();
-    d_bdry_meshes.resize(num_parts);
-    d_bdry_eq_sys_vec.resize(num_parts);
-    d_fe_data.resize(num_parts);
-    for (unsigned int part = 0; part < num_parts; ++part)
-    {
-        d_bdry_eq_sys_vec[part] = std::move(libmesh_make_unique<EquationSystems>(*d_bdry_meshes[part]));
-        d_fe_data[part] = std::make_shared<FEData>(
-            d_object_name + "::FEData::" + std::to_string(part), *d_bdry_eq_sys_vec[part], true);
-
-        if (from_restart)
-        {
-            const std::string& file_name = get_libmesh_restart_file_name(
-                restart_read_dirname, d_object_name, restart_restore_number, part, d_libmesh_restart_file_extension);
-            const XdrMODE xdr_mode = (d_libmesh_restart_file_extension == "xdr" ? DECODE : READ);
-            const int read_mode =
-                EquationSystems::READ_HEADER | EquationSystems::READ_DATA | EquationSystems::READ_ADDITIONAL_DATA;
-            d_bdry_eq_sys_vec[part]->read(file_name, xdr_mode, read_mode, /*partition_agnostic*/ true);
-        }
-        else
-        {
-            auto& X_sys = d_bdry_eq_sys_vec[part]->add_system<ExplicitSystem>(d_coords_sys_name);
-            for (unsigned int d = 0; d < NDIM; ++d) X_sys.add_variable("X_" + std::to_string(d), FEType());
-            auto& dX_sys = d_bdry_eq_sys_vec[part]->add_system<ExplicitSystem>(d_disp_sys_name);
-            for (unsigned int d = 0; d < NDIM; ++d) dX_sys.add_variable("dX_" + std::to_string(d), FEType());
-            X_sys.assemble_before_solve = false;
-            X_sys.assemble();
-            dX_sys.assemble_before_solve = false;
-            dX_sys.assemble();
-        }
-        d_bdry_mesh_partitioners.push_back(
-            std::make_shared<FEMeshPartitioner>(d_object_name + "::FEMeshPartitioner::" + std::to_string(part),
-                                                input_db,
-                                                input_db->getInteger("max_level"),
-                                                IntVector<NDIM>(0),
-                                                d_fe_data[part],
-                                                d_coords_sys_name));
-    }
-    return;
 }
 
 void
@@ -148,13 +105,57 @@ void
 GeneralBoundaryMeshMapping::initializeEquationSystems()
 {
     const bool from_restart = RestartManager::getManager()->isFromRestart();
+    unsigned int num_parts = d_bdry_meshes.size();
+    d_bdry_meshes.resize(num_parts);
+    d_bdry_eq_sys_vec.resize(num_parts);
+    d_fe_data.resize(num_parts);
+    for (unsigned int part = 0; part < num_parts; ++part)
+    {
+        d_bdry_eq_sys_vec[part] = std::move(libmesh_make_unique<EquationSystems>(*d_bdry_meshes[part]));
+        d_fe_data[part] = std::make_shared<FEData>(
+            d_object_name + "::FEData::" + std::to_string(part), *d_bdry_eq_sys_vec[part], true);
+
+        if (from_restart)
+        {
+            const std::string& file_name = get_libmesh_restart_file_name(
+                d_restart_read_dirname, d_object_name, d_restart_restore_num, part, d_libmesh_restart_file_extension);
+            const XdrMODE xdr_mode = (d_libmesh_restart_file_extension == "xdr" ? DECODE : READ);
+            const int read_mode =
+                EquationSystems::READ_HEADER | EquationSystems::READ_DATA | EquationSystems::READ_ADDITIONAL_DATA;
+            d_bdry_eq_sys_vec[part]->read(file_name, xdr_mode, read_mode, /*partition_agnostic*/ true);
+        }
+        else
+        {
+            auto& X_sys = d_bdry_eq_sys_vec[part]->add_system<ExplicitSystem>(d_coords_sys_name);
+            for (unsigned int d = 0; d < NDIM; ++d) X_sys.add_variable("X_" + std::to_string(d), FEType());
+            auto& dX_sys = d_bdry_eq_sys_vec[part]->add_system<ExplicitSystem>(d_disp_sys_name);
+            for (unsigned int d = 0; d < NDIM; ++d) dX_sys.add_variable("dX_" + std::to_string(d), FEType());
+            X_sys.assemble_before_solve = false;
+            X_sys.assemble();
+            dX_sys.assemble_before_solve = false;
+            dX_sys.assemble();
+        }
+        d_bdry_mesh_partitioners.push_back(
+            std::make_shared<FEMeshPartitioner>(d_object_name + "::FEMeshPartitioner::" + std::to_string(part),
+                                                d_input_db,
+                                                d_input_db->getInteger("max_level"),
+                                                IntVector<NDIM>(0),
+                                                d_fe_data[part],
+                                                d_coords_sys_name));
+    }
+    return;
+}
+
+void
+GeneralBoundaryMeshMapping::initializeFEData()
+{
+    const bool from_restart = RestartManager::getManager()->isFromRestart();
     if (from_restart) return;
     for (unsigned int part = 0; part < d_bdry_meshes.size(); ++part)
     {
         d_bdry_eq_sys_vec[part]->init();
     }
     updateBoundaryLocation(0.0, false);
-    return;
 }
 
 void

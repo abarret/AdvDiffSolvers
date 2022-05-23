@@ -218,6 +218,7 @@ main(int argc, char* argv[])
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
             "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), &bdry_mesh);
         mesh_mapping->initializeEquationSystems();
+        mesh_mapping->initializeFEData();
 
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("ls_var");
 

@@ -297,6 +297,7 @@ main(int argc, char* argv[])
 
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
             "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), &bdry_mesh);
+        mesh_mapping->initializeEquationSystems();
         std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner = mesh_mapping->getMeshPartitioner();
         EquationSystems* bdry_eq_sys = fe_mesh_partitioner->getEquationSystems();
         EquationSystems vol_eq_sys(mesh);
@@ -314,7 +315,7 @@ main(int argc, char* argv[])
         ex_vol_sys.add_variable("exact", FIRST);
         ex_bdry_sys.add_variable("exact", FIRST);
         vol_eq_sys.init();
-        mesh_mapping->initializeEquationSystems();
+        mesh_mapping->initializeFEData();
 
         pout << "Filling initial condition\n";
         fillLaplacian(bdry_eq_sys, "exact");

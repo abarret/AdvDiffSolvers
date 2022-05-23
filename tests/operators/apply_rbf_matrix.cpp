@@ -270,6 +270,7 @@ main(int argc, char* argv[])
 
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
             "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), &bdry_mesh);
+        mesh_mapping->initializeEquationSystems();
         std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner = mesh_mapping->getMeshPartitioner();
         EquationSystems* bdry_eq_sys = fe_mesh_partitioner->getEquationSystems();
 
@@ -289,7 +290,7 @@ main(int argc, char* argv[])
                                   "b",
                                   "solver_",
                                   PETSC_COMM_WORLD);
-        mesh_mapping->initializeEquationSystems();
+        mesh_mapping->initializeFEData();
         fe_mesh_partitioner->setPatchHierarchy(patch_hierarchy);
         fe_mesh_partitioner->reinitElementMappings(3);
         pout << "Filling initial condition\n";
