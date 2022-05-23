@@ -252,6 +252,7 @@ main(int argc, char* argv[])
         // Setup mesh mapping
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
             "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), meshes);
+        mesh_mapping->initializeEquationSystems();
 
         // Setup cut cell mapping
         Pointer<CutCellVolumeMeshMapping> cut_cell_mapping =
@@ -341,7 +342,7 @@ main(int argc, char* argv[])
         const int u_draw_idx = var_db->registerVariableAndContext(u_draw, var_db->getContext("Scratch"));
         visit_data_writer->registerPlotQuantity("velocity", "VECTOR", u_draw_idx);
 
-        mesh_mapping->initializeEquationSystems();
+        mesh_mapping->initializeFEData();
         // Initialize hierarchy configuration and data on all patches.
         adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
         const int Q_idx = var_db->mapVariableAndContextToIndex(Q_in_var, adv_diff_integrator->getCurrentContext());

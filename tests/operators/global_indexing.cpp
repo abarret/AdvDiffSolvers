@@ -119,6 +119,7 @@ main(int argc, char* argv[])
         // Setup mesh mapping
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
             "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), &bdry_mesh);
+        mesh_mapping->initializeEquationSystems();
         const std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner = mesh_mapping->getMeshPartitioner(0);
         EquationSystems* eq_sys = fe_mesh_partitioner->getEquationSystems();
         std::string sys_name = "sys";
@@ -127,7 +128,7 @@ main(int argc, char* argv[])
 
         auto ghost_pts = std::make_shared<GhostPoints>(
             "GhostPoints", app_initializer->getComponentDatabase("GhostPoints"), patch_hierarchy, fe_mesh_partitioner);
-        mesh_mapping->initializeEquationSystems();
+        mesh_mapping->initializeFEData();
 
         gridding_algorithm->makeCoarsestLevel(patch_hierarchy, 0.0);
         int tag_buffer = 1;

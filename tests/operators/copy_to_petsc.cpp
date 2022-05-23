@@ -208,6 +208,7 @@ main(int argc, char* argv[])
 
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
             "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), &bdry_mesh);
+        mesh_mapping->initializeEquationSystems();
         std::shared_ptr<FEMeshPartitioner> fe_mesh_partitioner = mesh_mapping->getMeshPartitioner();
         EquationSystems* bdry_eq_sys = fe_mesh_partitioner->getEquationSystems();
 
@@ -215,7 +216,7 @@ main(int argc, char* argv[])
         exact_bdry_sys.add_variable("exact", FIRST);
         auto& copied_bdry_sys = bdry_eq_sys->add_system<ExplicitSystem>("copied");
         copied_bdry_sys.add_variable("copied", FIRST);
-        mesh_mapping->initializeEquationSystems();
+        mesh_mapping->initializeFEData();
 
         pout << "Filling initial condition\n";
         fillExact(bdry_eq_sys, "exact");

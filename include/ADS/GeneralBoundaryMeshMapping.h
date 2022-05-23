@@ -22,22 +22,20 @@ class GeneralBoundaryMeshMapping
 {
 public:
     /*!
-     * \brief Constructor that takes in a vector of boundary meshes. Note that GeneralBoundaryMeshMapping assumes
-     * ownership of the meshes.
+     * \brief Constructor that takes in a vector of meshes.
      */
     GeneralBoundaryMeshMapping(std::string object_name,
                                SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
-                               const std::vector<libMesh::MeshBase*>& bdry_meshes,
+                               const std::vector<libMesh::MeshBase*>& base_meshes,
                                const std::string& restart_read_dirname = "",
                                unsigned int restart_restore_number = 0);
 
     /*!
-     * \brief Constructor that takes in a boundary mesh. Note that GeneralBoundaryMeshMapping assumes ownership of the
-     * mesh.
+     * \brief Constructor that takes in a mesh.
      */
     GeneralBoundaryMeshMapping(std::string object_name,
                                SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
-                               libMesh::MeshBase* bdry_mesh,
+                               libMesh::MeshBase* base_mesh,
                                const std::string& restart_read_dirname = "",
                                unsigned int restart_restore_number = 0);
 
@@ -103,24 +101,37 @@ public:
     virtual void updateBoundaryLocation(double time, unsigned int part, bool end_of_timestep = false);
 
     /*!
-     * \brief Initialize the equations systems. Note all systems should be registered with the Equation systems prior to
-     * this call. This function also initialized the location of the boundary mesh.
+     * \brief Create the EquationSystems object for the boundary mesh. If the boundary mesh is a nullptr, this routine
+     * calls buildBoundaryMesh.
      */
     virtual void initializeEquationSystems();
+
+    /*!
+     * \brief Initialize the equations systems data. Note all systems should be registered with the EquationSystems
+     * prior to this call. This function also initialized the location of the boundary mesh.
+     */
+    virtual void initializeFEData();
 
     /*!
      * \brief Write data to a restart file.
      */
     virtual void writeFEDataToRestartFile(const std::string& restart_dump_dirname, unsigned int time_step_number);
 
+    /*!
+     * \brief Construct the boundary mesh. By default this copies whatever was given in the constructor.
+     */
+    virtual void buildBoundaryMesh();
+
 protected:
     std::string d_object_name;
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
+    SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> d_input_db;
 
     std::vector<std::shared_ptr<IBTK::FEData>> d_fe_data;
     std::vector<std::shared_ptr<FEMeshPartitioner>> d_bdry_mesh_partitioners;
     // TODO: Figure out ownership requirements for d_bdry_meshes. Meshes could be given to us, or we could create them.
     // For now, we just use a raw pointer, along with a flag to determine if we need to clean it up.
+    std::vector<libMesh::MeshBase*> d_base_meshes;
     std::vector<libMesh::MeshBase*> d_bdry_meshes;
     std::vector<int> d_own_bdry_mesh;
     std::vector<std::unique_ptr<libMesh::EquationSystems>> d_bdry_eq_sys_vec;
@@ -129,11 +140,10 @@ protected:
 
     // Restart data
     std::string d_libmesh_restart_file_extension = "xdr";
+    std::string d_restart_read_dirname = "";
+    unsigned int d_restart_restore_num = 0;
 
 private:
-    void commonConstructor(SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
-                           std::string restart_read_dirname,
-                           unsigned int restart_restore_number);
 };
 
 } // namespace ADS
