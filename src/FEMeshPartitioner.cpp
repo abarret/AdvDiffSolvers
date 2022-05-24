@@ -198,6 +198,21 @@ bbox_intersects(const libMeshWrappers::BoundingBox& a, const libMeshWrappers::Bo
     return true;
 }
 #endif
+
+Pointer<Database>
+setup_fe_projector_db(const Pointer<Database>& input_db)
+{
+    Pointer<Database> db;
+    if (input_db->keyExists("FEProjector"))
+    {
+        db = input_db->getDatabase("FEProjector");
+    }
+    else
+    {
+        db = new InputDatabase("FEProjector");
+    }
+    return db;
+}
 } // namespace
 
 /////////////////////////////// PUBLIC ///////////////////////////////////////
@@ -209,6 +224,7 @@ FEMeshPartitioner::FEMeshPartitioner(std::string object_name,
                                      std::string coords_sys_name)
     : COORDINATES_SYSTEM_NAME(std::move(coords_sys_name)),
       d_fe_data(fe_data),
+      d_fe_projector(new FEProjector(d_fe_data, setup_fe_projector_db(input_db))),
       d_level_lookup(max_levels - 1,
                      collect_subdomain_ids(d_fe_data->getEquationSystems()->get_mesh()),
                      input_db ? (input_db->keyExists("subdomain_ids_on_levels") ?
@@ -502,6 +518,33 @@ FEMeshPartitioner::buildGhostedSolutionVector(const std::string& system_name, co
     return sol_ghost_vec;
 } // buildGhostedSolutionVector
 
+std::unique_ptr<PetscVector<double>>
+FEMeshPartitioner::buildIBGhostedVector(const std::string& system_name)
+{
+    IBTK_TIMER_START(t_build_ghosted_vector);
+
+    reinitializeIBGhostedDOFs(system_name);
+    TBOX_ASSERT(d_system_ib_ghost_vec.find(system_name) != d_system_ib_ghost_vec.end());
+    const std::unique_ptr<PetscVector<double>>& exemplar_ib_vector = d_system_ib_ghost_vec.at(system_name);
+    TBOX_ASSERT(exemplar_ib_vector);
+    // Sanity check:
+    const System& system = d_fe_data->getEquationSystems()->get_system(system_name);
+    if (system.solution->local_size() != exemplar_ib_vector->local_size())
+    {
+        TBOX_ERROR(
+            "The locally stored example IB vector does not have the same local size as the relevant system's solution "
+            "vector. This usually occurs when the finite element data has been modified (e.g., the mesh has been "
+            "refined) outside of one of IBAMR's classes (like FEDataManager or IBFEMethod).");
+    }
+
+    std::unique_ptr<NumericVector<double>> clone = exemplar_ib_vector->zero_clone();
+    auto ptr = dynamic_cast<PetscVector<double>*>(clone.release());
+    TBOX_ASSERT(ptr);
+
+    IBTK_TIMER_STOP(t_build_ghosted_vector);
+    return std::unique_ptr<PetscVector<double>>(ptr);
+}
+
 NumericVector<double>*
 FEMeshPartitioner::getCoordsVector() const
 {
@@ -513,6 +556,45 @@ FEMeshPartitioner::buildGhostedCoordsVector(const bool localize_data)
 {
     return buildGhostedSolutionVector(COORDINATES_SYSTEM_NAME, localize_data);
 } // buildGhostedCoordsVector
+
+NumericVector<double>*
+FEMeshPartitioner::buildDiagonalL2MassMatrix(const std::string& system_name)
+{
+    return d_fe_projector->buildDiagonalL2MassMatrix(system_name);
+} // buildDiagonalL2MassMatrix
+
+PetscVector<double>*
+FEMeshPartitioner::buildIBGhostedDiagonalL2MassMatrix(const std::string& system_name)
+{
+    if (!d_L2_proj_matrix_diag_ghost.count(system_name))
+    {
+        std::unique_ptr<PetscVector<double>> M_vec = buildIBGhostedVector(system_name);
+        *M_vec = *d_fe_projector->buildDiagonalL2MassMatrix(system_name);
+        M_vec->close();
+        d_L2_proj_matrix_diag_ghost[system_name] = std::move(M_vec);
+    }
+    return d_L2_proj_matrix_diag_ghost[system_name].get();
+}
+
+bool
+FEMeshPartitioner::computeL2Projection(NumericVector<double>& U_vec,
+                                       NumericVector<double>& F_vec,
+                                       const std::string& system_name,
+                                       const bool consistent_mass_matrix,
+                                       const bool close_U,
+                                       const bool close_F,
+                                       const double tol,
+                                       const unsigned int max_its)
+{
+    return d_fe_projector->computeL2Projection(*static_cast<PetscVector<double>*>(&U_vec),
+                                               *static_cast<PetscVector<double>*>(&F_vec),
+                                               system_name,
+                                               consistent_mass_matrix,
+                                               close_U,
+                                               close_F,
+                                               tol,
+                                               max_its);
+} // computeL2Projection
 
 std::shared_ptr<FEData>&
 FEMeshPartitioner::getFEData()
