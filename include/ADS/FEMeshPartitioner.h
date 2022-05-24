@@ -242,6 +242,12 @@ public:
                                                                bool localize_data = true);
 
     /*!
+     * \return A pointer to a vector, with ghost entries corresponding to
+     * relevant IB data, associated with the specified system.
+     */
+    std::unique_ptr<libMesh::PetscVector<double>> buildIBGhostedVector(const std::string& system_name);
+
+    /*!
      * \return A pointer to the unghosted coordinates (nodal position) vector.
      */
     libMesh::NumericVector<double>* getCoordsVector() const;
@@ -263,6 +269,28 @@ public:
      */
     const std::shared_ptr<IBTK::FEData>& getFEData() const;
 
+    /*!
+     * \return Pointer to vector representation of diagonal L2 mass matrix.
+     */
+    libMesh::NumericVector<double>* buildDiagonalL2MassMatrix(const std::string& system_name);
+
+    /*!
+     * \return Pointer to IB ghosted vector representation of diagonal L2 mass matrix.
+     */
+    libMesh::PetscVector<double>* buildIBGhostedDiagonalL2MassMatrix(const std::string& system_name);
+
+    /*!
+     * \brief Set U to be the L2 projection of F.
+     */
+    bool computeL2Projection(libMesh::NumericVector<double>& U,
+                             libMesh::NumericVector<double>& F,
+                             const std::string& system_name,
+                             bool consistent_mass_matrix = true,
+                             bool close_U = true,
+                             bool close_F = true,
+                             double tol = 1.0e-6,
+                             unsigned int max_its = 100);
+
 protected:
     /*!
      * FEData object that contains the libMesh data structures.
@@ -271,6 +299,16 @@ protected:
      * usually combined with different hierarchies.
      */
     std::shared_ptr<IBTK::FEData> d_fe_data;
+
+    /*!
+     * FEProjector object that handles L2 projection functionality.
+     */
+    std::shared_ptr<IBTK::FEProjector> d_fe_projector;
+
+    /*!
+     * IB ghosted diagonal mass matrix representations.
+     */
+    std::map<std::string, std::unique_ptr<libMesh::PetscVector<double>>> d_L2_proj_matrix_diag_ghost;
 
 private:
     /*!
