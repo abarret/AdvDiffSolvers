@@ -1,6 +1,9 @@
 
 IBFESurfaceMethod: mesh part 0 is using FIRST order LAGRANGE finite elements.
 
+Minimum volume on level:     0 is: 3.9452024106e-07
+Total area found on level:   0 is: 6.28201006011
+Total volume found on level: 0 is: 3.14004592122
 Norms of solution: 
   L1-norm:  9.14726
   L2-norm:  10.9101

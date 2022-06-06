@@ -287,7 +287,7 @@ main(int argc, char* argv[])
         adv_diff_integrator->setHelmholtzSolver(Q_in_var, Q_in_helmholtz_solver);
 
         const std::string err_sys_name = "ERROR";
-        ExplicitSystem& sys =
+        auto& sys =
             sb_data_manager->getFEMeshPartitioner()->getEquationSystems()->add_system<ExplicitSystem>(err_sys_name);
         sys.add_variable("Error");
 
@@ -356,7 +356,7 @@ main(int argc, char* argv[])
             pout << "\nWriting visualization files...\n\n";
             computeFluidErrors(
                 Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
-            computeSurfaceErrors(reaction_mesh,
+            computeSurfaceErrors(*mesh_mapping->getBoundaryMesh(),
                                  sb_data_manager->getFEMeshPartitioner(),
                                  sb_data_manager->getSFNames()[0],
                                  err_sys_name,

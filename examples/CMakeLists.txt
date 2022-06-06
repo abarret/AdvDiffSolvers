@@ -1,5 +1,5 @@
 ADD_CUSTOM_TARGET(examples)
-SET(EXAMPLE_DIRECTORIES couette disk pipe_flow_no_ins radial reacting_couette rotational solvers operators)
+SET(EXAMPLE_DIRECTORIES couette disk pipe_flow_no_ins pipe_flow_no_struct radial reacting_couette rotational solvers operators)
 
 MACRO(ADS_ADD_EXAMPLE)
   SET(OPTIONS)

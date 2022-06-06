@@ -396,6 +396,7 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
             }
         }
     }
+    executeIntegrateHierarchyCallbackFcns(current_time, new_time, cycle_num);
     ADS_TIMER_STOP(t_integrate_hierarchy);
 }
 

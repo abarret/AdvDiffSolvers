@@ -205,7 +205,7 @@ public:
      * \return A const reference to the map from local patch number to local
      * active elements.
      */
-    const std::vector<std::vector<libMesh::Elem*>>& getActivePatchElementMap() const;
+    const std::vector<std::vector<libMesh::Elem*>>& getActivePatchElementMap(int ln = IBTK::invalid_level_number) const;
 
     /*!
      * \return A const reference to the map from local patch number to local
@@ -213,7 +213,7 @@ public:
      *
      * \note The local active nodes are the nodes of the local active elements.
      */
-    const std::vector<std::vector<libMesh::Node*>>& getActivePatchNodeMap() const;
+    const std::vector<std::vector<libMesh::Node*>>& getActivePatchNodeMap(int ln = IBTK::invalid_level_number) const;
 
     /*!
      * \brief Reinitialize the mappings from elements to Cartesian grid patches.

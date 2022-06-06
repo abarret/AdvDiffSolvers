@@ -18,7 +18,6 @@ GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
     : d_object_name(std::move(object_name)),
       d_input_db(input_db),
       d_base_meshes({ base_mesh }),
-      d_own_bdry_mesh({ 0 }),
       d_restart_read_dirname(restart_read_dirname),
       d_restart_restore_num(restart_restore_number)
 {
@@ -34,30 +33,15 @@ GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
       d_restart_read_dirname(restart_read_dirname),
       d_restart_restore_num(restart_restore_number)
 {
-    for (unsigned int part = 0; part < base_mesh.size(); ++part)
-    {
-        d_base_meshes.push_back(base_mesh[part]);
-        d_own_bdry_mesh.push_back(0);
-    }
+    size_t num_meshes = base_mesh.size();
+    d_base_meshes.resize(num_meshes);
+    d_own_bdry_mesh.resize(num_meshes);
+    for (unsigned int part = 0; part < num_meshes; ++part) d_base_meshes[part] = base_mesh[part];
 }
 
 GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name) : d_object_name(std::move(object_name))
 {
     // intentionally blank
-}
-
-GeneralBoundaryMeshMapping::~GeneralBoundaryMeshMapping()
-{
-    // Clean up allocated memory if we need to
-    for (unsigned int part = 0; part < d_bdry_meshes.size(); ++part)
-    {
-        if (d_own_bdry_mesh[part])
-        {
-            delete d_bdry_meshes[part];
-            d_bdry_meshes[part] = nullptr;
-            d_own_bdry_mesh[part] = 0;
-        }
-    }
 }
 
 void
@@ -175,6 +159,7 @@ GeneralBoundaryMeshMapping::writeFEDataToRestartFile(const std::string& restart_
 void
 GeneralBoundaryMeshMapping::buildBoundaryMesh()
 {
-    d_bdry_meshes = d_base_meshes;
+    for (const auto& base_mesh : d_base_meshes)
+        d_bdry_meshes.push_back(libmesh_make_unique<BoundaryMesh>(*static_cast<BoundaryMesh*>(base_mesh)));
 }
 } // namespace ADS

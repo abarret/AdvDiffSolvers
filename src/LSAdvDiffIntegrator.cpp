@@ -639,6 +639,7 @@ LSAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
         const int vol_new_idx = var_db->mapVariableAndContextToIndex(vol_var, getNewContext());
 
         d_Q_adv_reconstruct_map[Q_var]->setLSData(ls_cur_idx, vol_cur_idx, ls_new_idx, vol_new_idx);
+        d_Q_adv_reconstruct_map[Q_var]->setBoundaryConditions(d_Q_bc_coef[Q_var][0]);
         d_Q_adv_reconstruct_map[Q_var]->allocateOperatorState(d_hierarchy, current_time, new_time);
     }
     ADS_TIMER_STOP(t_preprocess);
@@ -867,6 +868,7 @@ LSAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
             }
         }
     }
+    executeIntegrateHierarchyCallbackFcns(current_time, new_time, cycle_num);
     ADS_TIMER_STOP(t_integrate_hierarchy);
 }
 
@@ -939,10 +941,29 @@ LSAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double cu
             const int ls_node_cur_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
             const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
             const int Q_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
-            Pointer<LSCartGridFunction> Q_init = d_Q_init[Q_var];
-            TBOX_ASSERT(Q_init);
-            Q_init->setLSIndex(ls_node_cur_idx, vol_cur_idx);
-            Q_init->setDataOnPatchHierarchy(Q_idx, Q_var, d_hierarchy, 0.0);
+            if (initial_time)
+            {
+                if (!d_Q_init.at(Q_var))
+                {
+                    // Just fill in zeros.
+                    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+                    {
+                        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+                        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+                        {
+                            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+                            Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+                            Q_data->fillAll(0.0);
+                        }
+                    }
+                }
+                else
+                {
+                    Pointer<LSCartGridFunction> Q_init = d_Q_init[Q_var];
+                    if (Q_init) Q_init->setLSIndex(ls_node_cur_idx, vol_cur_idx);
+                    d_Q_init.at(Q_var)->setDataOnPatchHierarchy(Q_idx, Q_var, d_hierarchy, 0.0);
+                }
+            }
         }
 
         if (!d_reconstruction_cache)

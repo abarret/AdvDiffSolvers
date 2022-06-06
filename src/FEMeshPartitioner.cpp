@@ -318,15 +318,21 @@ FEMeshPartitioner::getGhostCellWidth() const
 } // getGhostCellWidth
 
 const std::vector<std::vector<Elem*>>&
-FEMeshPartitioner::getActivePatchElementMap() const
+FEMeshPartitioner::getActivePatchElementMap(int ln) const
 {
-    return d_active_patch_elem_map.back();
+    if (ln == IBTK::invalid_level_number)
+        return d_active_patch_elem_map.back();
+    else
+        return d_active_patch_elem_map[ln];
 } // getActivePatchElementMap
 
 const std::vector<std::vector<Node*>>&
-FEMeshPartitioner::getActivePatchNodeMap() const
+FEMeshPartitioner::getActivePatchNodeMap(int ln) const
 {
-    return d_active_patch_node_map.back();
+    if (ln == IBTK::invalid_level_number)
+        return d_active_patch_node_map.back();
+    else
+        return d_active_patch_node_map[ln];
 } // getActivePatchNodeMap
 
 void

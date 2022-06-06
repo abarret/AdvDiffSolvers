@@ -1,14 +1,10 @@
-#ifndef included_QFcn
-#define included_QFcn
+#ifndef included_InsideLSFcn
+#define included_InsideLSFcn
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "ADS/IntegrateFunction.h"
-#include "ADS/LSCartGridFunction.h"
-
-#include <ibamr/AdvDiffHierarchyIntegrator.h>
-
 #include <ibtk/CartGridFunction.h>
+#include <ibtk/HierarchyIntegrator.h>
 #include <ibtk/ibtk_utilities.h>
 
 #include <CartesianGridGeometry.h>
@@ -18,29 +14,29 @@
 /*!
  * \brief Method to initialize the value of the advected scalar Q.
  */
-class QFcn : public ADS::LSCartGridFunction
+class InsideLSFcn : public IBTK::CartGridFunction
 {
 public:
     /*!
      * \brief Constructor.
      */
-    QFcn(const std::string& object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
+    InsideLSFcn(const std::string& object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 
     /*!
      * \brief Destructor.
      */
-    ~QFcn();
+    ~InsideLSFcn() = default;
 
     /*!
      * Indicates whether the concrete CartGridFunction object is time dependent.
      */
-    bool isTimeDependent() const
+    bool isTimeDependent() const override
     {
         return true;
     }
 
     /*!
-     * Set the data on the patch interior to the exact answer. Note that we are setting the cell average here.
+     * Set the data on the patch interior to the exact answer.
      */
     void setDataOnPatch(int data_idx,
                         SAMRAI::tbox::Pointer<SAMRAI::hier::Variable<NDIM>> var,
@@ -50,14 +46,6 @@ public:
                         SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> level =
                             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>>(nullptr)) override;
 
-    /*!
-     * Update cell average to be total amount.
-     */
-    void updateAverageToTotal(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> var,
-                              SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> Q_ctx,
-                              SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
-                              int vol_idx);
-
 protected:
 private:
     /*!
@@ -65,7 +53,7 @@ private:
      *
      * \note This constructor is not implemented and should not be used.
      */
-    QFcn();
+    InsideLSFcn();
 
     /*!
      * \brief Copy constructor.
@@ -74,7 +62,7 @@ private:
      *
      * \param from The value to copy to this object.
      */
-    QFcn(const QFcn& from);
+    InsideLSFcn(const InsideLSFcn& from);
 
     /*!
      * \brief Assignment operator.
@@ -85,17 +73,11 @@ private:
      *
      * \return A reference to this object.
      */
-    QFcn& operator=(const QFcn& that);
+    InsideLSFcn& operator=(const InsideLSFcn& that);
 
-    /*!
-     * Read input values, indicated above, from given database.
-     */
-    void getFromInput(SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> db);
-
-    bool d_solve_for_average = false;
-
-    IBTK::VectorNd d_com;
-    double d_R;
-    double d_D = 0.01;
+    double d_theta = 0.0;
+    double d_L = 0.0;
+    double d_y_up = 0.0;
+    double d_y_low = 0.0;
 };
-#endif //#ifndef included_ADS_QFcn
+#endif //#ifndef included_InsideLSFcn

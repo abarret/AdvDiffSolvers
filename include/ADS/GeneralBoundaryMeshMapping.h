@@ -52,7 +52,7 @@ public:
     /*!
      * \brief Default deconstructor.
      */
-    virtual ~GeneralBoundaryMeshMapping();
+    virtual ~GeneralBoundaryMeshMapping() = default;
 
     /*!
      * \brief Deleted copy constructor.
@@ -122,9 +122,18 @@ public:
      */
     virtual void buildBoundaryMesh();
 
+    inline const std::unique_ptr<libMesh::BoundaryMesh>& getBoundaryMesh(unsigned int part = 0) const
+    {
+        return d_bdry_meshes[part];
+    }
+
+    inline const std::vector<std::unique_ptr<libMesh::BoundaryMesh>>& getBoundaryMeshes() const
+    {
+        return d_bdry_meshes;
+    }
+
 protected:
     std::string d_object_name;
-    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
     SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> d_input_db;
 
     std::vector<std::shared_ptr<IBTK::FEData>> d_fe_data;
@@ -132,7 +141,7 @@ protected:
     // TODO: Figure out ownership requirements for d_bdry_meshes. Meshes could be given to us, or we could create them.
     // For now, we just use a raw pointer, along with a flag to determine if we need to clean it up.
     std::vector<libMesh::MeshBase*> d_base_meshes;
-    std::vector<libMesh::MeshBase*> d_bdry_meshes;
+    std::vector<std::unique_ptr<libMesh::BoundaryMesh>> d_bdry_meshes;
     std::vector<int> d_own_bdry_mesh;
     std::vector<std::unique_ptr<libMesh::EquationSystems>> d_bdry_eq_sys_vec;
     std::string d_coords_sys_name = "COORDINATES_SYSTEM";

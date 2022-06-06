@@ -8,6 +8,9 @@ SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing level set for: LS_In
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 SBAdvDiffIntegrator: Initializing data for variable: Q_in
 SBAdvDiffIntegrator: Finished initializing composite data
 Input database:
@@ -335,12 +338,15 @@ input_db {
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 At beginning of timestep # 0
 Simulation time is 0
-SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0,0.0117188], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0,0.01171875], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 0
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
 SBAdvDiffIntegrator: Integrating surface odes
@@ -351,6 +357,9 @@ SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
 SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
 SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 Projection converged: 1
 SBAdvDiffIntegrator: advecting Q_in
 SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
@@ -370,27 +379,30 @@ Simulation time is 0.0117188
 Writing visualization files...
 
 Error in fluid at time: 0.0117188
-  L1-norm:   0.0003789670296
-  L2-norm:   0.0005333857455
-  max-norm:  0.001141533138
+  L1-norm:   0.0003786981154
+  L2-norm:   0.0005332612557
+  max-norm:  0.00114166144
 Error in fluid without cut cells at time: 0.01171875
-  L1-norm:   7.070793146e-05
-  L2-norm:   0.0001266686654
-  max-norm:  0.0004235112258
+  L1-norm:   7.055712997e-05
+  L2-norm:   0.0001263863136
+  max-norm:  0.0004155715374
 Error at surface at time: 0.01171875
- L1-norm:  0.01481544977
- L2-norm:  0.00482688004
- max-norm: 0.002360398596
+ L1-norm:  0.01481583392
+ L2-norm:  0.004827005183
+ max-norm: 0.002360392392
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 At beginning of timestep # 1
 Simulation time is 0.01171875
-SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0117188,0.0234375], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.01171875,0.0234375], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 1
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
 SBAdvDiffIntegrator: Integrating surface odes
@@ -401,6 +413,9 @@ SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
 SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
 SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 Projection converged: 1
 SBAdvDiffIntegrator: advecting Q_in
 SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
@@ -420,27 +435,30 @@ Simulation time is 0.0234375
 Writing visualization files...
 
 Error in fluid at time: 0.0234375
-  L1-norm:   0.0006285066568
-  L2-norm:   0.0007851294868
-  max-norm:  0.001491119597
+  L1-norm:   0.0006284362675
+  L2-norm:   0.0007851879167
+  max-norm:  0.001491574748
 Error in fluid without cut cells at time: 0.0234375
-  L1-norm:   0.0001868021662
-  L2-norm:   0.0002849670311
-  max-norm:  0.0007819492639
+  L1-norm:   0.0001866832365
+  L2-norm:   0.0002848474205
+  max-norm:  0.000784140358
 Error at surface at time: 0.0234375
- L1-norm:  0.02905515633
- L2-norm:  0.009466182643
- max-norm: 0.004629376836
+ L1-norm:  0.02905558606
+ L2-norm:  0.009466322636
+ max-norm: 0.004629360063
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 At beginning of timestep # 2
 Simulation time is 0.0234375
-SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0234375,0.0351562], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0234375,0.03515625], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 2
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
 SBAdvDiffIntegrator: Integrating surface odes
@@ -451,6 +469,9 @@ SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
 SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
 SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 Projection converged: 1
 SBAdvDiffIntegrator: advecting Q_in
 SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
@@ -470,27 +491,30 @@ Simulation time is 0.03515625
 Writing visualization files...
 
 Error in fluid at time: 0.03515625
-  L1-norm:   0.000855053606
-  L2-norm:   0.0009940230625
-  max-norm:  0.00179632942
+  L1-norm:   0.0008553176367
+  L2-norm:   0.0009945168858
+  max-norm:  0.001797588365
 Error in fluid without cut cells at time: 0.03515625
-  L1-norm:   0.000312110951
-  L2-norm:   0.0004313635631
-  max-norm:  0.001089561703
+  L1-norm:   0.0003120674172
+  L2-norm:   0.0004313755865
+  max-norm:  0.001090821098
 Error at surface at time: 0.03515625
- L1-norm:  0.04276508092
- L2-norm:  0.01393288204
- max-norm: 0.006813713281
+ L1-norm:  0.04276547569
+ L2-norm:  0.01393301065
+ max-norm: 0.006813713828
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 At beginning of timestep # 3
 Simulation time is 0.03515625
-SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0351562,0.046875], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.03515625,0.046875], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 3
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
 SBAdvDiffIntegrator: Integrating surface odes
@@ -501,6 +525,9 @@ SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
 SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
 SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 Projection converged: 1
 SBAdvDiffIntegrator: advecting Q_in
 SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
@@ -520,27 +547,30 @@ Simulation time is 0.046875
 Writing visualization files...
 
 Error in fluid at time: 0.046875
-  L1-norm:   0.001071246247
-  L2-norm:   0.001182739382
-  max-norm:  0.002071933312
+  L1-norm:   0.001071783979
+  L2-norm:   0.001183547855
+  max-norm:  0.002073841657
 Error in fluid without cut cells at time: 0.046875
-  L1-norm:   0.0004417736325
-  L2-norm:   0.0005693098194
-  max-norm:  0.001359246123
+  L1-norm:   0.0004418180604
+  L2-norm:   0.0005694381007
+  max-norm:  0.001359487403
 Error at surface at time: 0.046875
- L1-norm:  0.05596601082
- L2-norm:  0.01823375086
- max-norm: 0.008917782482
+ L1-norm:  0.05596631095
+ L2-norm:  0.01823384864
+ max-norm: 0.008917783031
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 At beginning of timestep # 4
 Simulation time is 0.046875
-SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.046875,0.0585938], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.046875,0.05859375], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 4
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
 SBAdvDiffIntegrator: Integrating surface odes
@@ -551,6 +581,9 @@ SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
 SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
 SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 Projection converged: 1
 SBAdvDiffIntegrator: advecting Q_in
 SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
@@ -570,27 +603,30 @@ Simulation time is 0.05859375
 Writing visualization files...
 
 Error in fluid at time: 0.05859375
-  L1-norm:   0.001281928371
-  L2-norm:   0.001359620137
-  max-norm:  0.002330810469
+  L1-norm:   0.001282690647
+  L2-norm:   0.001360659264
+  max-norm:  0.002333151738
 Error in fluid without cut cells at time: 0.05859375
-  L1-norm:   0.0005744568492
-  L2-norm:   0.0007016553456
-  max-norm:  0.001605329834
+  L1-norm:   0.0005745905041
+  L2-norm:   0.0007018844141
+  max-norm:  0.001604602152
 Error at surface at time: 0.05859375
- L1-norm:  0.0686746935
- L2-norm:  0.02237424552
- max-norm: 0.01094436079
+ L1-norm:  0.06867485963
+ L2-norm:  0.02237429964
+ max-norm: 0.01094436105
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 At beginning of timestep # 5
 Simulation time is 0.05859375
-SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0585938,0.0703125], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.05859375,0.0703125], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 5
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
 SBAdvDiffIntegrator: Integrating surface odes
@@ -601,6 +637,9 @@ SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
 SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
 SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 Projection converged: 1
 SBAdvDiffIntegrator: advecting Q_in
 SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
@@ -620,27 +659,30 @@ Simulation time is 0.0703125
 Writing visualization files...
 
 Error in fluid at time: 0.0703125
-  L1-norm:   0.001489591966
-  L2-norm:   0.001528863828
-  max-norm:  0.002578713837
+  L1-norm:   0.001490544022
+  L2-norm:   0.001530080298
+  max-norm:  0.002581341306
 Error in fluid without cut cells at time: 0.0703125
-  L1-norm:   0.000709679659
-  L2-norm:   0.0008302199348
-  max-norm:  0.001835164258
+  L1-norm:   0.0007098992239
+  L2-norm:   0.0008305352392
+  max-norm:  0.001833536699
 Error at surface at time: 0.0703125
- L1-norm:  0.08090598481
- L2-norm:  0.02635920614
- max-norm: 0.01289592987
+ L1-norm:  0.08090598939
+ L2-norm:  0.02635920763
+ max-norm: 0.01289592961
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 At beginning of timestep # 6
 Simulation time is 0.0703125
-SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0703125,0.0820312], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0703125,0.08203125], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 6
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
 SBAdvDiffIntegrator: Integrating surface odes
@@ -651,6 +693,9 @@ SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
 SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
 SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 Projection converged: 1
 SBAdvDiffIntegrator: advecting Q_in
 SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
@@ -670,27 +715,30 @@ Simulation time is 0.08203125
 Writing visualization files...
 
 Error in fluid at time: 0.08203125
-  L1-norm:   0.001695676958
-  L2-norm:   0.001692867431
-  max-norm:  0.002818745167
+  L1-norm:   0.001696792849
+  L2-norm:   0.001694224882
+  max-norm:  0.002821554308
 Error in fluid without cut cells at time: 0.08203125
-  L1-norm:   0.0008472329427
-  L2-norm:   0.0009561820509
-  max-norm:  0.002052959043
+  L1-norm:   0.0008475332581
+  L2-norm:   0.0009565706453
+  max-norm:  0.002050497821
 Error at surface at time: 0.08203125
- L1-norm:  0.09267350441
- L2-norm:  0.03019307014
- max-norm: 0.01477470673
+ L1-norm:  0.09267332714
+ L2-norm:  0.03019301239
+ max-norm: 0.01477470578
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 At beginning of timestep # 7
 Simulation time is 0.08203125
-SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0820312,0.09375], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.08203125,0.09375], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 7
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
 SBAdvDiffIntegrator: Integrating surface odes
@@ -701,6 +749,9 @@ SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
 SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
 SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 Projection converged: 1
 SBAdvDiffIntegrator: advecting Q_in
 SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
@@ -720,27 +771,30 @@ Simulation time is 0.09375
 Writing visualization files...
 
 Error in fluid at time: 0.09375
-  L1-norm:   0.001901067639
-  L2-norm:   0.001853103747
-  max-norm:  0.00305271815
+  L1-norm:   0.001902326957
+  L2-norm:   0.001854575696
+  max-norm:  0.003055629439
 Error in fluid without cut cells at time: 0.09375
-  L1-norm:   0.0009870046531
-  L2-norm:   0.001080326873
-  max-norm:  0.002261328348
+  L1-norm:   0.0009873799047
+  L2-norm:   0.001080777466
+  max-norm:  0.00225809287
 Error at surface at time: 0.09375
- L1-norm:  0.1039899273
- L2-norm:  0.03387996713
- max-norm: 0.01658272225
+ L1-norm:  0.1039895527
+ L2-norm:  0.03387984513
+ max-norm: 0.01658272052
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 At beginning of timestep # 8
 Simulation time is 0.09375
-SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.09375,0.105469], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.09375,0.10546875], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 8
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
 SBAdvDiffIntegrator: Integrating surface odes
@@ -751,6 +805,9 @@ SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
 SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
 SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 Projection converged: 1
 SBAdvDiffIntegrator: advecting Q_in
 SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
@@ -770,27 +827,30 @@ Simulation time is 0.10546875
 Writing visualization files...
 
 Error in fluid at time: 0.10546875
-  L1-norm:   0.002106323855
-  L2-norm:   0.002010521159
-  max-norm:  0.003281746544
+  L1-norm:   0.002107709928
+  L2-norm:   0.002012087358
+  max-norm:  0.003284696632
 Error in fluid without cut cells at time: 0.10546875
-  L1-norm:   0.001128917259
-  L2-norm:   0.00120318901
-  max-norm:  0.002461991616
+  L1-norm:   0.001129361522
+  L2-norm:   0.001203691798
+  max-norm:  0.002458034889
 Error at surface at time: 0.10546875
- L1-norm:  0.1148671421
- L2-norm:  0.03742377058
- max-norm: 0.01832186143
+ L1-norm:  0.1148665583
+ L2-norm:  0.03742358041
+ max-norm: 0.01832185893
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 At beginning of timestep # 9
 Simulation time is 0.10546875
-SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.105469,0.117188], dt = 0.0117188
+SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.10546875,0.1171875], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 9
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 SBAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
 SBAdvDiffIntegrator: Integrating surface odes
@@ -801,6 +861,9 @@ SBAdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
 SBAdvDiffIntegrator: Initializing Helmholtz solver for variable number 0
 SBAdvDiffIntegrator::integrateHierarchy() finished diffusion update for variable: Q_in
 SBAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Minimum volume on level:     0 is: 1.19775018947e-06
+Total area found on level:   0 is: 6.2780779643
+Total volume found on level: 0 is: 3.13536306429
 Projection converged: 1
 SBAdvDiffIntegrator: advecting Q_in
 SBAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q_in
@@ -820,14 +883,14 @@ Simulation time is 0.1171875
 Writing visualization files...
 
 Error in fluid at time: 0.1171875
-  L1-norm:   0.002311802128
-  L2-norm:   0.002165748426
-  max-norm:  0.003506533958
+  L1-norm:   0.002313300964
+  L2-norm:   0.002167392837
+  max-norm:  0.00350947073
 Error in fluid without cut cells at time: 0.1171875
-  L1-norm:   0.001272903123
-  L2-norm:   0.001325136917
-  max-norm:  0.002656127741
+  L1-norm:   0.001273410619
+  L2-norm:   0.001325683382
+  max-norm:  0.002651497606
 Error at surface at time: 0.1171875
- L1-norm:  0.1253163501
- L2-norm:  0.04082812998
- max-norm: 0.01999388711
+ L1-norm:  0.1253155476
+ L2-norm:  0.04082786858
+ max-norm: 0.01999388388

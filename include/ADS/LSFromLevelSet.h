@@ -39,22 +39,6 @@ public:
                                 bool extended_box = false) override;
 
 private:
-    // Volume calculations
-    using Simplex = std::array<std::pair<IBTK::VectorNd, double>, NDIM + 1>;
-    using LDSimplex = std::array<std::pair<IBTK::VectorNd, double>, NDIM>;
-    using PolytopePt = std::tuple<IBTK::VectorNd, int, int>;
-    void findVolumeAndArea(const double* const xlow,
-                           const double* const dx,
-                           const SAMRAI::hier::Index<NDIM>& patch_lower,
-                           SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeData<NDIM, double>> phi,
-                           const SAMRAI::pdat::CellIndex<NDIM>& idx,
-                           double& volume,
-                           double& area);
-    double findVolume(const std::vector<Simplex>& simplices);
-    double findArea(const std::vector<Simplex>& simplices);
-
-    static const double s_eps;
-
     SAMRAI::tbox::Pointer<IBTK::CartGridFunction> d_ls_fcn;
 };
 } // namespace ADS

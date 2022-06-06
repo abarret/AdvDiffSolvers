@@ -8,6 +8,7 @@
 #include <ibtk/ibtk_utilities.h>
 
 #include <PatchHierarchy.h>
+#include <RobinBcCoefStrategy.h>
 
 #include <string>
 
@@ -58,6 +59,11 @@ public:
     void setLSData(int cur_ls_idx, int cur_vol_idx, int new_ls_idx, int new_vol_idx);
 
     /*!
+     * \brief Set the physical boundary conditions.
+     */
+    void setBoundaryConditions(SAMRAI::solv::RobinBcCoefStrategy<NDIM>* bc_coef);
+
+    /*!
      * \brief Compute N = u * grad Q.
      */
     virtual void applyReconstruction(int Q_idx, int N_idx, int path_idx) = 0;
@@ -88,6 +94,8 @@ protected:
 
     double d_current_time = std::numeric_limits<double>::quiet_NaN(),
            d_new_time = std::numeric_limits<double>::quiet_NaN();
+
+    SAMRAI::solv::RobinBcCoefStrategy<NDIM>* d_bc_coef = nullptr;
 };
 } // namespace ADS
 

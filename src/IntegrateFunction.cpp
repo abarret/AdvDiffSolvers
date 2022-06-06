@@ -94,39 +94,54 @@ IntegrateFunction::integrateFcnOnPatchHierarchy(Pointer<PatchHierarchy<NDIM>> hi
                                                 fcn_type fcn,
                                                 double t)
 {
-    d_ls_idx = ls_idx;
-    d_hierarchy = hierarchy;
-    d_fcn = fcn;
-    d_t = t;
-
-    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
     {
-        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-        {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
-            Q_data->fillAll(0.0);
-            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
-
-            const Box<NDIM>& box = patch->getBox();
-            const hier::Index<NDIM>& idx_l = box.lower();
-            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-            const double* const xlow = pgeom->getXLower();
-
-            for (CellIterator<NDIM> ci(box); ci; ci++)
-            {
-                const CellIndex<NDIM>& idx = ci();
-
-                VectorNd XLowerCorner;
-                for (int d = 0; d < NDIM; ++d)
-                    XLowerCorner(d) = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_l(d)));
-                (*Q_data)(idx) = integrateOverIndex(dx, XLowerCorner, *ls_data, idx);
-            }
-        }
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        integrateFcnOnPatchLevel(level, ls_idx, Q_idx, fcn, t);
     }
     return;
+}
+
+void
+IntegrateFunction::integrateFcnOnPatchLevel(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> level,
+                                            int ls_idx,
+                                            int Q_idx,
+                                            fcn_type fcn,
+                                            double t)
+{
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+    {
+        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+        integrateFcnOnPatch(patch, ls_idx, Q_idx, fcn, t, level);
+    }
+}
+
+void
+IntegrateFunction::integrateFcnOnPatch(Pointer<Patch<NDIM>> patch,
+                                       int ls_idx,
+                                       int Q_idx,
+                                       fcn_type fcn,
+                                       double t,
+                                       Pointer<PatchLevel<NDIM>> /*level*/)
+{
+    Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+    Q_data->fillAll(0.0);
+    Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+
+    const Box<NDIM>& box = patch->getBox();
+    const hier::Index<NDIM>& idx_l = box.lower();
+    Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+    const double* const dx = pgeom->getDx();
+    const double* const xlow = pgeom->getXLower();
+
+    for (CellIterator<NDIM> ci(box); ci; ci++)
+    {
+        const CellIndex<NDIM>& idx = ci();
+
+        VectorNd XLowerCorner;
+        for (int d = 0; d < NDIM; ++d) XLowerCorner(d) = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_l(d)));
+        (*Q_data)(idx) = integrateOverIndex(dx, XLowerCorner, *ls_data, idx, fcn, t);
+    }
 }
 
 /////////////////// PRIVATE ////////////////////////////
@@ -135,7 +150,9 @@ double
 IntegrateFunction::integrateOverIndex(const double* const dx,
                                       const VectorNd& XLow,
                                       const NodeData<NDIM, double>& ls_data,
-                                      const CellIndex<NDIM>& idx)
+                                      const CellIndex<NDIM>& idx,
+                                      fcn_type fcn,
+                                      const double t)
 {
     // Create initial simplices
     std::vector<Simplex> simplices;
@@ -189,12 +206,12 @@ IntegrateFunction::integrateOverIndex(const double* const dx,
     if (num_p == NDIM * NDIM)
         vol = 0.0;
     else
-        vol = integrate(simplices);
+        vol = integrate(simplices, fcn, t);
     return vol;
 }
 
 double
-IntegrateFunction::integrate(const std::vector<Simplex>& simplices)
+IntegrateFunction::integrate(const std::vector<Simplex>& simplices, fcn_type fcn, const double t)
 {
     // Loop over simplices
     std::vector<std::array<VectorNd, NDIM + 1>> final_simplices;
@@ -337,19 +354,19 @@ IntegrateFunction::integrate(const std::vector<Simplex>& simplices)
     double vol = 0.0;
     for (const auto& simplex : final_simplices)
     {
-        vol += integrateOverSimplex(simplex, d_t);
+        vol += integrateOverSimplex(simplex, fcn, t);
     }
     return vol;
 }
 
 double
-IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_pts, const double t)
+IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_pts, fcn_type fcn, const double t)
 {
 #if (NDIM == 3)
     double integral = 0.0;
     for (const auto& X_pt : X_pts)
     {
-        integral += d_fcn(X_pt, t);
+        integral += fcn(X_pt, t);
     }
     MatrixXd mat = MatrixXd::Zero(NDIM, NDIM);
     for (size_t l = 1; l < X_pts.size(); ++l)
@@ -377,7 +394,7 @@ IntegrateFunction::integrateOverSimplex(const std::array<VectorNd, NDIM + 1>& X_
         // Convert reference coords to physical coords
         VectorNd X = referenceToPhysical(s_quad_pts[i], X_pts);
         // Evaluate function
-        double val = d_fcn(X, t);
+        double val = fcn(X, t);
         if (val > 1.0e10) pout << "val is large.\n";
         integral += val * s_weights[i];
     }

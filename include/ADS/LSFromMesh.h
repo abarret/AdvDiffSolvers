@@ -96,16 +96,6 @@ public:
 
 private:
     void commonConstructor();
-    using Simplex = std::array<std::pair<IBTK::VectorNd, double>, NDIM + 1>;
-    using LDSimplex = std::array<std::pair<IBTK::VectorNd, double>, NDIM>;
-    using PolytopePt = std::tuple<IBTK::VectorNd, int, int>;
-    void findVolume(const double* const xlow,
-                    const double* const dx,
-                    const SAMRAI::hier::Index<NDIM>& patch_lower,
-                    SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeData<NDIM, double>> phi_data,
-                    const SAMRAI::pdat::CellIndex<NDIM>& idx,
-                    double& volume);
-    double findVolume(const std::vector<Simplex>& simplices);
 
     void updateLSAwayFromInterface(int phi_idx);
     // This does a flood filling algorithm for d_sgn_idx.

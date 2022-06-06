@@ -38,7 +38,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                                    Pointer<SideVariable<NDIM, double>> /*side_var*/,
                                    int phi_idx,
                                    Pointer<NodeVariable<NDIM, double>> phi_var,
-                                   double /*data_time*/,
+                                   double data_time,
                                    bool extended_box)
 {
     ADS_TIMER_START(t_updateVolumeAreaSideLS);
@@ -63,321 +63,277 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
 
     d_cut_cell_mesh_mapping->initializeObjectState(d_hierarchy);
     d_cut_cell_mesh_mapping->generateCutCellMappings();
-    const std::vector<std::map<IndexList, std::vector<CutCellElems>>>& idx_cut_cell_map_vec =
-        d_cut_cell_mesh_mapping->getIdxCutCellElemsMap(finest_ln);
-
-    Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(finest_ln);
-    unsigned int local_patch_num = 0;
-    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
-    {
-        Pointer<Patch<NDIM>> patch = level->getPatch(p());
-        const std::map<IndexList, std::vector<CutCellElems>>& idx_cut_cell_map = idx_cut_cell_map_vec[local_patch_num];
-        if (idx_cut_cell_map.size() == 0) continue;
-
-        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
-        Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(area_idx);
-        Pointer<SideData<NDIM, double>> side_data = patch->getPatchData(side_idx);
-        Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
-
-        Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-        const double* const x_low = pgeom->getXLower();
-        const double* const dx = pgeom->getDx();
-        const hier::Index<NDIM>& idx_low = patch->getBox().lower();
-
-        // Loop through all cut cells in map
-        for (const auto& idx_elem_vec_pair : idx_cut_cell_map)
-        {
-            const CellIndex<NDIM>& idx = idx_elem_vec_pair.first.d_idx;
-            const std::vector<CutCellElems>& cut_cell_elem_vec = idx_elem_vec_pair.second;
-
-            // Determine area contributions
-            if (area_data)
-            {
-                double area = 0.0;
-                for (const auto& cut_cell_elem : cut_cell_elem_vec)
-                {
-                    area += (cut_cell_elem.d_elem->point(1) - cut_cell_elem.d_elem->point(0)).norm();
-                }
-                (*area_data)(idx) = area;
-            }
-
-            // Let's find distances from background cell nodes to structure
-            // Determine normal for elements
-            // Warning, we need the normal to be consistent between parent and child elements.
-            std::vector<IBTK::Vector3d> elem_normals;
-            for (const auto& cut_cell_elem : cut_cell_elem_vec)
-            {
-                // Note we use the parent element to calculate normals to preserve directions
-                Vector3d v, w;
-                const std::array<libMesh::Point, 2>& parent_pts = cut_cell_elem.d_parent_cur_pts;
-                const unsigned int part = cut_cell_elem.d_part;
-                v << parent_pts[0](0), parent_pts[0](1), parent_pts[0](2);
-                w << parent_pts[1](0), parent_pts[1](1), parent_pts[1](2);
-                const unsigned int domain_id = cut_cell_elem.d_parent_elem->subdomain_id();
-                Vector3d e3 = Vector3d::UnitZ();
-                if (!d_use_inside) e3 *= -1.0;
-                if (d_norm_reverse_domain_ids[part].find(domain_id) != d_norm_reverse_domain_ids[part].end() ||
-                    d_norm_reverse_elem_ids[part].find(cut_cell_elem.d_parent_elem->id()) !=
-                        d_norm_reverse_elem_ids[part].end() ||
-                    d_reverse_normal[part])
-                {
-                    e3 *= -1.0;
-                }
-                Vector3d n = (w - v).cross(e3);
-                elem_normals.push_back(n);
-            }
-            // Determine distances to nodes
-            for (int x = 0; x < 2; ++x)
-            {
-                for (int y = 0; y < 2; ++y)
-                {
-                    Vector3d P = Vector3d::Zero();
-                    for (int d = 0; d < NDIM; ++d) P(d) = static_cast<double>(idx(d) - idx_low(d)) + (d == 0 ? x : y);
-                    // Project P onto element
-                    Vector3d avg_proj, avg_unit_normal;
-                    avg_proj.setZero();
-                    avg_unit_normal.setZero();
-                    double min_dist = std::numeric_limits<double>::max();
-                    int num_min = 0;
-                    // Loop through all elements and calculate the smallest distance
-                    for (unsigned int i = 0; i < elem_normals.size(); ++i)
-                    {
-                        const std::unique_ptr<Elem>& elem = cut_cell_elem_vec[i].d_elem;
-                        const Vector3d& n = elem_normals[i];
-                        Vector3d v, w;
-                        v << (elem->point(0)(0) - x_low[0]) / dx[0], (elem->point(0)(1) - x_low[1]) / dx[1], 0.0;
-                        w << (elem->point(1)(0) - x_low[0]) / dx[0], (elem->point(1)(1) - x_low[1]) / dx[1], 0.0;
-                        const double t = std::max(0.0, std::min(1.0, (P - v).dot(w - v) / (v - w).squaredNorm()));
-                        const Vector3d proj = v + t * (w - v);
-                        VectorNd x_proj;
-                        for (int d = 0; d < NDIM; ++d) x_proj[d] = x_low[d] + dx[d] * (proj(d) - idx_low(d));
-                        const double dist = (proj - P).norm();
-                        if (dist < min_dist)
-                        {
-                            min_dist = dist;
-                            avg_proj = proj;
-                            avg_unit_normal = n;
-                            num_min = 1;
-                        }
-                        else if (MathUtilities<double>::equalEps(dist, min_dist))
-                        {
-                            avg_proj += proj;
-                            avg_unit_normal += n;
-                            ++num_min;
-                        }
-                    }
-                    avg_proj /= static_cast<double>(num_min);
-                    avg_unit_normal /= static_cast<double>(num_min);
-                    avg_unit_normal.normalize();
-
-                    Vector3d phys_vec = Vector3d::Zero();
-                    for (unsigned int d = 0; d < NDIM; ++d) phys_vec(d) = dx[d] * (P - avg_proj)[d];
-                    double dist_phys = phys_vec.norm();
-                    double sgn = (avg_unit_normal.dot(P - avg_proj) <= 0.0 ? -1.0 : 1.0);
-                    NodeIndex<NDIM> n_idx(idx, IntVector<NDIM>(x, y));
-                    (*phi_data)(n_idx) =
-                        dist_phys < std::abs((*phi_data)(n_idx)) ? (dist_phys * sgn) : (*phi_data)(n_idx);
-                    // Truncate distances that are too small
-                    // TODO: find a better way to do this.
-                    // if ((*phi_data)(n_idx) < 0.0 && (*phi_data)(n_idx) > -1.0e-5) (*phi_data)(n_idx) = -1.0e-5;
-                }
-            }
-
-            // Find volumes from level set.
-            double vol = 0.0;
-            findVolume(x_low, dx, idx_low, phi_data, idx, vol);
-            (*vol_data)(idx) = vol / (dx[0] * dx[1]);
-
-            // Determine side lengths
-            if (side_idx != IBTK::invalid_index)
-            {
-                for (int f = 0; f < 2; ++f)
-                {
-#if (NDIM == 2)
-                    double L = length_fraction(1.0,
-                                               (*phi_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 0))),
-                                               (*phi_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 1))));
-#endif
-#if (NDIM == 3)
-                    double L = 0.0;
-                    TBOX_ERROR("3D Not implemented yet.\n");
-#endif
-                    (*side_data)(SideIndex<NDIM>(idx, 0, f)) = L;
-                }
-                for (int f = 0; f < 2; ++f)
-                {
-#if (NDIM == 2)
-                    double L = length_fraction(1.0,
-                                               (*phi_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, f))),
-                                               (*phi_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, f))));
-#endif
-#if (NDIM == 3)
-                    double L = 0.0;
-                    TBOX_ERROR("3D Not implemented yet.\n");
-#endif
-                    (*side_data)(SideIndex<NDIM>(idx, 1, f)) = L;
-                }
-#if (NDIM == 3)
-                for (int f = 0; f < 2; ++f)
-                {
-                    double L = 0.0;
-                    TBOX_ERROR("3D Not implemented yet.\n");
-                    (*side_data)(SideIndex<NDIM>(idx, 2, f)) = L;
-                }
-#endif
-            }
-        }
-    }
-
-    // Fill in physical boundary cells
-    if (d_bdry_fcn)
-    {
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-        {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-
-            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(phi_idx);
-            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
-            Pointer<SideData<NDIM, double>> side_data = patch->getPatchData(side_idx);
-
-            // Loop over boundary boxes
-            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const xlow = pgeom->getXLower();
-            const double* const dx = pgeom->getDx();
-            const hier::Index<NDIM>& idx_low = patch->getBox().lower();
-            std::vector<Box<NDIM>> fill_boxes;
-            for (int d = 1; d <= NDIM; ++d)
-            {
-                const tbox::Array<BoundaryBox<NDIM>>& bdry_boxes = pgeom->getCodimensionBoundaries(d);
-                for (int i = 0; i < bdry_boxes.size(); ++i)
-                {
-                    const BoundaryBox<NDIM>& bdry_box = bdry_boxes[i];
-                    const int location_index = bdry_box.getLocationIndex();
-                    const int axis = location_index % 2;
-                    const int upper_lower = location_index / 2;
-                    if (pgeom->getTouchesRegularBoundary(axis, upper_lower))
-                        fill_boxes.push_back(
-                            pgeom->getBoundaryFillBox(bdry_box, patch->getBox(), ls_data->getGhostCellWidth()));
-                }
-            }
-            for (const auto& box : fill_boxes)
-            {
-                for (NodeIterator<NDIM> ni(box); ni; ni++)
-                {
-                    const NodeIndex<NDIM>& idx = ni();
-                    if ((*ls_data)(idx) == static_cast<double>(finest_ln + 2))
-                    {
-                        // Change this value
-                        VectorNd X_loc;
-                        for (int d = 0; d < NDIM; ++d)
-                            X_loc[d] = xlow[d] + dx[d] * static_cast<double>(idx(d) - idx_low(d));
-                        double ls_val = (*ls_data)(idx);
-                        d_bdry_fcn(X_loc, ls_val);
-                        (*ls_data)(idx) = ls_val;
-                    }
-                }
-                // Now fill in Cell values
-                for (CellIterator<NDIM> ci(box); ci; ci++)
-                {
-                    const CellIndex<NDIM>& idx = ci();
-                    double& vol = (*vol_data)(idx);
-                    if (vol > 1.0)
-                    {
-                        // We need to change this value.
-                        findVolume(xlow, dx, idx_low, ls_data, idx, vol);
-                        vol /= (dx[0] * dx[1]);
-                        for (int f = 0; f < 2; ++f)
-                        {
-#if (NDIM == 2)
-                            double L = length_fraction(1.0,
-                                                       (*ls_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 0))),
-                                                       (*ls_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 1))));
-#endif
-#if (NDIM == 3)
-                            double L = 0.0;
-#endif
-                            (*side_data)(SideIndex<NDIM>(idx, 0, f)) = L;
-                        }
-                        for (int f = 0; f < 2; ++f)
-                        {
-#if (NDIM == 2)
-                            double L = length_fraction(1.0,
-                                                       (*ls_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, f))),
-                                                       (*ls_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, f))));
-#endif
-#if (NDIM == 3)
-                            double L = 0.0;
-#endif
-                            (*side_data)(SideIndex<NDIM>(idx, 1, f)) = L;
-                        }
-#if (NDIM == 3)
-                        for (int f = 0; f < 2; ++f)
-                        {
-                            TBOX_ERROR("Three dimensions not supported yet.\n");
-                            double L = 0.0;
-                            (*side_data)(SideIndex<NDIM>(idx, 2, f)) = L;
-                        }
-#endif
-                    }
-                }
-            }
-        }
-    }
-
-    updateLSAwayFromInterface(phi_idx);
-    // Finally, fill in volumes/areas of non cut cells
     for (int ln = 0; ln <= finest_ln; ++ln)
     {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        const std::vector<std::map<IndexList, std::vector<CutCellElems>>>& idx_cut_cell_map_vec =
+            d_cut_cell_mesh_mapping->getIdxCutCellElemsMap(ln);
+
+        unsigned int local_patch_num = 0;
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            if (idx_cut_cell_map_vec.size() > local_patch_num)
+            {
+                const std::map<IndexList, std::vector<CutCellElems>>& idx_cut_cell_map =
+                    idx_cut_cell_map_vec[local_patch_num];
+                Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+                Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(area_idx);
+                Pointer<SideData<NDIM, double>> side_data = patch->getPatchData(side_idx);
+                Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
+
+                Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+                const double* const x_low = pgeom->getXLower();
+                const double* const dx = pgeom->getDx();
+                const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+
+                // Loop through all cut cells in map
+                for (const auto& idx_elem_vec_pair : idx_cut_cell_map)
+                {
+                    const CellIndex<NDIM>& idx = idx_elem_vec_pair.first.d_idx;
+                    const std::vector<CutCellElems>& cut_cell_elem_vec = idx_elem_vec_pair.second;
+
+                    // Let's find distances from background cell nodes to structure
+                    // Determine normal for elements
+                    // Warning, we need the normal to be consistent between parent and child elements.
+                    std::vector<IBTK::Vector3d> elem_normals;
+                    for (const auto& cut_cell_elem : cut_cell_elem_vec)
+                    {
+                        // Note we use the parent element to calculate normals to preserve directions
+                        Vector3d v, w;
+                        const std::array<libMesh::Point, 2>& parent_pts = cut_cell_elem.d_parent_cur_pts;
+                        const unsigned int part = cut_cell_elem.d_part;
+                        v << parent_pts[0](0), parent_pts[0](1), parent_pts[0](2);
+                        w << parent_pts[1](0), parent_pts[1](1), parent_pts[1](2);
+                        const unsigned int domain_id = cut_cell_elem.d_parent_elem->subdomain_id();
+                        Vector3d e3 = Vector3d::UnitZ();
+                        if (!d_use_inside) e3 *= -1.0;
+                        if (d_norm_reverse_domain_ids[part].find(domain_id) != d_norm_reverse_domain_ids[part].end() ||
+                            d_norm_reverse_elem_ids[part].find(cut_cell_elem.d_parent_elem->id()) !=
+                                d_norm_reverse_elem_ids[part].end() ||
+                            d_reverse_normal[part])
+                        {
+                            e3 *= -1.0;
+                        }
+                        Vector3d n = (w - v).cross(e3);
+                        elem_normals.push_back(n);
+                    }
+                    // Determine distances to nodes
+                    for (int x = 0; x < 2; ++x)
+                    {
+                        for (int y = 0; y < 2; ++y)
+                        {
+                            Vector3d P = Vector3d::Zero();
+                            for (int d = 0; d < NDIM; ++d)
+                                P(d) = static_cast<double>(idx(d) - idx_low(d)) + (d == 0 ? x : y);
+                            // Project P onto element
+                            Vector3d avg_proj, avg_unit_normal;
+                            avg_proj.setZero();
+                            avg_unit_normal.setZero();
+                            double min_dist = std::numeric_limits<double>::max();
+                            int num_min = 0;
+                            // Loop through all elements and calculate the smallest distance
+                            for (unsigned int i = 0; i < elem_normals.size(); ++i)
+                            {
+                                const std::unique_ptr<Elem>& elem = cut_cell_elem_vec[i].d_elem;
+                                const Vector3d& n = elem_normals[i];
+                                Vector3d v, w;
+                                v << (elem->point(0)(0) - x_low[0]) / dx[0], (elem->point(0)(1) - x_low[1]) / dx[1],
+                                    0.0;
+                                w << (elem->point(1)(0) - x_low[0]) / dx[0], (elem->point(1)(1) - x_low[1]) / dx[1],
+                                    0.0;
+                                const double t =
+                                    std::max(0.0, std::min(1.0, (P - v).dot(w - v) / (v - w).squaredNorm()));
+                                const Vector3d proj = v + t * (w - v);
+                                VectorNd x_proj;
+                                for (int d = 0; d < NDIM; ++d) x_proj[d] = x_low[d] + dx[d] * (proj(d) - idx_low(d));
+                                const double dist = (proj - P).norm();
+                                if (dist < min_dist)
+                                {
+                                    min_dist = dist;
+                                    avg_proj = proj;
+                                    avg_unit_normal = n;
+                                    num_min = 1;
+                                }
+                                else if (MathUtilities<double>::equalEps(dist, min_dist))
+                                {
+                                    avg_proj += proj;
+                                    avg_unit_normal += n;
+                                    ++num_min;
+                                }
+                            }
+                            avg_proj /= static_cast<double>(num_min);
+                            avg_unit_normal /= static_cast<double>(num_min);
+                            avg_unit_normal.normalize();
+
+                            Vector3d phys_vec = Vector3d::Zero();
+                            for (unsigned int d = 0; d < NDIM; ++d) phys_vec(d) = dx[d] * (P - avg_proj)[d];
+                            double dist_phys = phys_vec.norm();
+                            double sgn = (avg_unit_normal.dot(P - avg_proj) <= 0.0 ? -1.0 : 1.0);
+                            NodeIndex<NDIM> n_idx(idx, IntVector<NDIM>(x, y));
+                            (*phi_data)(n_idx) =
+                                dist_phys < std::abs((*phi_data)(n_idx)) ? (dist_phys * sgn) : (*phi_data)(n_idx);
+                            // Truncate distances that are too small
+                            // TODO: find a better way to do this.
+                            // if ((*phi_data)(n_idx) < 0.0 && (*phi_data)(n_idx) > -1.0e-5) (*phi_data)(n_idx) =
+                            // -1.0e-5;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fill in physical boundary cells
+        if (d_bdry_fcn)
+        {
+            for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+            {
+                Pointer<Patch<NDIM>> patch = level->getPatch(p());
+                Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(phi_idx);
+                Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+                Pointer<SideData<NDIM, double>> side_data = patch->getPatchData(side_idx);
+
+                // Loop over boundary boxes
+                Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+                const double* const xlow = pgeom->getXLower();
+                const double* const dx = pgeom->getDx();
+                const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+                std::vector<Box<NDIM>> fill_boxes;
+                for (int d = 1; d <= NDIM; ++d)
+                {
+                    const tbox::Array<BoundaryBox<NDIM>>& bdry_boxes = pgeom->getCodimensionBoundaries(d);
+                    for (int i = 0; i < bdry_boxes.size(); ++i)
+                    {
+                        const BoundaryBox<NDIM>& bdry_box = bdry_boxes[i];
+                        const int location_index = bdry_box.getLocationIndex();
+                        const int axis = location_index % 2;
+                        const int upper_lower = location_index / 2;
+                        if (pgeom->getTouchesRegularBoundary(axis, upper_lower))
+                            fill_boxes.push_back(
+                                pgeom->getBoundaryFillBox(bdry_box, patch->getBox(), ls_data->getGhostCellWidth()));
+                    }
+                }
+                for (const auto& box : fill_boxes)
+                {
+                    for (NodeIterator<NDIM> ni(box); ni; ni++)
+                    {
+                        const NodeIndex<NDIM>& idx = ni();
+                        if ((*ls_data)(idx) == static_cast<double>(ln + 2))
+                        {
+                            // Change this value
+                            VectorNd X_loc;
+                            for (int d = 0; d < NDIM; ++d)
+                                X_loc[d] = xlow[d] + dx[d] * static_cast<double>(idx(d) - idx_low(d));
+                            double ls_val = (*ls_data)(idx);
+                            d_bdry_fcn(X_loc, ls_val);
+                            (*ls_data)(idx) = ls_val;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Now update the LS away from the interface using a flood filling algorithm.
+    updateLSAwayFromInterface(phi_idx);
+
+    // Fill in level set ghost cells
+    using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+    std::vector<ITC> ghost_cell_comp(1);
+    ghost_cell_comp[0] = ITC(phi_idx, "LINEAR_REFINE", false, "CONSTANT_COARSEN");
+    HierarchyGhostCellInterpolation ghost_cells;
+    ghost_cells.initializeOperatorState(ghost_cell_comp, d_hierarchy, 0, finest_ln);
+    ghost_cells.fillData(data_time);
+
+    // Finally, find the volume/area/side lengths using the computed level set.
+    for (int ln = 0; ln <= finest_ln; ++ln)
+    {
+        double tot_area = 0.0;
+        double tot_vol = 0.0;
+        double min_vol = std::numeric_limits<double>::max();
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
         {
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
-            Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(area_idx);
-            Pointer<NodeData<NDIM, double>> sgn_data = patch->getPatchData(phi_idx);
-            Pointer<SideData<NDIM, double>> side_data = patch->getPatchData(side_idx);
+            Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
+            Pointer<CellData<NDIM, double>> area_data;
+            if (area_idx != IBTK::invalid_index) area_data = patch->getPatchData(area_idx);
+            Pointer<CellData<NDIM, double>> vol_data;
+            if (vol_idx != IBTK::invalid_index) vol_data = patch->getPatchData(vol_idx);
+            Pointer<SideData<NDIM, double>> side_data;
+            if (side_idx != IBTK::invalid_index) side_data = patch->getPatchData(side_idx);
 
-            const Box<NDIM>& box = vol_data->getGhostBox();
+            const Box<NDIM>& box = extended_box ? phi_data->getGhostBox() : patch->getBox();
+            const hier::Index<NDIM>& patch_lower = box.lower();
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-
+            const double* const dx = pgeom->getDx();
+            const double* const xlow = pgeom->getXLower();
+            const double cell_volume = dx[0] * dx[1];
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
-                double phi_cc = node_to_cell(idx, *sgn_data);
-                if (phi_cc > 0.0)
+                VectorNd x;
+                for (int d = 0; d < NDIM; ++d) x[d] = xlow[d] + dx[d] * static_cast<double>(idx(d) - patch_lower(d));
+                std::pair<double, double> vol_area_pair = findVolumeAndArea(x, dx, phi_data, idx);
+                double volume = vol_area_pair.first;
+                double area = vol_area_pair.second;
+                if (area_idx != IBTK::invalid_index)
                 {
-                    if (vol_data && (*vol_data)(idx) == 0.0) (*vol_data)(idx) = 0.0;
-                    if (area_data && (*area_data)(idx) == 0.0) (*area_data)(idx) = 0.0;
-                    if (side_data)
-                    {
-                        for (int axis = 0; axis < NDIM; ++axis)
-                        {
-                            for (int upper_lower = 0; upper_lower < 2; ++upper_lower)
-                            {
-                                SideIndex<NDIM> si(idx, axis, upper_lower);
-                                if ((*side_data)(si) == 0.0) (*side_data)(si) = 0.0;
-                            }
-                        }
-                    }
+                    (*area_data)(idx) = area;
+                    if (patch->getBox().contains(idx)) tot_area += area;
                 }
-                else if (phi_cc < 0.0)
+                if (vol_idx != IBTK::invalid_index)
                 {
-                    if (vol_data && (*vol_data)(idx) == 0.0) (*vol_data)(idx) = 1.0;
-                    if (area_data && (*area_data)(idx) == 0.0) (*area_data)(idx) = 0.0;
-                    if (side_data)
+                    (*vol_data)(idx) = volume / cell_volume;
+                    if (patch->getBox().contains(idx)) tot_vol += volume;
+                    min_vol = volume > 0.0 ? std::min(min_vol, volume) : min_vol;
+                }
+
+                if (side_idx != IBTK::invalid_index)
+                {
+                    for (int f = 0; f < 2; ++f)
                     {
-                        for (int axis = 0; axis < NDIM; ++axis)
-                        {
-                            for (int upper_lower = 0; upper_lower < 2; ++upper_lower)
-                            {
-                                SideIndex<NDIM> si(idx, axis, upper_lower);
-                                if ((*side_data)(si) == 0.0) (*side_data)(si) = 1.0;
-                            }
-                        }
+#if (NDIM == 2)
+                        double L = length_fraction(1.0,
+                                                   (*phi_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 0))),
+                                                   (*phi_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(f, 1))));
+#endif
+#if (NDIM == 3)
+                        double L = 0.0;
+                        TBOX_ERROR("3D Not implemented yet.\n");
+#endif
+                        (*side_data)(SideIndex<NDIM>(idx, 0, f)) = L;
                     }
+                    for (int f = 0; f < 2; ++f)
+                    {
+#if (NDIM == 2)
+                        double L = length_fraction(1.0,
+                                                   (*phi_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(0, f))),
+                                                   (*phi_data)(NodeIndex<NDIM>(idx, IntVector<NDIM>(1, f))));
+#endif
+#if (NDIM == 3)
+                        double L = 0.0;
+                        TBOX_ERROR("3D Not implemented yet.\n");
+#endif
+                        (*side_data)(SideIndex<NDIM>(idx, 1, f)) = L;
+                    }
+#if (NDIM == 3)
+                    for (int f = 0; f < 2; ++f)
+                    {
+                        double L = 0.0;
+                        TBOX_ERROR("3D Not implemented yet.\n");
+                        (*side_data)(SideIndex<NDIM>(idx, 2, f)) = L;
+                    }
+#endif
                 }
             }
         }
+        tot_area = SAMRAI_MPI::sumReduction(tot_area);
+        tot_vol = SAMRAI_MPI::sumReduction(tot_vol);
+        min_vol = SAMRAI_MPI::minReduction(min_vol);
+        plog << "Minimum volume on level:     " << ln << " is: " << std::setprecision(12) << min_vol << "\n";
+        plog << "Total area found on level:   " << ln << " is: " << std::setprecision(12) << tot_area << "\n";
+        plog << "Total volume found on level: " << ln << " is: " << std::setprecision(12) << tot_vol << "\n";
     }
     ADS_TIMER_STOP(t_updateVolumeAreaSideLS);
 }
@@ -394,274 +350,6 @@ LSFromMesh::commonConstructor()
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_sgn_idx = var_db->registerVariableAndContext(d_sgn_var, var_db->getContext(d_object_name + "::Context"), 1);
-}
-
-void
-LSFromMesh::findVolume(const double* const xlow,
-                       const double* const dx,
-                       const hier::Index<NDIM>& patch_lower,
-                       Pointer<NodeData<NDIM, double>> phi_data,
-                       const CellIndex<NDIM>& idx,
-                       double& volume)
-{
-    // Create the initial simplices.
-    std::vector<Simplex> simplices;
-    // Create a vector of pairs of points and phi values
-    VectorNd X;
-    double phi;
-    int num_p = 0, num_n = 0;
-#if (NDIM == 2)
-    boost::multi_array<std::pair<VectorNd, double>, NDIM> indices(boost::extents[2][2]);
-#endif
-#if (NDIM == 3)
-    boost::multi_array<std::pair<VectorNd, double>, NDIM> indices(boost::extents[2][2][2]);
-#endif
-#if (NDIM == 2)
-    for (int x = 0; x <= 1; ++x)
-    {
-        X(0) = xlow[0] + dx[0] * (idx(0) - patch_lower(0) + x);
-        for (int y = 0; y <= 1; ++y)
-        {
-            X(1) = xlow[1] + dx[1] * (idx(1) - patch_lower(1) + y);
-            NodeIndex<NDIM> n_idx(idx, IntVector<NDIM>(x, y));
-            phi = (*phi_data)(n_idx);
-            if (std::abs(phi) < 1.0e-8) phi = phi < 0.0 ? -1.0e-8 : 1.0e-8;
-            indices[x][y] = std::make_pair(X, phi);
-            if (phi > 0)
-            {
-                // Found a positive phi
-                num_p++;
-            }
-            else
-            {
-                // Found a negative phi
-                num_n++;
-            }
-        }
-    }
-#endif
-#if (NDIM == 3)
-    for (int x = 0; x <= 1; ++x)
-    {
-        X(0) = xlow[0] + dx[0] * (idx(0) - patch_lower(0) + x);
-        for (int y = 0; y <= 1; ++y)
-        {
-            X(1) = xlow[1] + dx[1] * (idx(1) - patch_lower(1) + y);
-            for (int z = 0; z <= 1; ++z)
-            {
-                X(2) = xlow[2] + dx[2] * (idx(2) - patch_lower(2) + z);
-                NodeIndex<NDIM> n_idx(idx, IntVector<NDIM>(x, y, z));
-                phi = (*phi_data)(n_idx);
-                indices[x][y][z] = std::make_pair(X, phi);
-                if (phi > 0)
-                {
-                    num_p++;
-                }
-                else
-                {
-                    num_n++;
-                }
-            }
-        }
-    }
-#endif
-#if (NDIM == 2)
-    // Divide grid cell in half to form two simplices.
-    simplices.push_back({ indices[0][0], indices[1][0], indices[1][1] });
-    simplices.push_back({ indices[0][0], indices[0][1], indices[1][1] });
-#endif
-#if (NDIM == 3)
-    // Divide grid cell to form simplices.
-    simplices.push_back({ indices[0][0][0], indices[1][0][0], indices[0][1][0], indices[0][0][1] });
-    simplices.push_back({ indices[1][1][0], indices[1][0][0], indices[0][1][0], indices[1][1][1] });
-    simplices.push_back({ indices[1][0][1], indices[1][0][0], indices[1][1][1], indices[0][0][1] });
-    simplices.push_back({ indices[0][1][1], indices[1][1][1], indices[0][1][0], indices[0][0][1] });
-    simplices.push_back({ indices[1][1][1], indices[1][0][0], indices[0][1][0], indices[0][0][1] });
-#endif
-    if (num_n == NDIM * NDIM)
-    {
-        // Grid cell is completely contained within physical boundary.
-        volume = dx[0] * dx[1];
-    }
-    else if (num_p == NDIM * NDIM)
-    {
-        // Grid cell is completely outside of physical boundary.
-        volume = 0.0;
-    }
-    else
-    {
-        volume = findVolume(simplices);
-    }
-}
-
-double
-LSFromMesh::findVolume(const std::vector<Simplex>& simplices)
-{
-    // Loop over simplices
-    std::vector<std::array<VectorNd, NDIM + 1>> final_simplices;
-    for (const auto& simplex : simplices)
-    {
-        std::vector<int> n_phi, p_phi;
-        for (size_t k = 0; k < simplex.size(); ++k)
-        {
-            const std::pair<VectorNd, double>& pt_pair = simplex[k];
-            double phi = pt_pair.second;
-            if (phi < 0)
-            {
-                n_phi.push_back(k);
-            }
-            else
-            {
-                p_phi.push_back(k);
-            }
-        }
-        // Determine new simplices
-#if (NDIM == 2)
-        VectorNd pt0, pt1, pt2;
-        double phi0, phi1, phi2;
-        if (n_phi.size() == 1)
-        {
-            pt0 = simplex[n_phi[0]].first;
-            pt1 = simplex[p_phi[0]].first;
-            pt2 = simplex[p_phi[1]].first;
-            phi0 = simplex[n_phi[0]].second;
-            phi1 = simplex[p_phi[0]].second;
-            phi2 = simplex[p_phi[1]].second;
-            // Simplex is between P0, P01, P02
-            VectorNd P01 = midpoint_value(pt0, phi0, pt1, phi1);
-            VectorNd P02 = midpoint_value(pt0, phi0, pt2, phi2);
-            final_simplices.push_back({ pt0, P01, P02 });
-        }
-        else if (n_phi.size() == 2)
-        {
-            pt0 = simplex[n_phi[0]].first;
-            pt1 = simplex[n_phi[1]].first;
-            pt2 = simplex[p_phi[0]].first;
-            phi0 = simplex[n_phi[0]].second;
-            phi1 = simplex[n_phi[1]].second;
-            phi2 = simplex[p_phi[0]].second;
-            // Simplex is between P0, P1, P02
-            VectorNd P02 = midpoint_value(pt0, phi0, pt2, phi2);
-            final_simplices.push_back({ pt0, pt1, P02 });
-            // and P1, P12, P02
-            VectorNd P12 = midpoint_value(pt1, phi1, pt2, phi2);
-            final_simplices.push_back({ pt1, P12, P02 });
-        }
-        else if (n_phi.size() == 3)
-        {
-            pt0 = simplex[n_phi[0]].first;
-            pt1 = simplex[n_phi[1]].first;
-            pt2 = simplex[n_phi[2]].first;
-            final_simplices.push_back({ pt0, pt1, pt2 });
-        }
-        else if (n_phi.size() == 0)
-        {
-            continue;
-        }
-        else
-        {
-            TBOX_ERROR("This statement should not be reached!");
-        }
-#endif
-#if (NDIM == 3)
-        VectorNd pt0, pt1, pt2, pt3;
-        double phi0, phi1, phi2, phi3;
-        if (n_phi.size() == 1)
-        {
-            pt0 = simplex[n_phi[0]].first;
-            pt1 = simplex[p_phi[0]].first;
-            pt2 = simplex[p_phi[1]].first;
-            pt3 = simplex[p_phi[2]].first;
-            phi0 = simplex[n_phi[0]].second;
-            phi1 = simplex[p_phi[0]].second;
-            phi2 = simplex[p_phi[1]].second;
-            phi3 = simplex[p_phi[2]].second;
-            // Simplex is between P0, P01, P02, P03
-            VectorNd P01 = midpoint_value(pt0, phi0, pt1, phi1);
-            VectorNd P02 = midpoint_value(pt0, phi0, pt2, phi2);
-            VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
-            final_simplices.push_back({ pt0, P01, P02, P03 });
-        }
-        else if (n_phi.size() == 2)
-        {
-            pt0 = simplex[n_phi[0]].first;
-            pt1 = simplex[n_phi[1]].first;
-            pt2 = simplex[p_phi[0]].first;
-            pt3 = simplex[p_phi[1]].first;
-            phi0 = simplex[n_phi[0]].second;
-            phi1 = simplex[n_phi[1]].second;
-            phi2 = simplex[p_phi[0]].second;
-            phi3 = simplex[p_phi[1]].second;
-            // Simplices are between P0, P1, P02, P13
-            VectorNd P02 = midpoint_value(pt0, phi0, pt2, phi2);
-            VectorNd P13 = midpoint_value(pt1, phi1, pt3, phi3);
-            final_simplices.push_back({ pt0, pt1, P02, P13 });
-            // and P12, P1, P02, P13
-            VectorNd P12 = midpoint_value(pt1, phi1, pt2, phi2);
-            final_simplices.push_back({ P12, pt1, P02, P13 });
-            // and P0, P03, P02, P13
-            VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
-            final_simplices.push_back({ pt0, P03, P02, P13 });
-        }
-        else if (n_phi.size() == 3)
-        {
-            pt0 = simplex[n_phi[0]].first;
-            pt1 = simplex[n_phi[1]].first;
-            pt2 = simplex[n_phi[2]].first;
-            pt3 = simplex[p_phi[0]].first;
-            phi0 = simplex[n_phi[0]].second;
-            phi1 = simplex[n_phi[1]].second;
-            phi2 = simplex[n_phi[2]].second;
-            phi3 = simplex[p_phi[0]].second;
-            // Simplex is between P0, P1, P2, P13
-            VectorNd P13 = midpoint_value(pt1, phi1, pt3, phi3);
-            final_simplices.push_back({ pt0, pt1, pt2, P13 });
-            // and P0, P03, P2, P13
-            VectorNd P03 = midpoint_value(pt0, phi0, pt3, phi3);
-            final_simplices.push_back({ pt0, P03, pt2, P13 });
-            // and P23, P03, P2, P13
-            VectorNd P23 = midpoint_value(pt2, phi2, pt3, phi3);
-            final_simplices.push_back({ P23, P03, pt2, P13 });
-        }
-        else if (n_phi.size() == 4)
-        {
-            pt0 = simplex[n_phi[0]].first;
-            pt1 = simplex[n_phi[1]].first;
-            pt2 = simplex[n_phi[2]].first;
-            pt3 = simplex[n_phi[3]].first;
-            final_simplices.push_back({ pt0, pt1, pt2, pt3 });
-        }
-        else if (n_phi.size() == 0)
-        {
-            continue;
-        }
-        else
-        {
-            TBOX_ERROR("This statement should not be reached!");
-        }
-#endif
-    }
-    // Loop over simplices and compute volume
-    double volume = 0.0;
-    for (const auto& simplex : final_simplices)
-    {
-#if (NDIM == 2)
-        VectorNd pt1 = simplex[0], pt2 = simplex[1], pt3 = simplex[2];
-        double a = (pt1 - pt2).norm(), b = (pt2 - pt3).norm(), c = (pt1 - pt3).norm();
-        double p = 0.5 * (a + b + c);
-        volume += std::sqrt(p * (p - a) * (p - b) * (p - c));
-#endif
-#if (NDIM == 3)
-        // Volume is given by 1/NDIM! * determinant of matrix
-        Eigen::MatrixXd A(NDIM, NDIM);
-        for (int d = 0; d < NDIM; ++d)
-        {
-            A.col(d) = simplex[d + 1] - simplex[0];
-        }
-        volume += 1.0 / 6.0 * std::abs(A.determinant());
-#endif
-    }
-    return volume;
 }
 
 void

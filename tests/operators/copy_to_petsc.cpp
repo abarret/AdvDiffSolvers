@@ -263,8 +263,8 @@ main(int argc, char* argv[])
         NumericVector<double>* copied_lag_vec = copied_bdry_sys.solution.get();
         NumericVector<double>* exact_lag_vec = exact_bdry_sys.solution.get();
         DofMap& dof_map = copied_bdry_sys.get_dof_map();
-        auto node_it = bdry_mesh.local_nodes_begin();
-        const auto node_end = bdry_mesh.local_nodes_end();
+        auto node_it = mesh_mapping->getBoundaryMesh()->local_nodes_begin();
+        const auto node_end = mesh_mapping->getBoundaryMesh()->local_nodes_end();
         int lag_wrong = 0;
         for (; node_it != node_end; ++node_it)
         {

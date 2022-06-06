@@ -22,6 +22,7 @@
 
 #include <tbox/Pointer.h>
 
+#include <libmesh/boundary_info.h>
 #include <libmesh/boundary_mesh.h>
 #include <libmesh/equation_systems.h>
 #include <libmesh/mesh.h>

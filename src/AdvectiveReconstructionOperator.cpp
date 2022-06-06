@@ -50,6 +50,12 @@ AdvectiveReconstructionOperator::setLSData(const int ls_cur_idx,
 }
 
 void
+AdvectiveReconstructionOperator::setBoundaryConditions(RobinBcCoefStrategy<NDIM>* bc_coef)
+{
+    d_bc_coef = bc_coef;
+}
+
+void
 AdvectiveReconstructionOperator::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> /*hierarchy*/,
                                                        double current_time,
                                                        double new_time)

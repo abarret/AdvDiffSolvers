@@ -5,6 +5,7 @@
 #include "ibtk/IndexUtilities.h"
 #include "ibtk/libmesh_utilities.h"
 
+#include "libmesh/boundary_info.h"
 #include "libmesh/enum_xdr_mode.h"
 #include "libmesh/explicit_system.h"
 
@@ -70,8 +71,8 @@ VolumeBoundaryMeshMapping::updateBoundaryLocation(const double time,
 
     std::map<dof_id_type, dof_id_type> node_id_map;
     std::map<dof_id_type, unsigned char> side_id_map;
-    auto bdry_mesh = static_cast<BoundaryMesh*>(d_bdry_meshes[part]);
-    d_base_meshes[d_vol_id_vec[part]]->boundary_info->get_side_and_node_maps(*bdry_mesh, node_id_map, side_id_map);
+    d_base_meshes[d_vol_id_vec[part]]->boundary_info->get_side_and_node_maps(
+        *d_bdry_meshes[part], node_id_map, side_id_map);
     auto node_it = d_bdry_meshes[part]->local_nodes_begin();
     auto node_end = d_bdry_meshes[part]->local_nodes_end();
     for (; node_it != node_end; ++node_it)
@@ -110,10 +111,10 @@ VolumeBoundaryMeshMapping::buildBoundaryMesh()
     {
         unsigned int vol_part = d_vol_id_vec[part];
         d_vol_id_vec[part] = vol_part;
-        BoundaryMesh* bdry_mesh =
-            new BoundaryMesh(d_base_meshes[vol_part]->comm(), d_base_meshes[vol_part]->spatial_dimension() - 1);
+        auto bdry_mesh = libmesh_make_unique<BoundaryMesh>(d_base_meshes[vol_part]->comm(),
+                                                           d_base_meshes[vol_part]->spatial_dimension() - 1);
         d_base_meshes[vol_part]->boundary_info->sync(d_bdry_ids_vec[part], *bdry_mesh);
-        d_bdry_meshes[part] = bdry_mesh;
+        d_bdry_meshes[part] = std::move(bdry_mesh);
         d_own_bdry_mesh[part] = 1;
     }
 }

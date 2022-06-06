@@ -100,7 +100,7 @@ SBSurfaceFluidCouplingManager::registerFluidConcentration(
     const std::vector<Pointer<CellVariable<NDIM, double>>>& fl_vars,
     unsigned int part)
 {
-    for (const auto& fl_var : fl_vars) registerFluidConcentration(fl_var);
+    for (const auto& fl_var : fl_vars) registerFluidConcentration(fl_var, part);
 }
 
 void

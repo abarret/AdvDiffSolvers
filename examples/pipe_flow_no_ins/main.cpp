@@ -194,8 +194,8 @@ main(int argc, char* argv[])
         const double reaction_fraction = input_db->getDouble("REACT_FRAC");
         MeshTools::Generation::build_line(reaction_mesh,
                                           static_cast<int>(ceil(reaction_fraction * L / ds)),
-                                          0.1 * L,
-                                          0.1 * L + L * reaction_fraction,
+                                          0.4 * L,
+                                          0.4 * L + L * reaction_fraction,
                                           Utility::string_to_enum<ElemType>(bdry_elem_type));
         for (MeshBase::node_iterator it = reaction_mesh.nodes_begin(); it != reaction_mesh.nodes_end(); ++it)
         {
@@ -333,18 +333,20 @@ main(int argc, char* argv[])
         {
             adv_diff_integrator->registerVisItDataWriter(visit_data_writer);
         }
-        libMesh::UniquePtr<ExodusII_IO> lower_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[LOWER_MESH_ID]) : NULL);
-        libMesh::UniquePtr<ExodusII_IO> upper_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[UPPER_MESH_ID]) : NULL);
-        libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[REACTION_MESH_ID]) :
-                                                                         NULL);
+        libMesh::UniquePtr<ExodusII_IO> lower_exodus_io(
+            uses_exodus ? new ExodusII_IO(*mesh_mapping->getBoundaryMesh(LOWER_MESH_ID)) : NULL);
+        libMesh::UniquePtr<ExodusII_IO> upper_exodus_io(
+            uses_exodus ? new ExodusII_IO(*mesh_mapping->getBoundaryMesh(UPPER_MESH_ID)) : NULL);
+        libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(
+            uses_exodus ? new ExodusII_IO(*mesh_mapping->getBoundaryMesh(REACTION_MESH_ID)) : NULL);
+        mesh_mapping->initializeFEData();
+        // Initialize hierarchy configuration and data on all patches.
+        adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
         Pointer<CellVariable<NDIM, double>> u_draw = new CellVariable<NDIM, double>("UDraw", NDIM);
         const int u_draw_idx = var_db->registerVariableAndContext(u_draw, var_db->getContext("Scratch"));
         visit_data_writer->registerPlotQuantity("velocity", "VECTOR", u_draw_idx);
 
-        mesh_mapping->initializeFEData();
-        // Initialize hierarchy configuration and data on all patches.
-        adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
         const int Q_idx = var_db->mapVariableAndContextToIndex(Q_in_var, adv_diff_integrator->getCurrentContext());
 
         // Close the restart manager.

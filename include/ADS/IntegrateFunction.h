@@ -29,6 +29,19 @@ public:
                                       fcn_type fcn,
                                       double t);
 
+    void integrateFcnOnPatchLevel(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> level,
+                                  int ls_idx,
+                                  int Q_idx,
+                                  fcn_type fcn,
+                                  double t);
+
+    void integrateFcnOnPatch(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
+                             int ls_idx,
+                             int Q_idx,
+                             fcn_type fcn,
+                             double t,
+                             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> level = nullptr);
+
 private:
     IntegrateFunction() = default;
     ~IntegrateFunction() = default;
@@ -40,11 +53,13 @@ private:
     double integrateOverIndex(const double* const dx,
                               const IBTK::VectorNd& XLow,
                               const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
-                              const SAMRAI::pdat::CellIndex<NDIM>& idx);
+                              const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                              fcn_type fcn,
+                              double t);
 
-    double integrate(const std::vector<Simplex>& simplices);
+    double integrate(const std::vector<Simplex>& simplices, fcn_type fcn, double t);
 
-    double integrateOverSimplex(const std::array<IBTK::VectorNd, NDIM + 1>& X_pts, const double t);
+    double integrateOverSimplex(const std::array<IBTK::VectorNd, NDIM + 1>& X_pts, fcn_type fcn, double t);
 
 #if (NDIM == 2)
     inline IBTK::VectorNd referenceToPhysical(const IBTK::VectorNd& xi, const std::array<IBTK::VectorNd, 3>& X_pts)
@@ -68,14 +83,6 @@ private:
 
     static IntegrateFunction* s_integrate_function;
     static unsigned char s_shutdown_priority;
-
-    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
-
-    int d_ls_idx = IBTK::invalid_index;
-
-    fcn_type d_fcn;
-
-    double d_t = std::numeric_limits<double>::quiet_NaN();
 
     /*
      * Gaussian integral points
