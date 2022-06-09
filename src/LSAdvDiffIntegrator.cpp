@@ -400,6 +400,14 @@ LSAdvDiffIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<NDIM>>
     d_hier_fc_data_ops =
         hier_ops_manager->getOperationsDouble(new FaceVariable<NDIM, double>("fc_var"), d_hierarchy, true);
 
+    if (!d_reconstruction_cache)
+    {
+        if (d_use_rbfs)
+            d_reconstruction_cache = new RBFReconstructCache(d_rbf_stencil_size);
+        else
+            d_reconstruction_cache = new MLSReconstructCache(d_mls_stencil_size);
+    }
+
     d_integrator_is_initialized = true;
 }
 
@@ -964,14 +972,6 @@ LSAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double cu
                     d_Q_init.at(Q_var)->setDataOnPatchHierarchy(Q_idx, Q_var, d_hierarchy, 0.0);
                 }
             }
-        }
-
-        if (!d_reconstruction_cache)
-        {
-            if (d_use_rbfs)
-                d_reconstruction_cache = new RBFReconstructCache(d_rbf_stencil_size);
-            else
-                d_reconstruction_cache = new MLSReconstructCache(d_mls_stencil_size);
         }
     }
     plog << d_object_name << ": Finished initializing composite data\n";
