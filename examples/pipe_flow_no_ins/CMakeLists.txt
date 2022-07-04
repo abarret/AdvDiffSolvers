@@ -8,7 +8,7 @@ ADS_ADD_EXAMPLE(
   EXAMPLE_GROUP
     examples
   SOURCES
-    main.cpp InsideLSFcn.cpp LSPipeFlow.cpp QFcn.cpp
+    main.cpp QFcn.cpp
   LINK_TARGETS
     ADS2d
   INPUT_FILES
