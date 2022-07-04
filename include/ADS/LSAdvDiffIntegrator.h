@@ -66,7 +66,11 @@ public:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
     getLSCellVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
-    void registerReconstructionCache(SAMRAI::tbox::Pointer<ADS::ReconstructCache> reconstruct_cache);
+    void registerReconstructionCacheToCentroids(SAMRAI::tbox::Pointer<ADS::ReconstructCache> reconstruct_cache,
+                                                SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
+    void
+    registerReconstructionCacheFromCentroids(SAMRAI::tbox::Pointer<ADS::ReconstructCache> reconstruct_cache,
+                                             SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
     void registerAdvectionReconstruction(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                          std::shared_ptr<AdvectiveReconstructionOperator> reconstruct_op);
@@ -184,6 +188,7 @@ protected:
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>,
              std::shared_ptr<AdvectiveReconstructionOperator>>
         d_Q_adv_reconstruct_map;
+    std::shared_ptr<AdvectiveReconstructionOperator> d_default_adv_reconstruct;
     AdvReconstructType d_default_adv_reconstruct_type = AdvReconstructType::RBF;
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_s_var;
@@ -210,7 +215,8 @@ protected:
 
     SAMRAI::tbox::Pointer<SAMRAI::math::HierarchyFaceDataOpsReal<NDIM, double>> d_hier_fc_data_ops;
 
-    SAMRAI::tbox::Pointer<ReconstructCache> d_reconstruction_cache;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>, SAMRAI::tbox::Pointer<ReconstructCache>>
+        d_reconstruct_from_centroids_ls_map, d_reconstruct_to_centroids_ls_map;
 
 private:
     bool d_use_rbfs = false;
