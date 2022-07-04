@@ -300,9 +300,19 @@ LSAdvDiffIntegrator::getLSCellVariable(Pointer<NodeVariable<NDIM, double>> ls_va
 }
 
 void
-LSAdvDiffIntegrator::registerReconstructionCache(Pointer<ReconstructCache> reconstruct_cache)
+LSAdvDiffIntegrator::registerReconstructionCacheToCentroids(Pointer<ReconstructCache> reconstruct_cache,
+                                                            Pointer<NodeVariable<NDIM, double>> ls_var)
 {
-    d_reconstruction_cache = reconstruct_cache;
+    d_reconstruct_to_centroids_ls_map[ls_var] = reconstruct_cache;
+    d_reconstruct_to_centroids_ls_map[ls_var]->setUseCentroids(false);
+}
+
+void
+LSAdvDiffIntegrator::registerReconstructionCacheFromCentroids(Pointer<ReconstructCache> reconstruct_cache,
+                                                              Pointer<NodeVariable<NDIM, double>> ls_var)
+{
+    d_reconstruct_from_centroids_ls_map[ls_var] = reconstruct_cache;
+    d_reconstruct_from_centroids_ls_map[ls_var]->setUseCentroids(true);
 }
 
 void
@@ -400,12 +410,29 @@ LSAdvDiffIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<NDIM>>
     d_hier_fc_data_ops =
         hier_ops_manager->getOperationsDouble(new FaceVariable<NDIM, double>("fc_var"), d_hierarchy, true);
 
-    if (!d_reconstruction_cache)
+    for (const auto& ls_var : d_ls_vars)
     {
-        if (d_use_rbfs)
-            d_reconstruction_cache = new RBFReconstructCache(d_rbf_stencil_size);
-        else
-            d_reconstruction_cache = new MLSReconstructCache(d_mls_stencil_size);
+        Pointer<ReconstructCache>& reconstruct_from_centroids = d_reconstruct_from_centroids_ls_map[ls_var];
+        if (!reconstruct_from_centroids)
+        {
+            if (d_use_rbfs)
+                reconstruct_from_centroids = new RBFReconstructCache(d_rbf_stencil_size);
+            else
+                reconstruct_from_centroids = new MLSReconstructCache(d_mls_stencil_size);
+        }
+        reconstruct_from_centroids->setUseCentroids(true);
+        reconstruct_from_centroids->setPatchHierarchy(hierarchy);
+
+        Pointer<ReconstructCache>& reconstruct_to_centroids = d_reconstruct_to_centroids_ls_map[ls_var];
+        if (!reconstruct_to_centroids)
+        {
+            if (d_use_rbfs)
+                reconstruct_to_centroids = new RBFReconstructCache(d_rbf_stencil_size);
+            else
+                reconstruct_to_centroids = new MLSReconstructCache(d_mls_stencil_size);
+        }
+        reconstruct_to_centroids->setUseCentroids(false);
+        reconstruct_to_centroids->setPatchHierarchy(hierarchy);
     }
 
     d_integrator_is_initialized = true;
@@ -663,6 +690,17 @@ LSAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
 
     if (cycle_num == 0)
     {
+        for (size_t l = 0; l < d_ls_vars.size(); ++l)
+        {
+            Pointer<NodeVariable<NDIM, double>>& ls_var = d_ls_vars[l];
+            const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+            const int ls_cur_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
+            const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
+            d_reconstruct_from_centroids_ls_map[ls_var]->clearCache();
+            d_reconstruct_to_centroids_ls_map[ls_var]->clearCache();
+            d_reconstruct_from_centroids_ls_map[ls_var]->setLSData(ls_cur_idx, vol_cur_idx);
+            d_reconstruct_to_centroids_ls_map[ls_var]->setLSData(ls_cur_idx, vol_cur_idx);
+        }
         for (const auto& Q_var : d_Q_var)
         {
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
@@ -835,6 +873,17 @@ LSAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
 
         if (d_use_strang_splitting)
         {
+            for (size_t l = 0; l < d_ls_vars.size(); ++l)
+            {
+                Pointer<NodeVariable<NDIM, double>>& ls_var = d_ls_vars[l];
+                const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+                const int ls_new_idx = var_db->mapVariableAndContextToIndex(ls_var, getNewContext());
+                const int vol_new_idx = var_db->mapVariableAndContextToIndex(vol_var, getNewContext());
+                d_reconstruct_from_centroids_ls_map[ls_var]->clearCache();
+                d_reconstruct_to_centroids_ls_map[ls_var]->clearCache();
+                d_reconstruct_from_centroids_ls_map[ls_var]->setLSData(ls_new_idx, vol_new_idx);
+                d_reconstruct_to_centroids_ls_map[ls_var]->setLSData(ls_new_idx, vol_new_idx);
+            }
             for (const auto& Q_var : d_Q_var)
             {
                 const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
@@ -1175,6 +1224,7 @@ LSAdvDiffIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
 {
     plog << d_object_name << ": Starting diffusion update for variable " << Q_var->getName() << "\n";
     ADS_TIMER_START(t_diffusion_step);
+    const double dt = new_time - current_time;
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     // We assume scratch context is already filled correctly.
     const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
@@ -1205,9 +1255,6 @@ LSAdvDiffIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
         hier_ghost_cell.initializeOperatorState(ghost_cell_comps, d_hierarchy);
         hier_ghost_cell.fillData(current_time);
     }
-    d_reconstruction_cache->setPatchHierarchy(d_hierarchy);
-    d_reconstruction_cache->setLSData(ls_idx, vol_idx);
-    d_reconstruction_cache->setUseCentroids(true);
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -1231,7 +1278,8 @@ LSAdvDiffIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
                     VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d)
                         x_loc[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
-                    (*Q_scr_data)(idx) = d_reconstruction_cache->reconstructOnIndex(x_loc, idx, *Q_cur_data, patch);
+                    (*Q_scr_data)(idx) =
+                        d_reconstruct_from_centroids_ls_map[ls_var]->reconstructOnIndex(x_loc, idx, *Q_cur_data, patch);
                 }
             }
         }
@@ -1284,8 +1332,16 @@ LSAdvDiffIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
         Q_helmholtz_solver->initializeSolverState(*d_sol_ls_vecs[l], *d_rhs_ls_vecs[l]);
         d_helmholtz_solvers_need_init[l] = false;
     }
-    Q_helmholtz_solver->solveSystem(*d_sol_ls_vecs[l], *d_rhs_ls_vecs[l]);
-    d_hier_cc_data_ops->copyData(Q_new_idx, Q_scr_idx);
+    if (d_Q_diffusion_coef[Q_var] != 0.0)
+    {
+        Q_helmholtz_solver->solveSystem(*d_sol_ls_vecs[l], *d_rhs_ls_vecs[l]);
+        d_hier_cc_data_ops->copyData(Q_new_idx, Q_scr_idx);
+    }
+    else
+    {
+        d_hier_cc_data_ops->scale(Q_new_idx, dt, Q_rhs_scratch_idx);
+        if (d_enable_logging) plog << d_object_name << "::integrateHierarchy(): completed diffusion step.\n";
+    }
     // Now interpolate from cell centers to cell centroids
     {
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
@@ -1302,8 +1358,6 @@ LSAdvDiffIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
         hier_ghost_cell.initializeOperatorState(ghost_cell_comps, d_hierarchy);
         hier_ghost_cell.fillData(current_time);
     }
-    d_reconstruction_cache->clearCache();
-    d_reconstruction_cache->setUseCentroids(false);
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -1328,12 +1382,13 @@ LSAdvDiffIntegrator::diffusionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
                     VectorNd x_loc = find_cell_centroid(idx, *ls_data);
                     for (int d = 0; d < NDIM; ++d)
                         x_loc[d] = xlow[d] + dx[d] * (x_loc(d) - static_cast<double>(idx_low(d)));
-                    (*Q_new_data)(idx) = d_reconstruction_cache->reconstructOnIndex(x_loc, idx, *Q_scr_data, patch);
+                    (*Q_new_data)(idx) =
+                        d_reconstruct_to_centroids_ls_map[ls_var]->reconstructOnIndex(x_loc, idx, *Q_scr_data, patch);
                 }
             }
         }
     }
-    if (d_enable_logging && d_enable_logging_solver_iterations)
+    if (d_enable_logging && d_enable_logging_solver_iterations && d_Q_diffusion_coef[Q_var] != 0.0)
     {
         plog << d_object_name << "::integrateHierarchy(): diffusion solve number of iterations = "
              << Q_helmholtz_solver->getNumIterations() << "\n";
@@ -1622,23 +1677,27 @@ LSAdvDiffIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
 void
 LSAdvDiffIntegrator::setDefaultReconstructionOperator(Pointer<CellVariable<NDIM, double>> Q_var)
 {
-    switch (d_default_adv_reconstruct_type)
+    if (!d_default_adv_reconstruct)
     {
-    case AdvReconstructType::ZSPLINES:
-        d_Q_adv_reconstruct_map[Q_var] =
-            std::make_shared<ZSplineReconstructions>(Q_var->getName() + "::DefaultReconstruct", 2);
-        break;
-    case AdvReconstructType::RBF:
-        d_Q_adv_reconstruct_map[Q_var] = std::make_shared<RBFReconstructions>(
-            Q_var->getName() + "::DefaultReconstruct", d_rbf_poly_order, d_rbf_stencil_size);
-        break;
-    case AdvReconstructType::LINEAR:
-        d_Q_adv_reconstruct_map[Q_var] =
-            std::make_shared<LinearReconstructions>(Q_var->getName() + "::DefaultReconstruct");
-        break;
-    default:
-        TBOX_ERROR("Unknown adv reconstruction type " << enum_to_string(d_default_adv_reconstruct_type) << "\n");
-        break;
+        switch (d_default_adv_reconstruct_type)
+        {
+        case AdvReconstructType::ZSPLINES:
+            d_default_adv_reconstruct =
+                std::make_shared<ZSplineReconstructions>(Q_var->getName() + "::DefaultReconstruct", 2);
+            break;
+        case AdvReconstructType::RBF:
+            d_default_adv_reconstruct = std::make_shared<RBFReconstructions>(
+                Q_var->getName() + "::DefaultReconstruct", d_rbf_poly_order, d_rbf_stencil_size);
+            break;
+        case AdvReconstructType::LINEAR:
+            d_default_adv_reconstruct =
+                std::make_shared<LinearReconstructions>(Q_var->getName() + "::DefaultReconstruct");
+            break;
+        default:
+            TBOX_ERROR("Unknown adv reconstruction type " << enum_to_string(d_default_adv_reconstruct_type) << "\n");
+            break;
+        }
     }
+    d_Q_adv_reconstruct_map[Q_var] = d_default_adv_reconstruct;
 }
 } // namespace ADS

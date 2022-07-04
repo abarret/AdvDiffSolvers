@@ -153,6 +153,18 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
         }
         plog << d_object_name << ": Finished integrating surface odes\n";
 
+        for (size_t l = 0; l < d_ls_vars.size(); ++l)
+        {
+            Pointer<NodeVariable<NDIM, double>>& ls_var = d_ls_vars[l];
+            const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+            const int ls_cur_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
+            const int vol_cur_idx = var_db->mapVariableAndContextToIndex(vol_var, getCurrentContext());
+            d_reconstruct_from_centroids_ls_map[ls_var]->clearCache();
+            d_reconstruct_to_centroids_ls_map[ls_var]->clearCache();
+            d_reconstruct_from_centroids_ls_map[ls_var]->setLSData(ls_cur_idx, vol_cur_idx);
+            d_reconstruct_to_centroids_ls_map[ls_var]->setLSData(ls_cur_idx, vol_cur_idx);
+        }
+
         for (const auto& Q_var : d_Q_var)
         {
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
@@ -354,6 +366,18 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
                 sb_integrator->beginTimestepping(half_time, new_time);
                 sb_integrator->integrateHierarchy(getNewContext(), half_time, new_time);
                 sb_integrator->endTimestepping(half_time, new_time);
+            }
+
+            for (size_t l = 0; l < d_ls_vars.size(); ++l)
+            {
+                Pointer<NodeVariable<NDIM, double>>& ls_var = d_ls_vars[l];
+                const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+                const int ls_new_idx = var_db->mapVariableAndContextToIndex(ls_var, getNewContext());
+                const int vol_new_idx = var_db->mapVariableAndContextToIndex(vol_var, getNewContext());
+                d_reconstruct_from_centroids_ls_map[ls_var]->clearCache();
+                d_reconstruct_to_centroids_ls_map[ls_var]->clearCache();
+                d_reconstruct_from_centroids_ls_map[ls_var]->setLSData(ls_new_idx, vol_new_idx);
+                d_reconstruct_to_centroids_ls_map[ls_var]->setLSData(ls_new_idx, vol_new_idx);
             }
             for (const auto& Q_var : d_Q_var)
             {

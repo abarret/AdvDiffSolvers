@@ -125,13 +125,6 @@ MeshMapping {
   max_level = MAX_LEVELS
 }
 
-InsideLSFcn {
-   theta = THETA
-   l = LX
-   y_low = Y_LOW
-   y_up = Y_UP
-}
-
 QInitial {
    initial = 0.0
    y_low = Y_LOW
@@ -140,14 +133,6 @@ QInitial {
    d = D_coef
    channel_center = 1.5,0.26
 }
-
-LSPipeFlow {
-   y_low = Y_LOW
-   y_up = Y_UP
-   l = LX
-   theta = THETA
-}
-
 
 PoissonSolver {
 }

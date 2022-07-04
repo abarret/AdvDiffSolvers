@@ -175,8 +175,7 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                                 dist_phys < std::abs((*phi_data)(n_idx)) ? (dist_phys * sgn) : (*phi_data)(n_idx);
                             // Truncate distances that are too small
                             // TODO: find a better way to do this.
-                            // if ((*phi_data)(n_idx) < 0.0 && (*phi_data)(n_idx) > -1.0e-5) (*phi_data)(n_idx) =
-                            // -1.0e-5;
+                            if ((*phi_data)(n_idx) < 0.0 && (*phi_data)(n_idx) > -1.0e-6) (*phi_data)(n_idx) = 0.0;
                         }
                     }
                 }
