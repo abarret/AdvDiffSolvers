@@ -1677,20 +1677,20 @@ LSAdvDiffIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
 void
 LSAdvDiffIntegrator::setDefaultReconstructionOperator(Pointer<CellVariable<NDIM, double>> Q_var)
 {
-    if (!d_default_adv_reconstruct)
+    if (!d_Q_adv_reconstruct_map[Q_var])
     {
         switch (d_default_adv_reconstruct_type)
         {
         case AdvReconstructType::ZSPLINES:
-            d_default_adv_reconstruct =
+            d_Q_adv_reconstruct_map[Q_var] =
                 std::make_shared<ZSplineReconstructions>(Q_var->getName() + "::DefaultReconstruct", 2);
             break;
         case AdvReconstructType::RBF:
-            d_default_adv_reconstruct = std::make_shared<RBFReconstructions>(
+            d_Q_adv_reconstruct_map[Q_var] = std::make_shared<RBFReconstructions>(
                 Q_var->getName() + "::DefaultReconstruct", d_rbf_poly_order, d_rbf_stencil_size);
             break;
         case AdvReconstructType::LINEAR:
-            d_default_adv_reconstruct =
+            d_Q_adv_reconstruct_map[Q_var] =
                 std::make_shared<LinearReconstructions>(Q_var->getName() + "::DefaultReconstruct");
             break;
         default:
@@ -1698,6 +1698,5 @@ LSAdvDiffIntegrator::setDefaultReconstructionOperator(Pointer<CellVariable<NDIM,
             break;
         }
     }
-    d_Q_adv_reconstruct_map[Q_var] = d_default_adv_reconstruct;
 }
 } // namespace ADS
