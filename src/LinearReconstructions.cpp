@@ -73,11 +73,12 @@ LinearReconstructions::applyReconstruction(const int Q_idx, const int N_idx, con
                     IBTK::VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d) x_loc(d) = (*xstar_data)(idx, d);
                     // Find Node index closest to point. Note that this location corresponds to the Cell index that is
-                    // the "lower left" of the box centered at nodal index.
+                    // the "upper right" of the box centered at nodal index. Subtract 1 from each index to get the
+                    // "lower left" of the box.
                     CellIndex<NDIM> idx_ll;
                     VectorNd x_ll;
                     for (int d = 0; d < NDIM; ++d) x_ll[d] = std::round(x_loc[d]) - 0.5;
-                    for (int d = 0; d < NDIM; ++d) idx_ll(d) = static_cast<int>(x_ll[d]);
+                    for (int d = 0; d < NDIM; ++d) idx_ll(d) = static_cast<int>(x_ll[d]) - 1;
                     // Check if we can use bi-linear interpolation, i.e. check if all neighboring cells are "full" cells
                     bool use_bilinear = true;
                     for (int x = -1; x <= 2; ++x)

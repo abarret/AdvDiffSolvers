@@ -63,7 +63,7 @@ public:
 private:
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
     Reconstruct::RBFPolyOrder d_rbf_order = Reconstruct::RBFPolyOrder::LINEAR;
-    unsigned int d_rbf_stencil_size = 5;
+    unsigned int d_rbf_stencil_size = 8;
 
     // Scratch data
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_scr_var;
