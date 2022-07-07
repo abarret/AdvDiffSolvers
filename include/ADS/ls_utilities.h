@@ -69,6 +69,8 @@ public:
             d_elem->set_id(0);
             d_elem->set_node(n) = d_nodes[n].get();
         }
+	// TODO: This is potentially a problem if the parent element current configuration changes significantly from the reference configuration.
+	// We should pass in the current location to the constructor.
         for (size_t n = 0; n < d_parent_cur_pts.size(); ++n) d_parent_cur_pts[n] = d_parent_elem->point(n);
     }
 
