@@ -411,7 +411,7 @@ LSFromMesh::floodFillForLS(const int ln, const double eps)
         for (NodeIterator<NDIM> ni(box); ni; ni++)
         {
             const NodeIndex<NDIM>& idx = ni();
-            if ((*phi_data)(idx) < 0.0)
+            if ((*phi_data)(idx) <= 0.0)
             {
                 idx_queue.push(idx);
                 found_pt = true;
@@ -423,7 +423,7 @@ LSFromMesh::floodFillForLS(const int ln, const double eps)
         {
             const NodeIndex<NDIM>& idx = idx_queue.front();
             // If this point is uninitialized, it is interior
-            if (idx_touched(idx) == 0 && ((*phi_data)(idx) == eps || (*phi_data)(idx) < 0.0))
+            if (idx_touched(idx) == 0 && ((*phi_data)(idx) == eps || (*phi_data)(idx) <= 0.0))
             {
                 // Insert the point into touched list
                 idx_touched(idx) = 1;
