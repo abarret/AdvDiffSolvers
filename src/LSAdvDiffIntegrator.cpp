@@ -750,6 +750,16 @@ LSAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
     }
     else if (cycle_num == 1)
     {
+        // We need to set velocity at final time...
+        for (const auto& u_var : d_u_var)
+        {
+            const int u_new_idx = var_db->mapVariableAndContextToIndex(u_var, getNewContext());
+            if (d_u_fcn.at(u_var))
+            {
+                d_u_fcn.at(u_var)->setDataOnPatchHierarchy(
+                    u_new_idx, u_var, d_hierarchy, new_time, false, 0, d_hierarchy->getFinestLevelNumber());
+            }
+        }
         // Update Level sets
         for (size_t l = 0; l < d_ls_vars.size(); ++l)
         {
