@@ -54,7 +54,7 @@ VolumeBoundaryMeshMapping::updateBoundaryLocation(const double time,
     FEDataManager* fe_data_manager = d_base_fe_data_managers[d_vol_id_vec[part]];
     EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
 
-    System& X_system = eq_sys->get_system(fe_data_manager->COORDINATES_SYSTEM_NAME);
+    System& X_system = eq_sys->get_system(fe_data_manager->getCurrentCoordinatesSystemName());
     const DofMap& X_dof_map = X_system.get_dof_map();
     NumericVector<double>* X_vec;
     if (!end_of_timestep)
@@ -111,11 +111,10 @@ VolumeBoundaryMeshMapping::buildBoundaryMesh()
     {
         unsigned int vol_part = d_vol_id_vec[part];
         d_vol_id_vec[part] = vol_part;
-        auto bdry_mesh = libmesh_make_unique<BoundaryMesh>(d_base_meshes[vol_part]->comm(),
-                                                           d_base_meshes[vol_part]->spatial_dimension() - 1);
+        auto bdry_mesh = std::make_unique<BoundaryMesh>(d_base_meshes[vol_part]->comm(),
+                                                        d_base_meshes[vol_part]->spatial_dimension() - 1);
         d_base_meshes[vol_part]->boundary_info->sync(d_bdry_ids_vec[part], *bdry_mesh);
         d_bdry_meshes[part] = std::move(bdry_mesh);
-        d_own_bdry_mesh[part] = 1;
     }
 }
 } // namespace ADS

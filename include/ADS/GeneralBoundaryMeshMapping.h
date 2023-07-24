@@ -142,7 +142,6 @@ protected:
     // For now, we just use a raw pointer, along with a flag to determine if we need to clean it up.
     std::vector<libMesh::MeshBase*> d_base_meshes;
     std::vector<std::unique_ptr<libMesh::BoundaryMesh>> d_bdry_meshes;
-    std::vector<int> d_own_bdry_mesh;
     std::vector<std::unique_ptr<libMesh::EquationSystems>> d_bdry_eq_sys_vec;
     std::string d_coords_sys_name = "COORDINATES_SYSTEM";
     std::string d_disp_sys_name = "DISPLACEMENT_SYSTEM";

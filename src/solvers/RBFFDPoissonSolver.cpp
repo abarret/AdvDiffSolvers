@@ -94,8 +94,8 @@ RBFFDPoissonSolver::RBFFDPoissonSolver(std::string object_name,
     const double& C = d_C;
     const double& D = d_D;
 
-    d_bulk_weights = libmesh_make_unique<FDWeightsCache>(d_object_name + "::bulk_wgts");
-    d_bdry_weights = libmesh_make_unique<FDWeightsCache>(d_object_name + "::bdry_wgts");
+    d_bulk_weights = std::make_unique<FDWeightsCache>(d_object_name + "::bulk_wgts");
+    d_bdry_weights = std::make_unique<FDWeightsCache>(d_object_name + "::bdry_wgts");
     // Make a function for the weights
     d_rbf = [](const double r) -> double { return PolynomialBasis::pow(r, 5); };
     d_lap_rbf = [&C, &D](const FDPoint& x, const FDPoint& x0, void*) -> double {

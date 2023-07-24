@@ -35,7 +35,6 @@ GeneralBoundaryMeshMapping::GeneralBoundaryMeshMapping(std::string object_name,
 {
     size_t num_meshes = base_mesh.size();
     d_base_meshes.resize(num_meshes);
-    d_own_bdry_mesh.resize(num_meshes);
     for (unsigned int part = 0; part < num_meshes; ++part) d_base_meshes[part] = base_mesh[part];
 }
 
@@ -95,7 +94,7 @@ GeneralBoundaryMeshMapping::initializeEquationSystems()
     d_fe_data.resize(num_parts);
     for (unsigned int part = 0; part < num_parts; ++part)
     {
-        d_bdry_eq_sys_vec[part] = std::move(libmesh_make_unique<EquationSystems>(*d_bdry_meshes[part]));
+        d_bdry_eq_sys_vec[part] = std::move(std::make_unique<EquationSystems>(*d_bdry_meshes[part]));
         d_fe_data[part] = std::make_shared<FEData>(
             d_object_name + "::FEData::" + std::to_string(part), *d_bdry_eq_sys_vec[part], true);
 
@@ -160,6 +159,6 @@ void
 GeneralBoundaryMeshMapping::buildBoundaryMesh()
 {
     for (const auto& base_mesh : d_base_meshes)
-        d_bdry_meshes.push_back(libmesh_make_unique<BoundaryMesh>(*static_cast<BoundaryMesh*>(base_mesh)));
+        d_bdry_meshes.push_back(std::make_unique<BoundaryMesh>(*static_cast<BoundaryMesh*>(base_mesh)));
 }
 } // namespace ADS

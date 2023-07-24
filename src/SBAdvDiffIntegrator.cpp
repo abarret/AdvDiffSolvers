@@ -463,6 +463,7 @@ SBAdvDiffIntegrator::regridHierarchyEndSpecialized()
             mesh_partitioner->reinitElementMappings();
         }
     }
+    LSAdvDiffIntegrator::regridHierarchyEndSpecialized();
 }
 
 } // namespace ADS

@@ -79,8 +79,8 @@ CutCellVolumeMeshMapping::generateCutCellMappings()
         {
             FEDataManager* fe_data_manager = d_fe_data_managers[part];
             eq_sys = fe_data_manager->getEquationSystems();
-            X_sys = &eq_sys->get_system(fe_data_manager->COORDINATES_SYSTEM_NAME);
-            X_dof_map_cache = fe_data_manager->getDofMapCache(fe_data_manager->COORDINATES_SYSTEM_NAME);
+            X_sys = &eq_sys->get_system(fe_data_manager->getCurrentCoordinatesSystemName());
+            X_dof_map_cache = fe_data_manager->getDofMapCache(fe_data_manager->getCurrentCoordinatesSystemName());
             active_patch_element_map = &fe_data_manager->getActivePatchElementMap();
             level_num = fe_data_manager->getFinestPatchLevelNumber();
         }

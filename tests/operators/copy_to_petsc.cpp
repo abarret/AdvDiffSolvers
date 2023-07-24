@@ -204,7 +204,7 @@ main(int argc, char* argv[])
         bdry_mesh.prepare_for_use();
 
         // Set up system for drawing
-        auto bdry_io = libmesh_make_unique<ExodusII_IO>(bdry_mesh);
+        auto bdry_io = std::make_unique<ExodusII_IO>(bdry_mesh);
 
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
             "MeshMapping", app_initializer->getComponentDatabase("MeshMapping"), &bdry_mesh);

@@ -81,7 +81,7 @@ RBFLaplaceOperator::RBFLaplaceOperator(const std::string& object_name,
       d_sys_name(sys_name)
 {
     d_fd_weights =
-        libmesh_make_unique<RBFFDWeightsCache>(d_object_name + "::Weights", fe_mesh_partitioner, d_hierarchy, input_db);
+        std::make_unique<RBFFDWeightsCache>(d_object_name + "::Weights", fe_mesh_partitioner, d_hierarchy, input_db);
     d_dist_to_bdry = input_db->getDouble("dist_to_bdry");
     d_C = input_db->getDouble("C");
     d_D = input_db->getDouble("D");

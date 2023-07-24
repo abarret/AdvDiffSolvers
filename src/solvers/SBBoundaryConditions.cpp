@@ -128,11 +128,15 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
             fl_vecs.push_back(fl_sys.solution.get());
         }
 
-        for (const auto sf_name : sf_names)
+        for (const auto& sf_name : sf_names)
         {
             auto& sf_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
             sf_dof_maps.push_back(&sf_sys.get_dof_map());
+#if LIBMESH_VERSION_LESS_THAN(1, 7, 0)
             sf_vecs.push_back(sf_sys.old_local_solution.get());
+#else
+            sf_vecs.push_back(sf_sys.old_local_solution);
+#endif
         }
 
         // Get base system

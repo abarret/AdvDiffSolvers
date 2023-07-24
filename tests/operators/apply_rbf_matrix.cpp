@@ -265,7 +265,7 @@ main(int argc, char* argv[])
         visit_data_writer->registerPlotQuantity(b_var->getName(), "SCALAR", b_idx);
         visit_data_writer->registerPlotQuantity(error_var->getName(), "SCALAR", error_idx);
         visit_data_writer->registerPlotQuantity(ls_var->getName(), "SCALAR", ls_idx);
-        auto bdry_io = libmesh_make_unique<ExodusII_IO>(bdry_mesh);
+        auto bdry_io = std::make_unique<ExodusII_IO>(bdry_mesh);
 #endif
 
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(

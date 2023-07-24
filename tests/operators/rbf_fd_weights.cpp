@@ -311,7 +311,7 @@ main(int argc, char* argv[])
                     bool print_these = true;
                     if (check_background_grid)
                     {
-                        for (const auto other_pt : other_pts)
+                        for (const auto& other_pt : other_pts)
                         {
                             if (other_pt.isNode()) print_these = false;
                         }

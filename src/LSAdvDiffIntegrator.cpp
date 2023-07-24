@@ -996,7 +996,8 @@ LSAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double cu
                                      ls_cur_idx,
                                      ls_var,
                                      Pointer<HierarchyGhostCellInterpolation>(&hier_ghost_cell, false),
-                                     0.0);
+                                     0.0,
+                                     false);
             }
         }
         for (const auto& Q_var : d_Q_var)

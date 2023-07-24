@@ -72,8 +72,13 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
             {
                 auto& sf_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
                 sf_dof_maps.push_back(&sf_sys.get_dof_map());
+#if LIBMESH_VERSION_LESS_THAN(1, 7, 0)
                 sf_cur_vecs.push_back(sf_sys.old_local_solution.get());
                 sf_old_vecs.push_back(sf_sys.older_local_solution.get());
+#else
+                sf_cur_vecs.push_back(sf_sys.old_local_solution);
+                sf_old_vecs.push_back(sf_sys.older_local_solution);
+#endif
             }
 
             // Assume we are on the finest level.
