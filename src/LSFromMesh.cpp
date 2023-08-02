@@ -210,27 +210,6 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                     }
                 }
 
-                // Periodic boundaries are not included in the codimension boundaries of patch geometries. Calculate
-                // them ourself.
-                for (int axis = 0; axis < NDIM; ++axis)
-                {
-                    for (int upper_lower = 0; upper_lower < 2; ++upper_lower)
-                    {
-                        if (pgeom->getTouchesPeriodicBoundary(axis, upper_lower))
-                        {
-                            // Create boundary box.
-                            // TODO: This needs to be fixed for NDIM = 3.
-                            Box<NDIM> box = patch->getBox();
-                            if (upper_lower == 0)
-                                box.upper((axis + 1) % NDIM) = box.lower((axis + 1) % NDIM);
-                            else
-                                box.lower((axis + 1) % NDIM) = box.upper((axis + 1) % NDIM);
-                            BoundaryBox<NDIM> periodic_bdry_box(box, NDIM, axis * NDIM + upper_lower);
-                            fill_boxes.push_back(pgeom->getBoundaryFillBox(
-                                periodic_bdry_box, patch->getBox(), ls_data->getGhostCellWidth()));
-                        }
-                    }
-                }
                 for (const auto& box : fill_boxes)
                 {
                     for (NodeIterator<NDIM> ni(box); ni; ni++)
@@ -252,16 +231,29 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
         }
     }
 
+    // Fill in level set ghost cells to get the periodic boundary conditions correctly. Note we do not coarsen because
+    // that will affect the flood filling algorithm.
+    {
+        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<ITC> ghost_cell_comp(1);
+        ghost_cell_comp[0] = ITC(phi_idx, "LINEAR_REFINE", false, "NONE");
+        HierarchyGhostCellInterpolation ghost_cells;
+        ghost_cells.initializeOperatorState(ghost_cell_comp, d_hierarchy, 0, finest_ln);
+        ghost_cells.fillData(data_time);
+    }
+
     // Now update the LS away from the interface using a flood filling algorithm.
     updateLSAwayFromInterface(phi_idx);
 
-    // Fill in level set ghost cells
-    using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-    std::vector<ITC> ghost_cell_comp(1);
-    ghost_cell_comp[0] = ITC(phi_idx, "LINEAR_REFINE", false, "CONSTANT_COARSEN");
-    HierarchyGhostCellInterpolation ghost_cells;
-    ghost_cells.initializeOperatorState(ghost_cell_comp, d_hierarchy, 0, finest_ln);
-    ghost_cells.fillData(data_time);
+    // Synchronize the hierarchy.
+    {
+        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<ITC> ghost_cell_comp(1);
+        ghost_cell_comp[0] = ITC(phi_idx, "LINEAR_REFINE", false, "CONSTANT_COARSEN");
+        HierarchyGhostCellInterpolation ghost_cells;
+        ghost_cells.initializeOperatorState(ghost_cell_comp, d_hierarchy, 0, finest_ln);
+        ghost_cells.fillData(data_time);
+    }
 
     // Finally, find the volume/area/side lengths using the computed level set.
     for (int ln = 0; ln <= finest_ln; ++ln)
