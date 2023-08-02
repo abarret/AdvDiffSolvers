@@ -132,6 +132,11 @@ public:
         return d_bdry_meshes;
     }
 
+    inline int getNumParts() const
+    {
+        return d_bdry_meshes.size();
+    }
+
 protected:
     std::string d_object_name;
     SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> d_input_db;
