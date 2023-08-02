@@ -56,10 +56,10 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
         }
     }
     HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(d_hierarchy, 0, finest_ln);
-    hier_cc_data_ops.setToScalar(vol_idx, 0.0, false);
-    hier_cc_data_ops.setToScalar(area_idx, 0.0, false);
+    if (vol_idx != IBTK::invalid_index) hier_cc_data_ops.setToScalar(vol_idx, 0.0, false);
+    if (area_idx != IBTK::invalid_index) hier_cc_data_ops.setToScalar(area_idx, 0.0, false);
     HierarchySideDataOpsReal<NDIM, double> hier_sc_data_ops(d_hierarchy, 0, finest_ln);
-    hier_sc_data_ops.setToScalar(side_idx, 0.0, false);
+    if (side_idx != IBTK::invalid_index) hier_sc_data_ops.setToScalar(side_idx, 0.0, false);
 
     d_cut_cell_mesh_mapping->initializeObjectState(d_hierarchy);
     d_cut_cell_mesh_mapping->generateCutCellMappings();
@@ -77,9 +77,6 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
             {
                 const std::map<IndexList, std::vector<CutCellElems>>& idx_cut_cell_map =
                     idx_cut_cell_map_vec[local_patch_num];
-                Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
-                Pointer<CellData<NDIM, double>> area_data = patch->getPatchData(area_idx);
-                Pointer<SideData<NDIM, double>> side_data = patch->getPatchData(side_idx);
                 Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
 
                 Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
@@ -189,8 +186,6 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
             {
                 Pointer<Patch<NDIM>> patch = level->getPatch(p());
                 Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(phi_idx);
-                Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
-                Pointer<SideData<NDIM, double>> side_data = patch->getPatchData(side_idx);
 
                 // Loop over boundary boxes
                 Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
@@ -208,8 +203,32 @@ LSFromMesh::updateVolumeAreaSideLS(int vol_idx,
                         const int axis = location_index % 2;
                         const int upper_lower = location_index / 2;
                         if (pgeom->getTouchesRegularBoundary(axis, upper_lower))
+                        {
                             fill_boxes.push_back(
                                 pgeom->getBoundaryFillBox(bdry_box, patch->getBox(), ls_data->getGhostCellWidth()));
+                        }
+                    }
+                }
+
+                // Periodic boundaries are not included in the codimension boundaries of patch geometries. Calculate
+                // them ourself.
+                for (int axis = 0; axis < NDIM; ++axis)
+                {
+                    for (int upper_lower = 0; upper_lower < 2; ++upper_lower)
+                    {
+                        if (pgeom->getTouchesPeriodicBoundary(axis, upper_lower))
+                        {
+                            // Create boundary box.
+                            // TODO: This needs to be fixed for NDIM = 3.
+                            Box<NDIM> box = patch->getBox();
+                            if (upper_lower == 0)
+                                box.upper((axis + 1) % NDIM) = box.lower((axis + 1) % NDIM);
+                            else
+                                box.lower((axis + 1) % NDIM) = box.upper((axis + 1) % NDIM);
+                            BoundaryBox<NDIM> periodic_bdry_box(box, NDIM, axis * NDIM + upper_lower);
+                            fill_boxes.push_back(pgeom->getBoundaryFillBox(
+                                periodic_bdry_box, patch->getBox(), ls_data->getGhostCellWidth()));
+                        }
                     }
                 }
                 for (const auto& box : fill_boxes)
