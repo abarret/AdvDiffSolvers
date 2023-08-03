@@ -18,6 +18,7 @@ ENDFOREACH()
 
 SET(CXX_SRC
     AdvectiveReconstructionOperator.cpp
+    BoundaryReconstructCache.cpp
     CutCellMeshMapping.cpp
     CutCellVolumeMeshMapping.cpp
     FDWeightsCache.cpp
