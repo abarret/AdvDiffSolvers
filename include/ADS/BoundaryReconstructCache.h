@@ -34,7 +34,10 @@ namespace ADS
  * specific cell indices in the patch hierarchy. This class should be used to store interpolation weights for repeated
  * interpolations.
  *
- * This class should be invalidated with clearCache() or reconstructed when the patch hierarchy changes OR the
+ * By default, this class assumes that negative level set values correspond to the "appropriate" side of the interface.
+ * This can be changed with the setSign() function.
+ *
+ * This class should be invalidated with clearCache() or reconstructed when either the patch hierarchy changes OR the
  * interpolated points move.
  */
 class BoundaryReconstructCache
@@ -118,6 +121,14 @@ public:
     void setLSData(int ls_idx);
 
     /*!
+     * \brief Set the sign of the level set to refer to the "appropriate" side of the interface. Also clears the cache.
+     *
+     * If use_positive == true, then level set values with positive values are treated as the "appropriate" side of the
+     * interface.
+     */
+    void setSign(bool use_positive);
+
+    /*!
      * \brief Set the patch hierarchy. Also clears the cache.
      */
     void setPatchHierarchy(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
@@ -167,6 +178,21 @@ public:
      * already cached before this call occurs.
      */
     double reconstruct(int part, int node_id, int Q_idx) const;
+
+    /*!
+     * \brief Reconstruct Q in Q_idx at all the nodes for the given system and variable name on the given part.
+     *
+     * If the cache has not been constructed, this function will call cacheData(). Otherwise, it uses the interpolation
+     * stencils previously computed.
+     */
+    void reconstruct(int part, const std::string& Q_str, int Q_idx);
+
+    /*!
+     * \brief Reconstruct Q in Q_idx at all the nodes for the given system and variable name on all the parts.
+     *
+     * This loops through all the parts and calls reconstruct(part, Q_star, Q_idx);
+     */
+    void reconstruct(const std::string& Q_str, int Q_idx);
 
     /*!
      * \brief Returns the weights and indices for interpolating at node with node_id for the given part.

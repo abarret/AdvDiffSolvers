@@ -37,6 +37,14 @@ BoundaryReconstructCache::setLSData(const int ls_idx)
 }
 
 void
+BoundaryReconstructCache::setSign(bool use_positive)
+{
+    d_sign = use_positive ? 1.0 : -1.0;
+    clearCache();
+    d_update_weights = true;
+}
+
+void
 BoundaryReconstructCache::setPatchHierarchy(Pointer<PatchHierarchy<NDIM>> hierarchy)
 {
     d_hierarchy = hierarchy;
@@ -133,7 +141,7 @@ BoundaryReconstructCache::cacheData()
                 auto L_rbf = [](const VectorNd& x, const VectorNd& y, void*) -> double { return (x - y).norm(); };
                 auto L_polys =
                     [](const std::vector<VectorNd>& pt_vec, int poly_degree, double ds, const VectorNd& shft, void*)
-                    -> MatrixXd { return PolynomialBasis::formMonomials(pt_vec, poly_degree, ds, shft); };
+                    -> MatrixXd { return PolynomialBasis::formMonomials(pt_vec, poly_degree, ds, shft).transpose(); };
                 int poly_degree = 1;
                 Reconstruct::RBFFDReconstruct<VectorNd>(
                     wgts, x_node, X_list, poly_degree, dx, Reconstruct::rbf, L_rbf, nullptr, L_polys, nullptr);
@@ -173,6 +181,41 @@ BoundaryReconstructCache::reconstruct(const int part, const int node_id, const i
         val += idx_wgt_pair.second * (*Q_data)(idx_wgt_pair.first);
     }
     return val;
+}
+
+void
+BoundaryReconstructCache::reconstruct(const int part, const std::string& Q_str, const int Q_idx)
+{
+#ifndef NDEBUG
+    TBOX_ASSERT(part < d_mesh_mapping->getNumParts());
+#endif
+    // Loop through all the nodes on the provided part number and compute the reconstruction.
+    // First pull out the data we need
+    const std::shared_ptr<FEMeshPartitioner>& mesh_partitioner = d_mesh_mapping->getMeshPartitioner(part);
+    EquationSystems* eq_sys = mesh_partitioner->getEquationSystems();
+    System& Q_sys = eq_sys->get_system(Q_str);
+    NumericVector<double>* Q_vec = Q_sys.solution.get();
+    const DofMap& Q_dof_map = Q_sys.get_dof_map();
+
+    const MeshBase& mesh = eq_sys->get_mesh();
+    auto it = mesh.local_nodes_begin();
+    const auto it_end = mesh.local_nodes_end();
+    for (; it != it_end; ++it)
+    {
+        const Node* const node = *it;
+        std::vector<dof_id_type> Q_dof;
+        Q_dof_map.dof_indices(node, Q_dof);
+        Q_vec->set(Q_dof[0], reconstruct(part, node->id(), Q_idx));
+    }
+
+    Q_vec->close();
+    Q_sys.update();
+}
+
+void
+BoundaryReconstructCache::reconstruct(const std::string& Q_str, const int Q_idx)
+{
+    for (int part = 0; part < d_mesh_mapping->getNumParts(); ++part) reconstruct(part, Q_str, Q_idx);
 }
 
 const BoundaryReconstructCache::WeightStruct&
