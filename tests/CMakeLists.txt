@@ -93,6 +93,7 @@ SETUP_2D(examples radial.cpp)
 SETUP_2D(find_vol find_vol.cpp)
 
 SETUP_2D(operators apply_rbf_matrix.cpp)
+SETUP_2D(operators boundary_reconstruction_cache.cpp)
 SETUP_2D(operators copy_to_petsc.cpp)
 SETUP_2D(operators condition_counter.cpp)
 SETUP_2D(operators global_indexing.cpp)
