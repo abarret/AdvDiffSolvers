@@ -66,12 +66,6 @@ SBAdvDiffIntegrator::SBAdvDiffIntegrator(const std::string& object_name,
 }
 
 void
-SBAdvDiffIntegrator::registerGeneralBoundaryMeshMapping(const std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping)
-{
-    d_mesh_mapping = mesh_mapping;
-}
-
-void
 SBAdvDiffIntegrator::registerLevelSetSBDataManager(Pointer<NodeVariable<NDIM, double>> ls_var,
                                                    std::shared_ptr<SBSurfaceFluidCouplingManager> sb_data_manager)
 {
@@ -99,28 +93,6 @@ int
 SBAdvDiffIntegrator::getNumberOfCycles() const
 {
     return 2;
-}
-
-void
-SBAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
-                                                  const double new_time,
-                                                  const int num_cycles)
-{
-    ADS_TIMER_START(t_preprocess)
-    // TODO: This was placed here for restarts. We should only call reinitElementMappings() when required.
-    if (d_mesh_mapping)
-    {
-        plog << d_object_name + ": Initializing fe mesh mappings\n";
-        for (const auto& fe_mesh_mapping : d_mesh_mapping->getMeshPartitioners())
-        {
-            fe_mesh_mapping->setPatchHierarchy(d_hierarchy);
-            fe_mesh_mapping->reinitElementMappings();
-        }
-    }
-
-    if (d_mesh_mapping) d_mesh_mapping->updateBoundaryLocation(current_time, false);
-    LSAdvDiffIntegrator::preprocessIntegrateHierarchy(current_time, new_time, num_cycles);
-    ADS_TIMER_STOP(t_preprocess);
 }
 
 void
@@ -432,38 +404,6 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
     }
     executeIntegrateHierarchyCallbackFcns(current_time, new_time, cycle_num);
     ADS_TIMER_STOP(t_integrate_hierarchy);
-}
-
-void
-SBAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double current_time, const bool initial_time)
-{
-    plog << d_object_name + ": initializing composite Hierarchy data\n";
-    if (initial_time)
-    {
-        if (d_mesh_mapping)
-        {
-            plog << d_object_name + ": Initializing fe mesh mappings\n";
-            for (const auto& fe_mesh_mapping : d_mesh_mapping->getMeshPartitioners())
-            {
-                fe_mesh_mapping->setPatchHierarchy(d_hierarchy);
-                fe_mesh_mapping->reinitElementMappings();
-            }
-        }
-    }
-    LSAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(current_time, initial_time);
-}
-
-void
-SBAdvDiffIntegrator::regridHierarchyEndSpecialized()
-{
-    if (d_mesh_mapping)
-    {
-        for (const auto& mesh_partitioner : d_mesh_mapping->getMeshPartitioners())
-        {
-            mesh_partitioner->reinitElementMappings();
-        }
-    }
-    LSAdvDiffIntegrator::regridHierarchyEndSpecialized();
 }
 
 } // namespace ADS

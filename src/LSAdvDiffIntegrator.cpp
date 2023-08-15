@@ -215,6 +215,12 @@ LSAdvDiffIntegrator::LSAdvDiffIntegrator(const std::string& object_name,
 }
 
 void
+LSAdvDiffIntegrator::registerGeneralBoundaryMeshMapping(const std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping)
+{
+    d_mesh_mapping = mesh_mapping;
+}
+
+void
 LSAdvDiffIntegrator::registerTransportedQuantity(Pointer<CellVariable<NDIM, double>> Q_var, bool Q_output)
 {
     AdvDiffHierarchyIntegrator::registerTransportedQuantity(Q_var, Q_output);
@@ -531,7 +537,19 @@ LSAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
         level->allocatePatchData(d_adv_data, current_time);
     }
 
-    // Update level set at current time
+    // Update level set at current time. Update the boundary mesh if necessary.
+    if (d_mesh_mapping)
+    {
+        // TODO: This was placed here for restarts. We should only call reinitElementMappings() when required.
+        plog << d_object_name + ": Initializing fe mesh mappings\n";
+        for (const auto& fe_mesh_mapping : d_mesh_mapping->getMeshPartitioners())
+        {
+            fe_mesh_mapping->setPatchHierarchy(d_hierarchy);
+            fe_mesh_mapping->reinitElementMappings();
+        }
+    }
+
+    if (d_mesh_mapping) d_mesh_mapping->updateBoundaryLocation(current_time, false);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     for (size_t l = 0; l < d_ls_vars.size(); ++l)
     {
@@ -851,6 +869,8 @@ LSAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
                 ls_fcn->setLS(false);
             }
 
+            // Update boundary mesh if necessary.
+            if (d_mesh_mapping) d_mesh_mapping->updateBoundaryLocation(new_time, true);
             ls_fcn->updateVolumeAreaSideLS(vol_new_idx,
                                            vol_var,
                                            area_new_idx,
@@ -962,7 +982,16 @@ LSAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double cu
     if (initial_time)
     {
         auto var_db = VariableDatabase<NDIM>::getDatabase();
-        // Set initial level set data
+        // Set initial level set data. Update boundary mesh if necessary.
+        if (d_mesh_mapping)
+        {
+            plog << d_object_name + ": Initializing fe mesh mappings\n";
+            for (const auto& fe_mesh_mapping : d_mesh_mapping->getMeshPartitioners())
+            {
+                fe_mesh_mapping->setPatchHierarchy(d_hierarchy);
+                fe_mesh_mapping->reinitElementMappings();
+            }
+        }
         for (size_t l = 0; l < d_ls_vars.size(); ++l)
         {
             const Pointer<NodeVariable<NDIM, double>>& ls_var = d_ls_vars[l];
@@ -1035,6 +1064,17 @@ LSAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double cu
         }
     }
     plog << d_object_name << ": Finished initializing composite data\n";
+}
+
+void
+LSAdvDiffIntegrator::regridHierarchyEndSpecialized()
+{
+    if (d_mesh_mapping)
+    {
+        for (const auto& mesh_partitioner : d_mesh_mapping->getMeshPartitioners())
+            mesh_partitioner->reinitElementMappings();
+    }
+    AdvDiffHierarchyIntegrator::regridHierarchyEndSpecialized();
 }
 
 void

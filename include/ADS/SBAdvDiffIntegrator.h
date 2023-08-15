@@ -45,8 +45,6 @@ public:
 
     static void callbackIntegrateHierarchy(double current_time, double neW_time, int cycle_num, void* ctx);
 
-    void registerGeneralBoundaryMeshMapping(const std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping);
-
     void registerLevelSetSBDataManager(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                        std::shared_ptr<SBSurfaceFluidCouplingManager> sb_data_manager);
 
@@ -62,26 +60,18 @@ public:
     int getNumberOfCycles() const override;
 
     /*!
-     * Prepare to advance the data from current_time to new_time.
-     */
-    void preprocessIntegrateHierarchy(double current_time, double new_time, int num_cycles = 1) override;
-
-    /*!
      * Synchronously advance each level in the hierarchy over the given time
      * increment.
      */
     void integrateHierarchy(double current_time, double new_time, int cycle_num = 0) override;
 
 protected:
-    void initializeCompositeHierarchyDataSpecialized(double current_time, bool initial_time) override;
-    void regridHierarchyEndSpecialized() override;
 
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>,
              std::shared_ptr<SBSurfaceFluidCouplingManager>>
         d_ls_sb_data_manager_map;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>, std::shared_ptr<CutCellMeshMapping>>
         d_ls_cut_cell_mapping_map;
-    std::shared_ptr<GeneralBoundaryMeshMapping> d_mesh_mapping;
     std::map<SAMRAI::tbox::Pointer<SBIntegrator>, SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>>
         d_sb_integrator_ls_map;
 
