@@ -101,6 +101,24 @@ public:
     virtual void updateBoundaryLocation(double time, unsigned int part, bool end_of_timestep = false);
 
     /*!
+     * Set the initial location of the boundary mesh for all parts. By default, this loops through all parts and calls
+     * initializeBoundaryLocation(time, part).
+     *
+     * This is useful in cases where updateBoundaryLocation() requires information that is not initialized until after
+     * initializeFEData() is called.
+     */
+    virtual void initializeBoundaryLocation(double time);
+
+    /*!
+     * Set the initial location of the boundary mesh for the specified part. By default, this calls
+     * updateBoundaryLocation().
+     *
+     * This is useful in cases where updateBoundaryLocation() requires information that is not initialized until after
+     * initializeFEData() is called.
+     */
+    virtual void initializeBoundaryLocation(double time, unsigned int part);
+
+    /*!
      * \brief Create the EquationSystems object for the boundary mesh. If the boundary mesh is a nullptr, this routine
      * calls buildBoundaryMesh.
      */
