@@ -43,6 +43,7 @@ SET(CXX_SRC
     SBAdvDiffIntegrator.cpp
     SBIntegrator.cpp
     SBSurfaceFluidCouplingManager.cpp
+    SLAdvIntegrator.cpp
     VolumeBoundaryMeshMapping.cpp
     ZSplineReconstructions.cpp
 
