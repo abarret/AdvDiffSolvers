@@ -40,6 +40,18 @@ public:
     void registerTransportedQuantity(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                      const bool Q_output = true) override;
 
+    /*!
+     * Skip the diffusion solve for the specified variable. This means that all checks for diffusion operators and
+     * solvers will be skipped.
+     */
+    virtual void skipDiffusionSolve(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var);
+
+    /*!
+     * Register a GeneralBoundaryMeshMapping with the hierarchy integrator. This is important if the level set function
+     * computes using the boundary mesh.
+     */
+    virtual void registerGeneralBoundaryMeshMapping(const std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping);
+
     virtual void registerLevelSetVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
     virtual void registerLevelSetVolFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
@@ -129,6 +141,7 @@ public:
 
 protected:
     void initializeCompositeHierarchyDataSpecialized(double current_time, bool initial_time) override;
+    void regridHierarchyEndSpecialized() override;
     void resetTimeDependentHierarchyDataSpecialized(double new_time) override;
     void
     resetHierarchyConfigurationSpecialized(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchHierarchy<NDIM>> base_hierarchy,
@@ -184,6 +197,8 @@ protected:
              SAMRAI::tbox::Pointer<IBAMR::LSInitStrategy>>
         d_ls_strategy_map;
 
+    std::shared_ptr<GeneralBoundaryMeshMapping> d_mesh_mapping;
+
     // Advection reconstruction information
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>,
              std::shared_ptr<AdvectiveReconstructionOperator>>
@@ -216,6 +231,8 @@ protected:
 
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>, SAMRAI::tbox::Pointer<ReconstructCache>>
         d_reconstruct_from_centroids_ls_map, d_reconstruct_to_centroids_ls_map;
+
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, bool> d_Q_using_diffusion_solve;
 
 private:
     bool d_use_rbfs = false;

@@ -85,6 +85,20 @@ GeneralBoundaryMeshMapping::updateBoundaryLocation(const double time,
 }
 
 void
+GeneralBoundaryMeshMapping::initializeBoundaryLocation(const double time)
+{
+    for (unsigned int part = 0; part < d_bdry_meshes.size(); ++part) initializeBoundaryLocation(time, part);
+    return;
+}
+
+void
+GeneralBoundaryMeshMapping::initializeBoundaryLocation(const double time, unsigned int part)
+{
+    updateBoundaryLocation(time, part, /*end_of_timestep*/ false);
+    return;
+}
+
+void
 GeneralBoundaryMeshMapping::initializeEquationSystems()
 {
     const bool from_restart = RestartManager::getManager()->isFromRestart();
@@ -138,7 +152,7 @@ GeneralBoundaryMeshMapping::initializeFEData()
     {
         d_bdry_eq_sys_vec[part]->init();
     }
-    updateBoundaryLocation(0.0, false);
+    initializeBoundaryLocation(0.0);
 }
 
 void

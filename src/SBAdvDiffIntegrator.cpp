@@ -66,12 +66,6 @@ SBAdvDiffIntegrator::SBAdvDiffIntegrator(const std::string& object_name,
 }
 
 void
-SBAdvDiffIntegrator::registerGeneralBoundaryMeshMapping(const std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping)
-{
-    d_mesh_mapping = mesh_mapping;
-}
-
-void
 SBAdvDiffIntegrator::registerLevelSetSBDataManager(Pointer<NodeVariable<NDIM, double>> ls_var,
                                                    std::shared_ptr<SBSurfaceFluidCouplingManager> sb_data_manager)
 {
@@ -99,28 +93,6 @@ int
 SBAdvDiffIntegrator::getNumberOfCycles() const
 {
     return 2;
-}
-
-void
-SBAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
-                                                  const double new_time,
-                                                  const int num_cycles)
-{
-    ADS_TIMER_START(t_preprocess)
-    // TODO: This was placed here for restarts. We should only call reinitElementMappings() when required.
-    if (d_mesh_mapping)
-    {
-        plog << d_object_name + ": Initializing fe mesh mappings\n";
-        for (const auto& fe_mesh_mapping : d_mesh_mapping->getMeshPartitioners())
-        {
-            fe_mesh_mapping->setPatchHierarchy(d_hierarchy);
-            fe_mesh_mapping->reinitElementMappings();
-        }
-    }
-
-    if (d_mesh_mapping) d_mesh_mapping->updateBoundaryLocation(current_time, false);
-    LSAdvDiffIntegrator::preprocessIntegrateHierarchy(current_time, new_time, num_cycles);
-    ADS_TIMER_STOP(t_preprocess);
 }
 
 void
@@ -169,6 +141,14 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
         {
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
             const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
+
+            // Should we be skipping this solve?
+            if (!d_Q_using_diffusion_solve.at(Q_var))
+            {
+                const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+                d_hier_cc_data_ops->copyData(Q_new_idx, Q_cur_idx);
+                continue;
+            }
 
             const Pointer<NodeVariable<NDIM, double>>& ls_var = d_Q_ls_map[Q_var];
             const size_t l = distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
@@ -395,6 +375,10 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
                 const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
                 const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
 
+                // Should we be skipping this solve? Note we don't copy data here because Q_new already has the correct
+                // data.
+                if (!d_Q_using_diffusion_solve.at(Q_var)) continue;
+
                 const Pointer<NodeVariable<NDIM, double>>& ls_var = d_Q_ls_map[Q_var];
                 const size_t l = distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
                 const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
@@ -432,38 +416,6 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
     }
     executeIntegrateHierarchyCallbackFcns(current_time, new_time, cycle_num);
     ADS_TIMER_STOP(t_integrate_hierarchy);
-}
-
-void
-SBAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double current_time, const bool initial_time)
-{
-    plog << d_object_name + ": initializing composite Hierarchy data\n";
-    if (initial_time)
-    {
-        if (d_mesh_mapping)
-        {
-            plog << d_object_name + ": Initializing fe mesh mappings\n";
-            for (const auto& fe_mesh_mapping : d_mesh_mapping->getMeshPartitioners())
-            {
-                fe_mesh_mapping->setPatchHierarchy(d_hierarchy);
-                fe_mesh_mapping->reinitElementMappings();
-            }
-        }
-    }
-    LSAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(current_time, initial_time);
-}
-
-void
-SBAdvDiffIntegrator::regridHierarchyEndSpecialized()
-{
-    if (d_mesh_mapping)
-    {
-        for (const auto& mesh_partitioner : d_mesh_mapping->getMeshPartitioners())
-        {
-            mesh_partitioner->reinitElementMappings();
-        }
-    }
-    LSAdvDiffIntegrator::regridHierarchyEndSpecialized();
 }
 
 } // namespace ADS

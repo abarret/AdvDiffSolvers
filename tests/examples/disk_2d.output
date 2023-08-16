@@ -6,7 +6,6 @@ SBAdvDiffIntegrator: initializing level data
 1Setting level set at initial time: 1
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
-SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing level set for: LS_In
 Minimum volume on level:     0 is: 1.19775018947e-06
 Total area found on level:   0 is: 6.2780779643
@@ -341,7 +340,6 @@ Simulation time is 0
 SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0,0.01171875], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 0
 SBAdvDiffIntegrator: initializing composite Hierarchy data
-SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
 Minimum volume on level:     0 is: 1.19775018947e-06
@@ -396,7 +394,6 @@ At beginning of timestep # 1
 Simulation time is 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.01171875,0.0234375], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 1
-SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
@@ -453,7 +450,6 @@ Simulation time is 0.0234375
 SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0234375,0.03515625], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 2
 SBAdvDiffIntegrator: initializing composite Hierarchy data
-SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
 Minimum volume on level:     0 is: 1.19775018947e-06
@@ -508,7 +504,6 @@ At beginning of timestep # 3
 Simulation time is 0.03515625
 SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.03515625,0.046875], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 3
-SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
@@ -565,7 +560,6 @@ Simulation time is 0.046875
 SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.046875,0.05859375], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 4
 SBAdvDiffIntegrator: initializing composite Hierarchy data
-SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
 Minimum volume on level:     0 is: 1.19775018947e-06
@@ -620,7 +614,6 @@ At beginning of timestep # 5
 Simulation time is 0.05859375
 SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.05859375,0.0703125], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 5
-SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
@@ -677,7 +670,6 @@ Simulation time is 0.0703125
 SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0703125,0.08203125], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 6
 SBAdvDiffIntegrator: initializing composite Hierarchy data
-SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
 Minimum volume on level:     0 is: 1.19775018947e-06
@@ -732,7 +724,6 @@ At beginning of timestep # 7
 Simulation time is 0.08203125
 SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.08203125,0.09375], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 7
-SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
@@ -789,7 +780,6 @@ Simulation time is 0.09375
 SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.09375,0.10546875], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 8
 SBAdvDiffIntegrator: initializing composite Hierarchy data
-SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
 Minimum volume on level:     0 is: 1.19775018947e-06
@@ -844,7 +834,6 @@ At beginning of timestep # 9
 Simulation time is 0.10546875
 SBAdvDiffIntegrator::advanceHierarchy(): time interval = [0.10546875,0.1171875], dt = 0.01171875
 SBAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 9
-SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: initializing composite Hierarchy data
 SBAdvDiffIntegrator: Finished initializing composite data
 SBAdvDiffIntegrator: Initializing fe mesh mappings
