@@ -151,6 +151,8 @@ BoundaryReconstructCache::cacheData()
             }
         }
     }
+
+    d_update_weights = false;
 }
 
 double
