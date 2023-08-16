@@ -142,6 +142,14 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
             const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
 
+            // Should we be skipping this solve?
+            if (!d_Q_using_diffusion_solve.at(Q_var))
+            {
+                const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+                d_hier_cc_data_ops->copyData(Q_new_idx, Q_cur_idx);
+                continue;
+            }
+
             const Pointer<NodeVariable<NDIM, double>>& ls_var = d_Q_ls_map[Q_var];
             const size_t l = distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
             const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
@@ -366,6 +374,10 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
                 const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
                 const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
                 const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+
+                // Should we be skipping this solve? Note we don't copy data here because Q_new already has the correct
+                // data.
+                if (!d_Q_using_diffusion_solve.at(Q_var)) continue;
 
                 const Pointer<NodeVariable<NDIM, double>>& ls_var = d_Q_ls_map[Q_var];
                 const size_t l = distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));

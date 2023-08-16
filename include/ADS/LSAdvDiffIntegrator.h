@@ -41,6 +41,12 @@ public:
                                      const bool Q_output = true) override;
 
     /*!
+     * Skip the diffusion solve for the specified variable. This means that all checks for diffusion operators and
+     * solvers will be skipped.
+     */
+    virtual void skipDiffusionSolve(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var);
+
+    /*!
      * Register a GeneralBoundaryMeshMapping with the hierarchy integrator. This is important if the level set function
      * computes using the boundary mesh.
      */
@@ -225,6 +231,8 @@ protected:
 
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>, SAMRAI::tbox::Pointer<ReconstructCache>>
         d_reconstruct_from_centroids_ls_map, d_reconstruct_to_centroids_ls_map;
+
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, bool> d_Q_using_diffusion_solve;
 
 private:
     bool d_use_rbfs = false;

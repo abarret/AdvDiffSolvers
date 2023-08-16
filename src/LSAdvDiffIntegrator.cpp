@@ -225,6 +225,14 @@ LSAdvDiffIntegrator::registerTransportedQuantity(Pointer<CellVariable<NDIM, doub
 {
     AdvDiffHierarchyIntegrator::registerTransportedQuantity(Q_var, Q_output);
     setDefaultReconstructionOperator(Q_var);
+    d_Q_using_diffusion_solve[Q_var] = true;
+}
+
+void
+LSAdvDiffIntegrator::skipDiffusionSolve(Pointer<CellVariable<NDIM, double>> Q_var)
+{
+    TBOX_ASSERT(std::find(d_Q_var.begin(), d_Q_var.end(), Q_var) != d_Q_var.end());
+    d_Q_using_diffusion_solve[Q_var] = false;
 }
 
 void
@@ -625,7 +633,7 @@ LSAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
         }
     }
 
-    // Prepare diffusion
+    // Prepare diffusion if necessary.
     int l = 0;
     for (const auto& Q_var : d_Q_var)
     {
@@ -633,7 +641,11 @@ LSAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
         Pointer<SideVariable<NDIM, double>> D_var = d_Q_diffusion_coef_variable[Q_var];
         Pointer<SideVariable<NDIM, double>> D_rhs_var = d_diffusion_coef_rhs_map[D_var];
         const double lambda = d_Q_damping_coef[Q_var];
+        const double kappa = d_Q_diffusion_coef[Q_var];
         const std::vector<RobinBcCoefStrategy<NDIM>*> Q_bc_coef = d_Q_bc_coef[Q_var];
+
+        // Check if we are using the diffusion solve.
+        if (!d_Q_using_diffusion_solve.at(Q_var)) continue;
 
         // This should be changed for different time stepping for diffusion. Right now set at trapezoidal rule.
         double K = 0.0;
@@ -657,11 +669,10 @@ LSAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
         const double dt_scale = d_use_strang_splitting ? 2.0 : 1.0;
         solv_spec.setCConstant(dt_scale / dt + K * lambda);
         rhs_spec.setCConstant(dt_scale / dt - (1.0 - K) * lambda);
-        const double kappa = d_Q_diffusion_coef[Q_var];
         solv_spec.setDConstant(-K * kappa);
         rhs_spec.setDConstant((1.0 - K) * kappa);
 
-        // Initialize RHS Operator
+        // Initialize RHS Operator.
         Pointer<LSCutCellLaplaceOperator> rhs_oper = d_helmholtz_rhs_ops[l];
         rhs_oper->setPoissonSpecifications(rhs_spec);
         rhs_oper->setPhysicalBcCoefs(Q_bc_coef);
@@ -723,6 +734,14 @@ LSAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
         {
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
             const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
+
+            // Should we be skipping this solve?
+            if (!d_Q_using_diffusion_solve.at(Q_var))
+            {
+                const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+                d_hier_cc_data_ops->copyData(Q_new_idx, Q_cur_idx);
+                continue;
+            }
 
             const Pointer<NodeVariable<NDIM, double>>& ls_var = d_Q_ls_map[Q_var];
             const size_t l = distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
@@ -919,6 +938,10 @@ LSAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
                 const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
                 const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
                 const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+
+                // Should we be skipping this solve? Note we don't copy data here because Q_new already has the correct
+                // data.
+                if (!d_Q_using_diffusion_solve.at(Q_var)) continue;
 
                 const Pointer<NodeVariable<NDIM, double>>& ls_var = d_Q_ls_map[Q_var];
                 const size_t l = distance(d_ls_vars.begin(), std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var));
