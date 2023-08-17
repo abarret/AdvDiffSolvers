@@ -20,6 +20,19 @@
 
 namespace ADS
 {
+/*!
+ * \brief Class SLAdvIntegrator is a concrete implementation of IBAMR::AdvDiffHierarchyIntegrator that provides an
+ * interface for solvin the advection equation with a semi-Lagrangian method.
+ *
+ * Users should register an AdvectiveReconstructionOperator for each advected quantity that instructs the integrator how
+ * to reconstruct the quantity at points on the grid. Currently, advected quantites must be associated with level sets,
+ * so a level set variable and an LSFindVolume function must be registered.
+ *
+ * This class differs from LSAdvDiffIntegrator in that SLAdvIntegrator does not include a diffusion component. Calls to
+ * setDiffusionCoefficient() result in an unrecoverable error. Additionally, SLAdvIntegrator associates all degrees of
+ * freedom with cell centers, regardless of the level set value. This is in contrast to LSAdvDiffIntegrator, which
+ * associates all degrees of freedom to cut cell centroids.
+ */
 class SLAdvIntegrator : public IBAMR::AdvDiffHierarchyIntegrator
 {
 public:
@@ -45,14 +58,33 @@ public:
      */
     virtual void registerGeneralBoundaryMeshMapping(const std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping);
 
+    /*!
+     * Register a level set variable. Advected quantities should be restricted to the level set by the call
+     * restrictToLevelSet.
+     */
     virtual void registerLevelSetVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
+    /*!
+     * Register a level set volume function that can compute the level set and volume fraction on the patch hierarchy.
+     *
+     * If ls_var has not been previously registered, this results in a unrecoverable error when debugging is enabled.
+     */
     virtual void registerLevelSetVolFunction(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                              SAMRAI::tbox::Pointer<LSFindCellVolume> vol_fcn);
 
+    /*!
+     * Restrict the advected quantity Q_var to the level set ls_var.
+     *
+     * If Q_var or ls_var has not been registered with the integrator, this function call results in an unrecoverable
+     * error when debugging is enabled.
+     */
     virtual void restrictToLevelSet(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
+    /*!
+     * If use_ls_for_tagging is set to true, the provided level set variable will be used to tag grid cells for
+     * refinement.
+     */
     virtual void useLevelSetForTagging(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                        bool use_ls_for_tagging);
 
@@ -62,9 +94,19 @@ public:
      */
     void setDiffusionCoefficient(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var, double D);
 
+    /*!
+     * Return the volume variable used by the integrator.
+     */
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
     getVolumeVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 
+    /*!
+     * Register an AdvectiveReconstructionOperator to be used to reconstruct Q_var. If this function is not called, the
+     * default operator is used to construct Q_var.
+     *
+     * If Q_var has not been registered with the integrator, this function call results in an unrecoverable error when
+     * debugging is enabled.
+     */
     void registerAdvectionReconstruction(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                          std::shared_ptr<AdvectiveReconstructionOperator> reconstruct_op);
 
@@ -81,6 +123,12 @@ public:
     initializeHierarchyIntegrator(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                                   SAMRAI::tbox::Pointer<SAMRAI::mesh::GriddingAlgorithm<NDIM>> gridding_alg) override;
 
+    /*!
+     * Apply the gradient detector to determine which cells need to be refined. Refines cells based on the level set
+     * value.
+     *
+     * \see useLevelSetForTagging
+     */
     void applyGradientDetectorSpecialized(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchHierarchy<NDIM>> hierarchy,
                                           int ln,
                                           double error_data_time,
@@ -88,6 +136,9 @@ public:
                                           bool initial_time,
                                           bool uses_richardson_extrapolation_too) override;
 
+    /*!
+     * Initialize the data on the hierarchy. This is called automatically upon hierarchy creation.
+     */
     void initializeLevelDataSpecialized(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchHierarchy<NDIM>> hierarchy,
                                         int level_number,
                                         double init_data_time,
@@ -129,10 +180,17 @@ protected:
                                            int coarsest_ln,
                                            int finest_ln) override;
 
+    /*!
+     * Perform the advection solve. Integrates particle paths backwards in time, then interpolates the solution to these
+     * points.
+     */
     virtual void advectionUpdate(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                  double current_time,
                                  double new_time);
 
+    /*!
+     * Integrates the paths backward in time using the provided velocity patch indices.
+     */
     virtual void integratePaths(int path_idx, int u_new_idx, int u_half_idx, double dt);
 
     void setDefaultReconstructionOperator(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var);
