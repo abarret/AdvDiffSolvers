@@ -243,13 +243,11 @@ RBFFDWeightsCache::findRBFFDWeights()
     sortLagDOFsToCells();
     d_pt_weight_map.clear();
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(d_hierarchy->getFinestLevelNumber());
-    auto Lrbf_fcn = [this](const FDPoint& pti, const FDPoint& ptj, void*) -> double {
-        return d_Lrbf_fcn((pti - ptj).norm());
-    };
+    auto Lrbf_fcn = [this](const FDPoint& pti, const FDPoint& ptj, void*) -> double
+    { return d_Lrbf_fcn((pti - ptj).norm()); };
     auto Lpoly_fcn =
-        [this](const std::vector<FDPoint>& pts, int poly_deg, double ds, const FDPoint& base_pt, void*) -> VectorXd {
-        return d_poly_fcn(pts, poly_deg, ds, base_pt).transpose();
-    };
+        [this](const std::vector<FDPoint>& pts, int poly_deg, double ds, const FDPoint& base_pt, void*) -> VectorXd
+    { return d_poly_fcn(pts, poly_deg, ds, base_pt).transpose(); };
     for (PatchLevel<NDIM>::Iterator p(level); p; p++)
     {
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
