@@ -17,35 +17,37 @@ ENDFOREACH()
 
 
 SET(CXX_SRC
-    AdvectiveReconstructionOperator.cpp
-    BoundaryReconstructCache.cpp
-    CutCellMeshMapping.cpp
-    CutCellVolumeMeshMapping.cpp
-    FDWeightsCache.cpp
-    FEMeshPartitioner.cpp
-    GeneralBoundaryMeshMapping.cpp
-    GhostPoints.cpp
-    GlobalIndexing.cpp
-    IntegrateFunction.cpp
-    LinearReconstructions.cpp
-    LSAdvDiffIntegrator.cpp
-    LSCartGridFunction.cpp
-    LSFindCellVolume.cpp
-    LSFromLevelSet.cpp
-    LSFromMesh.cpp
-    ls_functions.cpp
-    MLSReconstructCache.cpp
-    RBFFDWeightsCache.cpp
-    RBFReconstructCache.cpp
-    RBFReconstructions.cpp
-    ReconstructCache.cpp
-    reconstructions.cpp
-    SBAdvDiffIntegrator.cpp
-    SBIntegrator.cpp
-    SBSurfaceFluidCouplingManager.cpp
-    SLAdvIntegrator.cpp
-    VolumeBoundaryMeshMapping.cpp
-    ZSplineReconstructions.cpp
+    
+    adv_ops/AdvectiveReconstructionOperator.cpp
+    adv_ops/LinearReconstructions.cpp
+    adv_ops/RBFReconstructions.cpp
+    adv_ops/ZSplineReconstructions.cpp
+    
+    cut_cell/CutCellMeshMapping.cpp
+    cut_cell/CutCellVolumeMeshMapping.cpp
+
+    integrators/LSAdvDiffIntegrator.cpp
+    integrators/SBAdvDiffIntegrator.cpp
+    integrators/SBIntegrator.cpp
+    integrators/SLAdvIntegrator.cpp
+    
+    level_set/LSCartGridFunction.cpp
+    level_set/LSFindCellVolume.cpp
+    level_set/LSFromLevelSet.cpp
+    level_set/LSFromMesh.cpp
+    level_set/ls_functions.cpp
+    
+    rbffd/FDWeightsCache.cpp
+    rbffd/GhostPoints.cpp
+    rbffd/GlobalIndexing.cpp
+    rbffd/PointList.cpp
+    rbffd/RBFFDWeightsCache.cpp
+    
+    reconstructions/BoundaryReconstructCache.cpp
+    reconstructions/MLSReconstructCache.cpp
+    reconstructions/RBFReconstructCache.cpp
+    reconstructions/ReconstructCache.cpp
+    reconstructions/reconstructions.cpp
 
     solvers/ConditionCounter.cpp
     solvers/LSCutCellBoundaryConditions.cpp
@@ -55,9 +57,13 @@ SET(CXX_SRC
     solvers/RBFFDPoissonSolver.cpp
     solvers/RBFLaplaceOperator.cpp
     solvers/SBBoundaryConditions.cpp
+    
+    surfaces/FEMeshPartitioner.cpp
+    surfaces/GeneralBoundaryMeshMapping.cpp
+    surfaces/SBSurfaceFluidCouplingManager.cpp
+    surfaces/VolumeBoundaryMeshMapping.cpp
 
-    rbffd/PointList.cpp
-
+    utilities/IntegrateFunction.cpp
     utilities/solver_utilities.cpp
     )
 
