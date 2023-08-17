@@ -56,6 +56,12 @@ public:
     virtual void useLevelSetForTagging(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var,
                                        bool use_ls_for_tagging);
 
+    /*!
+     * This function call results in an unrecoverable error. Note that it masks a base class function that is not
+     * virtual.
+     */
+    void setDiffusionCoefficient(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var, double D);
+
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>
     getVolumeVariable(SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> ls_var);
 

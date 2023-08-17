@@ -202,6 +202,12 @@ SLAdvIntegrator::registerAdvectionReconstruction(Pointer<CellVariable<NDIM, doub
 }
 
 void
+SLAdvIntegrator::setDiffusionCoefficient(Pointer<CellVariable<NDIM, double>> /*Q_var*/, const double /*D*/)
+{
+    TBOX_ERROR("Can not register a diffusion coefficient with the SLAdvIntegrator.\n");
+}
+
+void
 SLAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<NDIM>> hierarchy,
                                                Pointer<GriddingAlgorithm<NDIM>> gridding_alg)
 {
