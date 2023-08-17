@@ -1,0 +1,498 @@
+LSAdvDiffIntegrator: initializing Hierarchy integrator.
+LSAdvDiffIntegrator::initializePatchHierarchy(): tag_buffer = 0
+LSAdvDiffIntegrator: initializing level data
+Setting level set at initial time: 1
+LSAdvDiffIntegrator: initializing composite Hierarchy data
+LSAdvDiffIntegrator: initializing level set for: LS
+Setting Level set at time 0
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator: Initializing data for variable: Q
+LSAdvDiffIntegrator: Finished initializing composite data
+Input database:
+input_db {
+   PI                         = 3.14159                     // input not used
+   LX                         = 4                           // input used
+   LY                         = 1                           // input used
+   RATIO                      = 4                           // input used
+   MAX_LEVELS                 = 1                           // input used
+   REF_RATIO                  = 4                           // input used
+   NY                         = 16                          // input used
+   NY_FINEST                  = 16                          // input used
+   NX                         = 64                          // input used
+   NX_FINEST                  = 64                          // input used
+   H                          = 0.0625                      // input used
+   CFL_MAX                    = 0.5                         // input used
+   U_MAX                      = 15                          // input not used
+   DT_MIN                     = 0.00208333                  // input used
+   DT_MAX                     = 0.00208333                  // input used
+   END_TIME                   = 0.0208333                   // input used
+   REGRID_INTERVAL            = 1                           // input used
+   TAG_BUFFER                 = 1                           // input used
+   OUTPUT_BDRY_INFO           = FALSE                       // input not used
+   USING_LS_FCN               = TRUE                        // input used
+   DRAW_EXACT                 = FALSE                       // input not used
+   MIN_REFINE_FACTOR          = -4                          // input used
+   MAX_REFINE_FACTOR          = 2                           // input used
+   LEAST_SQUARES_ORDER        = "QUADRATIC"                 // input used
+   USE_STRANG_SPLITTING       = TRUE                        // input used
+   USE_OUTSIDE_LS_FOR_TAGGING = TRUE                        // input not used
+   ADV_INT_METHOD             = "MIDPOINT_RULE"             // input used
+   DIF_INT_METHOD             = "TRAPEZOIDAL_RULE"          // input used
+   USE_RBFS                   = TRUE                        // input used
+   RBF_STENCIL_SIZE           = 12                          // input used
+   RBF_POLY_ORDER             = "QUADRATIC"                 // input used
+   XCOM                       = 1.5                         // input used
+   YCOM                       = 0.5                         // input used
+   R                          = 1                           // input used
+   R_2                        = 3.75                        // input not used
+   R_1                        = 0.5                         // input not used
+   OMEGA_2                    = 1                           // input not used
+   OMEGA_1                    = 10                          // input not used
+   ROT_PERIOD                 = 2                           // input not used
+   D_coef                     = 0.1                         // input used
+   Q                          = "exp(-50*((X_0-0.8)^2 + X_1^2))*10" // input not used
+   QInitial {
+      r   = 1                                               // input used
+      D   = 0.1                                             // input used
+      com = 1.5, 0.5                                        // input used
+   }
+   UFunction {
+      L          = 1                                        // input used
+      function_0 = "X_1 * (L - X_1)"                        // input used
+      function_1 = "0.0"                                    // input used
+   }
+   Q_bcs {
+      D                = 1                                  // input used
+      acoef_function_0 = "0.0"                              // input used
+      acoef_function_1 = "0.0"                              // input used
+      acoef_function_2 = "0.0"                              // input used
+      acoef_function_3 = "0.0"                              // input used
+      bcoef_function_0 = "1.0"                              // input used
+      bcoef_function_1 = "1.0"                              // input used
+      bcoef_function_2 = "1.0"                              // input used
+      bcoef_function_3 = "1.0"                              // input used
+      gcoef_function_0 = "0.0"                              // input used
+      gcoef_function_1 = "0.0"                              // input used
+      gcoef_function_2 = "0.0"                              // input used
+      gcoef_function_3 = "0.0"                              // input used
+   }
+   Main {
+      log_file_name               = "output"                // input used
+      log_all_nodes               = FALSE                   // input used
+      viz_writer                  = "VisIt"                 // input used
+      viz_dump_interval           = 24                      // input used
+      viz_dump_dirname            = "viz_adv_diff2d"        // input used
+      visit_number_procs_per_file = 1                       // input used
+      restart_dump_interval       = 0                       // input used
+      restart_dump_dirname        = "restart_adv_diff2d"    // input used
+      data_dump_interval          = 1                       // input used
+      data_dump_dirname           = "hier_data_IB2d"        // input used
+      timer_dump_interval         = 0                       // input used
+   }
+   CartesianGeometry {
+      domain_boxes       = [(0,0),(63,15)]                  // input used
+      x_lo               = 0, 0                             // input used
+      x_up               = 4, 1                             // input used
+      periodic_dimension = 0, 0                             // input used
+   }
+   GriddingAlgorithm {
+      max_levels                = 1                         // input used
+      efficiency_tolerance      = 0.9                       // input used
+      combine_efficiency        = 0.9                       // input used
+      check_nonrefined_tags     = 'w'                       // from default
+      check_overlapping_patches = 'i'                       // from default
+      extend_tags_to_bdry       = FALSE                     // from default
+      ratio_to_coarser {
+         level_1 = 4, 4                                     // input not used
+         level_2 = 4, 4                                     // input not used
+         level_3 = 4, 4                                     // input not used
+      }
+      largest_patch_size {
+         level_0 = 512, 512                                 // input used
+      }
+      smallest_patch_size {
+         level_0 = 4, 4                                     // input used
+      }
+   }
+   StandardTagAndInitialize {
+      tagging_method = "GRADIENT_DETECTOR"                  // input used
+   }
+   LoadBalancer {
+      bin_pack_method                      = "SPATIAL"      // input used
+      max_workload_factor                  = 1              // input used
+      ignore_level_box_union_is_single_box = FALSE          // from default
+   }
+   TimerManager {
+      print_exclusive      = TRUE                           // input used
+      print_total          = TRUE                           // input used
+      print_threshold      = 0                              // input used
+      timer_list           = "LS::*::*", "IBAMR::*::*", "IBTK::*::*" // input used
+      print_processor      = TRUE                           // from default
+      print_max            = FALSE                          // from default
+      print_summed         = FALSE                          // from default
+      print_user           = FALSE                          // from default
+      print_sys            = FALSE                          // from default
+      print_wall           = TRUE                           // from default
+      print_percentage     = TRUE                           // from default
+      print_concurrent     = FALSE                          // from default
+      print_timer_overhead = FALSE                          // from default
+   }
+   LSAdvDiffIntegrator {
+      start_time                         = 0                // input used
+      end_time                           = 0.0208333        // input used
+      grow_dt                            = 2                // input used
+      regrid_interval                    = 1                // input used
+      cfl                                = 0.5              // input used
+      dt_max                             = 0.00208333       // input used
+      dt_min                             = 0.00208333       // input used
+      enable_logging                     = TRUE             // input used
+      prescribe_level_set                = TRUE             // input not used
+      min_ls_refine_factor               = -4               // input used
+      max_ls_refine_factor               = 2                // input used
+      least_squares_order                = "QUADRATIC"      // input used
+      use_strang_splitting               = TRUE             // input not used
+      advection_ts_type                  = "MIDPOINT_RULE"  // input used
+      diffusion_ts_type                  = "TRAPEZOIDAL_RULE" // input not used
+      use_rbfs                           = TRUE             // input used
+      rbf_stencil_size                   = 12               // input used
+      rbf_poly_order                     = "QUADRATIC"      // input used
+      default_adv_reconstruct_type       = "ZSPLINES"       // input used
+      tag_buffer                         = 1                // input used
+      convective_op_type                 = "PPM"            // input not used
+      convective_difference_form         = "CONSERVATIVE"   // input used
+      convective_time_stepping_type      = "TRAPEZOIDAL_RULE" // input not used
+      init_convective_time_stepping_type = "MIDPOINT_RULE"  // input not used
+      diffusion_time_stepping_type       = "TRAPEZOIDAL_RULE" // input used
+      num_cycles                         = 1                // input used
+      mls_stencil_size                   = 8                // from default
+   }
+}
+
+
+Writing visualization files...
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 0
+Simulation time is 0
+LSAdvDiffIntegrator::advanceHierarchy(): time interval = [0,0.00208333333333], dt = 0.00208333333333
+LSAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 0
+LSAdvDiffIntegrator: initializing composite Hierarchy data
+LSAdvDiffIntegrator: Finished initializing composite data
+Setting Level set at time 0
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.00208333
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator: advecting Q
+LSAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+LSAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+LSAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 0
+Simulation time is 0.00208333
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Computing error norms
+ L1-norm:  1.0787e-06
+ L2-norm:  9.33987e-07
+ max-norm: 1.36351e-06
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 1
+Simulation time is 0.00208333
+LSAdvDiffIntegrator::advanceHierarchy(): time interval = [0.00208333333333,0.00416666666667], dt = 0.00208333333333
+LSAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 1
+LSAdvDiffIntegrator: initializing composite Hierarchy data
+LSAdvDiffIntegrator: Finished initializing composite data
+Setting Level set at time 0.00208333
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.00416667
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator: advecting Q
+LSAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+LSAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+LSAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 1
+Simulation time is 0.00416667
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Computing error norms
+ L1-norm:  2.15742e-06
+ L2-norm:  1.86799e-06
+ max-norm: 2.72828e-06
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 2
+Simulation time is 0.00416667
+LSAdvDiffIntegrator::advanceHierarchy(): time interval = [0.00416666666667,0.00625], dt = 0.00208333333333
+LSAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 2
+LSAdvDiffIntegrator: initializing composite Hierarchy data
+LSAdvDiffIntegrator: Finished initializing composite data
+Setting Level set at time 0.00416667
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.00625
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator: advecting Q
+LSAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+LSAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+LSAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 2
+Simulation time is 0.00625
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Computing error norms
+ L1-norm:  3.23613e-06
+ L2-norm:  2.80203e-06
+ max-norm: 4.09428e-06
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 3
+Simulation time is 0.00625
+LSAdvDiffIntegrator::advanceHierarchy(): time interval = [0.00625,0.00833333333333], dt = 0.00208333333333
+LSAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 3
+LSAdvDiffIntegrator: initializing composite Hierarchy data
+LSAdvDiffIntegrator: Finished initializing composite data
+Setting Level set at time 0.00625
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.00833333
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator: advecting Q
+LSAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+LSAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+LSAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 3
+Simulation time is 0.00833333
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Computing error norms
+ L1-norm:  4.31483e-06
+ L2-norm:  3.73614e-06
+ max-norm: 5.46145e-06
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 4
+Simulation time is 0.00833333
+LSAdvDiffIntegrator::advanceHierarchy(): time interval = [0.00833333333333,0.0104166666667], dt = 0.00208333333333
+LSAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 4
+LSAdvDiffIntegrator: initializing composite Hierarchy data
+LSAdvDiffIntegrator: Finished initializing composite data
+Setting Level set at time 0.00833333
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.0104167
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator: advecting Q
+LSAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+LSAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+LSAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 4
+Simulation time is 0.0104167
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Computing error norms
+ L1-norm:  5.39351e-06
+ L2-norm:  4.67033e-06
+ max-norm: 6.82977e-06
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 5
+Simulation time is 0.0104167
+LSAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0104166666667,0.0125], dt = 0.00208333333333
+LSAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 5
+LSAdvDiffIntegrator: initializing composite Hierarchy data
+LSAdvDiffIntegrator: Finished initializing composite data
+Setting Level set at time 0.0104167
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.0125
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator: advecting Q
+LSAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+LSAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+LSAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 5
+Simulation time is 0.0125
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Computing error norms
+ L1-norm:  6.47225e-06
+ L2-norm:  5.60464e-06
+ max-norm: 8.19919e-06
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 6
+Simulation time is 0.0125
+LSAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0125,0.0145833333333], dt = 0.00208333333333
+LSAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 6
+LSAdvDiffIntegrator: initializing composite Hierarchy data
+LSAdvDiffIntegrator: Finished initializing composite data
+Setting Level set at time 0.0125
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.0145833
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator: advecting Q
+LSAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+LSAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+LSAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 6
+Simulation time is 0.0145833
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Computing error norms
+ L1-norm:  7.55114e-06
+ L2-norm:  6.53909e-06
+ max-norm: 9.58194e-06
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 7
+Simulation time is 0.0145833
+LSAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0145833333333,0.0166666666667], dt = 0.00208333333333
+LSAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 7
+LSAdvDiffIntegrator: initializing composite Hierarchy data
+LSAdvDiffIntegrator: Finished initializing composite data
+Setting Level set at time 0.0145833
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.0166667
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator: advecting Q
+LSAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+LSAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+LSAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 7
+Simulation time is 0.0166667
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Computing error norms
+ L1-norm:  8.63066e-06
+ L2-norm:  7.4737e-06
+ max-norm: 1.09813e-05
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 8
+Simulation time is 0.0166667
+LSAdvDiffIntegrator::advanceHierarchy(): time interval = [0.0166666666667,0.01875], dt = 0.00208333333333
+LSAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 8
+LSAdvDiffIntegrator: initializing composite Hierarchy data
+LSAdvDiffIntegrator: Finished initializing composite data
+Setting Level set at time 0.0166667
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.01875
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator: advecting Q
+LSAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+LSAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+LSAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 8
+Simulation time is 0.01875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Computing error norms
+ L1-norm:  9.71021e-06
+ L2-norm:  8.40849e-06
+ max-norm: 1.23868e-05
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 9
+Simulation time is 0.01875
+LSAdvDiffIntegrator::advanceHierarchy(): time interval = [0.01875,0.0208333333333], dt = 0.00208333333333
+LSAdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 9
+LSAdvDiffIntegrator: initializing composite Hierarchy data
+LSAdvDiffIntegrator: Finished initializing composite data
+Setting Level set at time 0.01875
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+LSAdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.0208333
+Minimum volume on level:     0 is: 0.00390625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+LSAdvDiffIntegrator: advecting Q
+LSAdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+LSAdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+LSAdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 9
+Simulation time is 0.0208333
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Computing error norms
+ L1-norm:  1.07897e-05
+ L2-norm:  9.34348e-06
+ max-norm: 1.37982e-05
+
+Writing visualization files...
+
