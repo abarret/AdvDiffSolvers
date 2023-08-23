@@ -102,18 +102,28 @@ enum_to_string<RBFPolyOrder>(RBFPolyOrder val)
     return "UNKNOWN_ORDER";
 }
 
+/*!
+ * \brief Polyharmonic rbf.
+ */
 static inline double
 rbf(double r)
 {
     return r;
 }
 
+/*!
+ * \brief MLS weight function: Gaussian-like kernel.
+ */
 static inline double
 mls_weight(double r)
 {
     return std::exp(-r * r);
 }
 
+/*!
+ * Reconstruct the data at position x_loc, using a stencil centered at idx. Only uses points that have a non-zero volume
+ * fraction in vol_data. The reconstruction uses a polyharmonic spline fit.
+ */
 double radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
                                          const SAMRAI::pdat::CellIndex<NDIM>& idx,
                                          const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
@@ -123,6 +133,10 @@ double radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
                                          const RBFPolyOrder order,
                                          const unsigned int stencil_size);
 
+/*!
+ * Reconstruct the data at position x_loc, using a stencil centered at idx. Only uses points that have a non-zero volume
+ * fraction in vol_data. The reconstruction uses a least squares polynomial fit.
+ */
 double leastSquaresReconstruction(IBTK::VectorNd x_loc,
                                   const SAMRAI::pdat::CellIndex<NDIM>& idx,
                                   const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
@@ -131,12 +145,32 @@ double leastSquaresReconstruction(IBTK::VectorNd x_loc,
                                   const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch,
                                   LeastSquaresOrder order);
 
+/*!
+ * Reconstruct data at position x_loc given the lower cell index idx_ll using bilinear interpolation.
+ */
 double bilinearReconstruction(const IBTK::VectorNd& x_loc,
                               const IBTK::VectorNd& x_ll,
                               const SAMRAI::pdat::CellIndex<NDIM>& idx_ll,
                               const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
                               const double* const dx);
 
+/*!
+ * Reconstruct the data at position x_loc, using a stencil centered at idx. Only uses points that share the same sign of
+ * the level set. The reconstruction uses a polyharmonic spline fit.
+ */
+double radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
+                                         double ls_val,
+                                         const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                                         const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
+                                         const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
+                                         const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch,
+                                         const RBFPolyOrder order,
+                                         const unsigned int stencil_size);
+
+/*!
+ * Compute finite-difference weights using the points in fd_pts evaluated at the point base_pt. The action of the
+ * operator needs to be supplied to both the radial basis function and the polynomials.
+ */
 template <class Point>
 void
 RBFFDReconstruct(std::vector<double>& wgts,

@@ -326,4 +326,122 @@ bilinearReconstruction(const VectorNd& x_loc,
     return q00 + (q10 - q00) * (x_loc[0] - x_ll[0]) / dx[0] + (q01 - q00) * (x_loc[1] - x_ll[1]) / dx[1] +
            (q11 - q10 - q01 + q00) * (x_loc[1] - x_ll[1]) * (x_loc[0] - x_ll[0]) / (dx[0] * dx[1]);
 }
+
+double
+radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
+                                  const double ls_val,
+                                  const CellIndex<NDIM>& idx,
+                                  const CellData<NDIM, double>& Q_data,
+                                  const NodeData<NDIM, double>& ls_data,
+                                  const Pointer<Patch<NDIM>>& patch,
+                                  const RBFPolyOrder order,
+                                  const unsigned int stencil_size)
+{
+    Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+    const double* const dx = pgeom->getDx();
+    const double* const xlow = pgeom->getXLower();
+
+    const CellIndex<NDIM>& idx_low = patch->getBox().lower();
+
+    for (int d = 0; d < NDIM; ++d) x_loc[d] = xlow[d] + dx[d] * (x_loc[d] - static_cast<double>(idx_low(d)));
+
+    // If we use a linear polynomial, include 6 closest points.
+    // If we use a quadratic polynomial, include 14 closest points.
+    int poly_size = 0;
+    switch (order)
+    {
+    case RBFPolyOrder::LINEAR:
+        poly_size = NDIM + 1;
+        break;
+    case RBFPolyOrder::QUADRATIC:
+        poly_size = 2 * NDIM + 2;
+        break;
+    default:
+        TBOX_ERROR("Unknown polynomial order: " << ADS::enum_to_string(order) << "\n");
+    }
+    // Use flooding to find points
+    std::vector<CellIndex<NDIM>> new_idxs = { idx };
+    std::vector<VectorNd> X_vals;
+    std::vector<double> Q_vals;
+    unsigned int i = 0;
+    while (X_vals.size() < stencil_size)
+    {
+#ifndef NDEBUG
+        TBOX_ASSERT(i < new_idxs.size());
+#endif
+        CellIndex<NDIM> new_idx = new_idxs[i];
+        // Add new idx to list of X_vals
+        if (ADS::node_to_cell(new_idx, ls_data) * ls_val > 0.0)
+        {
+            Q_vals.push_back(Q_data(new_idx));
+            VectorNd x_cent_c;
+            for (int d = 0; d < NDIM; ++d)
+                x_cent_c[d] = xlow[d] + dx[d] * (new_idx(d) - static_cast<double>(idx_low(d)) + 0.5);
+            X_vals.push_back(x_cent_c);
+        }
+        // Add neighboring points to new_idxs
+        IntVector<NDIM> l(-1, 0), r(1, 0), b(0, -1), u(0, 1);
+        CellIndex<NDIM> idx_l(new_idx + l), idx_r(new_idx + r);
+        CellIndex<NDIM> idx_u(new_idx + u), idx_b(new_idx + b);
+        if (ADS::node_to_cell(idx_l, ls_data) * ls_val > 0.0 &&
+            (std::find(new_idxs.begin(), new_idxs.end(), idx_l) == new_idxs.end()))
+            new_idxs.push_back(idx_l);
+        if (ADS::node_to_cell(idx_r, ls_data) * ls_val > 0.0 &&
+            (std::find(new_idxs.begin(), new_idxs.end(), idx_r) == new_idxs.end()))
+            new_idxs.push_back(idx_r);
+        if (ADS::node_to_cell(idx_u, ls_data) * ls_val > 0.0 &&
+            (std::find(new_idxs.begin(), new_idxs.end(), idx_u) == new_idxs.end()))
+            new_idxs.push_back(idx_u);
+        if (ADS::node_to_cell(idx_b, ls_data) * ls_val > 0.0 &&
+            (std::find(new_idxs.begin(), new_idxs.end(), idx_b) == new_idxs.end()))
+            new_idxs.push_back(idx_b);
+        ++i;
+    }
+
+    const int m = Q_vals.size();
+    MatrixXd A(MatrixXd::Zero(m, m));
+    MatrixXd B(MatrixXd::Zero(m, poly_size));
+    VectorXd U(VectorXd::Zero(m + poly_size));
+    for (size_t i = 0; i < Q_vals.size(); ++i)
+    {
+        for (size_t j = 0; j < Q_vals.size(); ++j)
+        {
+            const VectorNd X = X_vals[i] - X_vals[j];
+            A(i, j) = rbf(X.norm());
+        }
+        B(i, 0) = 1.0;
+        for (int d = 0; d < NDIM; ++d) B(i, d + 1) = X_vals[i](d);
+        if (order == RBFPolyOrder::QUADRATIC)
+        {
+            B(i, NDIM + 1) = X_vals[i](0) * X_vals[i](0);
+            B(i, NDIM + 2) = X_vals[i](1) * X_vals[i](1);
+            B(i, NDIM + 3) = X_vals[i](0) * X_vals[i](1);
+        }
+        U(i) = Q_vals[i];
+    }
+
+    MatrixXd final_mat(MatrixXd::Zero(m + poly_size, m + poly_size));
+    final_mat.block(0, 0, m, m) = A;
+    final_mat.block(0, m, m, poly_size) = B;
+    final_mat.block(m, 0, poly_size, m) = B.transpose();
+
+    VectorXd x = final_mat.fullPivHouseholderQr().solve(U);
+    double val = 0.0;
+    VectorXd rbf_coefs = x.block(0, 0, m, 1);
+    VectorXd poly_coefs = x.block(m, 0, poly_size, 1);
+    VectorXd poly_vec = VectorXd::Ones(poly_size);
+    for (int d = 0; d < NDIM; ++d) poly_vec(d + 1) = x_loc(d);
+    if (order == RBFPolyOrder::QUADRATIC)
+    {
+        poly_vec(NDIM + 1) = x_loc(0) * x_loc(0);
+        poly_vec(NDIM + 2) = x_loc(1) * x_loc(1);
+        poly_vec(NDIM + 3) = x_loc(0) * x_loc(1);
+    }
+    for (size_t i = 0; i < X_vals.size(); ++i)
+    {
+        val += rbf_coefs[i] * rbf((X_vals[i] - x_loc).norm());
+    }
+    val += poly_coefs.dot(poly_vec);
+    return val;
+}
 } // namespace Reconstruct

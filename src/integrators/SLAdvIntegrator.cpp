@@ -790,8 +790,11 @@ SLAdvIntegrator::setDefaultReconstructionOperator(Pointer<CellVariable<NDIM, dou
                 std::make_shared<ZSplineReconstructions>(Q_var->getName() + "::DefaultReconstruct", 2);
             break;
         case AdvReconstructType::RBF:
-            d_Q_adv_reconstruct_map[Q_var] = std::make_shared<RBFReconstructions>(
-                Q_var->getName() + "::DefaultReconstruct", d_rbf_poly_order, d_rbf_stencil_size);
+            d_Q_adv_reconstruct_map[Q_var] =
+                std::make_shared<RBFReconstructions>(Q_var->getName() + "::DefaultReconstruct",
+                                                     d_rbf_poly_order,
+                                                     d_rbf_stencil_size,
+                                                     false /*use_cut_cells*/);
             break;
         case AdvReconstructType::LINEAR:
             d_Q_adv_reconstruct_map[Q_var] =

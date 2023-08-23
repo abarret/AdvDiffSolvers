@@ -323,7 +323,7 @@ find_cell_centroid(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat:
 #endif
 
 inline double
-node_to_cell(const SAMRAI::pdat::CellIndex<NDIM>& idx, SAMRAI::pdat::NodeData<NDIM, double>& ls_data)
+node_to_cell(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat::NodeData<NDIM, double>& ls_data)
 {
 #if (NDIM == 2)
     SAMRAI::pdat::NodeIndex<NDIM> idx_ll(idx, SAMRAI::hier::IntVector<NDIM>(0, 0));

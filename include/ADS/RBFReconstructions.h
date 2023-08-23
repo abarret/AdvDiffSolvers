@@ -25,7 +25,10 @@ public:
     /*!
      * \brief Class constructor.
      */
-    RBFReconstructions(std::string object_name, Reconstruct::RBFPolyOrder rbf_poly_order, int stencil_size);
+    RBFReconstructions(std::string object_name,
+                       Reconstruct::RBFPolyOrder rbf_poly_order,
+                       int stencil_size,
+                       bool use_cut_cells = true);
 
     /*!
      * \brief Destructor.
@@ -59,9 +62,22 @@ public:
     void applyReconstruction(int Q_idx, int N_idx, int path_idx) override;
 
 private:
+    /*!
+     * \brief Compute the reconstruction using cut cells and cell centroids. This method assumes ghost cells are present
+     * and filled for Q_idx.
+     */
+    void applyReconstructionCutCell(int Q_idx, int N_idx, int path_idx);
+
+    /*!
+     * \brief Compute the reconstruction using only the level set to determine sides. This method assumes ghost cells
+     * are present and filled for Q_idx.
+     */
+    void applyReconstructionLS(int Q_idx, int N_idx, int path_idx);
+
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
     Reconstruct::RBFPolyOrder d_rbf_order = Reconstruct::RBFPolyOrder::LINEAR;
     unsigned int d_rbf_stencil_size = 5;
+    bool d_use_cut_cells = true;
 
     // Scratch data
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_scr_var;
