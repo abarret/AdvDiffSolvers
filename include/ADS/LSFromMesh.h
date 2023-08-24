@@ -51,17 +51,6 @@ public:
 
     virtual ~LSFromMesh() = default;
 
-    void updateVolumeAreaSideLS(int vol_idx,
-                                SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> vol_var,
-                                int area_idx,
-                                SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> area_var,
-                                int side_idx,
-                                SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> side_var,
-                                int phi_idx,
-                                SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> phi_var,
-                                double data_time,
-                                bool extended_box = false) override;
-
     inline void registerNormalReverseDomainId(unsigned int bdry_id, unsigned int part = 0)
     {
         d_norm_reverse_domain_ids[part].insert(bdry_id);
@@ -95,13 +84,36 @@ public:
     }
 
 private:
-    void commonConstructor();
+    void doUpdateVolumeAreaSideLS(int vol_idx,
+                                  SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> vol_var,
+                                  int area_idx,
+                                  SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> area_var,
+                                  int side_idx,
+                                  SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> side_var,
+                                  int phi_idx,
+                                  SAMRAI::tbox::Pointer<SAMRAI::hier::Variable<NDIM>> phi_var,
+                                  double data_time,
+                                  bool extended_box = false) override;
 
-    void updateLSAwayFromInterface(int phi_idx);
-    // This does a flood filling algorithm for d_sgn_idx.
-    // We assume that any value less than eps on the given level is correctly set.
-    // NOTE: eps must be positive.
-    void floodFillForLS(int ln, double eps);
+    void doUpdateVolumeAreaSideLSNode(int vol_idx,
+                                      SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> vol_var,
+                                      int area_idx,
+                                      SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> area_var,
+                                      int side_idx,
+                                      SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> side_var,
+                                      int phi_idx,
+                                      SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> phi_var,
+                                      double data_time,
+                                      bool extended_box = false);
+
+    void doUpdateLSCell(int phi_idx,
+                        SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> phi_var,
+                        double data_time,
+                        bool extended_box = false);
+
+    void updateLSAwayFromInterfaceNode(int phi_idx);
+
+    void updateLSAwayFromInterfaceCell(int phi_idx);
 
     bool d_use_inside = true;
 
@@ -112,8 +124,11 @@ private:
 
     BdryFcn d_bdry_fcn;
 
-    SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_sgn_var;
-    int d_sgn_idx = IBTK::invalid_index;
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> d_sgn_nc_var;
+    int d_sgn_nc_idx = IBTK::invalid_index;
+
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_sgn_cc_var;
+    int d_sgn_cc_idx = IBTK::invalid_index;
 };
 } // namespace ADS
 

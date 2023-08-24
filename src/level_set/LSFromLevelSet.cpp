@@ -24,16 +24,16 @@ LSFromLevelSet::registerLSFcn(Pointer<CartGridFunction> ls_fcn)
 }
 
 void
-LSFromLevelSet::updateVolumeAreaSideLS(int vol_idx,
-                                       Pointer<CellVariable<NDIM, double>> /*vol_var*/,
-                                       int area_idx,
-                                       Pointer<CellVariable<NDIM, double>> /*area_var*/,
-                                       int side_idx,
-                                       Pointer<SideVariable<NDIM, double>> /*side_var*/,
-                                       int phi_idx,
-                                       Pointer<NodeVariable<NDIM, double>> phi_var,
-                                       double data_time,
-                                       bool extended_box)
+LSFromLevelSet::doUpdateVolumeAreaSideLS(int vol_idx,
+                                         Pointer<CellVariable<NDIM, double>> /*vol_var*/,
+                                         int area_idx,
+                                         Pointer<CellVariable<NDIM, double>> /*area_var*/,
+                                         int side_idx,
+                                         Pointer<SideVariable<NDIM, double>> /*side_var*/,
+                                         int phi_idx,
+                                         Pointer<Variable<NDIM>> phi_var,
+                                         double data_time,
+                                         bool extended_box)
 {
     int coarsest_ln = 0, finest_ln = d_hierarchy->getFinestLevelNumber();
 
@@ -69,6 +69,13 @@ LSFromLevelSet::updateVolumeAreaSideLS(int vol_idx,
             if (vol_idx != IBTK::invalid_index) vol_data = patch->getPatchData(vol_idx);
             Pointer<SideData<NDIM, double>> side_data;
             if (side_idx != IBTK::invalid_index) side_data = patch->getPatchData(side_idx);
+
+            // Skip this code if we aren't computing area, volume, or cell side lengths
+            if (area_idx == IBTK::invalid_index && vol_idx == IBTK::invalid_index && side_idx == IBTK::invalid_index)
+                continue;
+
+            // This code only works if phi is node centered
+            TBOX_ASSERT(phi_data);
 
             const Box<NDIM>& box = extended_box ? phi_data->getGhostBox() : patch->getBox();
             const hier::Index<NDIM>& patch_lower = box.lower();
