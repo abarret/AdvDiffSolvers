@@ -133,6 +133,7 @@ RBFReconstructions::applyReconstructionCutCell(const int Q_idx, const int N_idx,
 void
 RBFReconstructions::applyReconstructionLS(const int Q_idx, const int N_idx, const int path_idx)
 {
+    pout << "Reconstructing using level set only.\n";
     int coarsest_ln = 0;
     int finest_ln = d_hierarchy->getFinestLevelNumber();
 #ifndef NDEBUG
@@ -160,16 +161,16 @@ RBFReconstructions::applyReconstructionLS(const int Q_idx, const int N_idx, cons
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
-                if (ADS::node_to_cell(idx, *ls_data) < 0.0)
+                if (ADS::node_to_cell(idx, *ls_new_data) < 0.0)
                 {
                     IBTK::VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d) x_loc(d) = (*xstar_data)(idx, d);
                     (*Q_new_data)(idx) =
                         Reconstruct::radialBasisFunctionReconstruction(x_loc,
-                                                                       ADS::node_to_cell(idx, *ls_data),
+                                                                       ADS::node_to_cell(idx, *ls_new_data),
                                                                        idx,
                                                                        *Q_cur_data,
-                                                                       *ls_new_data,
+                                                                       *ls_data,
                                                                        patch,
                                                                        d_rbf_order,
                                                                        d_rbf_stencil_size);
