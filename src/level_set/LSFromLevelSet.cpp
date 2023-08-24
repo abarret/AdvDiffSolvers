@@ -74,7 +74,8 @@ LSFromLevelSet::doUpdateVolumeAreaSideLS(int vol_idx,
             if (area_idx == IBTK::invalid_index && vol_idx == IBTK::invalid_index && side_idx == IBTK::invalid_index)
                 continue;
 
-            // This code only works if phi is node centered
+            // This code only works if phi is node centered. Since we are evaluating a prescribed level set function, we
+            // should be able to create a scratch node centered level set for volume, area, and side computations.
             TBOX_ASSERT(phi_data);
 
             const Box<NDIM>& box = extended_box ? phi_data->getGhostBox() : patch->getBox();
