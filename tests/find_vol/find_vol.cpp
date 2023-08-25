@@ -192,6 +192,8 @@ main(int argc, char* argv[])
         Pointer<CellVariable<NDIM, double>> vol_var = new CellVariable<NDIM, double>("VOL");
         Pointer<CellVariable<NDIM, double>> area_var = new CellVariable<NDIM, double>("AREA");
         Pointer<SideVariable<NDIM, double>> side_var = new SideVariable<NDIM, double>("SIDE");
+        Pointer<CellVariable<NDIM, double>> ls_cc_var = new CellVariable<NDIM, double>("ls_cc_var");
+        Pointer<CellVariable<NDIM, double>> ls_cc_interp_var = new CellVariable<NDIM, double>("ls_cc_interp_var");
 
         auto var_db = VariableDatabase<NDIM>::getDatabase();
         Pointer<VariableContext> ctx = var_db->getContext("CTX");
@@ -199,6 +201,8 @@ main(int argc, char* argv[])
         const int vol_idx = var_db->registerVariableAndContext(vol_var, ctx, IntVector<NDIM>(2));
         const int area_idx = var_db->registerVariableAndContext(area_var, ctx, IntVector<NDIM>(2));
         const int side_idx = var_db->registerVariableAndContext(side_var, ctx, IntVector<NDIM>(2));
+        const int ls_cc_idx = var_db->registerVariableAndContext(ls_cc_var, ctx, IntVector<NDIM>(2));
+        const int ls_cc_interp_idx = var_db->registerVariableAndContext(ls_cc_interp_var, ctx, IntVector<NDIM>(1));
 
         gridding_algorithm->makeCoarsestLevel(patch_hierarchy, 0.0);
         int tag_buffer = 1;
@@ -220,11 +224,13 @@ main(int argc, char* argv[])
 // Uncomment to draw data.
 //#define DRAW_DATA 1
 #ifdef DRAW_DATA
-        libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(new ExodusII_IO(*meshes[REACTION_MESH_ID]));
+        std::unique_ptr<ExodusII_IO> reaction_exodus_io(new ExodusII_IO(*meshes[REACTION_MESH_ID]));
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
         visit_data_writer->registerPlotQuantity("ls", "SCALAR", ls_idx);
         visit_data_writer->registerPlotQuantity("vol", "SCALAR", vol_idx);
         visit_data_writer->registerPlotQuantity("area", "SCALAR", area_idx);
+        visit_data_writer->registerPlotQuantity("ls_cc", "SCALAR", ls_cc_idx);
+        visit_data_writer->registerPlotQuantity("ls_cc_interp", "SCALAR", ls_cc_interp_idx);
 #endif
 
         // Allocate data
@@ -235,6 +241,8 @@ main(int argc, char* argv[])
             level->allocatePatchData(vol_idx);
             level->allocatePatchData(area_idx);
             level->allocatePatchData(side_idx);
+            level->allocatePatchData(ls_cc_idx);
+            level->allocatePatchData(ls_cc_interp_idx);
         }
 
         Pointer<CutCellMeshMapping> cut_cell_mesh_mapping = new CutCellVolumeMeshMapping(
@@ -275,14 +283,26 @@ main(int argc, char* argv[])
         approx_vol = hier_cc_data_ops.L1Norm(vol_idx) * (dx * dx);
         approx_area = hier_cc_data_ops.L1Norm(area_idx);
 
-#ifdef DRAW_DATA
-        visit_data_writer->writePlotData(patch_hierarchy, 1, 0.0);
-#endif
-
         plog << "  Approx vol:  " << approx_vol << "\n";
         plog << "  Exact vol:   " << exact_vol << "\n";
         plog << "  Approx area: " << approx_area << "\n";
         plog << "  Exact area:  " << exact_area << "\n";
+
+        // Compute cell centered level set.
+        plog << "\nComputing difference between cell and node centered variable:\n";
+        mesh_vol_fcn->updateVolumeAreaSideLS(
+            vol_idx, vol_var, area_idx, area_var, side_idx, side_var, ls_cc_idx, ls_cc_var, 0.0);
+        HierarchyMathOps hier_math_ops("hier_math_ops", patch_hierarchy);
+        hier_math_ops.interp(ls_cc_interp_idx, ls_cc_interp_var, ls_idx, ls_var, nullptr, 0.0, false);
+        hier_cc_data_ops.subtract(ls_cc_interp_idx, ls_cc_interp_idx, ls_cc_idx);
+        plog << " Average difference: "
+             << hier_cc_data_ops.L1Norm(ls_cc_interp_idx, hier_math_ops.getCellWeightPatchDescriptorIndex()) /
+                    hier_math_ops.getVolumeOfPhysicalDomain()
+             << "\n";
+
+#ifdef DRAW_DATA
+        visit_data_writer->writePlotData(patch_hierarchy, 1, 0.0);
+#endif
 
     } // cleanup dynamically allocated objects prior to shutdown
     return 0;

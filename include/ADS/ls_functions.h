@@ -47,7 +47,7 @@ IBTK::VectorNd find_cell_centroid(const SAMRAI::pdat::CellIndex<NDIM>& idx,
                                   const SAMRAI::pdat::NodeData<NDIM, double>& ls_data);
 #endif
 
-double node_to_cell(const SAMRAI::pdat::CellIndex<NDIM>& idx, SAMRAI::pdat::NodeData<NDIM, double>& ls_data);
+double node_to_cell(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat::NodeData<NDIM, double>& ls_data);
 
 void copy_face_to_side(const int u_s_idx,
                        const int u_f_idx,
@@ -91,6 +91,32 @@ double findVolume(const std::vector<Simplex>& simplices);
  * Find the surface area of a vector of simplices (tri in 2D, tet in 3D)
  */
 double findArea(const std::vector<Simplex>& simplices);
+
+/*!
+ * Use a flood filling algorithm to compute the correct sign for the node centered level set on the provided patch
+ * level. We assume that the sign of any values that are exactly equal to eps might need adjusting.
+ *
+ * This function requires that sgn_idx have at least one layer of ghost cells.
+ *
+ * Note: This function remains untested for levels that are not simply connected.
+ */
+void flood_fill_for_LS(int sgn_idx,
+                       SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> sgn_var,
+                       double eps,
+                       SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> level);
+
+/*!
+ * Use a flood filling algorithm to compute the correct sign for the cell centered level set on the provided patch
+ * level. We assume that the sign of any values that are exactly equal to eps might need adjusting.
+ *
+ * This function requires that sgn_idx have at least one layer of ghost cells.
+ *
+ * Note: This function remains untested for levels that are not simply connected.
+ */
+void flood_fill_for_LS(int sgn_idx,
+                       SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> sgn_var,
+                       double eps,
+                       SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> level);
 } // namespace ADS
 
 #include <ADS/private/ls_functions_inc.h>

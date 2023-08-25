@@ -3,6 +3,14 @@
 #include "ADS/app_namespaces.h"
 #include "ADS/ls_functions.h"
 
+#include <ibtk/IBTK_MPI.h>
+
+#include <RefineAlgorithm.h>
+#include <RefineOperator.h>
+#include <RefineSchedule.h>
+
+#include <queue>
+
 namespace ADS
 {
 double
@@ -462,5 +470,209 @@ findArea(const std::vector<Simplex>& simplices)
 #endif
     }
     return area;
+}
+
+void
+flood_fill_for_LS(const int sgn_idx,
+                  Pointer<NodeVariable<NDIM, double>> /*sgn_var*/,
+                  const double eps,
+                  Pointer<PatchLevel<NDIM>> level)
+{
+    TBOX_ASSERT(eps > 0.0);
+    RefineAlgorithm<NDIM> ghost_fill_alg;
+    ghost_fill_alg.registerRefine(sgn_idx, sgn_idx, sgn_idx, nullptr);
+    Pointer<RefineSchedule<NDIM>> ghost_fill_sched = ghost_fill_alg.createSchedule(level);
+    // Do a flood fill algorithm
+    std::vector<int> patch_filled_vec(level->getNumberOfPatches());
+    unsigned int patch_num = 0;
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
+    {
+        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+        const Box<NDIM>& box = patch->getBox();
+        Box<NDIM> n_box(box);
+        n_box.growUpper(1);
+        Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(sgn_idx);
+        NodeData<NDIM, int> idx_touched(box, 1, phi_data->getGhostCellWidth());
+        idx_touched.fillAll(0);
+        std::queue<NodeIndex<NDIM>> idx_queue;
+        bool found_pt = false;
+        for (NodeIterator<NDIM> ni(box); ni; ni++)
+        {
+            const NodeIndex<NDIM>& idx = ni();
+            if ((*phi_data)(idx) <= 0.0)
+            {
+                idx_queue.push(idx);
+                found_pt = true;
+            }
+        }
+        patch_filled_vec[patch_num] = found_pt ? 1 : 0;
+        // We have our starting point. Now, loop through queue
+        while (idx_queue.size() > 0)
+        {
+            const NodeIndex<NDIM>& idx = idx_queue.front();
+            // If this point is uninitialized, it is interior
+            if (idx_touched(idx) == 0 && ((*phi_data)(idx) == eps || (*phi_data)(idx) <= 0.0))
+            {
+                // Insert the point into touched list
+                idx_touched(idx) = 1;
+                if ((*phi_data)(idx) == eps) (*phi_data)(idx) = -eps;
+                // Add neighboring points if they haven't been touched yet
+                NodeIndex<NDIM> idx_s = idx + IntVector<NDIM>(0, -1);
+                NodeIndex<NDIM> idx_n = idx + IntVector<NDIM>(0, 1);
+                NodeIndex<NDIM> idx_e = idx + IntVector<NDIM>(1, 0);
+                NodeIndex<NDIM> idx_w = idx + IntVector<NDIM>(-1, 0);
+                if (n_box.contains(idx_s) && ((*phi_data)(idx_s) == eps || (*phi_data)(idx_s) < 0.0) &&
+                    idx_touched(idx_s) == 0)
+                    idx_queue.push(idx_s);
+                if (n_box.contains(idx_n) && ((*phi_data)(idx_n) == eps || (*phi_data)(idx_n) < 0.0) &&
+                    idx_touched(idx_n) == 0)
+                    idx_queue.push(idx_n);
+                if (n_box.contains(idx_e) && ((*phi_data)(idx_e) == eps || (*phi_data)(idx_e) < 0.0) &&
+                    idx_touched(idx_e) == 0)
+                    idx_queue.push(idx_e);
+                if (n_box.contains(idx_w) && ((*phi_data)(idx_w) == eps || (*phi_data)(idx_w) < 0.0) &&
+                    idx_touched(idx_w) == 0)
+                    idx_queue.push(idx_w);
+            }
+            idx_queue.pop();
+        }
+    }
+
+    // At this point if there's any box that hasn't been filled, then it's either entirely inside or outside.
+    // We'll fill ghost cells, then check the ghost boxes. If there is any negative in the ghost box, then the entire
+    // patch is inside
+    int num_negative_found = 1;
+    while (num_negative_found > 0)
+    {
+        num_negative_found = 0;
+        ghost_fill_sched->fillData(0.0);
+        patch_num = 0;
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
+        {
+            bool found_negative = false;
+            if (patch_filled_vec[patch_num] == 1) continue;
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            // Loop through ghost cells
+            Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(sgn_idx);
+            for (NodeIterator<NDIM> ni(phi_data->getGhostBox()); ni; ni++)
+            {
+                const NodeIndex<NDIM>& idx = ni();
+                if (patch->getBox().contains(idx)) continue;
+                if ((*phi_data)(idx) == -eps)
+                {
+                    found_negative = true;
+                    break;
+                }
+            }
+            if (found_negative)
+            {
+                phi_data->fillAll(-eps, phi_data->getGhostBox());
+                num_negative_found++;
+                patch_filled_vec[patch_num] = 1;
+            }
+        }
+        num_negative_found = IBTK_MPI::sumReduction(num_negative_found);
+    }
+}
+
+void
+flood_fill_for_LS(const int sgn_idx,
+                  Pointer<CellVariable<NDIM, double>> /*sgn_var*/,
+                  const double eps,
+                  Pointer<PatchLevel<NDIM>> level)
+{
+    TBOX_ASSERT(eps > 0.0);
+    RefineAlgorithm<NDIM> ghost_fill_alg;
+    ghost_fill_alg.registerRefine(sgn_idx, sgn_idx, sgn_idx, nullptr);
+    Pointer<RefineSchedule<NDIM>> ghost_fill_sched = ghost_fill_alg.createSchedule(level);
+    // Do a flood fill algorithm
+    std::vector<int> patch_filled_vec(level->getNumberOfPatches());
+    unsigned int patch_num = 0;
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
+    {
+        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+        const Box<NDIM>& box = patch->getBox();
+        Pointer<CellData<NDIM, double>> phi_data = patch->getPatchData(sgn_idx);
+        CellData<NDIM, int> idx_touched(box, 1, phi_data->getGhostCellWidth());
+        idx_touched.fillAll(0);
+        std::queue<CellIndex<NDIM>> idx_queue;
+        bool found_pt = false;
+        for (CellIterator<NDIM> ni(box); ni; ni++)
+        {
+            const CellIndex<NDIM>& idx = ni();
+            if ((*phi_data)(idx) <= 0.0)
+            {
+                idx_queue.push(idx);
+                found_pt = true;
+            }
+        }
+        patch_filled_vec[patch_num] = found_pt ? 1 : 0;
+        // We have our starting point. Now, loop through queue
+        while (idx_queue.size() > 0)
+        {
+            const CellIndex<NDIM>& idx = idx_queue.front();
+            // If this point is uninitialized, it is interior
+            if (idx_touched(idx) == 0 && ((*phi_data)(idx) == eps || (*phi_data)(idx) <= 0.0))
+            {
+                // Insert the point into touched list
+                idx_touched(idx) = 1;
+                if ((*phi_data)(idx) == eps) (*phi_data)(idx) = -eps;
+                // Add neighboring points if they haven't been touched yet
+                CellIndex<NDIM> idx_s = idx + IntVector<NDIM>(0, -1);
+                CellIndex<NDIM> idx_n = idx + IntVector<NDIM>(0, 1);
+                CellIndex<NDIM> idx_e = idx + IntVector<NDIM>(1, 0);
+                CellIndex<NDIM> idx_w = idx + IntVector<NDIM>(-1, 0);
+                if (box.contains(idx_s) && ((*phi_data)(idx_s) == eps || (*phi_data)(idx_s) < 0.0) &&
+                    idx_touched(idx_s) == 0)
+                    idx_queue.push(idx_s);
+                if (box.contains(idx_n) && ((*phi_data)(idx_n) == eps || (*phi_data)(idx_n) < 0.0) &&
+                    idx_touched(idx_n) == 0)
+                    idx_queue.push(idx_n);
+                if (box.contains(idx_e) && ((*phi_data)(idx_e) == eps || (*phi_data)(idx_e) < 0.0) &&
+                    idx_touched(idx_e) == 0)
+                    idx_queue.push(idx_e);
+                if (box.contains(idx_w) && ((*phi_data)(idx_w) == eps || (*phi_data)(idx_w) < 0.0) &&
+                    idx_touched(idx_w) == 0)
+                    idx_queue.push(idx_w);
+            }
+            idx_queue.pop();
+        }
+    }
+
+    // At this point if there's any box that hasn't been filled, then it's either entirely inside or outside.
+    // We'll fill ghost cells, then check the ghost boxes. If there is any negative in the ghost box, then the entire
+    // patch is inside
+    int num_negative_found = 1;
+    while (num_negative_found > 0)
+    {
+        num_negative_found = 0;
+        ghost_fill_sched->fillData(0.0);
+        patch_num = 0;
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
+        {
+            bool found_negative = false;
+            if (patch_filled_vec[patch_num] == 1) continue;
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+            // Loop through ghost cells
+            Pointer<CellData<NDIM, double>> phi_data = patch->getPatchData(sgn_idx);
+            for (CellIterator<NDIM> ni(phi_data->getGhostBox()); ni; ni++)
+            {
+                const CellIndex<NDIM>& idx = ni();
+                if (patch->getBox().contains(idx)) continue;
+                if ((*phi_data)(idx) == -eps)
+                {
+                    found_negative = true;
+                    break;
+                }
+            }
+            if (found_negative)
+            {
+                phi_data->fillAll(-eps, phi_data->getGhostBox());
+                num_negative_found++;
+                patch_filled_vec[patch_num] = 1;
+            }
+        }
+        num_negative_found = IBTK_MPI::sumReduction(num_negative_found);
+    }
 }
 } // namespace ADS

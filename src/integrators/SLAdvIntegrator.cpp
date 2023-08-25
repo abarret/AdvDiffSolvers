@@ -428,57 +428,12 @@ SLAdvIntegrator::preprocessIntegrateHierarchy(const double current_time, const d
 void
 SLAdvIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
 {
-    AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
+    if (cycle_num != 100) AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
     ADS_TIMER_START(t_integrate_hierarchy);
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
 
-    // We only do something if this is the last cycle
-    if (cycle_num == getNumberOfCycles() - 1)
-    {
-        // We need to set velocity at final time...
-        for (const auto& u_var : d_u_var)
-        {
-            const int u_new_idx = var_db->mapVariableAndContextToIndex(u_var, getNewContext());
-            if (d_u_fcn.at(u_var))
-            {
-                d_u_fcn.at(u_var)->setDataOnPatchHierarchy(
-                    u_new_idx, u_var, d_hierarchy, new_time, false, 0, d_hierarchy->getFinestLevelNumber());
-            }
-        }
-        // Update Level sets
-        for (size_t l = 0; l < d_ls_vars.size(); ++l)
-        {
-            const Pointer<NodeVariable<NDIM, double>>& ls_var = d_ls_vars[l];
-            const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
-
-            const int ls_new_idx = var_db->mapVariableAndContextToIndex(ls_var, getNewContext());
-            const int vol_new_idx = var_db->mapVariableAndContextToIndex(vol_var, getNewContext());
-
-            const Pointer<LSFindCellVolume>& ls_fcn = d_ls_vol_fcn_map[ls_var];
-            // Update boundary mesh if necessary.
-            if (d_mesh_mapping) d_mesh_mapping->updateBoundaryLocation(new_time, true);
-            ls_fcn->updateVolumeAreaSideLS(vol_new_idx,
-                                           vol_var,
-                                           IBTK::invalid_index,
-                                           nullptr,
-                                           IBTK::invalid_index,
-                                           nullptr,
-                                           ls_new_idx,
-                                           ls_var,
-                                           new_time,
-                                           true);
-        }
-
-        // Now do advective update for each variable
-        for (const auto& Q_var : d_Q_var)
-        {
-            // Now update advection.
-            advectionUpdate(Q_var, current_time, new_time);
-
-            plog << d_object_name + "::integrateHierarchy() finished advection update for variable: "
-                 << Q_var->getName() << "\n";
-        }
-    }
+    // Intentionally blank. Semi-Lagrangian methods require everything at the END of the timestep.
+    // TODO: We need to be more careful about this. In particular, we should double check that "current" and "new" data
+    // is still present at the end of posprocessIntegrateHierarchy().
 
     executeIntegrateHierarchyCallbackFcns(current_time, new_time, cycle_num);
     ADS_TIMER_STOP(t_integrate_hierarchy);
@@ -491,6 +446,51 @@ SLAdvIntegrator::postprocessIntegrateHierarchy(const double current_time,
                                                const int num_cycles)
 {
     ADS_TIMER_START(t_postprocess);
+    // We need to set velocity at final time...
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    for (const auto& u_var : d_u_var)
+    {
+        const int u_new_idx = var_db->mapVariableAndContextToIndex(u_var, getNewContext());
+        if (d_u_fcn.at(u_var))
+        {
+            d_u_fcn.at(u_var)->setDataOnPatchHierarchy(
+                u_new_idx, u_var, d_hierarchy, new_time, false, 0, d_hierarchy->getFinestLevelNumber());
+        }
+    }
+    // Update Level sets
+    for (size_t l = 0; l < d_ls_vars.size(); ++l)
+    {
+        const Pointer<NodeVariable<NDIM, double>>& ls_var = d_ls_vars[l];
+        const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
+
+        const int ls_new_idx = var_db->mapVariableAndContextToIndex(ls_var, getNewContext());
+        const int vol_new_idx = var_db->mapVariableAndContextToIndex(vol_var, getNewContext());
+
+        const Pointer<LSFindCellVolume>& ls_fcn = d_ls_vol_fcn_map[ls_var];
+        // Update boundary mesh if necessary.
+        if (d_mesh_mapping) d_mesh_mapping->updateBoundaryLocation(new_time, true);
+        ls_fcn->updateVolumeAreaSideLS(vol_new_idx,
+                                       vol_var,
+                                       IBTK::invalid_index,
+                                       nullptr,
+                                       IBTK::invalid_index,
+                                       nullptr,
+                                       ls_new_idx,
+                                       ls_var,
+                                       new_time,
+                                       true);
+    }
+
+    // Now do advective update for each variable
+    for (const auto& Q_var : d_Q_var)
+    {
+        // Now update advection.
+        advectionUpdate(Q_var, current_time, new_time);
+
+        plog << d_object_name + "::integrateHierarchy() finished advection update for variable: " << Q_var->getName()
+             << "\n";
+    }
+
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
         d_hierarchy->getPatchLevel(ln)->deallocatePatchData(d_adv_data);
 
@@ -790,8 +790,11 @@ SLAdvIntegrator::setDefaultReconstructionOperator(Pointer<CellVariable<NDIM, dou
                 std::make_shared<ZSplineReconstructions>(Q_var->getName() + "::DefaultReconstruct", 2);
             break;
         case AdvReconstructType::RBF:
-            d_Q_adv_reconstruct_map[Q_var] = std::make_shared<RBFReconstructions>(
-                Q_var->getName() + "::DefaultReconstruct", d_rbf_poly_order, d_rbf_stencil_size);
+            d_Q_adv_reconstruct_map[Q_var] =
+                std::make_shared<RBFReconstructions>(Q_var->getName() + "::DefaultReconstruct",
+                                                     d_rbf_poly_order,
+                                                     d_rbf_stencil_size,
+                                                     false /*use_cut_cells*/);
             break;
         case AdvReconstructType::LINEAR:
             d_Q_adv_reconstruct_map[Q_var] =

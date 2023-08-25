@@ -27,18 +27,18 @@ public:
 
     void registerLSFcn(SAMRAI::tbox::Pointer<IBTK::CartGridFunction> ls_fcn);
 
-    void updateVolumeAreaSideLS(int vol_idx,
-                                SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> vol_var,
-                                int area_idx,
-                                SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> area_var,
-                                int side_idx,
-                                SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> side_var,
-                                int phi_idx,
-                                SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> phi_var,
-                                double data_time,
-                                bool extended_box = false) override;
-
 private:
+    void doUpdateVolumeAreaSideLS(int vol_idx,
+                                  SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> vol_var,
+                                  int area_idx,
+                                  SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> area_var,
+                                  int side_idx,
+                                  SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> side_var,
+                                  int phi_idx,
+                                  SAMRAI::tbox::Pointer<SAMRAI::hier::Variable<NDIM>> phi_var,
+                                  double data_time,
+                                  bool extended_box = false) override;
+
     SAMRAI::tbox::Pointer<IBTK::CartGridFunction> d_ls_fcn;
 };
 } // namespace ADS
