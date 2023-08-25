@@ -133,7 +133,6 @@ RBFReconstructions::applyReconstructionCutCell(const int Q_idx, const int N_idx,
 void
 RBFReconstructions::applyReconstructionLS(const int Q_idx, const int N_idx, const int path_idx)
 {
-    pout << "Reconstructing using level set only.\n";
     int coarsest_ln = 0;
     int finest_ln = d_hierarchy->getFinestLevelNumber();
 #ifndef NDEBUG
