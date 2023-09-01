@@ -55,7 +55,7 @@ RBFReconstructCache::cacheData()
                 const CellIndex<NDIM>& idx = ci();
                 auto test_fcn = [&](const CellIndex<NDIM>& idx) -> bool
                 {
-                    if (d_use_centroids && (*vol_data)(idx) > 0.0)
+                    if (!d_use_ls_for_stencil && (*vol_data)(idx) > 0.0)
                         return true;
                     else if (!d_use_centroids && ADS::node_to_cell(idx, *ls_data) < 0.0)
                         return true;
