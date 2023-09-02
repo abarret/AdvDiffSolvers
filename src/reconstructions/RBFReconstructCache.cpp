@@ -53,6 +53,15 @@ RBFReconstructCache::cacheData()
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
+                auto test_fcn = [&](const CellIndex<NDIM>& idx) -> bool
+                {
+                    if (!d_use_ls_for_stencil && (*vol_data)(idx) > 0.0)
+                        return true;
+                    else if (!d_use_centroids && ADS::node_to_cell(idx, *ls_data) < 0.0)
+                        return true;
+                    else
+                        return false;
+                };
                 if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
                 {
                     // Use flooding to find group of cells to use for interpolation.
@@ -67,28 +76,27 @@ RBFReconstructCache::cacheData()
 #endif
                         CellIndex<NDIM> new_idx = new_idxs[i];
                         // Add new_idx to idx_map
-                        idx_map[p_idx].push_back(new_idx);
-                        VectorNd x_cent;
-                        if (d_use_centroids)
-                            x_cent = find_cell_centroid(new_idx, *ls_data);
-                        else
-                            for (int d = 0; d < NDIM; ++d) x_cent[d] = static_cast<double>(new_idx(d)) + 0.5;
-                        X_vals.push_back(x_cent);
+                        if (test_fcn(new_idx))
+                        {
+                            idx_map[p_idx].push_back(new_idx);
+                            VectorNd x_cent;
+                            if (d_use_centroids)
+                                x_cent = find_cell_centroid(new_idx, *ls_data);
+                            else
+                                for (int d = 0; d < NDIM; ++d) x_cent[d] = static_cast<double>(new_idx(d)) + 0.5;
+                            X_vals.push_back(x_cent);
+                        }
                         // Add Neighboring points to new_idxs
                         IntVector<NDIM> l(-1, 0), r(1, 0), b(0, -1), u(0, 1);
                         CellIndex<NDIM> idx_l(new_idx + l), idx_r(new_idx + r);
                         CellIndex<NDIM> idx_u(new_idx + u), idx_b(new_idx + b);
-                        if ((*vol_data)(idx_l) > 0.0 &&
-                            (std::find(new_idxs.begin(), new_idxs.end(), idx_l) == new_idxs.end()))
+                        if (test_fcn(idx_l) && (std::find(new_idxs.begin(), new_idxs.end(), idx_l) == new_idxs.end()))
                             new_idxs.push_back(idx_l);
-                        if ((*vol_data)(idx_r) > 0.0 &&
-                            (std::find(new_idxs.begin(), new_idxs.end(), idx_r) == new_idxs.end()))
+                        if (test_fcn(idx_r) && (std::find(new_idxs.begin(), new_idxs.end(), idx_r) == new_idxs.end()))
                             new_idxs.push_back(idx_r);
-                        if ((*vol_data)(idx_u) > 0.0 &&
-                            (std::find(new_idxs.begin(), new_idxs.end(), idx_u) == new_idxs.end()))
+                        if (test_fcn(idx_u) && (std::find(new_idxs.begin(), new_idxs.end(), idx_u) == new_idxs.end()))
                             new_idxs.push_back(idx_u);
-                        if ((*vol_data)(idx_b) > 0.0 &&
-                            (std::find(new_idxs.begin(), new_idxs.end(), idx_b) == new_idxs.end()))
+                        if (test_fcn(idx_b) && (std::find(new_idxs.begin(), new_idxs.end(), idx_b) == new_idxs.end()))
                             new_idxs.push_back(idx_b);
                         ++i;
                     }

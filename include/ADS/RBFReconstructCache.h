@@ -55,8 +55,20 @@ public:
                               const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
                               SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch) override;
 
+    /*!
+     * If use_ls_for_stencil = true, then the cache uses level set values to determine valid indices for interpolation.
+     * Otherwise, it will use cell volumes.
+     *
+     * This parameter is ignored if use_centroids = true.
+     */
+    inline void setUseLSForStencil(bool use_ls_for_stencil)
+    {
+        d_use_ls_for_stencil = use_ls_for_stencil;
+    }
+
 private:
     std::vector<std::map<IndexList, std::vector<SAMRAI::hier::Index<NDIM>>>> d_reconstruct_idxs_map_vec;
+    bool d_use_ls_for_stencil = false;
 };
 } // namespace ADS
 #endif
