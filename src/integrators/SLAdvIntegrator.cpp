@@ -422,6 +422,8 @@ SLAdvIntegrator::preprocessIntegrateHierarchy(const double current_time, const d
         d_Q_adv_reconstruct_map[Q_var]->setBoundaryConditions(d_Q_bc_coef[Q_var][0]);
         d_Q_adv_reconstruct_map[Q_var]->allocateOperatorState(d_hierarchy, current_time, new_time);
     }
+
+    executePreprocessIntegrateHierarchyCallbackFcns(current_time, new_time, num_cycles);
     ADS_TIMER_STOP(t_preprocess);
 }
 
@@ -493,6 +495,9 @@ SLAdvIntegrator::postprocessIntegrateHierarchy(const double current_time,
 
     for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
         d_hierarchy->getPatchLevel(ln)->deallocatePatchData(d_adv_data);
+
+    executePostprocessIntegrateHierarchyCallbackFcns(
+        current_time, new_time, skip_synchronize_new_state_data, num_cycles);
 
     AdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(
         current_time, new_time, skip_synchronize_new_state_data, num_cycles);
