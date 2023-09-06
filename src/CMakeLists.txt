@@ -64,6 +64,7 @@ SET(CXX_SRC
     surfaces/VolumeBoundaryMeshMapping.cpp
 
     utilities/IntegrateFunction.cpp
+    utilities/PointwiseFunction.cpp
     utilities/solver_utilities.cpp
     )
 
