@@ -18,7 +18,7 @@ ADD_CUSTOM_TARGET(tests)
 #    only compiles the IBFE tests.
 # 2. all input and output files in these source directories are symlinked into
 #    their corresponding build directories.
-SET(TEST_DIRECTORIES examples operators find_vol rbffd reconstructions)
+SET(TEST_DIRECTORIES examples operators find_vol rbffd reconstructions utilities)
 
 FOREACH(_dir ${TEST_DIRECTORIES})
   ADD_CUSTOM_TARGET("tests-${_dir}")
@@ -113,6 +113,10 @@ SETUP_3D(rbffd point_list.cpp)
 SETUP_2D(reconstructions fd_weights.cpp)
 
 SETUP_3D(reconstructions fd_weights.cpp)
+
+SETUP_2D(utilities pointwise_function.cpp)
+
+SETUP_3D(utilities pointwise_function.cpp)
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
