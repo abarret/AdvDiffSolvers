@@ -134,10 +134,10 @@ main(int argc, char* argv[])
         muParserCartGridFunction mu_other_fcn(
             "other", app_initializer->getComponentDatabase("OtherFcn"), grid_geometry);
 
-        std::function<double(double, const VectorNd&, double)> scalar_fcn =
-            [](const double /*Q*/, const VectorNd& x, const double t) -> double { return x(0) + x(1) + t; };
+        PointwiseFunctions::ScalarFcn scalar_fcn = [](const double /*Q*/, const VectorNd& x, const double t) -> double
+        { return x(0) + x(1) + t; };
 
-        std::function<VectorNd(const VectorNd&, const VectorNd&, double)> vector_fcn =
+        PointwiseFunctions::VectorFcn vector_fcn =
             [](const VectorNd& /*Q*/, const VectorNd& x, const double t) -> VectorNd
         {
             VectorNd ret;
@@ -145,15 +145,14 @@ main(int argc, char* argv[])
             return ret;
         };
 
-        std::function<VectorXd(const VectorXd&, const VectorNd&, double)> other_fcn =
-            [](const VectorXd& Q, const VectorNd& x, const double t) -> VectorXd
+        PointwiseFunctions::GeneralFcn other_fcn = [](const VectorXd& Q, const VectorNd& x, const double t) -> VectorXd
         {
             VectorXd ret = Q;
             for (int d = 0; d < ret.rows(); ++d) ret[d] = x(0) + x(1) + t;
             return ret;
         };
 
-        std::function<double(double, const VectorNd&, double, int)> vector_fcn_side =
+        PointwiseFunctions::StaggeredFcn vector_fcn_side =
             [](const double /*Q*/, const VectorNd& x, const double t, const int /*axis*/) -> double
         { return x(0) + x(1) + t; };
 

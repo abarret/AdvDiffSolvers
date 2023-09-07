@@ -18,13 +18,12 @@ PointwiseFunction<F>::PointwiseFunction(string object_name, F f) : CartGridFunct
 
 template <>
 void
-PointwiseFunction<std::function<double(double, const VectorNd&, double)>>::setDataOnPatch(
-    const int data_idx,
-    Pointer<Variable<NDIM>> var,
-    Pointer<Patch<NDIM>> patch,
-    const double data_time,
-    const bool initial_time,
-    Pointer<PatchLevel<NDIM>> /*patch_level*/)
+PointwiseFunction<PointwiseFunctions::ScalarFcn>::setDataOnPatch(const int data_idx,
+                                                                 Pointer<Variable<NDIM>> var,
+                                                                 Pointer<Patch<NDIM>> patch,
+                                                                 const double data_time,
+                                                                 const bool initial_time,
+                                                                 Pointer<PatchLevel<NDIM>> /*patch_level*/)
 {
     const Box<NDIM>& patch_box = patch->getBox();
     const hier::Index<NDIM>& idx_low = patch_box.lower();
@@ -69,13 +68,12 @@ PointwiseFunction<std::function<double(double, const VectorNd&, double)>>::setDa
 
 template <>
 void
-PointwiseFunction<std::function<VectorNd(const VectorNd&, const VectorNd&, double)>>::setDataOnPatch(
-    const int data_idx,
-    Pointer<Variable<NDIM>> var,
-    Pointer<Patch<NDIM>> patch,
-    const double data_time,
-    const bool initial_time,
-    Pointer<PatchLevel<NDIM>> /*patch_level*/)
+PointwiseFunction<PointwiseFunctions::VectorFcn>::setDataOnPatch(const int data_idx,
+                                                                 Pointer<Variable<NDIM>> var,
+                                                                 Pointer<Patch<NDIM>> patch,
+                                                                 const double data_time,
+                                                                 const bool initial_time,
+                                                                 Pointer<PatchLevel<NDIM>> /*patch_level*/)
 {
     const Box<NDIM>& patch_box = patch->getBox();
     const hier::Index<NDIM>& idx_low = patch_box.lower();
@@ -126,13 +124,12 @@ PointwiseFunction<std::function<VectorNd(const VectorNd&, const VectorNd&, doubl
 
 template <>
 void
-PointwiseFunction<std::function<VectorXd(const VectorXd&, const VectorNd&, double)>>::setDataOnPatch(
-    const int data_idx,
-    Pointer<Variable<NDIM>> var,
-    Pointer<Patch<NDIM>> patch,
-    const double data_time,
-    const bool initial_time,
-    Pointer<PatchLevel<NDIM>> /*patch_level*/)
+PointwiseFunction<PointwiseFunctions::GeneralFcn>::setDataOnPatch(const int data_idx,
+                                                                  Pointer<Variable<NDIM>> var,
+                                                                  Pointer<Patch<NDIM>> patch,
+                                                                  const double data_time,
+                                                                  const bool initial_time,
+                                                                  Pointer<PatchLevel<NDIM>> /*patch_level*/)
 {
     const Box<NDIM>& patch_box = patch->getBox();
     const hier::Index<NDIM>& idx_low = patch_box.lower();
@@ -183,13 +180,12 @@ PointwiseFunction<std::function<VectorXd(const VectorXd&, const VectorNd&, doubl
 
 template <>
 void
-PointwiseFunction<std::function<double(double, const VectorNd&, double, int)>>::setDataOnPatch(
-    const int data_idx,
-    Pointer<Variable<NDIM>> var,
-    Pointer<Patch<NDIM>> patch,
-    const double data_time,
-    const bool initial_time,
-    Pointer<PatchLevel<NDIM>> /*patch_level*/)
+PointwiseFunction<PointwiseFunctions::StaggeredFcn>::setDataOnPatch(const int data_idx,
+                                                                    Pointer<Variable<NDIM>> var,
+                                                                    Pointer<Patch<NDIM>> patch,
+                                                                    const double data_time,
+                                                                    const bool initial_time,
+                                                                    Pointer<PatchLevel<NDIM>> /*patch_level*/)
 {
     const Box<NDIM>& patch_box = patch->getBox();
     const hier::Index<NDIM>& idx_low = patch_box.lower();
@@ -259,9 +255,9 @@ PointwiseFunction<std::function<double(double, const VectorNd&, double, int)>>::
 }
 
 // Instantiate valid templates
-template class PointwiseFunction<std::function<double(double, const VectorNd&, double)>>;
-template class PointwiseFunction<std::function<VectorNd(const VectorNd&, const VectorNd&, double)>>;
-template class PointwiseFunction<std::function<VectorXd(const VectorXd&, const VectorNd&, double)>>;
-template class PointwiseFunction<std::function<double(double, const VectorNd&, double, int)>>;
+template class PointwiseFunction<PointwiseFunctions::ScalarFcn>;
+template class PointwiseFunction<PointwiseFunctions::VectorFcn>;
+template class PointwiseFunction<PointwiseFunctions::GeneralFcn>;
+template class PointwiseFunction<PointwiseFunctions::StaggeredFcn>;
 
 } // namespace ADS

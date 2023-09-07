@@ -13,6 +13,13 @@
  */
 namespace ADS
 {
+namespace PointwiseFunctions
+{
+using ScalarFcn = std::function<double(double, const IBTK::VectorNd&, double)>;
+using VectorFcn = std::function<IBTK::VectorNd(const IBTK::VectorNd&, const IBTK::VectorNd&, double)>;
+using GeneralFcn = std::function<IBTK::VectorXd(const IBTK::VectorXd&, const IBTK::VectorNd&, double)>;
+using StaggeredFcn = std::function<double(double, const IBTK::VectorNd&, double, int)>;
+} // namespace PointwiseFunctions
 template <typename F>
 class PointwiseFunction : public IBTK::CartGridFunction
 {
