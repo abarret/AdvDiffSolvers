@@ -1,8 +1,8 @@
 c234567
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c     Integrate paths that do not involve level set functions using an c
-c     explicit backward in time midpoint method.                       c
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c     Integrate paths that do not involve level set functions using an  c
+c     explicit backward in time midpoint method.                        c
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       subroutine integrate_paths_midpoint(path, path_gcw, un_0, un_1,
      &         un_gcw, uh_0, uh_1, uh_gcw, dt, dx,
      &         ilower0, ilower1, iupper0, iupper1)
@@ -53,10 +53,10 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         enddo
       end
 
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c     Integrate paths that do not involve level set functions using an c
-c     explicit backward in time Euler method.                          c
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c     Integrate paths that do not involve level set functions using an  c
+c     explicit backward in time Euler method.                           c
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       subroutine integrate_paths_forward(path, path_gcw, u_0, u_1,
      &   u_gcw, dt, dx, ilower0, ilower1, iupper0, iupper1)
         implicit none
@@ -92,35 +92,100 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         enddo
       end
 
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c     Integrate paths that utilize a level set functions using an      c
-c     explicit backward in time midpoint method.                       c
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-      subroutine integrate_paths_ls_midpoint(path, path_gcw, un_0, un_1,
-     &         un_gcw, uh_0, uh_1, uh_gcw, ls, ls_gcw, dt, dx,
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c     Integrate paths that do not involve level set functions using an  c
+c     explicit backward in time using a midpoint method. Also computes  c
+c     departure points at the half time point using a trapezoidal rule. c
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      subroutine integrate_paths_midpoint_half(p, p_gcw, ph, ph_gcw,
+     &         un_0, un_1, un_gcw, uh_0, uh_1, uh_gcw, dt, dx,
      &         ilower0, ilower1, iupper0, iupper1)
         implicit none
-       
+
         integer ilower0, ilower1
         integer iupper0, iupper1
-         
-        integer path_gcw
-        double precision path((ilower0-path_gcw):(iupper0+path_gcw),
-     &                        (ilower1-path_gcw):(iupper1+path_gcw),
-     &                        0:1)
-     
+
+        integer p_gcw
+        double precision p((ilower0-p_gcw):(iupper0+p_gcw),
+     &                     (ilower1-p_gcw):(iupper1+p_gcw),
+     &                     0:1)
+
+        integer ph_gcw
+        double precision ph((ilower0-ph_gcw):(iupper0+ph_gcw),
+     &                      (ilower1-ph_gcw):(iupper1+ph_gcw),
+     &                      0:1)
+
         integer un_gcw
         double precision un_0((ilower0-un_gcw):(iupper0+un_gcw+1),
      &                        (ilower1-un_gcw):(iupper1+un_gcw))
         double precision un_1((ilower0-un_gcw):(iupper0+un_gcw),
      &                        (ilower1-un_gcw):(iupper1+un_gcw+1))
-     
+
         integer uh_gcw
         double precision uh_0((ilower0-uh_gcw):(iupper0+uh_gcw+1),
      &                        (ilower1-uh_gcw):(iupper1+uh_gcw))
         double precision uh_1((ilower0-uh_gcw):(iupper0+uh_gcw),
      &                        (ilower1-uh_gcw):(iupper1+uh_gcw+1))
-     
+
+        double precision dt, dx(0:1)
+
+        integer i0, i1
+        double precision ux, uy
+        double precision xcom, ycom
+        double precision xcom_o, ycom_o
+
+        do i0 = ilower0,iupper0
+          do i1 = ilower1,iupper1
+            xcom_o = DBLE(i0) + 0.5d0
+            ycom_o = DBLE(i1) + 0.5d0
+            call find_velocity(i0, i1, un_0, un_1, un_gcw, ilower0,
+     &                ilower1, iupper0, iupper1,
+     &                xcom_o, ycom_o, ux, uy)
+            xcom = xcom_o - 0.5d0 * dt * ux / dx(0)
+            ycom = ycom_o - 0.5d0 * dt * uy / dx(1)
+
+            ph(i0, i1, 0) = xcom_o - 0.25 * dt * ux / dx(0)
+            ph(i0, i1, 1) = ycom_o - 0.25 * dt * uy / dx(1)
+
+            call find_velocity(i0, i1, uh_0, uh_1, uh_gcw, ilower0,
+     &                ilower1, iupper0, iupper1, xcom, ycom, ux, uy)
+            p(i0, i1, 0) = xcom_o - dt * ux / dx(0)
+            p(i0, i1, 1) = ycom_o - dt * uy / dx(1)
+            ph(i0, i1, 0) = ph(i0, i1, 0) - 0.25 * dt * ux / dx(0)
+            ph(i0, i1, 1) = ph(i0, i1, 1) - 0.25 * dt * uy / dx(1)
+          enddo
+        enddo
+      end
+
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c     Integrate paths that utilize a level set functions using an       c
+c     explicit backward in time midpoint method.                        c
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      subroutine integrate_paths_ls_midpoint(path, path_gcw, un_0, un_1,
+     &         un_gcw, uh_0, uh_1, uh_gcw, ls, ls_gcw, dt, dx,
+     &         ilower0, ilower1, iupper0, iupper1)
+        implicit none
+
+        integer ilower0, ilower1
+        integer iupper0, iupper1
+
+        integer path_gcw
+        double precision path((ilower0-path_gcw):(iupper0+path_gcw),
+     &                        (ilower1-path_gcw):(iupper1+path_gcw),
+     &                        0:1)
+
+        integer un_gcw
+        double precision un_0((ilower0-un_gcw):(iupper0+un_gcw+1),
+     &                        (ilower1-un_gcw):(iupper1+un_gcw))
+        double precision un_1((ilower0-un_gcw):(iupper0+un_gcw),
+     &                        (ilower1-un_gcw):(iupper1+un_gcw+1))
+
+        integer uh_gcw
+        double precision uh_0((ilower0-uh_gcw):(iupper0+uh_gcw+1),
+     &                        (ilower1-uh_gcw):(iupper1+uh_gcw))
+        double precision uh_1((ilower0-uh_gcw):(iupper0+uh_gcw),
+     &                        (ilower1-uh_gcw):(iupper1+uh_gcw+1))
+
         integer ls_gcw
         double precision ls((ilower0-ls_gcw):(iupper0+ls_gcw+1),
      &                      (ilower1-ls_gcw):(iupper1+ls_gcw+1))
@@ -130,7 +195,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         double precision ux, uy
         double precision xcom, ycom
         double precision xcom_o, ycom_o
-         
+
         do i0 = ilower0,iupper0
           do i1 = ilower1,iupper1
             call find_cell_centroid(xcom_o, ycom_o, i0, i1,
@@ -148,18 +213,18 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           enddo
         enddo
       end
-       
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c     Integrate paths that utilize a level set functions using an      c
-c     explicit backward in time Euler method.                          c
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c     Integrate paths that utilize a level set functions using an       c
+c     explicit backward in time Euler method.                           c
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       subroutine integrate_paths_ls_forward(path, path_gcw, u_0, u_1,
      &   u_gcw, ls, ls_gcw, dt, dx, ilower0, ilower1, iupper0, iupper1)
         implicit none
 
         integer ilower0, ilower1
         integer iupper0, iupper1
-         
+
         integer path_gcw
         double precision path((ilower0-path_gcw):(iupper0+path_gcw),
      &                        (ilower1-path_gcw):(iupper1+path_gcw),
@@ -189,11 +254,11 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           enddo
         enddo
       end
-       
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c     Interpolate a velocity field to a point (x0, x1) using a         c
-c     bilinear interpolant.                                            c
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c     Interpolate a velocity field to a point (x0, x1) using a          c
+c     bilinear interpolant.                                             c
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       subroutine find_velocity(i0, i1, u0, u1, u_gcw,
      &      ilower0, ilower1, iupper0, iupper1,
      &      x0, x1, u0_ret, u1_ret)
@@ -215,7 +280,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         double precision xlow, ylow
         integer i_ll, i_ul, i_lu, i_uu
         integer j_ll, j_ul, j_lu, j_uu
-     
+
         if(x1 .gt. (DBLE(i1) + 0.5d0)) then
           i_ll = i0
           j_ll = i1
@@ -239,7 +304,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           xlow = DBLE(i0)
           ylow = DBLE(i1) - 0.5d0
         endif
-         
+
         u0_ret = u0(i_ll, j_ll) + (u0(i_ul, j_ul) - u0(i_ll, j_ll))
      &           * (x0 - xlow)
      &         + (u0(i_lu, j_lu) - u0(i_ll, j_ll))
@@ -271,7 +336,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           xlow = DBLE(i0) - 0.5d0
           ylow = DBLE(i1)
         endif
-         
+
         u1_ret = u1(i_ll, j_ll) + (u1(i_ul, j_ul) - u1(i_ll, j_ll))
      &            * (x0 - xlow)
      &         + (u1(i_lu, j_lu) - u1(i_ll, j_ll))
@@ -280,10 +345,10 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
      &           - u1(i_ul, j_ul) + u1(i_ll, j_ll))
      &           *(x0 - xlow)*(x1 - ylow)
       end
-       
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c     Find a cell centroid given level set values on nodes.            c
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c     Find a cell centroid given level set values on nodes.             c
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       subroutine find_cell_centroid(xcom, ycom, i0, i1,
      &        ls_ll, ls_lu, ls_uu, ls_ul)
         implicit none

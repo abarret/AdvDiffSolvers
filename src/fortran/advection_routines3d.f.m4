@@ -121,6 +121,92 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         enddo
       end
 
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c     Integrate paths that do not involve level set functions using an  c
+c     explicit backward in time using a midpoint method. Also computes  c
+c     departure points at the half time point using a trapezoidal rule. c
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      subroutine integrate_paths_midpoint_half(p, p_gcw, ph, ph_gcw,
+     &         un_0, un_1, un_2, un_gcw, uh_0, uh_1, uh_2, uh_gcw,
+     &         dt, dx, ilow0, ilow1, ilow2, iup0, iup1, iup2)
+        implicit none
+
+        integer ilow0, ilow1, ilow2
+        integer iup0, iup1, iup2
+
+        integer p_gcw
+        double precision p((ilow0-p_gcw):(iup0+p_gcw),
+     &                     (ilow1-p_gcw):(iup1+p_gcw),
+     &                     (ilow2-p_gcw):(iup2+p_gcw),
+     &                     0:2)
+
+        integer ph_gcw
+        double precision ph((ilow0-ph_gcw):(iup0+ph_gcw),
+     &                      (ilow1-ph_gcw):(iup1+ph_gcw),
+     &                      (ilow2-ph_gcw):(iup2+ph_gcw),
+     &                      0:2)
+
+        integer un_gcw
+        double precision un_0((ilow0-un_gcw):(iup0+un_gcw+1),
+     &                        (ilow1-un_gcw):(iup1+un_gcw),
+     &                        (ilow2-un_gcw):(iup2+un_gcw))
+        double precision un_1((ilow0-un_gcw):(iup0+un_gcw),
+     &                        (ilow1-un_gcw):(iup1+un_gcw+1),
+     &                        (ilow2-un_gcw):(iup2+un_gcw))
+        double precision un_2((ilow0-un_gcw):(iup0+un_gcw),
+     &                        (ilow1-un_gcw):(iup1+un_gcw),
+     &                        (ilow2-un_gcw):(iup2+un_gcw+1))
+
+        integer uh_gcw
+        double precision uh_0((ilow0-uh_gcw):(iup0+uh_gcw+1),
+     &                        (ilow1-uh_gcw):(iup1+uh_gcw),
+     &                        (ilow2-uh_gcw):(iup2+uh_gcw))
+        double precision uh_1((ilow0-uh_gcw):(iup0+uh_gcw),
+     &                        (ilow1-uh_gcw):(iup1+uh_gcw+1),
+     &                        (ilow2-uh_gcw):(iup2+uh_gcw))
+        double precision uh_2((ilow0-uh_gcw):(iup0+uh_gcw),
+     &                        (ilow1-uh_gcw):(iup1+uh_gcw),
+     &                        (ilow2-uh_gcw):(iup2+uh_gcw+1))
+
+        double precision dt, dx(0:2)
+
+        integer i0, i1, i2
+        double precision ux, uy, uz
+        double precision xcom, ycom, zcom
+        double precision xcom_o, ycom_o, zcom_o
+
+        do i0 = ilow0,iup0
+          do i1 = ilow1,iup1
+            do i2 = ilow2,iup2
+              xcom_o = DBLE(i0) + 0.5d0
+              ycom_o = DBLE(i1) + 0.5d0
+              zcom_o = DBLE(i2) + 0.5d0
+              call find_velocity(i0, i1, i2, un_0, un_1, un_2, un_gcw,
+     &            ilow0, ilow1, ilow2, iup0, iup1, iup2,
+     &            xcom_o, ycom_o, zcom_o, ux, uy, uz)
+              xcom = xcom_o - 0.5d0 * dt * ux / dx(0)
+              ycom = ycom_o - 0.5d0 * dt * uy / dx(1)
+              zcom = zcom_o - 0.5d0 * dt * uz / dx(2)
+
+              ph(i0, i1, i2, 0) = xcom_o - 0.25d0 * dt * ux / dx(0)
+              ph(i0, i1, i2, 1) = xcom_o - 0.25d0 * dt * uy / dx(1)
+              ph(i0, i1, i2, 2) = xcom_o - 0.25d0 * dt * uz / dx(2)
+
+              call find_velocity(i0, i1, i2, uh_0, uh_1, uh_2, uh_gcw,
+     &            ilow0, ilow1, ilow2, iup0, iup1, iup2,
+     &            xcom, ycom, zcom, ux, uy, uz)
+              p(i0, i1, i2, 0) = xcom_o - dt * ux / dx(0)
+              p(i0, i1, i2, 1) = ycom_o - dt * uy / dx(1)
+              p(i0, i1, i2, 2) = zcom_o - dt * uz / dx(2)
+
+              ph(i0,i1,i2,0) = ph(i0,i1,i2,0) - 0.25d0*dt*ux/dx(0)
+              ph(i0,i1,i2,1) = ph(i0,i1,i2,1) - 0.25d0*dt*uy/dx(1)
+              ph(i0,i1,i2,2) = ph(i0,i1,i2,2) - 0.25d0*dt*uz/dx(2)
+            enddo
+          enddo
+        enddo
+      end
+
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c     Integrate paths that utilize a level set functions using an      c
 c     explicit backward in time midpoint method.                       c
@@ -130,16 +216,16 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
      &         dt, dx, ilower0, ilower1, ilower2, iupper0, iupper1,
      &         iupper2)
         implicit none
-       
+
         integer ilower0, ilower1, ilower2
         integer iupper0, iupper1, iupper2
-         
+
         integer path_gcw
         double precision path((ilower0-path_gcw):(iupper0+path_gcw),
      &                        (ilower1-path_gcw):(iupper1+path_gcw),
      &                        (ilower2-path_gcw):(iupper2+path_gcw),
      &                        0:2)
-     
+
         integer un_gcw
         double precision un_0((ilower0-un_gcw):(iupper0+un_gcw+1),
      &                        (ilower1-un_gcw):(iupper1+un_gcw),
@@ -150,7 +236,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         double precision un_2((ilower0-un_gcw):(iupper0+un_gcw),
      &                        (ilower1-un_gcw):(iupper1+un_gcw),
      &                        (ilower2-un_gcw):(iupper2+un_gcw+1))
-     
+
         integer uh_gcw
         double precision uh_0((ilower0-uh_gcw):(iupper0+uh_gcw+1),
      &                        (ilower1-uh_gcw):(iupper1+uh_gcw),
@@ -173,7 +259,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         double precision ux, uy, uz
         double precision xcom, ycom, zcom
         double precision xcom_o, ycom_o, zcom_o
-         
+
         do i0 = ilower0,iupper0
           do i1 = ilower1,iupper1
             do i2 = ilower2,iupper2
@@ -197,7 +283,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           enddo
         enddo
       end
-       
+
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c     Integrate paths that utilize a level set functions using an      c
 c     explicit backward in time Euler method.                          c
@@ -209,7 +295,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         integer ilower0, ilower1, ilower2
         integer iupper0, iupper1, iupper2
-         
+
         integer path_gcw
         double precision path((ilower0-path_gcw):(iupper0+path_gcw),
      &                        (ilower1-path_gcw):(iupper1+path_gcw),
@@ -253,7 +339,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           enddo
         enddo
       end
-       
+
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c     Interpolate a velocity field to a point (x0, x1) using a         c
 c     bilinear interpolant.                                            c
@@ -286,7 +372,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         integer i
         integer j
         integer k
-     
+
 c       X coordinate
         if(x1 .gt. (DBLE(i1) + 0.5d0)) then
           if (x2 .gt.(DBLE(i2) + 0.5d0)) then

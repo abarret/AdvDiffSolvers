@@ -1,5 +1,7 @@
 #include "ADS/LSCartGridFunction.h"
+#include "ADS/LSFromLevelSet.h"
 #include "ADS/LinearReconstructions.h"
+#include "ADS/PointwiseFunction.h"
 #include "ADS/RBFReconstructions.h"
 #include "ADS/SBBoundaryConditions.h"
 #include "ADS/SLAdvIntegrator.h"
@@ -43,6 +45,22 @@ extern "C"
                                   const int&,
                                   const int&,
                                   const int&);
+    void integrate_paths_midpoint_half_(const double*,
+                                        const int&,
+                                        const double*,
+                                        const int&,
+                                        const double*,
+                                        const double*,
+                                        const int&,
+                                        const double*,
+                                        const double*,
+                                        const int&,
+                                        const double&,
+                                        const double*,
+                                        const int&,
+                                        const int&,
+                                        const int&,
+                                        const int&);
 #endif
 #if (NDIM == 3)
     void integrate_paths_midpoint_(const double*,
@@ -77,6 +95,26 @@ extern "C"
                                   const int&,
                                   const int&,
                                   const int&);
+    void integrate_paths_midpoint_half_(const double*,
+                                        const int&,
+                                        const double*,
+                                        const int&,
+                                        const double*,
+                                        const double*,
+                                        const double*,
+                                        const int&,
+                                        const double*,
+                                        const double*,
+                                        const double*,
+                                        const int&,
+                                        const double&,
+                                        const double*,
+                                        const int&,
+                                        const int&,
+                                        const int&,
+                                        const int&,
+                                        const int&,
+                                        const int&);
 #endif
 }
 
@@ -102,15 +140,6 @@ SLAdvIntegrator::SLAdvIntegrator(const std::string& object_name, Pointer<Databas
       d_path_var(new CellVariable<NDIM, double>(d_object_name + "::PathVar", NDIM)),
       d_Q_big_scr_var(new CellVariable<NDIM, double>(d_object_name + "::ExtrapVar"))
 {
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_path_idx = var_db->registerVariableAndContext(d_path_var, var_db->getContext(d_object_name + "::PathContext"));
-    d_adv_data.setFlag(d_path_idx);
-
-    // We need to register our own scratch variable since we need more ghost cells.
-    d_Q_big_scr_idx =
-        var_db->registerVariableAndContext(d_Q_big_scr_var, getScratchContext(), IntVector<NDIM>(GHOST_CELL_WIDTH));
-    d_scratch_data.setFlag(d_Q_big_scr_idx);
-
     if (input_db)
     {
         d_min_ls_refine_factor = input_db->getDouble("min_ls_refine_factor");
@@ -157,7 +186,6 @@ SLAdvIntegrator::registerLevelSetVariable(Pointer<NodeVariable<NDIM, double>> ls
 {
     d_ls_vars.push_back(ls_var);
     d_vol_vars.push_back(new CellVariable<NDIM, double>(ls_var->getName() + "_VolVar"));
-    d_vol_wgt_vars.push_back(new CellVariable<NDIM, double>(ls_var->getName() + "_VolWgtVar"));
     d_ls_vol_fcn_map[ls_var] = nullptr;
     d_ls_use_ls_for_tagging[ls_var] = true;
 }
@@ -222,24 +250,20 @@ SLAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<NDIM>> hie
     {
         const Pointer<NodeVariable<NDIM, double>>& ls_var = d_ls_vars[l];
         const Pointer<CellVariable<NDIM, double>>& vol_var = d_vol_vars[l];
-        const Pointer<CellVariable<NDIM, double>>& vol_wgt_var = d_vol_wgt_vars[l];
 
         auto var_db = VariableDatabase<NDIM>::getDatabase();
         int ls_node_cur_idx = var_db->registerVariableAndContext(ls_var, getCurrentContext(), GHOST_CELL_WIDTH);
         int ls_node_new_idx = var_db->registerVariableAndContext(ls_var, getNewContext(), GHOST_CELL_WIDTH);
         int vol_cur_idx = var_db->registerVariableAndContext(vol_var, getCurrentContext(), GHOST_CELL_WIDTH);
         int vol_new_idx = var_db->registerVariableAndContext(vol_var, getNewContext(), GHOST_CELL_WIDTH);
-        int vol_wgt_idx = var_db->registerVariableAndContext(vol_wgt_var, getCurrentContext());
 
         d_current_data.setFlag(ls_node_cur_idx);
         d_current_data.setFlag(vol_cur_idx);
-        d_current_data.setFlag(vol_wgt_idx);
 
         if (d_registered_for_restart)
         {
             var_db->registerPatchDataForRestart(ls_node_cur_idx);
             var_db->registerPatchDataForRestart(vol_cur_idx);
-            var_db->registerPatchDataForRestart(vol_wgt_idx);
         }
         d_new_data.setFlag(ls_node_new_idx);
         d_new_data.setFlag(vol_new_idx);
@@ -252,10 +276,34 @@ SLAdvIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<NDIM>> hie
         }
     }
 
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    d_path_idx = var_db->registerVariableAndContext(d_path_var, var_db->getContext(d_object_name + "::PathContext"));
+    d_adv_data.setFlag(d_path_idx);
+
+    // We need to register our own scratch variable since we need more ghost cells.
+    d_Q_big_scr_idx =
+        var_db->registerVariableAndContext(d_Q_big_scr_var, getScratchContext(), IntVector<NDIM>(GHOST_CELL_WIDTH));
+    d_scratch_data.setFlag(d_Q_big_scr_idx);
+
+    // If any velocity fields are incompressible, then we also need a half path index.
+    if (std::any_of(d_u_is_div_free.begin(),
+                    d_u_is_div_free.end(),
+                    [](const std::pair<Pointer<FaceVariable<NDIM, double>>, bool>& a) -> bool { return !a.second; }))
+    {
+        d_half_path_var = new CellVariable<NDIM, double>(d_object_name + "::HalfPath", NDIM);
+        d_half_path_idx =
+            var_db->registerVariableAndContext(d_half_path_var, var_db->getContext(d_object_name + "::PathContext"));
+        d_adv_data.setFlag(d_half_path_idx);
+    }
+
     d_u_s_var = new SideVariable<NDIM, double>(d_object_name + "::USide");
     int u_new_idx, u_half_idx;
     registerVariable(u_new_idx, d_u_s_var, IntVector<NDIM>(1), getNewContext());
     registerVariable(u_half_idx, d_u_s_var, IntVector<NDIM>(1), getScratchContext());
+
+    d_u_div_var = new CellVariable<NDIM, double>(d_object_name + "::DivU");
+    int div_u_scr_idx, div_u_cur_idx, div_u_new_idx;
+    registerVariable(div_u_cur_idx, div_u_new_idx, div_u_scr_idx, d_u_div_var, IntVector<NDIM>(2));
 
     AdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(hierarchy, gridding_alg);
 
@@ -640,12 +688,14 @@ SLAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
 {
     plog << d_object_name << ": advecting " << Q_var->getName() << "\n";
     ADS_TIMER_START(t_advective_step);
+    const double half_time = 0.5 * (new_time + current_time);
     const double dt = new_time - current_time;
     int finest_ln = d_hierarchy->getFinestLevelNumber();
     int coarsest_ln = 0;
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
     const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+    const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
     const Pointer<FaceVariable<NDIM, double>>& u_var = d_Q_u_map[Q_var];
     if (!u_var)
     {
@@ -673,20 +723,56 @@ SLAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
     ghost_cell_comps[2] = ITC(u_s_half_idx, "CONSERVATIVE_LINEAR_REFINE", false, "CONSERVATIVE_COARSEN", "LINEAR");
     hier_ghost_cells.initializeOperatorState(ghost_cell_comps, d_hierarchy, coarsest_ln, finest_ln);
     hier_ghost_cells.fillData(current_time);
-    // Integrate path
-    integratePaths(d_path_idx, u_s_new_idx, u_s_half_idx, dt);
 
-    // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
-    d_Q_adv_reconstruct_map[Q_var]->applyReconstruction(Q_cur_idx, Q_new_idx, d_path_idx);
+    // If the velocity field is not divergence free, we need to reconstruct J*q where J = exp(-dt*div(u)) evaluated at
+    // half point departure points.
+    if (!d_u_is_div_free[u_var])
+    {
+        // Need to integrate the half path back as well
+        integratePaths(d_path_idx, d_half_path_idx, u_s_new_idx, u_s_half_idx, dt);
+        const int div_u_scr_idx = var_db->mapVariableAndContextToIndex(d_u_div_var, getScratchContext());
+        const int div_u_idx = var_db->mapVariableAndContextToIndex(d_u_div_var, getCurrentContext());
+        // Note ghost cells have already been filled.
+        d_hier_math_ops->div(div_u_idx,
+                             d_u_div_var,
+                             1.0,
+                             u_s_half_idx,
+                             d_u_s_var,
+                             nullptr /*hier_ghost_fill*/,
+                             half_time,
+                             true /*cf_bdry_synch*/);
+        // Now compute exp of div_u_idx
+        PointwiseFunctions::ScalarFcn exp_fcn = [dt](const double Q, const VectorNd&, double) -> double
+        { return std::exp(-dt * Q); };
+        ADS::PointwiseFunction exp_hier_fcn("Exp", exp_fcn);
+        exp_hier_fcn.setDataOnPatchHierarchy(div_u_idx, d_u_div_var, d_hierarchy, half_time);
+        d_Q_adv_reconstruct_map[Q_var]->applyReconstruction(div_u_idx, div_u_scr_idx, d_half_path_idx);
+
+        // Now interpolate the data to \XX^\star
+        d_Q_adv_reconstruct_map[Q_var]->applyReconstruction(Q_cur_idx, Q_scr_idx, d_path_idx);
+        d_hier_cc_data_ops->multiply(Q_new_idx, div_u_scr_idx, Q_scr_idx);
+    }
+    else
+    {
+        integratePaths(d_path_idx, IBTK::invalid_index, u_s_new_idx, u_s_half_idx, dt);
+        // We have xstar at each grid point. We need to evaluate our function at \XX^\star to update for next iteration
+        d_Q_adv_reconstruct_map[Q_var]->applyReconstruction(Q_cur_idx, Q_new_idx, d_path_idx);
+    }
     ADS_TIMER_STOP(t_advective_step);
 }
 
 void
-SLAdvIntegrator::integratePaths(const int path_idx, const int u_new_idx, const int u_half_idx, const double dt)
+SLAdvIntegrator::integratePaths(const int path_idx,
+                                const int half_path_idx,
+                                const int u_new_idx,
+                                const int u_half_idx,
+                                const double dt)
 {
     ADS_TIMER_START(t_integrate_path_vol);
     // Integrate path to find \xx^{n+1}
-    for (int ln = 0; ln <= d_hierarchy->getFinestLevelNumber(); ++ln)
+    int coarsest_ln = 0;
+    int finest_ln = d_hierarchy->getFinestLevelNumber();
+    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         for (PatchLevel<NDIM>::Iterator p(level); p; p++)
@@ -698,85 +784,144 @@ SLAdvIntegrator::integratePaths(const int path_idx, const int u_new_idx, const i
             const hier::Index<NDIM>& idx_up = box.upper();
 
             Pointer<CellData<NDIM, double>> path_data = patch->getPatchData(path_idx);
+            Pointer<CellData<NDIM, double>> path_half_data =
+                half_path_idx == IBTK::invalid_index ? nullptr : patch->getPatchData(half_path_idx);
             Pointer<SideData<NDIM, double>> u_new_data = patch->getPatchData(u_new_idx);
             Pointer<SideData<NDIM, double>> u_half_data = patch->getPatchData(u_half_idx);
             TBOX_ASSERT(u_new_data && u_half_data);
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
             const double* const dx = pgeom->getDx();
 
-            switch (d_adv_ts_type)
+            if (path_half_data)
             {
-            case AdvectionTimeIntegrationMethod::FORWARD_EULER:
+                switch (d_adv_ts_type)
+                {
+                case AdvectionTimeIntegrationMethod::MIDPOINT_RULE:
 #if (NDIM == 2)
-                integrate_paths_forward_(path_data->getPointer(),
-                                         path_data->getGhostCellWidth().max(),
-                                         u_new_data->getPointer(0),
-                                         u_new_data->getPointer(1),
-                                         u_new_data->getGhostCellWidth().max(),
-                                         dt,
-                                         dx,
-                                         idx_low(0),
-                                         idx_low(1),
-                                         idx_up(0),
-                                         idx_up(1));
+                    integrate_paths_midpoint_half_(path_data->getPointer(),
+                                                   path_data->getGhostCellWidth().max(),
+                                                   path_half_data->getPointer(),
+                                                   path_half_data->getGhostCellWidth().max(),
+                                                   u_new_data->getPointer(0),
+                                                   u_new_data->getPointer(1),
+                                                   u_new_data->getGhostCellWidth().max(),
+                                                   u_half_data->getPointer(0),
+                                                   u_half_data->getPointer(1),
+                                                   u_half_data->getGhostCellWidth().max(),
+                                                   dt,
+                                                   dx,
+                                                   idx_low(0),
+                                                   idx_low(1),
+                                                   idx_up(0),
+                                                   idx_up(1));
 #endif
 #if (NDIM == 3)
-                integrate_paths_forward_(path_data->getPointer(),
-                                         path_data->getGhostCellWidth().max(),
-                                         u_new_data->getPointer(0),
-                                         u_new_data->getPointer(1),
-                                         u_new_data->getPointer(2),
-                                         u_new_data->getGhostCellWidth().max(),
-                                         dt,
-                                         dx,
-                                         idx_low(0),
-                                         idx_low(1),
-                                         idx_low(2),
-                                         idx_up(0),
-                                         idx_up(1),
-                                         idx_up(2));
+                    integrate_paths_midpoint_half_(path_data->getPointer(),
+                                                   path_data->getGhostCellWidth().max(),
+                                                   path_half_data->getPointer(),
+                                                   path_half_data->getGhostCellWidth().max(),
+                                                   u_new_data->getPointer(0),
+                                                   u_new_data->getPointer(1),
+                                                   u_new_data->getPointer(2),
+                                                   u_new_data->getGhostCellWidth().max(),
+                                                   u_half_data->getPointer(0),
+                                                   u_half_data->getPointer(1),
+                                                   u_half_data->getPointer(2),
+                                                   u_half_data->getGhostCellWidth().max(),
+                                                   dt,
+                                                   dx,
+                                                   idx_low(0),
+                                                   idx_low(1),
+                                                   idx_low(2),
+                                                   idx_up(0),
+                                                   idx_up(1),
+                                                   idx_up(2));
 #endif
-                break;
-            case AdvectionTimeIntegrationMethod::MIDPOINT_RULE:
+                    break;
+                default:
+                    TBOX_ERROR("Invalid integration path "
+                               << enum_to_string(d_adv_ts_type)
+                               << ".\n Valid type for compressible flow is MIDPOINT_RULE\n");
+                }
+            }
+            else
+            {
+                switch (d_adv_ts_type)
+                {
+                case AdvectionTimeIntegrationMethod::FORWARD_EULER:
 #if (NDIM == 2)
-                integrate_paths_midpoint_(path_data->getPointer(),
-                                          path_data->getGhostCellWidth().max(),
-                                          u_new_data->getPointer(0),
-                                          u_new_data->getPointer(1),
-                                          u_new_data->getGhostCellWidth().max(),
-                                          u_half_data->getPointer(0),
-                                          u_half_data->getPointer(1),
-                                          u_half_data->getGhostCellWidth().max(),
-                                          dt,
-                                          dx,
-                                          idx_low(0),
-                                          idx_low(1),
-                                          idx_up(0),
-                                          idx_up(1));
+                    integrate_paths_forward_(path_data->getPointer(),
+                                             path_data->getGhostCellWidth().max(),
+                                             u_new_data->getPointer(0),
+                                             u_new_data->getPointer(1),
+                                             u_new_data->getGhostCellWidth().max(),
+                                             dt,
+                                             dx,
+                                             idx_low(0),
+                                             idx_low(1),
+                                             idx_up(0),
+                                             idx_up(1));
 #endif
 #if (NDIM == 3)
-                integrate_paths_midpoint_(path_data->getPointer(),
-                                          path_data->getGhostCellWidth().max(),
-                                          u_new_data->getPointer(0),
-                                          u_new_data->getPointer(1),
-                                          u_new_data->getPointer(2),
-                                          u_new_data->getGhostCellWidth().max(),
-                                          u_half_data->getPointer(0),
-                                          u_half_data->getPointer(1),
-                                          u_half_data->getPointer(2),
-                                          u_half_data->getGhostCellWidth().max(),
-                                          dt,
-                                          dx,
-                                          idx_low(0),
-                                          idx_low(1),
-                                          idx_low(2),
-                                          idx_up(0),
-                                          idx_up(1),
-                                          idx_up(2));
+                    integrate_paths_forward_(path_data->getPointer(),
+                                             path_data->getGhostCellWidth().max(),
+                                             u_new_data->getPointer(0),
+                                             u_new_data->getPointer(1),
+                                             u_new_data->getPointer(2),
+                                             u_new_data->getGhostCellWidth().max(),
+                                             dt,
+                                             dx,
+                                             idx_low(0),
+                                             idx_low(1),
+                                             idx_low(2),
+                                             idx_up(0),
+                                             idx_up(1),
+                                             idx_up(2));
 #endif
-                break;
-            default:
-                TBOX_ERROR("UNKNOWN METHOD!\n");
+                    break;
+                case AdvectionTimeIntegrationMethod::MIDPOINT_RULE:
+#if (NDIM == 2)
+                    integrate_paths_midpoint_(path_data->getPointer(),
+                                              path_data->getGhostCellWidth().max(),
+                                              u_new_data->getPointer(0),
+                                              u_new_data->getPointer(1),
+                                              u_new_data->getGhostCellWidth().max(),
+                                              u_half_data->getPointer(0),
+                                              u_half_data->getPointer(1),
+                                              u_half_data->getGhostCellWidth().max(),
+                                              dt,
+                                              dx,
+                                              idx_low(0),
+                                              idx_low(1),
+                                              idx_up(0),
+                                              idx_up(1));
+#endif
+#if (NDIM == 3)
+                    integrate_paths_midpoint_(path_data->getPointer(),
+                                              path_data->getGhostCellWidth().max(),
+                                              u_new_data->getPointer(0),
+                                              u_new_data->getPointer(1),
+                                              u_new_data->getPointer(2),
+                                              u_new_data->getGhostCellWidth().max(),
+                                              u_half_data->getPointer(0),
+                                              u_half_data->getPointer(1),
+                                              u_half_data->getPointer(2),
+                                              u_half_data->getGhostCellWidth().max(),
+                                              dt,
+                                              dx,
+                                              idx_low(0),
+                                              idx_low(1),
+                                              idx_low(2),
+                                              idx_up(0),
+                                              idx_up(1),
+                                              idx_up(2));
+#endif
+                    break;
+                default:
+                    TBOX_ERROR("Invalid integration path "
+                               << enum_to_string(d_adv_ts_type)
+                               << ".\n Valid types for incompressible flow are MIDPOINT_RULE and FORWARD_EULER\n");
+                }
             }
         }
     }

@@ -1,0 +1,1058 @@
+SLAdvIntegrator: initializing Hierarchy integrator.
+SLAdvIntegrator::initializePatchHierarchy(): tag_buffer = 0
+SLAdvIntegrator: initializing level data
+Setting level set at initial time: 1
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: initializing level set for: ls
+Setting Level set at time 0
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: Initializing data for variable: Q
+SLAdvIntegrator: Finished initializing composite data
+Input database:
+input_db {
+   PI                         = 3.14159                     // input not used
+   L                          = 1                           // input used
+   MAX_LEVELS                 = 1                           // input used
+   REF_RATIO                  = 4                           // input used
+   N                          = 16                          // input used
+   NFINEST                    = 16                          // input used
+   H                          = 0.0625                      // input used
+   CFL_MAX                    = 0.5                         // input used
+   U_MAX                      = 2                           // input not used
+   DT_MIN                     = 0.03125                     // input used
+   DT_MAX                     = 0.03125                     // input used
+   END_TIME                   = 1                           // input used
+   REGRID_INTERVAL            = 1                           // input used
+   TAG_BUFFER                 = 1                           // input used
+   MIN_REFINE_FACTOR          = -4                          // input used
+   MAX_REFINE_FACTOR          = 2                           // input used
+   LEAST_SQUARES_ORDER        = "QUADRATIC"                 // input used
+   USE_STRANG_SPLITTING       = TRUE                        // input not used
+   USE_OUTSIDE_LS_FOR_TAGGING = TRUE                        // input not used
+   ADV_INT_METHOD             = "MIDPOINT_RULE"             // input used
+   DIF_INT_METHOD             = "TRAPEZOIDAL_RULE"          // input not used
+   USE_RBFS                   = TRUE                        // input used
+   RBF_STENCIL_SIZE           = 12                          // input used
+   RBF_POLY_ORDER             = "QUADRATIC"                 // input used
+   UFunction {
+      function_0 = "sin(2*PI*t)*cos(PI*X_0)*cos(PI*X_1)"    // input used
+      function_1 = "sin(2*PI*t)*cos(PI*X_1)*cos(PI*X_0)"    // input used
+   }
+   Q_bcs {
+      acoef_function_0 = "0.0"                              // input not used
+      acoef_function_1 = "0.0"                              // input not used
+      acoef_function_2 = "0.0"                              // input not used
+      acoef_function_3 = "0.0"                              // input not used
+      bcoef_function_0 = "1.0"                              // input not used
+      bcoef_function_1 = "1.0"                              // input not used
+      bcoef_function_2 = "1.0"                              // input not used
+      bcoef_function_3 = "1.0"                              // input not used
+      gcoef_function_0 = "0.0"                              // input not used
+      gcoef_function_1 = "0.0"                              // input not used
+      gcoef_function_2 = "0.0"                              // input not used
+      gcoef_function_3 = "0.0"                              // input not used
+   }
+   Main {
+      log_file_name               = "output"                // input used
+      log_all_nodes               = FALSE                   // input used
+      viz_writer                  = "VisIt"                 // input used
+      viz_dump_interval           = 8                       // input used
+      viz_dump_dirname            = "viz_adv_diff2d"        // input used
+      visit_number_procs_per_file = 1                       // input used
+      restart_dump_interval       = 0                       // input used
+      restart_dump_dirname        = "restart_adv_diff2d"    // input used
+      data_dump_interval          = 2                       // input used
+      data_dump_dirname           = "hier_data_IB2d"        // input used
+      timer_dump_interval         = 0                       // input used
+   }
+   CartesianGeometry {
+      domain_boxes       = [(0,0),(15,15)]                  // input used
+      x_lo               = -1, -1                           // input used
+      x_up               = 1, 1                             // input used
+      periodic_dimension = 1, 1                             // input used
+   }
+   GriddingAlgorithm {
+      max_levels                = 1                         // input used
+      efficiency_tolerance      = 0.9                       // input used
+      combine_efficiency        = 0.9                       // input used
+      check_nonrefined_tags     = 'w'                       // from default
+      check_overlapping_patches = 'i'                       // from default
+      extend_tags_to_bdry       = FALSE                     // from default
+      ratio_to_coarser {
+         level_1 = 4, 4                                     // input not used
+         level_2 = 4, 4                                     // input not used
+         level_3 = 4, 4                                     // input not used
+      }
+      largest_patch_size {
+         level_0 = 512, 512                                 // input used
+      }
+      smallest_patch_size {
+         level_0 = 4, 4                                     // input used
+      }
+   }
+   StandardTagAndInitialize {
+      tagging_method = "GRADIENT_DETECTOR"                  // input used
+      RefineBoxes {
+         level_0 = [(4,4),(11,7)], [(4,8),(7,11)]           // input not used
+      }
+   }
+   LoadBalancer {
+      bin_pack_method                      = "SPATIAL"      // input used
+      max_workload_factor                  = 1              // input used
+      ignore_level_box_union_is_single_box = FALSE          // from default
+   }
+   TimerManager {
+      print_exclusive      = TRUE                           // input used
+      print_total          = TRUE                           // input used
+      print_threshold      = 0                              // input used
+      timer_list           = "LS::*::*", "IBAMR::*::*", "IBTK::*::*" // input used
+      print_processor      = TRUE                           // from default
+      print_max            = FALSE                          // from default
+      print_summed         = FALSE                          // from default
+      print_user           = FALSE                          // from default
+      print_sys            = FALSE                          // from default
+      print_wall           = TRUE                           // from default
+      print_percentage     = TRUE                           // from default
+      print_concurrent     = FALSE                          // from default
+      print_timer_overhead = FALSE                          // from default
+   }
+   SLAdvIntegrator {
+      start_time                   = 0                      // input used
+      end_time                     = 1                      // input used
+      grow_dt                      = 2                      // input used
+      regrid_interval              = 1                      // input used
+      cfl                          = 0.5                    // input used
+      dt_max                       = 0.03125                // input used
+      dt_min                       = 0.03125                // input used
+      enable_logging               = TRUE                   // input used
+      min_ls_refine_factor         = -4                     // input used
+      max_ls_refine_factor         = 2                      // input used
+      least_squares_order          = "QUADRATIC"            // input used
+      advection_ts_type            = "MIDPOINT_RULE"        // input used
+      use_rbfs                     = TRUE                   // input used
+      rbf_stencil_size             = 12                     // input used
+      rbf_poly_order               = "QUADRATIC"            // input used
+      default_adv_reconstruct_type = "RBF"                  // input used
+      tag_buffer                   = 1                      // input used
+      num_cycles                   = 1                      // input used
+      mls_stencil_size             = 8                      // from default
+   }
+}
+
+
+Writing visualization files...
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 0
+Simulation time is 0
+SLAdvIntegrator::advanceHierarchy(): time interval = [0,0.03125], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 0
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.03125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 0
+Simulation time is 0.03125
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 1
+Simulation time is 0.03125
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.03125,0.0625], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 1
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.03125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.0625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 1
+Simulation time is 0.0625
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 2
+Simulation time is 0.0625
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.0625,0.09375], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 2
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.0625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.09375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 2
+Simulation time is 0.09375
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 3
+Simulation time is 0.09375
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.09375,0.125], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 3
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.09375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 3
+Simulation time is 0.125
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 4
+Simulation time is 0.125
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.125,0.15625], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 4
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.15625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 4
+Simulation time is 0.15625
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 5
+Simulation time is 0.15625
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.15625,0.1875], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 5
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.15625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.1875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 5
+Simulation time is 0.1875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 6
+Simulation time is 0.1875
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.1875,0.21875], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 6
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.1875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.21875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 6
+Simulation time is 0.21875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 7
+Simulation time is 0.21875
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.21875,0.25], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 7
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.21875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.25
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 7
+Simulation time is 0.25
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 8
+Simulation time is 0.25
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.25,0.28125], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 8
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.25
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.28125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 8
+Simulation time is 0.28125
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 9
+Simulation time is 0.28125
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.28125,0.3125], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 9
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.28125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.3125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 9
+Simulation time is 0.3125
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 10
+Simulation time is 0.3125
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.3125,0.34375], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 10
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.3125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.34375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 10
+Simulation time is 0.34375
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 11
+Simulation time is 0.34375
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.34375,0.375], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 11
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.34375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 11
+Simulation time is 0.375
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 12
+Simulation time is 0.375
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.375,0.40625], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 12
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.40625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 12
+Simulation time is 0.40625
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 13
+Simulation time is 0.40625
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.40625,0.4375], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 13
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.40625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.4375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 13
+Simulation time is 0.4375
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 14
+Simulation time is 0.4375
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.4375,0.46875], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 14
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.4375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.46875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 14
+Simulation time is 0.46875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 15
+Simulation time is 0.46875
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.46875,0.5], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 15
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.46875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.5
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 15
+Simulation time is 0.5
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 16
+Simulation time is 0.5
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.5,0.53125], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 16
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.5
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.53125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 16
+Simulation time is 0.53125
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 17
+Simulation time is 0.53125
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.53125,0.5625], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 17
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.53125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.5625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 17
+Simulation time is 0.5625
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 18
+Simulation time is 0.5625
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.5625,0.59375], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 18
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.5625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.59375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 18
+Simulation time is 0.59375
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 19
+Simulation time is 0.59375
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.59375,0.625], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 19
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.59375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 19
+Simulation time is 0.625
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 20
+Simulation time is 0.625
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.625,0.65625], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 20
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.65625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 20
+Simulation time is 0.65625
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 21
+Simulation time is 0.65625
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.65625,0.6875], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 21
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.65625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.6875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 21
+Simulation time is 0.6875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 22
+Simulation time is 0.6875
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.6875,0.71875], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 22
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.6875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.71875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 22
+Simulation time is 0.71875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 23
+Simulation time is 0.71875
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.71875,0.75], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 23
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.71875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.75
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 23
+Simulation time is 0.75
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 24
+Simulation time is 0.75
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.75,0.78125], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 24
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.75
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.78125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 24
+Simulation time is 0.78125
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 25
+Simulation time is 0.78125
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.78125,0.8125], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 25
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.78125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.8125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 25
+Simulation time is 0.8125
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 26
+Simulation time is 0.8125
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.8125,0.84375], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 26
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.8125
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.84375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 26
+Simulation time is 0.84375
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 27
+Simulation time is 0.84375
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.84375,0.875], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 27
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.84375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 27
+Simulation time is 0.875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 28
+Simulation time is 0.875
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.875,0.90625], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 28
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.90625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 28
+Simulation time is 0.90625
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 29
+Simulation time is 0.90625
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.90625,0.9375], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 29
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.90625
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.9375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 29
+Simulation time is 0.9375
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 30
+Simulation time is 0.9375
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.9375,0.96875], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 30
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.9375
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 0.96875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 30
+Simulation time is 0.96875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 31
+Simulation time is 0.96875
+SLAdvIntegrator::advanceHierarchy(): time interval = [0.96875,1], dt = 0.03125
+SLAdvIntegrator::advanceHierarchy(): regridding prior to timestep 31
+SLAdvIntegrator: initializing composite Hierarchy data
+SLAdvIntegrator: Finished initializing composite data
+Setting Level set at time 0.96875
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
+SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
+SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
+Setting Level set at time 1
+Minimum volume on level:     0 is: 0.015625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 4
+SLAdvIntegrator: advecting Q
+SLAdvIntegrator::integrateHierarchy() finished advection update for variable: Q
+SLAdvIntegrator::advanceHierarchy(): synchronizing updated data
+SLAdvIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 31
+Simulation time is 1
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Writing visualization files...
+
+Computing error norms:
+  L1-norm:  0.273944
+  L2-norm:  0.210785
+  max-norm: 0.340455

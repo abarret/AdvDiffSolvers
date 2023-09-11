@@ -189,9 +189,10 @@ protected:
                                  double new_time);
 
     /*!
-     * Integrates the paths backward in time using the provided velocity patch indices.
+     * Integrates the paths backward in time using the provided velocity patch indices. If half_path_idx is a valid
+     * patch index, then the departure points are computed at half time points as well.
      */
-    virtual void integratePaths(int path_idx, int u_new_idx, int u_half_idx, double dt);
+    virtual void integratePaths(int path_idx, int half_path_idx, int u_new_idx, int u_half_idx, double dt);
 
     void setDefaultReconstructionOperator(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var);
 
@@ -199,7 +200,7 @@ protected:
 
     // Level set information
     std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>> d_ls_vars;
-    std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>> d_vol_vars, d_vol_wgt_vars;
+    std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>> d_vol_vars;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>, bool> d_ls_use_ls_for_tagging;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>,
              SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>>
@@ -217,9 +218,14 @@ protected:
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_s_var;
 
+    // Divergence variable for compressible velocity fields
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_u_div_var;
+
     // patch data for particle trajectories
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_path_var;
     int d_path_idx = IBTK::invalid_index;
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_half_path_var;
+    int d_half_path_idx = IBTK::invalid_index;
     // Scratch data for when we need more ghost cells.
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_big_scr_var;
     int d_Q_big_scr_idx = IBTK::invalid_index;
