@@ -726,6 +726,9 @@ SLAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
 
     // If the velocity field is not divergence free, we need to reconstruct J*q where J = exp(-dt*div(u)) evaluated at
     // half point departure points.
+    // TODO: Currently, we compute J = exp(-dt*div(u)) at half point departures and separately compute q at full point
+    // departures. We should investigate if we can compute these at the same departure ponts while maintaining second
+    // order accuracy.
     if (!d_u_is_div_free[u_var])
     {
         // Need to integrate the half path back as well
