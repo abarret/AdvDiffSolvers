@@ -74,9 +74,14 @@ public:
         d_mapping_fcns[part] = fcn;
     }
 
-    inline std::shared_ptr<FEMeshPartitioner>& getMeshPartitioner(unsigned int part = 0)
+    inline const std::shared_ptr<FEMeshPartitioner>& getMeshPartitioner(unsigned int part = 0) const
     {
-        return d_bdry_mesh_partitioners[part];
+        return d_bdry_mesh_partitioners.at(part);
+    }
+
+    inline const std::vector<std::shared_ptr<FEMeshPartitioner>>& getMeshPartitioners() const
+    {
+        return d_bdry_mesh_partitioners;
     }
 
 private:
