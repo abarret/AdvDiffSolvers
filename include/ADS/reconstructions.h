@@ -40,7 +40,8 @@ string_to_enum(const std::string& /*val*/)
  * \brief Routine for converting enums to strings.
  */
 template <typename T>
-inline std::string enum_to_string(T /*val*/)
+inline std::string
+enum_to_string(T /*val*/)
 {
     TBOX_ERROR("UNSUPPORTED ENUM TYPE\n");
     return "UNKNOWN";
@@ -123,6 +124,8 @@ mls_weight(double r)
 /*!
  * Reconstruct the data at position x_loc, using a stencil centered at idx. Only uses points that have a non-zero volume
  * fraction in vol_data. The reconstruction uses a polyharmonic spline fit.
+ *
+ * x_loc must be given in index space.
  */
 double radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
                                          const SAMRAI::pdat::CellIndex<NDIM>& idx,
@@ -157,6 +160,8 @@ double bilinearReconstruction(const IBTK::VectorNd& x_loc,
 /*!
  * Reconstruct the data at position x_loc, using a stencil centered at idx. Only uses points that share the same sign of
  * the level set. The reconstruction uses a polyharmonic spline fit.
+ *
+ * x_loc must be given in index space.
  */
 double radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
                                          double ls_val,
@@ -166,6 +171,16 @@ double radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
                                          const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>& patch,
                                          const RBFPolyOrder order,
                                          const unsigned int stencil_size);
+
+/*!
+ * Reconstruct the data at position x_loc, using a stencil centered at x_loc. Uses the provided positions and values.
+ *
+ * x_loc must be given in physical space.
+ */
+double radialBasisFunctionReconstruction(const IBTK::VectorNd& x_loc,
+                                         const std::vector<IBTK::VectorNd>& X_pts,
+                                         const std::vector<double>& Q_vals,
+                                         const RBFPolyOrder order);
 
 /*!
  * Compute finite-difference weights using the points in fd_pts evaluated at the point base_pt. The action of the
