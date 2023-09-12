@@ -21,6 +21,7 @@ SET(CXX_SRC
     adv_ops/AdvectiveReconstructionOperator.cpp
     adv_ops/LinearReconstructions.cpp
     adv_ops/RBFReconstructions.cpp
+    adv_ops/RBFStructureReconstructions.cpp
     adv_ops/ZSplineReconstructions.cpp
     
     cut_cell/CutCellMeshMapping.cpp

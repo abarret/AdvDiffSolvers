@@ -119,18 +119,6 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
 
     // If we use a linear polynomial, include 6 closest points.
     // If we use a quadratic polynomial, include 14 closest points.
-    int poly_size = 0;
-    switch (order)
-    {
-    case RBFPolyOrder::LINEAR:
-        poly_size = NDIM + 1;
-        break;
-    case RBFPolyOrder::QUADRATIC:
-        poly_size = 2 * NDIM + 2;
-        break;
-    default:
-        TBOX_ERROR("Unknown polynomial order: " << ADS::enum_to_string(order) << "\n");
-    }
     // Use flooding to find points
     std::vector<CellIndex<NDIM>> new_idxs = { idx };
     std::vector<VectorNd> X_vals;
@@ -166,51 +154,7 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
         ++i;
     }
 
-    const int m = Q_vals.size();
-    MatrixXd A(MatrixXd::Zero(m, m));
-    MatrixXd B(MatrixXd::Zero(m, poly_size));
-    VectorXd U(VectorXd::Zero(m + poly_size));
-    for (size_t i = 0; i < Q_vals.size(); ++i)
-    {
-        for (size_t j = 0; j < Q_vals.size(); ++j)
-        {
-            const VectorNd X = X_vals[i] - X_vals[j];
-            A(i, j) = rbf(X.norm());
-        }
-        B(i, 0) = 1.0;
-        for (int d = 0; d < NDIM; ++d) B(i, d + 1) = X_vals[i](d);
-        if (order == RBFPolyOrder::QUADRATIC)
-        {
-            B(i, NDIM + 1) = X_vals[i](0) * X_vals[i](0);
-            B(i, NDIM + 2) = X_vals[i](1) * X_vals[i](1);
-            B(i, NDIM + 3) = X_vals[i](0) * X_vals[i](1);
-        }
-        U(i) = Q_vals[i];
-    }
-
-    MatrixXd final_mat(MatrixXd::Zero(m + poly_size, m + poly_size));
-    final_mat.block(0, 0, m, m) = A;
-    final_mat.block(0, m, m, poly_size) = B;
-    final_mat.block(m, 0, poly_size, m) = B.transpose();
-
-    VectorXd x = final_mat.fullPivHouseholderQr().solve(U);
-    double val = 0.0;
-    VectorXd rbf_coefs = x.block(0, 0, m, 1);
-    VectorXd poly_coefs = x.block(m, 0, poly_size, 1);
-    VectorXd poly_vec = VectorXd::Ones(poly_size);
-    for (int d = 0; d < NDIM; ++d) poly_vec(d + 1) = x_loc(d);
-    if (order == RBFPolyOrder::QUADRATIC)
-    {
-        poly_vec(NDIM + 1) = x_loc(0) * x_loc(0);
-        poly_vec(NDIM + 2) = x_loc(1) * x_loc(1);
-        poly_vec(NDIM + 3) = x_loc(0) * x_loc(1);
-    }
-    for (size_t i = 0; i < X_vals.size(); ++i)
-    {
-        val += rbf_coefs[i] * rbf((X_vals[i] - x_loc).norm());
-    }
-    val += poly_coefs.dot(poly_vec);
-    return val;
+    return radialBasisFunctionReconstruction(x_loc, X_vals, Q_vals, order);
 }
 
 double
@@ -343,22 +287,11 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
 
     const CellIndex<NDIM>& idx_low = patch->getBox().lower();
 
+    // Convert to current coordinates
     for (int d = 0; d < NDIM; ++d) x_loc[d] = xlow[d] + dx[d] * (x_loc[d] - static_cast<double>(idx_low(d)));
 
     // If we use a linear polynomial, include 6 closest points.
     // If we use a quadratic polynomial, include 14 closest points.
-    int poly_size = 0;
-    switch (order)
-    {
-    case RBFPolyOrder::LINEAR:
-        poly_size = NDIM + 1;
-        break;
-    case RBFPolyOrder::QUADRATIC:
-        poly_size = 2 * NDIM + 2;
-        break;
-    default:
-        TBOX_ERROR("Unknown polynomial order: " << ADS::enum_to_string(order) << "\n");
-    }
     // Use flooding to find points
     std::vector<CellIndex<NDIM>> new_idxs = { idx };
     std::vector<VectorNd> X_vals;
@@ -398,6 +331,28 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
         ++i;
     }
 
+    return radialBasisFunctionReconstruction(x_loc, X_vals, Q_vals, order);
+}
+
+double
+radialBasisFunctionReconstruction(const IBTK::VectorNd& x_loc,
+                                  const std::vector<IBTK::VectorNd>& X_pts,
+                                  const std::vector<double>& Q_vals,
+                                  const RBFPolyOrder order)
+{
+    int poly_size = 0;
+    switch (order)
+    {
+    case RBFPolyOrder::LINEAR:
+        poly_size = NDIM + 1;
+        break;
+    case RBFPolyOrder::QUADRATIC:
+        poly_size = 2 * NDIM + 2;
+        break;
+    default:
+        TBOX_ERROR("Unknown polynomial order: " << ADS::enum_to_string(order) << "\n");
+    }
+
     const int m = Q_vals.size();
     MatrixXd A(MatrixXd::Zero(m, m));
     MatrixXd B(MatrixXd::Zero(m, poly_size));
@@ -406,16 +361,16 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
     {
         for (size_t j = 0; j < Q_vals.size(); ++j)
         {
-            const VectorNd X = X_vals[i] - X_vals[j];
+            const VectorNd X = X_pts[i] - X_pts[j];
             A(i, j) = rbf(X.norm());
         }
         B(i, 0) = 1.0;
-        for (int d = 0; d < NDIM; ++d) B(i, d + 1) = X_vals[i](d);
+        for (int d = 0; d < NDIM; ++d) B(i, d + 1) = X_pts[i](d);
         if (order == RBFPolyOrder::QUADRATIC)
         {
-            B(i, NDIM + 1) = X_vals[i](0) * X_vals[i](0);
-            B(i, NDIM + 2) = X_vals[i](1) * X_vals[i](1);
-            B(i, NDIM + 3) = X_vals[i](0) * X_vals[i](1);
+            B(i, NDIM + 1) = X_pts[i](0) * X_pts[i](0);
+            B(i, NDIM + 2) = X_pts[i](1) * X_pts[i](1);
+            B(i, NDIM + 3) = X_pts[i](0) * X_pts[i](1);
         }
         U(i) = Q_vals[i];
     }
@@ -437,11 +392,12 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
         poly_vec(NDIM + 2) = x_loc(1) * x_loc(1);
         poly_vec(NDIM + 3) = x_loc(0) * x_loc(1);
     }
-    for (size_t i = 0; i < X_vals.size(); ++i)
+    for (size_t i = 0; i < X_pts.size(); ++i)
     {
-        val += rbf_coefs[i] * rbf((X_vals[i] - x_loc).norm());
+        val += rbf_coefs[i] * rbf((X_pts[i] - x_loc).norm());
     }
     val += poly_coefs.dot(poly_vec);
     return val;
 }
+
 } // namespace Reconstruct
