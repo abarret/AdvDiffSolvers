@@ -292,18 +292,6 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
 
     // If we use a linear polynomial, include 6 closest points.
     // If we use a quadratic polynomial, include 14 closest points.
-    int poly_size = 0;
-    switch (order)
-    {
-    case RBFPolyOrder::LINEAR:
-        poly_size = NDIM + 1;
-        break;
-    case RBFPolyOrder::QUADRATIC:
-        poly_size = 2 * NDIM + 2;
-        break;
-    default:
-        TBOX_ERROR("Unknown polynomial order: " << ADS::enum_to_string(order) << "\n");
-    }
     // Use flooding to find points
     std::vector<CellIndex<NDIM>> new_idxs = { idx };
     std::vector<VectorNd> X_vals;

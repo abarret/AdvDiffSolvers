@@ -19,8 +19,8 @@ RBFReconstructions::RBFReconstructions(std::string object_name,
     : AdvectiveReconstructionOperator(std::move(object_name)),
       d_rbf_order(rbf_order),
       d_rbf_stencil_size(stencil_size),
-      d_Q_scr_var(new CellVariable<NDIM, double>(d_object_name + "::Q_scratch")),
-      d_use_cut_cells(use_cut_cells)
+      d_use_cut_cells(use_cut_cells),
+      d_Q_scr_var(new CellVariable<NDIM, double>(d_object_name + "::Q_scratch"))
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_Q_scr_idx = var_db->registerVariableAndContext(
