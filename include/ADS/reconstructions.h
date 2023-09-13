@@ -198,6 +198,58 @@ RBFFDReconstruct(std::vector<double>& wgts,
                  void* rbf_ctx,
                  std::function<IBTK::VectorXd(const std::vector<Point>&, int, double, const Point&, void*)> L_polys,
                  void* poly_ctx);
+/*!
+ * Determine the WENO5 stencil is completely within the physical domain. We assume the stencil is centered at idx.
+ *
+ * Note: ls_data is assumed to have sufficient ghost width for the stencil.
+ */
+bool within_weno_stencil(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat::NodeData<NDIM, double>& ls_data);
+
+/*!
+ * Compute the WENO5 interpolant at x using a stencil centered at idx and given the patch data Q_data.
+ *
+ * This performs interpolation in a dimension by dimension basis. First we interpolate in the y-direction to compute
+ * values at ?. Then we interpolate in the x-direction to compute the value at o. If NDIM = 3, this process is prepended
+ * by interpolations in the z-direction
+ * -------------------------------
+ * |     |     |     |     |     |
+ * |  x  |  x  |  x  |  x  |  x  |
+ * |     |     |     |     |     |
+ * -------------------------------
+ * |     |     |     |     |     |
+ * |  x  |  x  |  x  |  x  |  x  |
+ * |     |     |     |     |     |
+ * -------------------------------
+ * |  ?  |  ?  | o?  |  ?  |  ?  |
+ * |  x  |  x  |  x  |  x  |  x  |
+ * |     |     |     |     |     |
+ * -------------------------------
+ * |     |     |     |     |     |
+ * |  x  |  x  |  x  |  x  |  x  |
+ * |     |     |     |     |     |
+ * -------------------------------
+ * |     |     |     |     |     |
+ * |  x  |  x  |  x  |  x  |  x  |
+ * |     |     |     |     |     |
+ * -------------------------------
+ *
+ * We assume Q_data has sufficient ghost width for the entire stencil.
+ *
+ * The point x should be given in index space.
+ */
+double weno5(const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
+             const SAMRAI::pdat::CellIndex<NDIM>& idx,
+             const IBTK::VectorNd& x);
+
+/*!
+ * Compute the WENO5 interpolant evaluated at xi given an array of Q values. The parameter xi should be between -0.5 and
+ * 0.5 for accuracy. Note if |xi| > 0.5, then the stencil should be shifted so that |xi| <= 0.5.
+ *
+ * The type Array needs to be of length 5 with a defined operator[] that starts it's index at zero. We assume that Q[2]
+ * is the center of the stencil, Q[0] is "below" the center, and Q[5] is "above" the center.
+ */
+template <typename Array>
+double weno5(const Array& Q, double xi);
 } // namespace Reconstruct
 
 #include <ADS/private/reconstructions_inc.h>

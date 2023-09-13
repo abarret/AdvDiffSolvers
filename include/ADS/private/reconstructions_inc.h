@@ -54,6 +54,98 @@ RBFFDReconstruct(std::vector<double>& wgts,
     wgts.resize(stencil_size);
     for (int i = 0; i < stencil_size; ++i) wgts[i] = weights[i];
 }
+
+inline bool
+within_weno_stencil(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat::NodeData<NDIM, double>& ls_data)
+{
+    // WENO stencil is a 5 by 5 grid.
+    SAMRAI::hier::Box<NDIM> box(idx, idx);
+    box.grow(2);
+    for (SAMRAI::pdat::CellIterator<NDIM> ci(box); ci; ci++)
+    {
+        const SAMRAI::pdat::CellIndex<NDIM>& i = ci();
+        const double ls_val = ADS::node_to_cell(i, ls_data);
+        if (ls_val * ADS::node_to_cell(idx, ls_data) < 0.0) return false;
+    }
+    return true;
+}
+
+inline double
+weno5(const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
+      const SAMRAI::pdat::CellIndex<NDIM>& idx,
+      const IBTK::VectorNd& x)
+{
+    std::array<double, 5> Q_x_vals;
+    for (int i = -2; i <= 2; ++i)
+    {
+        SAMRAI::pdat::CellIndex<NDIM> center_idx;
+        center_idx(0) = idx(0) + i;
+        std::array<double, 5> Q_y_vals;
+        for (int j = -2; j <= 2; ++j)
+        {
+            center_idx(1) = idx(1) + j;
+#if (NDIM == 3)
+            std::array<double, 5> Q_z_vals;
+            for (int k = -2; k <= 2; ++k)
+            {
+                center_idx(2) = idx(2) + k;
+                Q_z_vals[k + 2] = Q_data(center_idx);
+            }
+            Q_y_vals[j + 2] = Reconstruct::weno5(Q_z_vals, x[2] - (static_cast<double>(idx(2)) + 0.5));
+#endif
+#if (NDIM == 2)
+            Q_y_vals[j + 2] = Q_data(center_idx);
+#endif
+        }
+        Q_x_vals[i + 2] = Reconstruct::weno5(Q_y_vals, x[1] - (static_cast<double>(idx(1)) + 0.5));
+    }
+    return Reconstruct::weno5(Q_x_vals, x[0] - (static_cast<double>(idx(0)) + 0.5));
+}
+
+template <typename Array>
+double
+weno5(const Array& Q, double xi)
+{
+    // Candidate interpolants
+    std::array<double, 3> f = {
+        0.5 * xi * (xi + 1.0) * Q[0] - xi * (2.0 + xi) * Q[1] + 0.5 * (xi + 1.0) * (xi + 2.0) * Q[2],
+        Q[1] * 0.5 * (xi - 1.0) * xi + Q[2] * (1.0 - xi) * (1.0 + xi) + Q[3] * 0.5 * xi * (1.0 + xi),
+        Q[2] * 0.5 * (-2 + xi) * (-1.0 + xi) + Q[3] * (2 - xi) * xi + 0.5 * (xi - 1.0) * xi * Q[4]
+    };
+    // Smoothness indicators
+    std::array<double, 3> is = { 1.0 / 3.0 *
+                                     (10.0 * Q[2] * Q[2] + 4.0 * Q[0] * Q[0] + Q[0] * (11 * Q[2] - 19 * Q[1]) -
+                                      31 * Q[2] * Q[1] + 25 * Q[1] * Q[1]),
+                                 1.0 / 3.0 *
+                                     (13.0 * Q[2] * Q[2] + 4 * Q[1] * Q[1] - 13 * Q[2] * Q[3] + 4 * Q[3] * Q[3] +
+                                      Q[1] * (-13 * Q[2] + 5 * Q[3])),
+                                 1.0 / 3.0 *
+                                     (10 * Q[2] * Q[2] + 25 * Q[3] * Q[3] + 11 * Q[2] * Q[4] + 4 * Q[4] * Q[4] -
+                                      Q[3] * (31 * Q[2] + 19 * Q[4])) };
+    // Compute weights
+    std::array<double, 3> omega_bar = { 1.0 / 12.0 * (2.0 - 3 * xi + xi * xi),
+                                        -1.0 / 6.0 * (-2.0 + xi) * (2.0 + xi),
+                                        1.0 / 12.0 * (1.0 + xi) * (2.0 + xi) };
+    std::array<double, 3> alpha;
+    for (int i = 0; i < 3; ++i) alpha[i] = omega_bar[i] / std::pow(is[i] + 1.0e-20, 2.0);
+    double alpha_sum = std::accumulate(alpha.begin(), alpha.end(), 0.0);
+    std::array<double, 3> omega;
+    for (int i = 0; i < 3; ++i) omega[i] = alpha[i] / alpha_sum;
+
+    // Improve accuracy of weights (following the approach of Henrick, Aslam, and Powers).
+    for (int i = 0; i < 3; ++i)
+        omega[i] = omega[i] *
+                   (omega_bar[i] + omega_bar[i] * omega_bar[i] - 3.0 * omega_bar[i] * omega[i] + omega[i] * omega[i]) /
+                   (omega_bar[i] * omega_bar[i] + omega[i] * (1.0 - 2.0 * omega_bar[i]));
+    // normalize new weights
+    double omega_sum = std::accumulate(omega.begin(), omega.end(), 0.0);
+    std::for_each(omega.begin(), omega.end(), [omega_sum](double& val) -> void { val /= omega_sum; });
+
+    // Compute interpolant
+    double interpolant = 0.0;
+    for (int i = 0; i < 3; ++i) interpolant += omega[i] * f[i];
+    return interpolant;
+};
 } // namespace Reconstruct
 
 #endif
