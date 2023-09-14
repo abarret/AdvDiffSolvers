@@ -134,12 +134,16 @@ template <typename Array>
 double
 weno(const Array& f, const Array& si, const Array& w_bar)
 {
+    // The overall accuracy of the interpolant seems very sensitive to the value of eps. Using too small of a value
+    // gives extremely biased stencils. This suggests that the way we compute smoothness indicators is probably not
+    // correct. We should look into that.
+    static double eps = 1.0e-6;
     Array alpha = f;
     std::transform(w_bar.cbegin(),
                    w_bar.cend(),
                    si.cbegin(),
                    alpha.begin(),
-                   [](const double& w_bar, const double& si) -> double { return w_bar / std::pow(si + 1.0e-20, 2.0); });
+                   [](const double& w_bar, const double& si) -> double { return w_bar / std::pow(si + eps, 2.0); });
 
     double alpha_sum = std::accumulate(alpha.cbegin(), alpha.cend(), 0.0);
     Array w = f;
