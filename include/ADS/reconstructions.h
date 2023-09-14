@@ -250,6 +250,15 @@ double weno5(const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
  */
 template <typename Array>
 double weno5(const Array& Q, double xi);
+
+/*!
+ * Compute the WENO interpolant given the candidate stencils f, smoothness indicators si, and smooth weights w.
+ *
+ * The type Array must be compatibe with standard operations on containers, i.e. it needs cbegin(), cend(), begin(), and
+ * end() functions, and a copy constructor.
+ */
+template <typename Array>
+double weno(const Array& f, const Array& si, const Array& w);
 } // namespace Reconstruct
 
 #include <ADS/private/reconstructions_inc.h>

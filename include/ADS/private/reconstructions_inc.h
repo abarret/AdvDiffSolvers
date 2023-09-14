@@ -126,26 +126,44 @@ weno5(const Array& Q, double xi)
     std::array<double, 3> omega_bar = { 1.0 / 12.0 * (2.0 - 3 * xi + xi * xi),
                                         -1.0 / 6.0 * (-2.0 + xi) * (2.0 + xi),
                                         1.0 / 12.0 * (1.0 + xi) * (2.0 + xi) };
-    std::array<double, 3> alpha;
-    for (int i = 0; i < 3; ++i) alpha[i] = omega_bar[i] / std::pow(is[i] + 1.0e-20, 2.0);
-    double alpha_sum = std::accumulate(alpha.begin(), alpha.end(), 0.0);
-    std::array<double, 3> omega;
-    for (int i = 0; i < 3; ++i) omega[i] = alpha[i] / alpha_sum;
+
+    return weno(f, is, omega_bar);
+}
+
+template <typename Array>
+double
+weno(const Array& f, const Array& si, const Array& w_bar)
+{
+    Array alpha = f;
+    std::transform(w_bar.cbegin(),
+                   w_bar.cend(),
+                   si.cbegin(),
+                   alpha.begin(),
+                   [](const double& w_bar, const double& si) -> double { return w_bar / std::pow(si + 1.0e-20, 2.0); });
+
+    double alpha_sum = std::accumulate(alpha.cbegin(), alpha.cend(), 0.0);
+    Array w = f;
+    std::transform(alpha.cbegin(),
+                   alpha.cend(),
+                   w.begin(),
+                   [alpha_sum](const double& alpha) -> double { return alpha / alpha_sum; });
 
     // Improve accuracy of weights (following the approach of Henrick, Aslam, and Powers).
-    for (int i = 0; i < 3; ++i)
-        omega[i] = omega[i] *
-                   (omega_bar[i] + omega_bar[i] * omega_bar[i] - 3.0 * omega_bar[i] * omega[i] + omega[i] * omega[i]) /
-                   (omega_bar[i] * omega_bar[i] + omega[i] * (1.0 - 2.0 * omega_bar[i]));
+    std::transform(
+        w.cbegin(),
+        w.cend(),
+        w_bar.cbegin(),
+        w.begin(),
+        [](const double& w, const double& w_bar) -> double
+        { return w * (w_bar + w_bar * w_bar - 3.0 * w_bar * w + w * w) / (w_bar * w_bar + w * (1.0 - 2.0 * w_bar)); });
     // normalize new weights
-    double omega_sum = std::accumulate(omega.begin(), omega.end(), 0.0);
-    std::for_each(omega.begin(), omega.end(), [omega_sum](double& val) -> void { val /= omega_sum; });
+    double w_sum = std::accumulate(w.cbegin(), w.cend(), 0.0);
+    std::for_each(w.begin(), w.end(), [w_sum](double& w) -> void { w /= w_sum; });
 
     // Compute interpolant
-    double interpolant = 0.0;
-    for (int i = 0; i < 3; ++i) interpolant += omega[i] * f[i];
-    return interpolant;
-};
+    return std::inner_product(w.cbegin(), w.cend(), f.cbegin(), 0.0);
+}
+
 } // namespace Reconstruct
 
 #endif
