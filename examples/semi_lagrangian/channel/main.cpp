@@ -2,6 +2,7 @@
 
 #include "ADS/LSFromLevelSet.h"
 #include "ADS/SLAdvIntegrator.h"
+#include <ADS/WENOReconstructions.h>
 #include <ADS/app_namespaces.h>
 
 #include <ibamr/RelaxationLSMethod.h>
@@ -135,6 +136,12 @@ main(int argc, char* argv[])
         time_integrator->setInitialConditions(Q_var, Q_init);
         time_integrator->setPhysicalBcCoef(Q_var, Q_bcs[0]);
         time_integrator->restrictToLevelSet(Q_var, ls_var);
+
+        if (input_db->getBool("USE_WENO"))
+        {
+            auto adv_ops = std::make_shared<WENOReconstructions>("adv_ops");
+            time_integrator->registerAdvectionReconstruction(Q_var, adv_ops);
+        }
 
         // Set up visualization plot file writer.
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
