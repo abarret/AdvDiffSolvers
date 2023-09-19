@@ -56,7 +56,7 @@ RBFFDReconstruct(std::vector<double>& wgts,
 }
 
 inline bool
-within_weno_stencil(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat::NodeData<NDIM, double>& ls_data)
+within_weno5_stencil(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat::NodeData<NDIM, double>& ls_data)
 {
     // WENO stencil is a 5 by 5 grid.
     SAMRAI::hier::Box<NDIM> box(idx, idx);
@@ -68,6 +68,53 @@ within_weno_stencil(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat
         if (ls_val * ADS::node_to_cell(idx, ls_data) < 0.0) return false;
     }
     return true;
+}
+
+inline bool
+within_weno3_stencil(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat::NodeData<NDIM, double>& ls_data)
+{
+    // WENO stencil is a 3 by 3 grid.
+    SAMRAI::hier::Box<NDIM> box(idx, idx);
+    box.grow(1);
+    for (SAMRAI::pdat::CellIterator<NDIM> ci(box); ci; ci++)
+    {
+        const SAMRAI::pdat::CellIndex<NDIM>& i = ci();
+        const double ls_val = ADS::node_to_cell(i, ls_data);
+        if (ls_val * ADS::node_to_cell(idx, ls_data) < 0.0) return false;
+    }
+    return true;
+}
+
+inline double
+weno3(const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
+      const SAMRAI::pdat::CellIndex<NDIM>& idx,
+      const IBTK::VectorNd& x)
+{
+    std::array<double, 3> Q_x_vals;
+    for (int i = -1; i <= 1; ++i)
+    {
+        SAMRAI::pdat::CellIndex<NDIM> center_idx;
+        center_idx(0) = idx(0) + i;
+        std::array<double, 3> Q_y_vals;
+        for (int j = -1; j <= 1; ++j)
+        {
+            center_idx(1) = idx(1) + j;
+#if (NDIM == 3)
+            std::array<double, 3> Q_z_vals;
+            for (int k = -1; k <= 1; ++k)
+            {
+                center_idx(2) = idx(2) + k;
+                Q_z_vals[k + 1] = Q_data(center_idx);
+            }
+            Q_y_vals[j + 1] = Reconstruct::weno3(Q_z_vals, x[2] - (static_cast<double>(idx(2)) + 0.5));
+#endif
+#if (NDIM == 2)
+            Q_y_vals[j + 1] = Q_data(center_idx);
+#endif
+        }
+        Q_x_vals[i + 1] = Reconstruct::weno3(Q_y_vals, x[1] - (static_cast<double>(idx(1)) + 0.5));
+    }
+    return Reconstruct::weno3(Q_x_vals, x[0] - (static_cast<double>(idx(0)) + 0.5));
 }
 
 inline double
@@ -132,12 +179,26 @@ weno5(const Array& Q, double xi)
 
 template <typename Array>
 double
+weno3(const Array& Q, double xi)
+{
+    // Candidate interpolants
+    std::array<double, 2> f = { (1.0 + xi) * Q[1] - xi * Q[0], (1.0 - xi) * Q[1] + xi * Q[2] };
+    // Smoothness indicators
+    std::array<double, 2> is = { std::pow(Q[1] - Q[0], 2.0), std::pow(Q[1] - Q[2], 2.0) };
+    // Compute weights
+    std::array<double, 2> omega_bar = { 0.5 * (1.0 - xi), 0.5 * (1.0 + xi) };
+
+    return weno(f, is, omega_bar);
+}
+
+template <typename Array>
+double
 weno(const Array& f, const Array& si, const Array& w_bar)
 {
     // The overall accuracy of the interpolant seems very sensitive to the value of eps. Using too small of a value
     // gives extremely biased stencils. This suggests that the way we compute smoothness indicators is probably not
     // correct. We should look into that.
-    static double eps = 1.0e-6;
+    static double eps = 1.0e-10;
     Array alpha = f;
     std::transform(w_bar.cbegin(),
                    w_bar.cend(),

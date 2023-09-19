@@ -19,7 +19,7 @@ WENOReconstructions::WENOReconstructions(std::string object_name)
       d_Q_scr_var(new CellVariable<NDIM, double>(d_object_name + "::Q_scratch"))
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
-    d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_scr_var, var_db->getContext(d_object_name + "::CTX"), 3);
+    d_Q_scr_idx = var_db->registerVariableAndContext(d_Q_scr_var, var_db->getContext(d_object_name + "::CTX"), 4);
     return;
 } // WENOReconstructions
 
@@ -106,6 +106,8 @@ WENOReconstructions::applyReconstructionLS(const int Q_idx, const int N_idx, con
                 const CellIndex<NDIM>& idx = ci();
                 VectorNd x_loc;
                 for (int d = 0; d < NDIM; ++d) x_loc[d] = (*xstar_data)(idx, d);
+                CellIndex<NDIM> idx_l = idx;
+                idx_l(0) -= 1;
 
                 (*Q_new_data)(idx) = Reconstruct::weno5(*Q_cur_data, idx, x_loc);
             }

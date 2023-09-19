@@ -2,6 +2,7 @@
 
 #include "ADS/LSFromLevelSet.h"
 #include "ADS/SLAdvIntegrator.h"
+#include <ADS/PPMReconstructions.h>
 #include <ADS/WENOReconstructions.h>
 #include <ADS/app_namespaces.h>
 
@@ -142,6 +143,11 @@ main(int argc, char* argv[])
             auto adv_ops = std::make_shared<WENOReconstructions>("adv_ops");
             time_integrator->registerAdvectionReconstruction(Q_var, adv_ops);
         }
+        else if (input_db->getBool("USE_PPM"))
+        {
+            auto adv_ops = std::make_shared<PPMReconstructions>("adv_ops");
+            time_integrator->registerAdvectionReconstruction(Q_var, adv_ops);
+        }
 
         // Set up visualization plot file writer.
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
@@ -161,6 +167,7 @@ main(int argc, char* argv[])
         Pointer<CellVariable<NDIM, double>> Q_err_var = new CellVariable<NDIM, double>("Q_err");
         const int Q_exa_idx = var_db->registerVariableAndContext(Q_exa_var, var_db->getContext("CTX"));
         const int Q_err_idx = var_db->registerVariableAndContext(Q_err_var, var_db->getContext("CTX"));
+
         visit_data_writer->registerPlotQuantity("Q_exact", "SCALAR", Q_exa_idx);
         visit_data_writer->registerPlotQuantity("Q_error", "SCALAR", Q_err_idx);
 

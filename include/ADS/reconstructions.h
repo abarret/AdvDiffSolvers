@@ -203,7 +203,10 @@ RBFFDReconstruct(std::vector<double>& wgts,
  *
  * Note: ls_data is assumed to have sufficient ghost width for the stencil.
  */
-bool within_weno_stencil(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat::NodeData<NDIM, double>& ls_data);
+bool within_weno5_stencil(const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                          const SAMRAI::pdat::NodeData<NDIM, double>& ls_data);
+bool within_weno3_stencil(const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                          const SAMRAI::pdat::NodeData<NDIM, double>& ls_data);
 
 /*!
  * Compute the WENO5 interpolant at x using a stencil centered at idx and given the patch data Q_data.
@@ -241,6 +244,10 @@ double weno5(const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
              const SAMRAI::pdat::CellIndex<NDIM>& idx,
              const IBTK::VectorNd& x);
 
+double weno3(const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
+             const SAMRAI::pdat::CellIndex<NDIM>& idx,
+             const IBTK::VectorNd& x);
+
 /*!
  * Compute the WENO5 interpolant evaluated at xi given an array of Q values. The parameter xi should be between -0.5 and
  * 0.5 for accuracy. Note if |xi| > 0.5, then the stencil should be shifted so that |xi| <= 0.5.
@@ -250,6 +257,16 @@ double weno5(const SAMRAI::pdat::CellData<NDIM, double>& Q_data,
  */
 template <typename Array>
 double weno5(const Array& Q, double xi);
+
+/*!
+ * Compute the WENO5 interpolant evaluated at xi given an array of Q values. The parameter xi should be between -0.5 and
+ * 0.5 for accuracy. Note if |xi| > 0.5, then the stencil should be shifted so that |xi| <= 0.5.
+ *
+ * The type Array needs to be of length 5 with a defined operator[] that starts it's index at zero. We assume that Q[2]
+ * is the center of the stencil, Q[0] is "below" the center, and Q[5] is "above" the center.
+ */
+template <typename Array>
+double weno3(const Array& Q, double xi);
 
 /*!
  * Compute the WENO interpolant given the candidate stencils f, smoothness indicators si, and smooth weights w.

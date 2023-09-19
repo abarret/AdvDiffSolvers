@@ -23,7 +23,9 @@ SET(CXX_SRC
     adv_ops/RBFReconstructions.cpp
     adv_ops/RBFStructureReconstructions.cpp
     adv_ops/WENOReconstructions.cpp
+    adv_ops/WENOStructureReconstructions.cpp
     adv_ops/ZSplineReconstructions.cpp
+    adv_ops/PPMReconstructions
     
     cut_cell/CutCellMeshMapping.cpp
     cut_cell/CutCellVolumeMeshMapping.cpp

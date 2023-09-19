@@ -34,10 +34,10 @@ QFcn::setDataOnPatch(const int data_idx,
 {
     auto fcn = [this](VectorNd X, double t) -> double
     {
-        auto w = [](double r, double D, double t) -> double
+        auto w = [this](double r, double D, double t) -> double
         {
-            if (r < 1.0)
-                return std::pow(std::cos(M_PI * r) + 1.0, 2.0);
+            if (r < d_R)
+                return std::pow(std::cos(M_PI * r / d_R) + 1.0, 2.0);
             else
                 return 0.0;
         };

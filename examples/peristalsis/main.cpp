@@ -3,6 +3,7 @@
 #include <ADS/LSFromMesh.h>
 #include <ADS/RBFStructureReconstructions.h>
 #include <ADS/SLAdvIntegrator.h>
+#include <ADS/WENOStructureReconstructions.h>
 #include <ADS/app_namespaces.h>
 
 #include <ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h>
@@ -443,6 +444,11 @@ main(int argc, char* argv[])
         adv_op_reconstruct->setQSystemName(Q_exact_str);
         adv_diff_integrator->registerAdvectionReconstruction(Q_var, adv_op_reconstruct);
 
+        Pointer<CellVariable<NDIM, double>> indicator_var = new CellVariable<NDIM, double>("indicator");
+        const int indicator_idx = var_db->registerVariableAndContext(indicator_var, var_db->getContext("CTX"));
+        adv_op_reconstruct->setIndicator(indicator_idx);
+        visit_data_writer->registerPlotQuantity("indicator", "SCALAR", indicator_idx);
+
         mesh_mapping->initializeFEData();
 
         // Initialize hierarchy configuration and data on all patches.
@@ -558,6 +564,7 @@ main(int argc, char* argv[])
             pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
             pout << "At beginning of timestep # " << iteration_num << "\n";
             pout << "Simulation time is " << loop_time << "\n";
+            time_integrator->allocatePatchData(indicator_idx, loop_time);
 
             dt = time_integrator->getMaximumTimeStepSize();
             time_integrator->advanceHierarchy(dt);
@@ -606,6 +613,7 @@ main(int argc, char* argv[])
                 pout << "\nWriting timer data...\n\n";
                 TimerManager::getManager()->print(plog);
             }
+            time_integrator->deallocatePatchData(indicator_idx);
         }
 
     } // cleanup dynamically allocated objects prior to shutdown

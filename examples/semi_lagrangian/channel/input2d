@@ -33,7 +33,8 @@ DIF_INT_METHOD = "TRAPEZOIDAL_RULE"
 USE_RBFS =  TRUE
 RBF_STENCIL_SIZE = 12
 RBF_POLY_ORDER = "QUADRATIC"
-USE_WENO = TRUE
+USE_WENO = FALSE
+USE_PPM = TRUE
 
 XCOM = 1.5
 YCOM = 0.5
@@ -87,7 +88,7 @@ Main {
 
 // visualization dump parameters
    viz_writer                  = "VisIt"
-   viz_dump_interval           = int(0.05 / DT_MAX) 
+   viz_dump_interval           = int(0.05 / DT_MAX)
    viz_dump_dirname            = "viz_adv_diff2d"
    visit_number_procs_per_file = 1
 
