@@ -1,0 +1,1717 @@
+Using interp type RBF
+AdvDiffIntegrator: initializing Hierarchy integrator.
+IBHierarchyIntegrator::initializePatchHierarchy(): tag_buffer = 0
+AdvDiffIntegrator: initializing level data
+Setting level set at initial time: 1
+INSIntegrator::initializeCompositeHierarchyData():
+  projecting the interpolated velocity field
+INSIntegrator::regridProjection(): regrid projection solve number of iterations = 0
+INSIntegrator::regridProjection(): regrid projection solve residual norm        = 0
+AdvDiffIntegrator: initializing composite Hierarchy data
+AdvDiffIntegrator: Initializing fe mesh mappings
+AdvDiffIntegrator: initializing level set for: LS
+Minimum volume on level:     0 is: 2.05639885807e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399997393825
+AdvDiffIntegrator: Initializing data for variable: Q
+AdvDiffIntegrator: Finished initializing composite data
+IBNRedundantInitializer:  Deallocating initialization data.
+Input database:
+input_db {
+   PI                          = 3.14159                    // input used
+   L                           = 1                          // input used
+   RHO                         = 1                          // input used
+   MU                          = 1                          // input used
+   K_TETHER                    = 1                          // input used
+   ALPHA                       = 1.25664                    // input used
+   GAMMA                       = 0.25                       // input used
+   MFAC                        = 1                          // input used
+   R                           = 0.25                       // input used
+   MAX_LEVELS                  = 1                          // input used
+   REF_RATIO                   = 4                          // input used
+   N                           = 64                         // input used
+   NFINEST                     = 64                         // input used
+   DX_FINEST                   = 0.015625                   // input not used
+   USING_LS_FCN                = TRUE                       // input not used
+   MIN_REFINE_FACTOR           = -4                         // input used
+   MAX_REFINE_FACTOR           = 2                          // input used
+   LEAST_SQUARES_ORDER         = "QUADRATIC"                // input not used
+   USE_STRANG_SPLITTING        = FALSE                      // input not used
+   USE_OUTSIDE_LS_FOR_TAGGING  = TRUE                       // input not used
+   ADV_INT_METHOD              = "MIDPOINT_RULE"            // input used
+   DIF_INT_METHOD              = "TRAPEZOIDAL_RULE"         // input used
+   USE_RBFS                    = TRUE                       // input used
+   RBF_STENCIL_SIZE            = 12                         // input used
+   RBF_POLY_ORDER              = "RBF"                      // input used
+   LIMIT_FCN                   = FALSE                      // input used
+   INTERP_TYPE                 = "RBF"                      // input used
+   DELTA_FUNCTION              = "BSPLINE_3"                // input used
+   SOLVER_TYPE                 = "STAGGERED"                // input not used
+   START_TIME                  = 0                          // input used
+   END_TIME                    = 0.01                       // input used
+   GROW_DT                     = 2                          // input used
+   NUM_CYCLES                  = 1                          // input used
+   CONVECTIVE_TS_TYPE          = "ADAMS_BASHFORTH"          // input not used
+   CONVECTIVE_OP_TYPE          = "PPM"                      // input not used
+   CONVECTIVE_FORM             = "ADVECTIVE"                // input not used
+   NORMALIZE_PRESSURE          = TRUE                       // input not used
+   CFL_MAX                     = 0.3                        // input not used
+   DT_MAX                      = 0.00025                    // input used
+   ERROR_ON_DT_CHANGE          = TRUE                       // input used
+   VORTICITY_TAGGING           = FALSE                      // input not used
+   TAG_BUFFER                  = 1                          // input used
+   REGRID_CFL_INTERVAL         = 0.5                        // input used
+   OUTPUT_U                    = TRUE                       // input not used
+   OUTPUT_P                    = TRUE                       // input not used
+   OUTPUT_F                    = FALSE                      // input not used
+   OUTPUT_OMEGA                = TRUE                       // input not used
+   OUTPUT_DIV_U                = TRUE                       // input not used
+   ENABLE_LOGGING              = TRUE                       // input used
+   STRUCTURE_LIST              = "curve2d"                  // input not used
+   ADV_DIFF_NUM_CYCLES         = 1                          // input used
+   ADV_DIFF_CONVECTIVE_OP_TYPE = "CUI"                      // input used
+   ADV_DIFF_CONVECTIVE_TS_TYPE = "ADAMS_BASHFORTH"          // input used
+   ADV_DIFF_CONVECTIVE_FORM    = "CONSERVATIVE"             // input used
+   USE_CF                      = FALSE                      // input not used
+   FLUID_MODEL                 = "OLDROYDB"                 // input not used
+   EVOLVE_TYPE                 = "SQUARE_ROOT"              // input not used
+   LOG_DETERMINANT             = TRUE                       // input not used
+   CONVECTIVE_OPERATOR_TYPE    = "CUI"                      // input not used
+   OUTPUT_CONFORMATION_TENSOR  = TRUE                       // input not used
+   OUTPUT_STRESS_TENSOR        = FALSE                      // input not used
+   OUTPUT_DIVERGENCE           = TRUE                       // input not used
+   PROJECT_CONFORM_TENS        = FALSE                      // input not used
+   RELAXATION_TIME             = 4                          // input not used
+   VISCOSITY                   = 2                          // input not used
+   USING_EXACT_U               = FALSE                      // input not used
+   BDRY_INTERP_TYPE            = "LINEAR"                   // input not used
+   LS                          = "1.0 + sin(2.0*PI*X_0)*cos(2.0*PI*X_1)" // input used
+   AdvOps {
+      stencil_size = 12                                     // input used
+      rbf_order    = "QUADRATIC"                            // input used
+      low_cutoff   = 0                                      // input used
+      high_cutoff  = nan                                    // from default
+   }
+   MeshMapping {
+      alpha     = 1.25664                                   // input used
+      gamma     = 0.25                                      // input used
+      max_level = 1                                         // input used
+   }
+   CutCellMapping {
+      perturb_nodes = FALSE                                 // input used
+   }
+   VelocityInitialConditions {
+      function_0 = "0.0"                                    // input used
+      function_1 = "0.0"                                    // input used
+   }
+   PressureInitialConditions {
+      function = "0.0"                                      // input used
+   }
+   LSInit {
+      r      = 0.25                                         // input used
+      alpha  = 1.25664                                      // input used
+      gamma  = 0.25                                         // input used
+      center = 0.35, 0.2                                    // input used
+   }
+   LSBdryCoefs {
+      a                = 1.25664                            // input not used
+      g                = 0.25                               // input not used
+      acoef_function_0 = "1.0"                              // input not used
+      acoef_function_1 = "1.0"                              // input not used
+      acoef_function_2 = "1.0"                              // input not used
+      acoef_function_3 = "1.0"                              // input not used
+      bcoef_function_0 = "0.0"                              // input not used
+      bcoef_function_1 = "0.0"                              // input not used
+      bcoef_function_2 = "0.0"                              // input not used
+      bcoef_function_3 = "0.0"                              // input not used
+      gcoef_function_0 = "1.0 + sin(2.0*PI*X_0)*cos(2.0*PI*X_1)" // input not used
+      gcoef_function_1 = "1.0 + sin(2.0*PI*X_0)*cos(2.0*PI*X_1)" // input not used
+      gcoef_function_2 = "1.0 + sin(2.0*PI*X_0)*cos(2.0*PI*X_1)" // input not used
+      gcoef_function_3 = "1.0 + sin(2.0*PI*X_0)*cos(2.0*PI*X_1)" // input not used
+   }
+   IBHierarchyIntegrator {
+      start_time          = 0                               // input used
+      end_time            = 0.01                            // input used
+      grow_dt             = 2                               // input used
+      num_cycles          = 1                               // input used
+      regrid_cfl_interval = 0.5                             // input used
+      dt_max              = 0.00025                         // input used
+      error_on_dt_change  = TRUE                            // input used
+      tag_buffer          = 1                               // input used
+      enable_logging      = TRUE                            // input used
+      time_stepping_type  = "TRAPEZOIDAL_RULE"              // input used
+   }
+   IBMethod {
+      delta_fcn      = "BSPLINE_3"                          // input used
+      enable_logging = TRUE                                 // input used
+   }
+   IBRedundantInitializer {
+      max_levels      = 1                                   // input used
+      structure_names = "asdf"                              // input used
+      asdf {
+         level_number = 0                                   // input used
+      }
+   }
+   INSIntegrator {
+      rho                   = 1                             // input used
+      mu                    = 1                             // input used
+      start_time            = 0                             // input used
+      end_time              = 0.01                          // input used
+      num_cycles            = 1                             // input used
+      dt_max                = 0.00025                       // input used
+      enable_logging        = TRUE                          // input used
+      tag_buffer            = 1                             // input used
+      stokes_solver_type    = "PETSC_KRYLOV_SOLVER"         // input used
+      stokes_precond_type   = "PROJECTION_PRECONDITIONER"   // input used
+      velocity_solver_type  = "PETSC_KRYLOV_SOLVER"         // input used
+      velocity_precond_type = "POINT_RELAXATION_FAC_PRECONDITIONER" // input used
+      pressure_solver_type  = "PETSC_KRYLOV_SOLVER"         // input used
+      pressure_precond_type = "POINT_RELAXATION_FAC_PRECONDITIONER" // input used
+      U_P_bdry_interp_type  = "LINEAR"                      // from default
+      stokes_solver_db {
+         ksp_type               = "fgmres"                  // input used
+         refine_type            = "NONE"                    // from default
+         coarsen_type           = "CUBIC_COARSEN"           // from default
+         bdry_extrap_type       = "LINEAR"                  // from default
+         bdry_interp_type       = "LINEAR"                  // from default
+         use_cf_interpolation   = TRUE                      // from default
+         consistent_type_2_bdry = FALSE                     // from default
+      }
+      velocity_solver_db {
+         ksp_type       = "richardson"                      // input used
+         max_iterations = 2                                 // input used
+      }
+      velocity_precond_db {
+         num_pre_sweeps                 = 0                 // input used
+         num_post_sweeps                = 5                 // input used
+         prolongation_method            = "CONSTANT_REFINE" // input used
+         restriction_method             = "CONSERVATIVE_COARSEN" // input used
+         coarse_solver_type             = "HYPRE_LEVEL_SOLVER" // input used
+         coarse_solver_rel_residual_tol = 1e-12             // input used
+         coarse_solver_abs_residual_tol = 1e-50             // input used
+         coarse_solver_max_iterations   = 1                 // input used
+         coarse_solver_db {
+            solver_type       = "Split"                     // input used
+            split_solver_type = "PFMG"                      // input used
+            enable_logging    = FALSE                       // input used
+         }
+      }
+      pressure_solver_db {
+         ksp_type       = "richardson"                      // input used
+         max_iterations = 1                                 // input used
+      }
+      pressure_precond_db {
+         num_pre_sweeps                 = 0                 // input used
+         num_post_sweeps                = 3                 // input used
+         prolongation_method            = "LINEAR_REFINE"   // input used
+         restriction_method             = "CONSERVATIVE_COARSEN" // input used
+         coarse_solver_type             = "HYPRE_LEVEL_SOLVER" // input used
+         coarse_solver_rel_residual_tol = 1e-12             // input used
+         coarse_solver_abs_residual_tol = 1e-50             // input used
+         coarse_solver_max_iterations   = 1                 // input used
+         coarse_solver_db {
+            solver_type          = "PFMG"                   // input used
+            num_pre_relax_steps  = 0                        // input used
+            num_post_relax_steps = 3                        // input used
+            enable_logging       = FALSE                    // input used
+         }
+      }
+   }
+   AdvDiffIntegrator {
+      start_time                    = 0                     // input used
+      end_time                      = 0.01                  // input used
+      num_cycles                    = 1                     // input used
+      convective_time_stepping_type = "ADAMS_BASHFORTH"     // input not used
+      convective_op_type            = "CUI"                 // input not used
+      convective_difference_form    = "CONSERVATIVE"        // input used
+      dt_max                        = 0.00025               // input used
+      enable_logging                = TRUE                  // input used
+      least_squares_order           = "FIRST"               // input used
+      prescribe_level_set           = TRUE                  // input not used
+      min_ls_refine_factor          = -4                    // input used
+      max_ls_refine_factor          = 2                     // input used
+      use_strang_splitting          = FALSE                 // input not used
+      advection_ts_type             = "MIDPOINT_RULE"       // input used
+      diffusion_ts_type             = "TRAPEZOIDAL_RULE"    // input not used
+      use_rbfs                      = TRUE                  // input used
+      rbf_stencil_size              = 12                    // input used
+      rbf_poly_order                = "RBF"                 // input used
+      mls_stencil_size              = 8                     // from default
+      default_adv_reconstruct_type  = "RBF"                 // from default
+   }
+   Main {
+      log_file_name               = "output"                // input used
+      log_all_nodes               = FALSE                   // input used
+      viz_writer                  = "VisIt", "Silo"         // input used
+      viz_dump_interval           = 0                       // input used
+      viz_dump_dirname            = "viz.blob"              // input used
+      visit_number_procs_per_file = 1                       // input used
+      restart_dump_interval       = 0                       // input used
+      restart_dump_dirname        = "restart_IB2d"          // input used
+      data_dump_interval          = 0                       // input used
+      data_dump_dirname           = "hier_data_IB2d"        // input used
+      timer_dump_interval         = 0                       // input used
+   }
+   CartesianGeometry {
+      domain_boxes       = [(0,0),(63,63)]                  // input used
+      x_lo               = 0, -0.5                          // input used
+      x_up               = 1, 0.5                           // input used
+      periodic_dimension = 1, 1                             // input used
+   }
+   GriddingAlgorithm {
+      max_levels                = 1                         // input used
+      efficiency_tolerance      = 0.75                      // input used
+      combine_efficiency        = 0.75                      // input used
+      check_nonrefined_tags     = 'w'                       // from default
+      check_overlapping_patches = 'i'                       // from default
+      extend_tags_to_bdry       = FALSE                     // from default
+      ratio_to_coarser {
+         level_1 = 4, 4                                     // input not used
+         level_2 = 4, 4                                     // input not used
+         level_3 = 4, 4                                     // input not used
+         level_4 = 4, 4                                     // input not used
+         level_5 = 4, 4                                     // input not used
+      }
+      largest_patch_size {
+         level_0 = 512, 512                                 // input used
+      }
+      smallest_patch_size {
+         level_0 = 8, 8                                     // input used
+      }
+   }
+   StandardTagAndInitialize {
+      tagging_method = "GRADIENT_DETECTOR"                  // input used
+   }
+   LoadBalancer {
+      bin_pack_method                      = "SPATIAL"      // input used
+      max_workload_factor                  = 1              // input used
+      ignore_level_box_union_is_single_box = FALSE          // from default
+   }
+   TimerManager {
+      print_exclusive      = FALSE                          // input used
+      print_total          = TRUE                           // input used
+      print_threshold      = 0.1                            // input used
+      timer_list           = "IBAMR::*::*", "IBTK::*::*", "ADS::*::*", "*::*::*" // input used
+      print_processor      = TRUE                           // from default
+      print_max            = FALSE                          // from default
+      print_summed         = FALSE                          // from default
+      print_user           = FALSE                          // from default
+      print_sys            = FALSE                          // from default
+      print_wall           = TRUE                           // from default
+      print_percentage     = TRUE                           // from default
+      print_concurrent     = FALSE                          // from default
+      print_timer_overhead = FALSE                          // from default
+   }
+}
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 0
+Simulation time is 0
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0,0.00025], dt = 0.00025
+IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 0
+IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
+IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
+IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
+AdvDiffIntegrator: initializing composite Hierarchy data
+AdvDiffIntegrator: Finished initializing composite data
+INSIntegrator::preprocessIntegrateHierarchy(): initializing convective operator
+INSIntegrator::preprocessIntegrateHierarchy(): initializing velocity subdomain solver
+INSIntegrator::preprocessIntegrateHierarchy(): initializing pressure subdomain solver
+INSIntegrator::preprocessIntegrateHierarchy(): initializing incompressible Stokes solver
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 2.05639885807e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399997393825
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 0
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 0
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 2.05639885807e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399995768811
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 0
+Simulation time is 0.00025
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 1
+Simulation time is 0.00025
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00025,0.0005], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 2.05639885807e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399995768811
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 5
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 1.03874572781e-06
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 2.05616483705e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399994230059
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 9.49406886298e-06
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 9.49406886298e-06
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 1
+Simulation time is 0.0005
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 2
+Simulation time is 0.0005
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0005,0.00075], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 2.05616483705e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399994230059
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 2.78606400471e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 2.05526230054e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399992776361
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 2.21867447601e-05
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 3.16808136231e-05
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 2
+Simulation time is 0.00075
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 3
+Simulation time is 0.00075
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00075,0.001], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 2.05526230054e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399992776361
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 2.95271937532e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 2.0532794461e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399991405639
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 3.91195064143e-05
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 7.08003200374e-05
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 3
+Simulation time is 0.001
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 4
+Simulation time is 0.001
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.001,0.00125], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 2.0532794461e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399991405639
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.06500786601e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 2.04980041679e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399990115364
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 5.92113646549e-05
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.000130011684692
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 4
+Simulation time is 0.00125
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 5
+Simulation time is 0.00125
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00125,0.0015], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 2.04980041679e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399990115364
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.14623353183e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 2.04442128014e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399988902672
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 8.23148920962e-05
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.000212326576789
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 5
+Simulation time is 0.0015
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 6
+Simulation time is 0.0015
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0015,0.00175], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 2.04442128014e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399988902672
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.20776300632e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 2.03675179092e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399987764476
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000108134649842
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00032046122663
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 6
+Simulation time is 0.00175
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 7
+Simulation time is 0.00175
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00175,0.002], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 2.03675179092e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399987764476
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.25581869031e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 2.02641959018e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399986697555
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000136517610768
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.000456978837398
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 7
+Simulation time is 0.002
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 8
+Simulation time is 0.002
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.002,0.00225], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 2.02641959018e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399986697555
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.29391150992e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 2.01307249817e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399985698628
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000167290579753
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.000624269417151
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 8
+Simulation time is 0.00225
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 9
+Simulation time is 0.00225
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00225,0.0025], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 2.01307249817e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399985698628
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.32427813139e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.99638125035e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399984764413
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000200323339202
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.000824592756353
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 9
+Simulation time is 0.0025
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 10
+Simulation time is 0.0025
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0025,0.00275], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.99638125035e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399984764413
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.34845329409e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.97604206499e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399983891671
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000235487632332
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00106008038869
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 10
+Simulation time is 0.00275
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 11
+Simulation time is 0.00275
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00275,0.003], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.97604206499e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399983891671
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.36753207278e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.95177940136e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399983077251
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000272672275925
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00133275266461
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 11
+Simulation time is 0.003
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 12
+Simulation time is 0.003
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.003,0.00325], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.95177940136e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399983077251
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.38233442197e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.92334880322e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399982318109
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000311771141338
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00164452380595
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 12
+Simulation time is 0.00325
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 13
+Simulation time is 0.00325
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00325,0.0035], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.92334880322e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399982318109
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.39348212784e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.890539852e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399981611336
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000352686746355
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0019972105523
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 13
+Simulation time is 0.0035
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 14
+Simulation time is 0.0035
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0035,0.00375], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.890539852e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399981611336
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.40146132279e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.85317920967e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399980954167
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000395326230901
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0023925367832
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 14
+Simulation time is 0.00375
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 15
+Simulation time is 0.00375
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00375,0.004], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.85317920967e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399980954167
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.40665233008e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.81113372373e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399980343992
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000439602036833
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00283213882004
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 15
+Simulation time is 0.004
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 16
+Simulation time is 0.004
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.004,0.00425], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.81113372373e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399980343992
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 4
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 3.40936321381e-05
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.76431356501e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399979778357
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000485430366944
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00331756918698
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 16
+Simulation time is 0.00425
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 17
+Simulation time is 0.00425
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00425,0.0045], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.76431356501e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399979778357
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000645087302496
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.71267452258e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399979254959
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000532741406456
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00385031059344
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 17
+Simulation time is 0.0045
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 18
+Simulation time is 0.0045
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0045,0.00475], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.71267452258e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399979254959
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000644261441096
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.65622294528e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399978771654
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000581437210623
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00443174780406
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 18
+Simulation time is 0.00475
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 19
+Simulation time is 0.00475
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00475,0.005], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.65622294528e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399978771654
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000642577213947
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.59501873513e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.39997832646
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000631454275687
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00506320207975
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 19
+Simulation time is 0.005
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 20
+Simulation time is 0.005
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.005,0.00525], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.59501873513e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.39997832646
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000640728356903
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.52917663337e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399977912063
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000682720929284
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00574592300903
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 20
+Simulation time is 0.00525
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 21
+Simulation time is 0.00525
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00525,0.0055], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.52917663337e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399977912063
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000638486772426
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.458870091e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399977503982
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000735167697765
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0064810907068
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 21
+Simulation time is 0.0055
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 22
+Simulation time is 0.0055
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0055,0.00575], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.458870091e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399977503982
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000635888528732
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.38433412629e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399977099291
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000788727402708
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0072698181095
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 22
+Simulation time is 0.00575
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 23
+Simulation time is 0.00575
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00575,0.006], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.38433412629e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399977099291
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000632963869088
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.30586804959e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399976697739
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000843334789603
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00811315289911
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 23
+Simulation time is 0.006
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 24
+Simulation time is 0.006
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.006,0.00625], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.30586804959e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399976697739
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000629741442292
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.22383804673e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399976299022
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000898926508579
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00901207940769
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 24
+Simulation time is 0.00625
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 25
+Simulation time is 0.00625
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00625,0.0065], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.22383804673e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399976299022
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000626244456723
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.13867959981e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399975902794
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.000955440935529
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.00996752034322
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 25
+Simulation time is 0.0065
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 26
+Simulation time is 0.0065
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0065,0.00675], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.13867959981e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399975902794
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000622491528555
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.05089972977e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399975508703
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00101281812834
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0109803384716
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 26
+Simulation time is 0.00675
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 27
+Simulation time is 0.00675
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00675,0.007], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.05089972977e-07
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399975508703
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000618504228033
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 9.6107904647e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399975116375
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00107099972776
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0120513381993
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 27
+Simulation time is 0.007
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 28
+Simulation time is 0.007
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.007,0.00725], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 9.6107904647e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399975116375
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000614296585916
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 8.69873590089e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399974725411
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00112992890514
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0131812671045
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 28
+Simulation time is 0.00725
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 29
+Simulation time is 0.00725
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00725,0.0075], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 8.69873590089e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399974725411
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000609884874615
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 7.78016448566e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399974335388
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00118955029961
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0143708174041
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 29
+Simulation time is 0.0075
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 30
+Simulation time is 0.0075
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0075,0.00775], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 7.78016448566e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399974335388
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000605282546562
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 6.86319148284e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399973945865
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0012498099632
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0156206273673
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 30
+Simulation time is 0.00775
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 31
+Simulation time is 0.00775
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00775,0.008], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 6.86319148284e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399973945865
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000600501941245
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 5.95672799683e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399973556382
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00131065532974
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.016931282697
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 31
+Simulation time is 0.008
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 32
+Simulation time is 0.008
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.008,0.00825], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 5.95672799683e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399973556382
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000595555355108
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 5.0704898524e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399973166442
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00137203517184
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0183033178688
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 32
+Simulation time is 0.00825
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 33
+Simulation time is 0.00825
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00825,0.0085], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 5.0704898524e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399973166442
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000590452265825
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 4.21500390148e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.39997277539
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00143389955547
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0197372174243
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 33
+Simulation time is 0.0085
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 34
+Simulation time is 0.0085
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0085,0.00875], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 4.21500390148e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.39997277539
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000585205448707
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 3.40161166625e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399972382497
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00149619982534
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0212334172497
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 34
+Simulation time is 0.00875
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 35
+Simulation time is 0.00875
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00875,0.009], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 3.40161166625e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399972382497
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000579821971089
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 2.64247022768e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399971987145
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00155888857135
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.022792305821
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 35
+Simulation time is 0.009
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 36
+Simulation time is 0.009
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.009,0.00925], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 2.64247022768e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399971987145
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000574314325779
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.95055027446e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399971588733
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00162191963086
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0244142254519
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 36
+Simulation time is 0.00925
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 37
+Simulation time is 0.00925
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00925,0.0095], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.95055027446e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399971588733
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000568684693635
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 1.33963163244e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399971189247
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00168524793319
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0260994733851
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 37
+Simulation time is 0.0095
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 38
+Simulation time is 0.0095
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0095,0.00975], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 1.33963163244e-08
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399971189247
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000562949600226
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 8.24295733317e-09
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399970785809
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00174882970037
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0278483030854
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 38
+Simulation time is 0.00975
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++
+At beginning of timestep # 39
+Simulation time is 0.00975
+IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.00975,0.01], dt = 0.00025
+AdvDiffIntegrator: Initializing fe mesh mappings
+Minimum volume on level:     0 is: 8.24295733317e-09
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399970785809
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
+IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
+IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
+IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
+IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
+INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 3
+INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0.000557112983662
+IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian trapezoidal-rule step
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
+Minimum volume on level:     0 is: 4.19915125691e-09
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0.399970377496
+AdvDiffIntegrator: advecting Q
+AdvDiffIntegrator::integrateHierarchy() finished advection update for variable: Q
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00181262228408
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0296609253695
+IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
+IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
+
+At end       of timestep # 39
+Simulation time is 0.01
++++++++++++++++++++++++++++++++++++++++++++++++++++
+

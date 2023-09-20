@@ -29,7 +29,7 @@ QFcn::~QFcn()
 
 void
 QFcn::setDataOnPatch(const int data_idx,
-                     Pointer<Variable<NDIM>> /*var*/,
+                     Pointer<hier::Variable<NDIM>> /*var*/,
                      Pointer<Patch<NDIM>> patch,
                      const double /*data_time*/,
                      const bool /*initial_time*/,

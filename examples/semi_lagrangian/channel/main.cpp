@@ -2,6 +2,7 @@
 
 #include "ADS/LSFromLevelSet.h"
 #include "ADS/SLAdvIntegrator.h"
+#include <ADS/LagrangeReconstructions.h>
 #include <ADS/app_namespaces.h>
 
 #include <ibamr/RelaxationLSMethod.h>
@@ -156,6 +157,12 @@ main(int argc, char* argv[])
         const int Q_err_idx = var_db->registerVariableAndContext(Q_err_var, var_db->getContext("CTX"));
         visit_data_writer->registerPlotQuantity("Q_exact", "SCALAR", Q_exa_idx);
         visit_data_writer->registerPlotQuantity("Q_error", "SCALAR", Q_err_idx);
+
+        if (input_db->getBool("USE_LAGRANGE"))
+        {
+            auto adv_ops = std::make_shared<LagrangeReconstructions>("adv_ops");
+            time_integrator->registerAdvectionReconstruction(Q_var, adv_ops);
+        }
 
         // Initialize hierarchy configuration and data on all patches.
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
