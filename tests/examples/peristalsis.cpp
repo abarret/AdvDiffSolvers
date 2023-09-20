@@ -47,8 +47,8 @@
 #include <memory>
 
 // Local includes
-#include "IBBoundaryMeshMapping.h"
-#include "QFcn.h"
+#include "peristalsis/IBBoundaryMeshMapping.cpp"
+#include "peristalsis/QFcn.cpp"
 
 int finest_ln;
 std::array<int, NDIM> N;
@@ -170,15 +170,6 @@ move_tethers(LDataManager* data_manager, const double time)
     X_ref_data->restoreArrays();
 }
 
-double
-Q_fcn(const VectorNd& X, double time)
-{
-    return (X[1] <= (alpha / (2.0 * M_PI) * (1.0 + g * std::sin(2.0 * M_PI * (X[0])))) && X[1] >= 0.1 && X[0] > 0.1 &&
-            X[0] <= 0.4) ?
-               0.5 :
-               0.05;
-}
-
 void
 ls_bdry_fcn(const VectorNd& X, double& ls_val)
 {
@@ -214,26 +205,6 @@ main(int argc, char* argv[])
         // and enable file logging.
         Pointer<AppInitializer> app_initializer = new AppInitializer(argc, argv, "IB.log");
         Pointer<Database> input_db = app_initializer->getInputDatabase();
-
-        // Get various standard options set in the input file.
-        const bool dump_viz_data = app_initializer->dumpVizData();
-        const int viz_dump_interval = app_initializer->getVizDumpInterval();
-        const bool uses_visit = dump_viz_data && app_initializer->getVisItDataWriter();
-
-        const bool dump_restart_data = app_initializer->dumpRestartData();
-        const int restart_dump_interval = app_initializer->getRestartDumpInterval();
-        const string restart_dump_dirname = app_initializer->getRestartDumpDirectory();
-
-        const bool dump_postproc_data = app_initializer->dumpPostProcessingData();
-        const int postproc_data_dump_interval = app_initializer->getPostProcessingDataDumpInterval();
-        const string postproc_data_dump_dirname = app_initializer->getPostProcessingDataDumpDirectory();
-        if (dump_postproc_data && (postproc_data_dump_interval > 0) && !postproc_data_dump_dirname.empty())
-        {
-            Utilities::recursiveMkdir(postproc_data_dump_dirname);
-        }
-
-        const bool dump_timer_data = app_initializer->dumpTimerData();
-        const int timer_dump_interval = app_initializer->getTimerDumpInterval();
 
         // Create major algorithm and data objects that comprise the
         // application.  These objects are configured from the input database
@@ -298,18 +269,6 @@ main(int argc, char* argv[])
         ib_ops->registerLInitStrategy(ib_initializer);
         Pointer<IBStandardForceGen> ib_spring_forces = new IBStandardForceGen();
         ib_ops->registerIBLagrangianForceFunction(ib_spring_forces);
-
-        // Set up visualization plot file writers.
-        Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
-        Pointer<LSiloDataWriter> data_writer =
-            new LSiloDataWriter("DataWriter", input_db->getDatabase("Main")->getString("viz_dump_dirname"), false);
-        if (uses_visit)
-        {
-            ib_initializer->registerLSiloDataWriter(data_writer);
-            ib_ops->registerLSiloDataWriter(data_writer);
-            time_integrator->registerVisItDataWriter(visit_data_writer);
-            adv_diff_integrator->registerVisItDataWriter(visit_data_writer);
-        }
 
         // Create Eulerian initial condition specification objects.  These
         // objects also are used to specify exact solution values for error
@@ -412,8 +371,6 @@ main(int argc, char* argv[])
         auto var_db = VariableDatabase<NDIM>::getDatabase();
         const int ls_idx = var_db->registerVariableAndContext(ls_var, var_db->getContext("LS"), IntVector<NDIM>(2));
         const int vol_idx = var_db->registerVariableAndContext(vol_var, var_db->getContext("VOL"), IntVector<NDIM>(2));
-        visit_data_writer->registerPlotQuantity("LS", "SCALAR", ls_idx);
-        visit_data_writer->registerPlotQuantity("VOL", "SCALAR", vol_idx);
 
         // Group all scratch indices together
         ComponentSelector ls_idxs;
@@ -534,30 +491,8 @@ main(int argc, char* argv[])
         input_db->printClassData(plog);
 
         // Write out initial visualization data.
-        std::string filename = "amounts";
         int iteration_num = time_integrator->getIntegratorStep();
         double loop_time = time_integrator->getIntegratorTime();
-        if (dump_viz_data && uses_visit)
-        {
-            pout << "\n\nWriting visualization files...\n\n";
-            time_integrator->setupPlotData();
-            mesh_mapping->updateBoundaryLocation(loop_time);
-            for (auto& mesh_partitioner : mesh_mapping->getMeshPartitioners())
-            {
-                mesh_partitioner->setPatchHierarchy(patch_hierarchy);
-                mesh_partitioner->reinitElementMappings(1);
-            }
-            visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-            data_writer->writePlotData(iteration_num, loop_time);
-            lower_exodus_io->write_timestep("lower.ex2",
-                                            *mesh_mapping->getMeshPartitioner(0)->getEquationSystems(),
-                                            iteration_num / viz_dump_interval + 1,
-                                            loop_time);
-            upper_exodus_io->write_timestep("upper.ex2",
-                                            *mesh_mapping->getMeshPartitioner(1)->getEquationSystems(),
-                                            iteration_num / viz_dump_interval + 1,
-                                            loop_time);
-        }
 
         // Main time step loop.
         double loop_time_end = time_integrator->getEndTime();
@@ -589,97 +524,24 @@ main(int argc, char* argv[])
             pout << "Simulation time is " << loop_time << "\n";
             pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
             pout << "\n";
+        }
 
-            // At specified intervals, write visualization and restart files,
-            // print out timer data, and store hierarchy data for post
-            // processing.
-            iteration_num += 1;
-            const bool last_step = !time_integrator->stepsRemaining();
-            if (dump_viz_data && uses_visit && (iteration_num % viz_dump_interval == 0 || last_step))
+        // Check that values are non-negative
+        const int Q_idx = var_db->mapVariableAndContextToIndex(Q_var, adv_diff_integrator->getCurrentContext());
+        for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
+        {
+            Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
+            for (PatchLevel<NDIM>::Iterator p(level); p; p++)
             {
-                pout << "\nWriting visualization files...\n\n";
-                time_integrator->setupPlotData();
-                visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-                data_writer->writePlotData(iteration_num, loop_time);
-                lower_exodus_io->write_timestep("lower.ex2",
-                                                *mesh_mapping->getMeshPartitioner(0)->getEquationSystems(),
-                                                iteration_num / viz_dump_interval + 1,
-                                                loop_time);
-                upper_exodus_io->write_timestep("upper.ex2",
-                                                *mesh_mapping->getMeshPartitioner(1)->getEquationSystems(),
-                                                iteration_num / viz_dump_interval + 1,
-                                                loop_time);
-            }
-            if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
-            {
-                pout << "\nWriting restart files...\n\n";
-                RestartManager::getManager()->writeRestartFile(restart_dump_dirname, iteration_num);
-            }
-            if (dump_timer_data && (iteration_num % timer_dump_interval == 0 || last_step))
-            {
-                pout << "\nWriting timer data...\n\n";
-                TimerManager::getManager()->print(plog);
+                Pointer<Patch<NDIM>> patch = level->getPatch(p());
+                Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+                for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    if ((*Q_data)(idx) < 0.0) pout << "Found negative value on idx " << idx << "\n";
+                }
             }
         }
 
     } // cleanup dynamically allocated objects prior to shutdown
 } // main
-
-void
-interpolate_to_centroid(const int dst_idx,
-                        const int src_idx,
-                        const int scr_idx,
-                        const int ls_idx,
-                        const int vol_idx,
-                        Pointer<PatchHierarchy<NDIM>> hierarchy,
-                        const double time)
-{
-    // Now interpolate from cell centers to cell centroids
-    {
-        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-        std::vector<ITC> ghost_cell_comps(1);
-        ghost_cell_comps[0] =
-            ITC(scr_idx, src_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR", true, nullptr);
-        HierarchyGhostCellInterpolation hier_ghost_cell;
-        hier_ghost_cell.initializeOperatorState(ghost_cell_comps, hierarchy);
-        hier_ghost_cell.fillData(time);
-    }
-
-    RBFReconstructCache reconstruct_cache(8);
-    reconstruct_cache.setLSData(ls_idx, vol_idx);
-    reconstruct_cache.setUseCentroids(false);
-    reconstruct_cache.setPatchHierarchy(hierarchy);
-    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-        {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-            const double* const xlow = pgeom->getXLower();
-            const hier::Index<NDIM>& idx_low = patch->getBox().lower();
-
-            Pointer<CellData<NDIM, double>> Q_new_data = patch->getPatchData(dst_idx);
-            Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(scr_idx);
-            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
-            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
-            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
-            {
-                const CellIndex<NDIM>& idx = ci();
-                if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
-                {
-                    // Reconstruct from cell center to cell centroid
-                    VectorNd x_loc = find_cell_centroid(idx, *ls_data);
-                    for (int d = 0; d < NDIM; ++d)
-                        x_loc[d] = xlow[d] + dx[d] * (x_loc(d) - static_cast<double>(idx_low(d)));
-                    (*Q_new_data)(idx) = reconstruct_cache.reconstructOnIndex(x_loc, idx, *Q_scr_data, patch);
-                }
-                else
-                {
-                    (*Q_new_data)(idx) = (*Q_scr_data)(idx);
-                }
-            }
-        }
-    }
-}

@@ -1,5 +1,5 @@
-#ifndef included_ADS_RBFStructureReconstructions
-#define included_ADS_RBFStructureReconstructions
+#ifndef included_ADS_LagrangeStructureReconstructions
+#define included_ADS_LagrangeStructureReconstructions
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -17,29 +17,29 @@
 namespace ADS
 {
 /*!
- * \brief Class RBFStructureReconstructions is a abstract class for an implementation of
+ * \brief Class LagrangeStructureReconstructions is a abstract class for an implementation of
  * a convective differencing operator.
  */
-class RBFStructureReconstructions : public AdvectiveReconstructionOperator
+class LagrangeStructureReconstructions : public AdvectiveReconstructionOperator
 {
 public:
     /*!
      * \brief Class constructor.
      */
-    RBFStructureReconstructions(std::string object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
+    LagrangeStructureReconstructions(std::string object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 
     /*!
      * \brief Destructor.
      */
-    ~RBFStructureReconstructions();
+    ~LagrangeStructureReconstructions();
 
     /*!
      * \brief Deleted Operators/Constructors
      */
     //\{
-    RBFStructureReconstructions() = delete;
-    RBFStructureReconstructions(const RBFStructureReconstructions& from) = delete;
-    RBFStructureReconstructions& operator=(const RBFStructureReconstructions& that) = delete;
+    LagrangeStructureReconstructions() = delete;
+    LagrangeStructureReconstructions(const LagrangeStructureReconstructions& from) = delete;
+    LagrangeStructureReconstructions& operator=(const LagrangeStructureReconstructions& that) = delete;
     //\}
 
     /*!
@@ -98,4 +98,4 @@ private:
 
 //////////////////////////////////////////////////////////////////////////////
 
-#endif // #ifndef included_LS_RBFStructureReconstructions
+#endif // #ifndef included_LS_LagrangeStructureReconstructions

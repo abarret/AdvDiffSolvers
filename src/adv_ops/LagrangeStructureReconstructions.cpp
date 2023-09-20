@@ -1,6 +1,6 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "ADS/RBFStructureReconstructions.h"
+#include "ADS/LagrangeStructureReconstructions.h"
 #include "ADS/app_namespaces.h" // IWYU pragma: keep
 #include "ADS/ls_functions.h"
 
@@ -19,7 +19,7 @@ static Timer* t_apply_reconstruction;
 
 namespace ADS
 {
-RBFStructureReconstructions::RBFStructureReconstructions(std::string object_name, Pointer<Database> input_db)
+LagrangeStructureReconstructions::LagrangeStructureReconstructions(std::string object_name, Pointer<Database> input_db)
     : AdvectiveReconstructionOperator(std::move(object_name)),
       d_Q_scr_var(new CellVariable<NDIM, double>(d_object_name + "::Q_scratch"))
 {
@@ -31,19 +31,19 @@ RBFStructureReconstructions::RBFStructureReconstructions(std::string object_name
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_Q_scr_idx = var_db->registerVariableAndContext(
         d_Q_scr_var, var_db->getContext(d_object_name + "::CTX"), std::ceil(0.5 * d_rbf_stencil_size));
-    IBTK_DO_ONCE(t_apply_reconstruction =
-                     TimerManager::getManager()->getTimer("ADS::RBFStructureReconstruction::applyReconstruction()"););
+    IBTK_DO_ONCE(t_apply_reconstruction = TimerManager::getManager()->getTimer(
+                     "ADS::LagrangeStructureReconstruction::applyReconstruction()"););
     return;
-} // RBFStructureReconstructions
+} // LagrangeStructureReconstructions
 
-RBFStructureReconstructions::~RBFStructureReconstructions()
+LagrangeStructureReconstructions::~LagrangeStructureReconstructions()
 {
     deallocateOperatorState();
     return;
-} // ~RBFStructureReconstructions
+} // ~LagrangeStructureReconstructions
 
 void
-RBFStructureReconstructions::applyReconstruction(const int Q_idx, const int N_idx, const int path_idx)
+LagrangeStructureReconstructions::applyReconstruction(const int Q_idx, const int N_idx, const int path_idx)
 {
     ADS_TIMER_START(t_apply_reconstruction);
     int coarsest_ln = 0;
@@ -62,9 +62,9 @@ RBFStructureReconstructions::applyReconstruction(const int Q_idx, const int N_id
 }
 
 void
-RBFStructureReconstructions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierarchy,
-                                                   double current_time,
-                                                   double new_time)
+LagrangeStructureReconstructions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                                                        double current_time,
+                                                        double new_time)
 {
     AdvectiveReconstructionOperator::allocateOperatorState(hierarchy, current_time, new_time);
     d_hierarchy = hierarchy;
@@ -78,7 +78,7 @@ RBFStructureReconstructions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>>
 }
 
 void
-RBFStructureReconstructions::deallocateOperatorState()
+LagrangeStructureReconstructions::deallocateOperatorState()
 {
     AdvectiveReconstructionOperator::deallocateOperatorState();
     if (!d_is_allocated) return;
@@ -92,19 +92,19 @@ RBFStructureReconstructions::deallocateOperatorState()
 }
 
 void
-RBFStructureReconstructions::setCutCellMapping(Pointer<CutCellVolumeMeshMapping> cut_cell_mapping)
+LagrangeStructureReconstructions::setCutCellMapping(Pointer<CutCellVolumeMeshMapping> cut_cell_mapping)
 {
     d_cut_cell_mapping = std::move(cut_cell_mapping);
 }
 
 void
-RBFStructureReconstructions::setQSystemName(std::string Q_sys_name)
+LagrangeStructureReconstructions::setQSystemName(std::string Q_sys_name)
 {
     d_Q_sys_name = std::move(Q_sys_name);
 }
 
 void
-RBFStructureReconstructions::applyReconstructionLS(const int Q_idx, const int N_idx, const int path_idx)
+LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const int N_idx, const int path_idx)
 {
     int coarsest_ln = 0;
     int finest_ln = d_hierarchy->getFinestLevelNumber();
@@ -155,6 +155,19 @@ RBFStructureReconstructions::applyReconstructionLS(const int Q_idx, const int N_
 
             Q_new_data->fillAll(0.0);
 
+            auto within_lagrange_interpolant = [](const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data) -> bool
+            {
+                Box<NDIM> box(idx, idx);
+                const double ls_val = ADS::node_to_cell(idx, ls_data);
+                box.grow(1);
+                for (CellIterator<NDIM> ci(box); ci; ci++)
+                {
+                    const CellIndex<NDIM>& cc = ci();
+                    if (ADS::node_to_cell(cc, ls_data) * ls_val < 0.0) return false;
+                }
+                return true;
+            };
+
             // Grab the cut cell and element mappings
             const std::map<IndexList, std::vector<CutCellElems>>& cut_cell_map =
                 d_cut_cell_mapping->getIdxCutCellElemsMap(ln)[patch_num];
@@ -167,10 +180,48 @@ RBFStructureReconstructions::applyReconstructionLS(const int Q_idx, const int N_
                     IBTK::VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d) x_loc(d) = (*xstar_data)(idx, d);
 
-                    // Need to determine closest points. If we are on a cut cell, we use the parent element's nodes in
-                    // the stencil
-                    if (cut_cell_map.count(IndexList(patch, idx)) > 0)
+                    // If we are in the bulk, we can use a regular polynomial interpolant.
+                    if (within_lagrange_interpolant(idx, *ls_data))
                     {
+                        for (int d = 0; d < NDIM; ++d)
+                            x_loc[d] = (*xstar_data)(idx, d) - (static_cast<double>(idx(d)) + 0.5);
+                        IntVector<NDIM> one_x(1, 0), one_y(0, 1);
+                        (*Q_new_data)(idx) = (*Q_cur_data)(idx) * (x_loc[0] - 1.0) * (x_loc[0] + 1.0) *
+                                                 (x_loc[1] - 1.0) * (x_loc[1] + 1.0) -
+                                             (*Q_cur_data)(idx + one_x) * 0.5 * x_loc[0] * (x_loc[0] + 1.0) *
+                                                 (x_loc[1] - 1.0) * (x_loc[1] + 1.0) -
+                                             (*Q_cur_data)(idx - one_x) * 0.5 * x_loc[0] * (x_loc[0] - 1.0) *
+                                                 (x_loc[1] - 1.0) * (x_loc[1] + 1.0) -
+                                             (*Q_cur_data)(idx + one_y) * 0.5 * x_loc[1] * (x_loc[1] + 1.0) *
+                                                 (x_loc[0] - 1.0) * (x_loc[0] + 1.0) -
+                                             (*Q_cur_data)(idx - one_y) * 0.5 * x_loc[1] * (x_loc[1] - 1.0) *
+                                                 (x_loc[0] - 1.0) * (x_loc[0] + 1.0);
+
+                        // Check if we need to limit.
+                        // Grab "lower left" index
+                        CellIndex<NDIM> ll;
+                        for (int d = 0; d < NDIM; ++d) ll(d) = std::round((*xstar_data)(idx, d)) - 1.0;
+                        double q00 = (*Q_cur_data)(ll);
+                        double q10 = (*Q_cur_data)(ll + one_x);
+                        double q01 = (*Q_cur_data)(ll + one_y);
+                        double q11 = (*Q_cur_data)(ll + one_x + one_y);
+                        if ((*Q_new_data)(idx) > std::max({ q00, q10, q01, q11 }) ||
+                            (*Q_new_data)(idx) < std::min({ q00, q10, q01, q11 }))
+                        {
+                            CellIndex<NDIM> ll;
+                            for (int d = 0; d < NDIM; ++d) ll(d) = std::round((*xstar_data)(idx, d)) - 1;
+                            for (int d = 0; d < NDIM; ++d)
+                                x_loc[d] = (*xstar_data)(idx, d) - (static_cast<double>(ll(d)) + 0.5);
+                            (*Q_new_data)(idx) = (*Q_cur_data)(ll) * (x_loc[0] - 1.0) * (x_loc[1] - 1.0) -
+                                                 (*Q_cur_data)(ll + one_y) * x_loc[1] * (x_loc[0] - 1.0) -
+                                                 (*Q_cur_data)(ll + one_x) * x_loc[0] * (x_loc[1] - 1.0) +
+                                                 (*Q_cur_data)(ll + one_x + one_y) * x_loc[0] * x_loc[1];
+                        }
+                    }
+                    else if (cut_cell_map.count(IndexList(patch, idx)) > 0)
+                    {
+                        // Need to determine closest points. If we are on a cut cell, we use the parent element's nodes
+                        // in the stencil
                         const double ls_new_val = node_to_cell(idx, *ls_new_data);
                         // List of points and values
                         std::vector<VectorNd> X_pts;

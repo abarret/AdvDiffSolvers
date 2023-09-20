@@ -89,6 +89,7 @@ ENDMACRO()
 
 SETUP_2D(examples compressible.cpp)
 SETUP_2D(examples disk.cpp)
+SETUP_2D(examples peristalsis.cpp)
 SETUP_2D(examples radial.cpp)
 SETUP_2D(examples semi_lagrangian_01.cpp)
 

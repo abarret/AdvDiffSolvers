@@ -82,14 +82,21 @@ LagrangeReconstructions::applyReconstruction(const int Q_idx, const int N_idx, c
                         (x_loc[0] + 1.0) -
                     (*Q_cur_data)(idx - one_y) * 0.5 * x_loc[1] * (x_loc[1] - 1.0) * (x_loc[0] - 1.0) *
                         (x_loc[0] + 1.0);
-                if ((*Q_new_data)(idx) < 0.0)
+                // Check if we need to limit.
+                // Grab "lower left" index
+                CellIndex<NDIM> ll;
+                for (int d = 0; d < NDIM; ++d) ll(d) = std::round((*xstar_data)(idx, d)) - 1.0;
+                double q00 = (*Q_cur_data)(ll);
+                double q10 = (*Q_cur_data)(ll + one_x);
+                double q01 = (*Q_cur_data)(ll + one_y);
+                double q11 = (*Q_cur_data)(ll + one_x + one_y);
+                if ((*Q_new_data)(idx) > std::max({ q00, q10, q01, q11 }) ||
+                    (*Q_new_data)(idx) < std::min({ q00, q10, q01, q11 }))
                 {
-                    // Use a bilinear approximation.
-                    // Determine "lower left" index
-                    pout << "Found negative value. Dropping to bilinear. On index " << idx << "\n";
                     CellIndex<NDIM> ll;
-                    for (int d = 0; d < NDIM; ++d) ll(d) = std::round((*xstar_data)(idx, d) - 0.5);
-                    for (int d = 0; d < NDIM; ++d) x_loc[d] = (*xstar_data)(idx, d) - static_cast<double>(ll(d));
+                    for (int d = 0; d < NDIM; ++d) ll(d) = std::round((*xstar_data)(idx, d)) - 1;
+                    for (int d = 0; d < NDIM; ++d)
+                        x_loc[d] = (*xstar_data)(idx, d) - (static_cast<double>(ll(d)) + 0.5);
                     (*Q_new_data)(idx) = (*Q_cur_data)(ll) * (x_loc[0] - 1.0) * (x_loc[1] - 1.0) -
                                          (*Q_cur_data)(ll + one_y) * x_loc[1] * (x_loc[0] - 1.0) -
                                          (*Q_cur_data)(ll + one_x) * x_loc[0] * (x_loc[1] - 1.0) +
