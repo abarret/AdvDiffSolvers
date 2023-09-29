@@ -91,8 +91,8 @@ private:
     std::string d_Q_sys_name;
 
     // Truncation info
-    double d_low_cutoff = -std::numeric_limits<double>::quiet_NaN();
-    double d_high_cutoff = std::numeric_limits<double>::quiet_NaN();
+    double d_low_cutoff = -std::numeric_limits<double>::max();
+    double d_high_cutoff = std::numeric_limits<double>::max();
 };
 } // namespace ADS
 
