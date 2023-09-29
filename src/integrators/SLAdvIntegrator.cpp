@@ -230,6 +230,14 @@ SLAdvIntegrator::registerAdvectionReconstruction(Pointer<CellVariable<NDIM, doub
 }
 
 void
+SLAdvIntegrator::registerDivergenceReconstruction(Pointer<FaceVariable<NDIM, double>> u_var,
+                                                  std::shared_ptr<AdvectiveReconstructionOperator> reconstruct_op)
+{
+    TBOX_ASSERT(std::find(d_u_var.begin(), d_u_var.end(), u_var) != d_u_var.end());
+    d_u_div_adv_ops_map[u_var] = std::move(reconstruct_op);
+}
+
+void
 SLAdvIntegrator::setDiffusionCoefficient(Pointer<CellVariable<NDIM, double>> /*Q_var*/, const double /*D*/)
 {
     TBOX_ERROR("Can not register a diffusion coefficient with the SLAdvIntegrator.\n");
@@ -386,7 +394,7 @@ SLAdvIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHierarchy<NDIM>
 int
 SLAdvIntegrator::getNumberOfCycles() const
 {
-    return 2;
+    return 1;
 }
 
 void
@@ -478,7 +486,7 @@ SLAdvIntegrator::preprocessIntegrateHierarchy(const double current_time, const d
 void
 SLAdvIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
 {
-    if (cycle_num != 100) AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
+    AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
     ADS_TIMER_START(t_integrate_hierarchy);
 
     // Intentionally blank. Semi-Lagrangian methods require everything at the END of the timestep.
@@ -735,21 +743,36 @@ SLAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
         integratePaths(d_path_idx, d_half_path_idx, u_s_new_idx, u_s_half_idx, dt);
         const int div_u_scr_idx = var_db->mapVariableAndContextToIndex(d_u_div_var, getScratchContext());
         const int div_u_idx = var_db->mapVariableAndContextToIndex(d_u_div_var, getCurrentContext());
-        // Note ghost cells have already been filled.
-        d_hier_math_ops->div(div_u_idx,
-                             d_u_div_var,
-                             1.0,
-                             u_s_half_idx,
-                             d_u_s_var,
-                             nullptr /*hier_ghost_fill*/,
-                             half_time,
-                             true /*cf_bdry_synch*/);
-        // Now compute exp of div_u_idx
-        PointwiseFunctions::ScalarFcn exp_fcn = [dt](const double Q, const VectorNd&, double) -> double
-        { return std::exp(-dt * Q); };
-        ADS::PointwiseFunction exp_hier_fcn("Exp", exp_fcn);
-        exp_hier_fcn.setDataOnPatchHierarchy(div_u_idx, d_u_div_var, d_hierarchy, half_time);
-        d_Q_adv_reconstruct_map[Q_var]->applyReconstruction(div_u_idx, div_u_scr_idx, d_half_path_idx);
+        if (d_u_div_adv_ops_map.count(u_var) > 0)
+        {
+            const int ls_cur_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
+            d_u_div_adv_ops_map[u_var]->setLSData(ls_cur_idx, -1, ls_new_idx, -1);
+            d_u_div_adv_ops_map[u_var]->allocateOperatorState(d_hierarchy, d_integrator_time, d_integrator_time);
+            d_u_div_adv_ops_map[u_var]->applyReconstruction(u_s_half_idx, div_u_scr_idx, d_half_path_idx);
+            d_u_div_adv_ops_map[u_var]->deallocateOperatorState();
+            PointwiseFunctions::ScalarFcn exp_fcn = [dt](const double Q, const VectorNd&, double) -> double
+            { return std::exp(-dt * Q); };
+            ADS::PointwiseFunction exp_hier_fcn("Exp", exp_fcn);
+            exp_hier_fcn.setDataOnPatchHierarchy(div_u_scr_idx, d_u_div_var, d_hierarchy, half_time);
+        }
+        else
+        {
+            // Note ghost cells have already been filled.
+            d_hier_math_ops->div(div_u_idx,
+                                 d_u_div_var,
+                                 1.0,
+                                 u_s_half_idx,
+                                 d_u_s_var,
+                                 nullptr /*hier_ghost_fill*/,
+                                 half_time,
+                                 true /*cf_bdry_synch*/);
+            // Now compute exp of div_u_idx
+            PointwiseFunctions::ScalarFcn exp_fcn = [dt](const double Q, const VectorNd&, double) -> double
+            { return std::exp(-dt * Q); };
+            ADS::PointwiseFunction exp_hier_fcn("Exp", exp_fcn);
+            exp_hier_fcn.setDataOnPatchHierarchy(div_u_idx, d_u_div_var, d_hierarchy, half_time);
+            d_Q_adv_reconstruct_map[Q_var]->applyReconstruction(div_u_idx, div_u_scr_idx, d_half_path_idx);
+        }
 
         // Now interpolate the data to \XX^\star
         d_Q_adv_reconstruct_map[Q_var]->applyReconstruction(Q_cur_idx, Q_scr_idx, d_path_idx);

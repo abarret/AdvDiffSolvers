@@ -111,6 +111,22 @@ public:
                                          std::shared_ptr<AdvectiveReconstructionOperator> reconstruct_op);
 
     /*!
+     * Register an AdvectiveReconstructionOperator to be used to reconstruct the divergence of the velocity field. If
+     * this function is not called, we use centered differences to compute div(u) and the default reconstruction
+     * operator to reconstruct div(u).
+     *
+     * If u_var has not been registered with the integrator, this function call results in an unrecoverable error when
+     * debugging is enabled.
+     *
+     * If u_var is registered, but the velocity is set to be divergence free, this operator is not used.
+     *
+     * Note this operator will be given a side centered velocity field, and expects the results stored in a cell
+     * centered field.
+     */
+    void registerDivergenceReconstruction(SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> u_var,
+                                          std::shared_ptr<AdvectiveReconstructionOperator> reconstruct_op);
+
+    /*!
      * Initialize the variables, basic communications algorithms, solvers, and
      * other data structures used by this time integrator object.
      *
@@ -220,6 +236,9 @@ protected:
 
     // Divergence variable for compressible velocity fields
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_u_div_var;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>>,
+             std::shared_ptr<AdvectiveReconstructionOperator>>
+        d_u_div_adv_ops_map;
 
     // patch data for particle trajectories
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_path_var;
