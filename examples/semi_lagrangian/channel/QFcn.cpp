@@ -32,18 +32,44 @@ QFcn::setDataOnPatch(const int data_idx,
                      const bool initial_time,
                      Pointer<PatchLevel<NDIM>> level)
 {
-    auto fcn = [this](VectorNd X, double t) -> double
+    std::function<double(const VectorNd&, double t)> fcn;
+    switch (d_fcn_type)
     {
-        auto w = [](double r, double D, double t) -> double
+    case FcnType::SINE:
+        fcn = [this](const VectorNd& x, double t) -> double
         {
-            if (r < 1.0)
-                return std::pow(std::cos(M_PI * r) + 1.0, 2.0);
-            else
-                return 0.0;
+            auto w = [](double r, double t) -> double
+            {
+                if (r < 1.0)
+                    return std::pow(std::cos(M_PI * r) + 1.0, 2.0);
+                else
+                    return 0.0;
+            };
+            VectorNd X = x - d_com;
+            double r = X.norm();
+            return w(r, t);
         };
-        X = X - d_com;
-        double r = X.norm();
-        return w(r, d_D, t);
+        break;
+    case FcnType::TRIANGLE:
+        fcn = [](const VectorNd& x, double t) -> double { return 2.0 * std::abs(x[0] - std::floor(x[0] + 0.5)); };
+        break;
+    case FcnType::DISK:
+        fcn = [this](const VectorNd& x, double t) -> double
+        {
+            auto w = [](double r, double t) -> double
+            {
+                if (r < 0.5)
+                    return 1.0;
+                else
+                    return 0.0;
+            };
+            VectorNd X = x - d_com;
+            double r = X.norm();
+            return w(r, t);
+        };
+        break;
+    default:
+        TBOX_ERROR("Unknown type.");
     };
 
     Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(data_idx);
@@ -70,9 +96,11 @@ QFcn::setDataOnPatch(const int data_idx,
 void
 QFcn::getFromInput(Pointer<Database> db)
 {
-    d_D = db->getDouble("D");
     db->getDoubleArray("com", d_com.data(), NDIM);
-    d_R = db->getDouble("r");
+    std::string fcn_type = db->getString("type");
+    if (fcn_type.compare("SINE") == 0) d_fcn_type = FcnType::SINE;
+    if (fcn_type.compare("TRIANGLE") == 0) d_fcn_type = FcnType::TRIANGLE;
+    if (fcn_type.compare("DISK") == 0) d_fcn_type = FcnType::DISK;
     return;
 } // getFromInput
 } // namespace ADS

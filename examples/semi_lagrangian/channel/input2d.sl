@@ -7,7 +7,7 @@ RATIO = LX / LY
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-NY = 32                                    // coarsest grid spacing
+NY = 64                                    // coarsest grid spacing
 NY_FINEST = (REF_RATIO^(MAX_LEVELS - 1))*NY  // finest   grid spacing
 NX = NY * RATIO
 NX_FINEST = NY_FINEST * RATIO
@@ -34,6 +34,7 @@ USE_RBFS =  TRUE
 RBF_STENCIL_SIZE = 12
 RBF_POLY_ORDER = "QUADRATIC"
 USE_LAGRANGE = TRUE
+USE_SL = TRUE
 
 XCOM = 1.5
 YCOM = 0.5
@@ -44,12 +45,8 @@ OMEGA_2 = 1.0
 OMEGA_1 = 10.0
 ROT_PERIOD = 2.0
 
-D_coef = 0.1
-Q = "exp(-50*((X_0-0.8)^2 + X_1^2))*10"
-
 QInitial {
-   r = R
-   D = D_coef
+   type = "TRIANGLE"
    com = XCOM, YCOM
 }
 
@@ -88,7 +85,7 @@ Main {
 // visualization dump parameters
    viz_writer                  = "VisIt"
    viz_dump_interval           = int(0.05 / DT_MAX) 
-   viz_dump_dirname            = "viz_adv_diff2d"
+   viz_dump_dirname            = "VIZ.SL"
    visit_number_procs_per_file = 1
 
 // restart dump parameters

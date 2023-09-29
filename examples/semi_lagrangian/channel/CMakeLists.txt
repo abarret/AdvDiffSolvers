@@ -12,6 +12,6 @@ ADS_ADD_EXAMPLE(
   LINK_TARGETS
     ADS2d
   INPUT_FILES
-    input2d
+    input2d.sl input2d.fv
   )
 
