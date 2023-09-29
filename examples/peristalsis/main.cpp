@@ -462,38 +462,6 @@ main(int argc, char* argv[])
         // Initialize hierarchy configuration and data on all patches.
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
-        auto limit_fcn = [](double /*current_time*/,
-                            double /*new_time*/,
-                            bool /*skip_synchronize_new_state_data*/,
-                            int /*num_cycles*/,
-                            void* ctx) -> void
-        {
-            pout << "  Limiting Q\n";
-            auto integrator_variable_pair = static_cast<
-                std::pair<Pointer<AdvDiffSemiImplicitHierarchyIntegrator>, Pointer<CellVariable<NDIM, double>>>*>(ctx);
-            Pointer<AdvDiffSemiImplicitHierarchyIntegrator>& integrator = integrator_variable_pair->first;
-            Pointer<CellVariable<NDIM, double>> Q_var = integrator_variable_pair->second;
-            Pointer<PatchHierarchy<NDIM>> hierarchy = integrator->getPatchHierarchy();
-            for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
-            {
-                Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-                for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-                {
-                    Pointer<Patch<NDIM>> patch = level->getPatch(p());
-                    Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_var, integrator->getNewContext());
-                    for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
-                    {
-                        const CellIndex<NDIM>& idx = ci();
-                        (*Q_data)(idx) = std::max((*Q_data)(idx), 0.0);
-                    }
-                }
-            }
-        };
-        auto integrator_variable_pair = std::make_pair(adv_diff_integrator, Q_var);
-        if (input_db->getBool("LIMIT_FCN"))
-            adv_diff_integrator->registerPostprocessIntegrateHierarchyCallback(
-                limit_fcn, static_cast<void*>(&integrator_variable_pair));
-
         // Set the exact solution
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
         {
