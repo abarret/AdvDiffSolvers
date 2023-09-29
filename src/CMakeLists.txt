@@ -22,6 +22,7 @@ SET(CXX_SRC
     adv_ops/LagrangeReconstructions.cpp
     adv_ops/LagrangeStructureReconstructions.cpp
     adv_ops/LinearReconstructions.cpp
+    adv_ops/RBFDivergenceReconstructions.cpp
     adv_ops/RBFReconstructions.cpp
     adv_ops/RBFStructureReconstructions.cpp
     adv_ops/ZSplineReconstructions.cpp
