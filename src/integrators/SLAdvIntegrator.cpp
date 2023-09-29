@@ -154,6 +154,7 @@ SLAdvIntegrator::SLAdvIntegrator(const std::string& object_name, Pointer<Databas
             Reconstruct::string_to_enum<Reconstruct::RBFPolyOrder>(input_db->getString("rbf_poly_order"));
         d_default_adv_reconstruct_type =
             string_to_enum<AdvReconstructType>(input_db->getStringWithDefault("default_adv_reconstruct_type", "RBF"));
+        d_num_cycles = input_db->getIntegerWithDefault("num_cycles", d_num_cycles);
     }
 
     IBAMR_DO_ONCE(
@@ -394,7 +395,7 @@ SLAdvIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHierarchy<NDIM>
 int
 SLAdvIntegrator::getNumberOfCycles() const
 {
-    return 1;
+    return d_num_cycles;
 }
 
 void

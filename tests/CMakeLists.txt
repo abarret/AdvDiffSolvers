@@ -18,7 +18,7 @@ ADD_CUSTOM_TARGET(tests)
 #    only compiles the IBFE tests.
 # 2. all input and output files in these source directories are symlinked into
 #    their corresponding build directories.
-SET(TEST_DIRECTORIES examples operators find_vol rbffd reconstructions utilities)
+SET(TEST_DIRECTORIES adv_ops examples operators find_vol rbffd reconstructions utilities)
 
 FOREACH(_dir ${TEST_DIRECTORIES})
   ADD_CUSTOM_TARGET("tests-${_dir}")
@@ -86,6 +86,8 @@ MACRO(SETUP_3D _dir _src)
   TARGET_LINK_LIBRARIES(${_target} PRIVATE ADS3d)
   ADD_DEPENDENCIES(tests-${_dir} ${_target})
 ENDMACRO()
+
+SETUP_2D(adv_ops divergence.cpp)
 
 SETUP_2D(examples compressible.cpp)
 SETUP_2D(examples disk.cpp)

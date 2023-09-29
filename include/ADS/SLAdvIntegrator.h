@@ -32,6 +32,10 @@ namespace ADS
  * setDiffusionCoefficient() result in an unrecoverable error. Additionally, SLAdvIntegrator associates all degrees of
  * freedom with cell centers, regardless of the level set value. This is in contrast to LSAdvDiffIntegrator, which
  * associates all degrees of freedom to cut cell centroids.
+ *
+ * An important parameter read from the input database is 'num_cycles.' Because IBAMR currently requires the advection
+ * diffusion integrator to use the same number of cycles, this number needs to match the cycle number for the INS
+ * integrator. Note this integrator doesn't do anything during a cycle: everything is done at the end of a timestep.
  */
 class SLAdvIntegrator : public IBAMR::AdvDiffHierarchyIntegrator
 {
@@ -261,6 +265,8 @@ protected:
     SAMRAI::tbox::Pointer<SAMRAI::math::HierarchyFaceDataOpsReal<NDIM, double>> d_hier_fc_data_ops;
 
 private:
+    // Two is a good number for the current default INSStaggeredHierarchyIntegrator.
+    int d_num_cycles = 2;
     bool d_use_rbfs = false;
     unsigned int d_rbf_stencil_size = 8;
     unsigned int d_mls_stencil_size = 8;

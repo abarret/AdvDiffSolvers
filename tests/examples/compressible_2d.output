@@ -157,8 +157,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.03125
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -185,8 +183,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.0625
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -213,8 +209,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.09375
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -241,8 +235,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.125
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -269,8 +261,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.15625
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -297,8 +287,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.1875
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -325,8 +313,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.21875
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -353,8 +339,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.25
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -384,8 +368,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.28125
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -412,8 +394,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.3125
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -440,8 +420,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.34375
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -468,8 +446,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.375
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -496,8 +472,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.40625
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -524,8 +498,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.4375
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -552,8 +524,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.46875
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -580,8 +550,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.5
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -611,8 +579,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.53125
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -639,8 +605,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.5625
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -667,8 +631,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.59375
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -695,8 +657,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.625
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -723,8 +683,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.65625
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -751,8 +709,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.6875
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -779,8 +735,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.71875
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -807,8 +761,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.75
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -838,8 +790,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.78125
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -866,8 +816,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.8125
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -894,8 +842,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.84375
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -922,8 +868,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.875
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -950,8 +894,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.90625
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -978,8 +920,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.9375
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -1006,8 +946,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 0.96875
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
@@ -1034,8 +972,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 4
 SLAdvIntegrator::advanceHierarchy(): integrating hierarchy
-SLAdvIntegrator::advanceHierarchy(): executing cycle 1 of 2
-SLAdvIntegrator::advanceHierarchy(): executing cycle 2 of 2
 Setting Level set at time 1
 Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0

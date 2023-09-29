@@ -153,21 +153,22 @@ input_db {
       }
    }
    INSIntegrator {
-      rho                   = 1                             // input used
-      mu                    = 1                             // input used
-      start_time            = 0                             // input used
-      end_time              = 0.01                          // input used
-      num_cycles            = 1                             // input used
-      dt_max                = 0.00025                       // input used
-      enable_logging        = TRUE                          // input used
-      tag_buffer            = 1                             // input used
-      stokes_solver_type    = "PETSC_KRYLOV_SOLVER"         // input used
-      stokes_precond_type   = "PROJECTION_PRECONDITIONER"   // input used
-      velocity_solver_type  = "PETSC_KRYLOV_SOLVER"         // input used
-      velocity_precond_type = "POINT_RELAXATION_FAC_PRECONDITIONER" // input used
-      pressure_solver_type  = "PETSC_KRYLOV_SOLVER"         // input used
-      pressure_precond_type = "POINT_RELAXATION_FAC_PRECONDITIONER" // input used
-      U_P_bdry_interp_type  = "LINEAR"                      // from default
+      rho                               = 1                 // input used
+      mu                                = 1                 // input used
+      start_time                        = 0                 // input used
+      end_time                          = 0.01              // input used
+      num_cycles                        = 1                 // input used
+      dt_max                            = 0.00025           // input used
+      enable_logging                    = TRUE              // input used
+      tag_buffer                        = 1                 // input used
+      init_convective_timestepping_type = "FORWARD_EULER"   // input used
+      stokes_solver_type                = "PETSC_KRYLOV_SOLVER" // input used
+      stokes_precond_type               = "PROJECTION_PRECONDITIONER" // input used
+      velocity_solver_type              = "PETSC_KRYLOV_SOLVER" // input used
+      velocity_precond_type             = "POINT_RELAXATION_FAC_PRECONDITIONER" // input used
+      pressure_solver_type              = "PETSC_KRYLOV_SOLVER" // input used
+      pressure_precond_type             = "POINT_RELAXATION_FAC_PRECONDITIONER" // input used
+      U_P_bdry_interp_type              = "LINEAR"          // from default
       stokes_solver_db {
          ksp_type               = "fgmres"                  // input used
          refine_type            = "NONE"                    // from default
@@ -329,8 +330,6 @@ IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
 IBHierarchyIntegrator::integrateHierarchy(): spreading Lagrangian force to the Eulerian grid
 IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-Stokes equations
-INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 0
-INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0
 INSIntegrator::integrateHierarchy(): stokes solve number of iterations = 0
 INSIntegrator::integrateHierarchy(): stokes solve residual norm        = 0
 IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
