@@ -351,6 +351,29 @@ node_to_cell(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat::NodeD
 #endif
 }
 
+inline double
+node_to_side(const SAMRAI::pdat::SideIndex<NDIM>& idx, const SAMRAI::pdat::NodeData<NDIM, double>& ls_data)
+{
+#if (NDIM == 2)
+    if (idx.getAxis() == 0)
+    {
+        SAMRAI::pdat::NodeIndex<NDIM> idx_l(idx.toCell(0), SAMRAI::pdat::NodeIndex<NDIM>::UpperLeft);
+        SAMRAI::pdat::NodeIndex<NDIM> idx_u(idx.toCell(0), SAMRAI::pdat::NodeIndex<NDIM>::LowerLeft);
+        return 0.5 * (ls_data(idx_l) + ls_data(idx_u));
+    }
+    else
+    {
+        SAMRAI::pdat::NodeIndex<NDIM> idx_l(idx.toCell(0), SAMRAI::pdat::NodeIndex<NDIM>::UpperLeft);
+        SAMRAI::pdat::NodeIndex<NDIM> idx_u(idx.toCell(0), SAMRAI::pdat::NodeIndex<NDIM>::UpperRight);
+        return 0.5 * (ls_data(idx_l) + ls_data(idx_u));
+    }
+#endif
+#if (NDIM == 3)
+    TBOX_ERROR("Not yet implemented\n");
+    return 0.0;
+#endif
+}
+
 inline void
 copy_face_to_side(const int u_s_idx,
                   const int u_f_idx,

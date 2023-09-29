@@ -1,0 +1,8 @@
+Setting Level set at time 0
+Minimum volume on level:     0 is: 0.03515625
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 9
+Computing error in divergence interpolation:
+ L1-norm:  0.181276
+ L2-norm:  0.0844068
+ max-norm: 0.0928129

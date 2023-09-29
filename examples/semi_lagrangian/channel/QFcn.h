@@ -59,8 +59,13 @@ private:
     void getFromInput(SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> db);
 
     IBTK::VectorNd d_com;
-    double d_R;
-    double d_D = 0.01;
+    enum class FcnType
+    {
+        SINE,
+        TRIANGLE,
+        DISK,
+        UNKNOWN
+    } d_fcn_type = FcnType::UNKNOWN;
 };
 } // namespace ADS
 #endif // #ifndef included_ADS_QFcn

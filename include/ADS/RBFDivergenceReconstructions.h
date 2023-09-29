@@ -1,5 +1,5 @@
-#ifndef included_ADS_LagrangeStructureReconstructions
-#define included_ADS_LagrangeStructureReconstructions
+#ifndef included_ADS_RBFDivergenceReconstructions
+#define included_ADS_RBFDivergenceReconstructions
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -17,29 +17,29 @@
 namespace ADS
 {
 /*!
- * \brief Class LagrangeStructureReconstructions is a abstract class for an implementation of
+ * \brief Class RBFDivergenceReconstructions is a abstract class for an implementation of
  * a convective differencing operator.
  */
-class LagrangeStructureReconstructions : public AdvectiveReconstructionOperator
+class RBFDivergenceReconstructions : public AdvectiveReconstructionOperator
 {
 public:
     /*!
      * \brief Class constructor.
      */
-    LagrangeStructureReconstructions(std::string object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
+    RBFDivergenceReconstructions(std::string object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
 
     /*!
      * \brief Destructor.
      */
-    ~LagrangeStructureReconstructions();
+    ~RBFDivergenceReconstructions();
 
     /*!
      * \brief Deleted Operators/Constructors
      */
     //\{
-    LagrangeStructureReconstructions() = delete;
-    LagrangeStructureReconstructions(const LagrangeStructureReconstructions& from) = delete;
-    LagrangeStructureReconstructions& operator=(const LagrangeStructureReconstructions& that) = delete;
+    RBFDivergenceReconstructions() = delete;
+    RBFDivergenceReconstructions(const RBFDivergenceReconstructions& from) = delete;
+    RBFDivergenceReconstructions& operator=(const RBFDivergenceReconstructions& that) = delete;
     //\}
 
     /*!
@@ -59,16 +59,6 @@ public:
      */
     void applyReconstruction(int Q_idx, int N_idx, int path_idx) override;
 
-    /*!
-     * \brief Provide information on the location of the mesh
-     */
-    void setCutCellMapping(SAMRAI::tbox::Pointer<CutCellVolumeMeshMapping> mesh_partitioner);
-
-    /*!
-     * \brief Provide the structural system name for the exact solution.
-     */
-    void setQSystemName(std::string Q_sys_name);
-
 private:
     /*!
      * \brief Compute the reconstruction using only the level set to determine sides. This method assumes ghost cells
@@ -81,21 +71,15 @@ private:
     unsigned int d_rbf_stencil_size = 5;
 
     // Scratch data
-    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_Q_scr_var;
-    int d_Q_scr_idx = IBTK::invalid_index;
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_scr_var;
+    int d_u_scr_idx = IBTK::invalid_index;
 
-    // Structural information
-    SAMRAI::tbox::Pointer<CutCellVolumeMeshMapping> d_cut_cell_mapping;
-
-    // Structural value information
-    std::string d_Q_sys_name;
-
-    // Truncation info
-    double d_low_cutoff = -std::numeric_limits<double>::max();
-    double d_high_cutoff = std::numeric_limits<double>::max();
+    // Weight caching
+    bool d_weights_cached = false;
+    std::vector<double> d_wgts;
 };
 } // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////
 
-#endif // #ifndef included_LS_LagrangeStructureReconstructions
+#endif // #ifndef included_LS_RBFDivergenceReconstructions

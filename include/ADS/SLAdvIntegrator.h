@@ -32,6 +32,10 @@ namespace ADS
  * setDiffusionCoefficient() result in an unrecoverable error. Additionally, SLAdvIntegrator associates all degrees of
  * freedom with cell centers, regardless of the level set value. This is in contrast to LSAdvDiffIntegrator, which
  * associates all degrees of freedom to cut cell centroids.
+ *
+ * An important parameter read from the input database is 'num_cycles.' Because IBAMR currently requires the advection
+ * diffusion integrator to use the same number of cycles, this number needs to match the cycle number for the INS
+ * integrator. Note this integrator doesn't do anything during a cycle: everything is done at the end of a timestep.
  */
 class SLAdvIntegrator : public IBAMR::AdvDiffHierarchyIntegrator
 {
@@ -109,6 +113,22 @@ public:
      */
     void registerAdvectionReconstruction(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                          std::shared_ptr<AdvectiveReconstructionOperator> reconstruct_op);
+
+    /*!
+     * Register an AdvectiveReconstructionOperator to be used to reconstruct the divergence of the velocity field. If
+     * this function is not called, we use centered differences to compute div(u) and the default reconstruction
+     * operator to reconstruct div(u).
+     *
+     * If u_var has not been registered with the integrator, this function call results in an unrecoverable error when
+     * debugging is enabled.
+     *
+     * If u_var is registered, but the velocity is set to be divergence free, this operator is not used.
+     *
+     * Note this operator will be given a side centered velocity field, and expects the results stored in a cell
+     * centered field.
+     */
+    void registerDivergenceReconstruction(SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>> u_var,
+                                          std::shared_ptr<AdvectiveReconstructionOperator> reconstruct_op);
 
     /*!
      * Initialize the variables, basic communications algorithms, solvers, and
@@ -220,6 +240,9 @@ protected:
 
     // Divergence variable for compressible velocity fields
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_u_div_var;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::FaceVariable<NDIM, double>>,
+             std::shared_ptr<AdvectiveReconstructionOperator>>
+        d_u_div_adv_ops_map;
 
     // patch data for particle trajectories
     SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_path_var;
@@ -242,6 +265,8 @@ protected:
     SAMRAI::tbox::Pointer<SAMRAI::math::HierarchyFaceDataOpsReal<NDIM, double>> d_hier_fc_data_ops;
 
 private:
+    // Two is a good number for the current default INSStaggeredHierarchyIntegrator.
+    int d_num_cycles = 2;
     bool d_use_rbfs = false;
     unsigned int d_rbf_stencil_size = 8;
     unsigned int d_mls_stencil_size = 8;

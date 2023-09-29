@@ -83,8 +83,17 @@ main(int argc, char* argv[])
         // and, if this is a restarted run, from the restart database.
         Pointer<CartesianGridGeometry<NDIM>> grid_geometry = new CartesianGridGeometry<NDIM>(
             "CartesianGeometry", app_initializer->getComponentDatabase("CartesianGeometry"));
-        Pointer<SLAdvIntegrator> time_integrator = new SLAdvIntegrator(
-            "LSAdvDiffIntegrator", app_initializer->getComponentDatabase("LSAdvDiffIntegrator"), false);
+        bool use_sl = input_db->getBool("USE_SL");
+        Pointer<AdvDiffHierarchyIntegrator> time_integrator;
+        if (use_sl)
+            time_integrator = new SLAdvIntegrator("LSAdvDiffIntegrator",
+                                                  app_initializer->getComponentDatabase("LSAdvDiffIntegrator"),
+                                                  false /*register_for_restart*/);
+        else
+            time_integrator =
+                new AdvDiffSemiImplicitHierarchyIntegrator("AdvDiffIntegrator",
+                                                           app_initializer->getComponentDatabase("AdvDiffIntegrator"),
+                                                           false /*register_for_restart*/);
 
         Pointer<PatchHierarchy<NDIM>> patch_hierarchy = new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
         Pointer<StandardTagAndInitialize<NDIM>> error_detector =
@@ -113,11 +122,15 @@ main(int argc, char* argv[])
 
         // Setup the level set function
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS");
-        time_integrator->registerLevelSetVariable(ls_var);
-        Pointer<LSFcn> ls_fcn = new LSFcn("LSFcn");
-        Pointer<LSFromLevelSet> vol_in_fcn = new LSFromLevelSet("LS", patch_hierarchy);
-        vol_in_fcn->registerLSFcn(ls_fcn);
-        time_integrator->registerLevelSetVolFunction(ls_var, vol_in_fcn);
+        if (use_sl)
+        {
+            Pointer<SLAdvIntegrator> integrator = time_integrator;
+            integrator->registerLevelSetVariable(ls_var);
+            Pointer<LSFcn> ls_fcn = new LSFcn("LSFcn");
+            Pointer<LSFromLevelSet> vol_in_fcn = new LSFromLevelSet("LS", patch_hierarchy);
+            vol_in_fcn->registerLSFcn(ls_fcn);
+            integrator->registerLevelSetVolFunction(ls_var, vol_in_fcn);
+        }
 
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_var = new CellVariable<NDIM, double>("Q");
@@ -135,7 +148,11 @@ main(int argc, char* argv[])
         time_integrator->setAdvectionVelocity(Q_var, u_var);
         time_integrator->setInitialConditions(Q_var, Q_init);
         time_integrator->setPhysicalBcCoef(Q_var, Q_bcs[0]);
-        time_integrator->restrictToLevelSet(Q_var, ls_var);
+        if (use_sl)
+        {
+            Pointer<SLAdvIntegrator> integrator = time_integrator;
+            integrator->restrictToLevelSet(Q_var, ls_var);
+        }
 
         // Set up visualization plot file writer.
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
@@ -158,10 +175,11 @@ main(int argc, char* argv[])
         visit_data_writer->registerPlotQuantity("Q_exact", "SCALAR", Q_exa_idx);
         visit_data_writer->registerPlotQuantity("Q_error", "SCALAR", Q_err_idx);
 
-        if (input_db->getBool("USE_LAGRANGE"))
+        if (use_sl && input_db->getBool("USE_LAGRANGE"))
         {
+            Pointer<SLAdvIntegrator> integrator = time_integrator;
             auto adv_ops = std::make_shared<LagrangeReconstructions>("adv_ops");
-            time_integrator->registerAdvectionReconstruction(Q_var, adv_ops);
+            integrator->registerAdvectionReconstruction(Q_var, adv_ops);
         }
 
         // Initialize hierarchy configuration and data on all patches.

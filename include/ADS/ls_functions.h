@@ -49,6 +49,8 @@ IBTK::VectorNd find_cell_centroid(const SAMRAI::pdat::CellIndex<NDIM>& idx,
 
 double node_to_cell(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat::NodeData<NDIM, double>& ls_data);
 
+double node_to_side(const SAMRAI::pdat::SideIndex<NDIM>& idx, const SAMRAI::pdat::NodeData<NDIM, double>& ls_data);
+
 void copy_face_to_side(const int u_s_idx,
                        const int u_f_idx,
                        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
