@@ -73,23 +73,6 @@ RBFDivergenceReconstructions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         if (!level->checkAllocated(d_u_scr_idx)) level->allocatePatchData(d_u_scr_idx);
     }
-
-    // Precompute the weights for advection at normal cell indices.
-    int num_pts;
-    switch (d_rbf_order)
-    {
-    case Reconstruct::RBFPolyOrder::LINEAR:
-        num_pts = 9;
-        break;
-    case Reconstruct::RBFPolyOrder::QUADRATIC:
-        num_pts = 13;
-        break;
-    default:
-        TBOX_ERROR("Unknown polynomial order: " << Reconstruct::enum_to_string(d_rbf_order) << "\n");
-    }
-
-    // Compute a finite differe
-
     d_is_allocated = true;
 }
 
@@ -129,8 +112,6 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
             const hier::Index<NDIM>& idx_low = box.lower();
 
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-            const double* const xlow = pgeom->getXLower();
 
             Pointer<CellData<NDIM, double>> xstar_data = patch->getPatchData(path_idx);
             Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(u_idx);
