@@ -100,7 +100,7 @@ public:
         ///\{
         WeightStruct() = default;
         WeightStruct(WeightStruct&&) = default;
-        WeightStruct(WeightStruct&) = default;
+	WeightStruct(const WeightStruct&) = default;
         WeightStruct& operator=(const WeightStruct&) = default;
         WeightStruct& operator=(WeightStruct&&) = default;
         ~WeightStruct() = default;

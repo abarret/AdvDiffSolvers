@@ -156,10 +156,10 @@ main(int argc, char* argv[])
             [](const double /*Q*/, const VectorNd& x, const double t, const int /*axis*/) -> double
         { return x(0) + x(1) + t; };
 
-        ADS::PointwiseFunction pt_scalar_fcn("scalar", scalar_fcn);
-        ADS::PointwiseFunction pt_vector_fcn("vector", vector_fcn);
-        ADS::PointwiseFunction pt_other_fcn("other", other_fcn);
-        ADS::PointwiseFunction pt_vector_side_fcn("vector_side", vector_fcn_side);
+        ADS::PointwiseFunction<PointwiseFunctions::ScalarFcn> pt_scalar_fcn("scalar", scalar_fcn);
+        ADS::PointwiseFunction<PointwiseFunctions::VectorFcn> pt_vector_fcn("vector", vector_fcn);
+        ADS::PointwiseFunction<PointwiseFunctions::GeneralFcn> pt_other_fcn("other", other_fcn);
+        ADS::PointwiseFunction<PointwiseFunctions::StaggeredFcn> pt_vector_side_fcn("vector_side", vector_fcn_side);
 
         // Allocate data
         for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
