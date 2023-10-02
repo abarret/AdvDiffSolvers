@@ -104,7 +104,7 @@ main(int argc, char* argv[])
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("ls");
         PointwiseFunctions::ScalarFcn ls_fcn = [](double, const VectorNd&, double) -> double { return -1.0; };
         Pointer<ADS::PointwiseFunction<PointwiseFunctions::ScalarFcn>> ls_hier_fcn =
-            new ADS::PointwiseFunction("ls_fcn", ls_fcn);
+            new ADS::PointwiseFunction<PointwiseFunctions::ScalarFcn>("ls_fcn", ls_fcn);
         Pointer<LSFromLevelSet> ls_vol_fcn = new LSFromLevelSet("ls_fcn", patch_hierarchy);
         ls_vol_fcn->registerLSFcn(ls_hier_fcn);
         time_integrator->registerLevelSetVariable(ls_var);

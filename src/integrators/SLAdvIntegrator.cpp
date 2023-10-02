@@ -753,7 +753,7 @@ SLAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
             d_u_div_adv_ops_map[u_var]->deallocateOperatorState();
             PointwiseFunctions::ScalarFcn exp_fcn = [dt](const double Q, const VectorNd&, double) -> double
             { return std::exp(-dt * Q); };
-            ADS::PointwiseFunction exp_hier_fcn("Exp", exp_fcn);
+            ADS::PointwiseFunction<PointwiseFunctions::ScalarFcn> exp_hier_fcn("Exp", exp_fcn);
             exp_hier_fcn.setDataOnPatchHierarchy(div_u_scr_idx, d_u_div_var, d_hierarchy, half_time);
         }
         else
@@ -770,7 +770,7 @@ SLAdvIntegrator::advectionUpdate(Pointer<CellVariable<NDIM, double>> Q_var,
             // Now compute exp of div_u_idx
             PointwiseFunctions::ScalarFcn exp_fcn = [dt](const double Q, const VectorNd&, double) -> double
             { return std::exp(-dt * Q); };
-            ADS::PointwiseFunction exp_hier_fcn("Exp", exp_fcn);
+            ADS::PointwiseFunction<PointwiseFunctions::ScalarFcn> exp_hier_fcn("Exp", exp_fcn);
             exp_hier_fcn.setDataOnPatchHierarchy(div_u_idx, d_u_div_var, d_hierarchy, half_time);
             d_Q_adv_reconstruct_map[Q_var]->applyReconstruction(div_u_idx, div_u_scr_idx, d_half_path_idx);
         }
