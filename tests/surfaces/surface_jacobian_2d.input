@@ -1,0 +1,18 @@
+PI = 3.141596535
+L   = 1.0
+ALPHA = 0.4 * PI
+GAMMA = 0.25
+MFAC = 1.0
+
+MAX_LEVELS = 1
+N = 64
+
+MeshMapping {
+  alpha = ALPHA
+  gamma = GAMMA
+  max_level = MAX_LEVELS
+}
+
+Main {
+  log_file_name = "output"
+}
