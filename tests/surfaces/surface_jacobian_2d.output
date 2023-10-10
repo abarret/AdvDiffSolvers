@@ -1,0 +1,88 @@
+Input database:
+input_db {
+   PI         = 3.1416                                      // input used
+   L          = 1                                           // input used
+   ALPHA      = 1.25664                                     // input used
+   GAMMA      = 0.25                                        // input used
+   MFAC       = 1                                           // input used
+   MAX_LEVELS = 1                                           // input used
+   N          = 64                                          // input used
+   MeshMapping {
+      alpha     = 1.25664                                   // input not used
+      gamma     = 0.25                                      // input not used
+      max_level = 1                                         // input used
+   }
+   Main {
+      log_file_name = "output"                              // input used
+   }
+}
+Updating boundary at time 0
+Computing Jacobian at time 0
+Projection converged: 1
+Computing error in Jacobian at time 0
+ L1-norm:  1.73095e-08
+ L2-norm:  7.18405e-08
+ max-norm: 7.67249e-07
+Updating boundary at time 0.1
+Computing Jacobian at time 0.1
+Projection converged: 1
+Computing error in Jacobian at time 0.1
+ L1-norm:  7.62697e-05
+ L2-norm:  8.4129e-05
+ max-norm: 0.000213608
+Updating boundary at time 0.2
+Computing Jacobian at time 0.2
+Projection converged: 1
+Computing error in Jacobian at time 0.2
+ L1-norm:  0.000123422
+ L2-norm:  0.000135558
+ max-norm: 0.000192068
+Updating boundary at time 0.3
+Computing Jacobian at time 0.3
+Projection converged: 1
+Computing error in Jacobian at time 0.3
+ L1-norm:  0.000123472
+ L2-norm:  0.000135594
+ max-norm: 0.000191962
+Updating boundary at time 0.4
+Computing Jacobian at time 0.4
+Projection converged: 1
+Computing error in Jacobian at time 0.4
+ L1-norm:  7.62894e-05
+ L2-norm:  8.41621e-05
+ max-norm: 0.000208195
+Updating boundary at time 0.5
+Computing Jacobian at time 0.5
+Projection converged: 1
+Computing error in Jacobian at time 0.5
+ L1-norm:  3.89021e-08
+ L2-norm:  1.90385e-07
+ max-norm: 2.03514e-06
+Updating boundary at time 0.6
+Computing Jacobian at time 0.6
+Projection converged: 1
+Computing error in Jacobian at time 0.6
+ L1-norm:  7.62697e-05
+ L2-norm:  8.4129e-05
+ max-norm: 0.000213608
+Updating boundary at time 0.7
+Computing Jacobian at time 0.7
+Projection converged: 1
+Computing error in Jacobian at time 0.7
+ L1-norm:  0.000123422
+ L2-norm:  0.000135558
+ max-norm: 0.000192068
+Updating boundary at time 0.8
+Computing Jacobian at time 0.8
+Projection converged: 1
+Computing error in Jacobian at time 0.8
+ L1-norm:  0.000123472
+ L2-norm:  0.000135594
+ max-norm: 0.000191962
+Updating boundary at time 0.9
+Computing Jacobian at time 0.9
+Projection converged: 1
+Computing error in Jacobian at time 0.9
+ L1-norm:  7.62894e-05
+ L2-norm:  8.41621e-05
+ max-norm: 0.000208195
