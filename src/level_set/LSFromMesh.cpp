@@ -263,17 +263,6 @@ LSFromMesh::doUpdateVolumeAreaSideLSNode(int vol_idx,
         }
     }
 
-    // Fill in level set ghost cells to get the periodic boundary conditions correctly. Note we do not coarsen because
-    // that will affect the flood filling algorithm.
-    {
-        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-        std::vector<ITC> ghost_cell_comp(1);
-        ghost_cell_comp[0] = ITC(phi_idx, "LINEAR_REFINE", false, "NONE");
-        HierarchyGhostCellInterpolation ghost_cells;
-        ghost_cells.initializeOperatorState(ghost_cell_comp, d_hierarchy, 0, finest_ln);
-        ghost_cells.fillData(data_time);
-    }
-
     // Now update the LS away from the interface using a flood filling algorithm.
     updateLSAwayFromInterfaceNode(phi_idx);
 
@@ -561,17 +550,6 @@ LSFromMesh::doUpdateLSCell(const int phi_idx,
                 }
             }
         }
-    }
-
-    // Fill in level set ghost cells to get the periodic boundary conditions correctly. Note we do not coarsen because
-    // that will affect the flood filling algorithm.
-    {
-        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-        std::vector<ITC> ghost_cell_comp(1);
-        ghost_cell_comp[0] = ITC(phi_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE");
-        HierarchyGhostCellInterpolation ghost_cells;
-        ghost_cells.initializeOperatorState(ghost_cell_comp, d_hierarchy, 0, finest_ln);
-        ghost_cells.fillData(data_time);
     }
 
     // Now update the LS away from the interface using a flood filling algorithm.
