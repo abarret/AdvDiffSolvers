@@ -66,6 +66,7 @@ SET(CXX_SRC
     surfaces/GeneralBoundaryMeshMapping.cpp
     surfaces/SBSurfaceFluidCouplingManager.cpp
     surfaces/VolumeBoundaryMeshMapping.cpp
+    surfaces/surface_utilities.cpp
 
     utilities/IntegrateFunction.cpp
     utilities/PointwiseFunction.cpp
