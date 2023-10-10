@@ -31,7 +31,7 @@ RBFDivergenceReconstructions::RBFDivergenceReconstructions(std::string object_na
     d_u_scr_idx = var_db->registerVariableAndContext(
         d_u_scr_var, var_db->getContext(d_object_name + "::CTX"), std::ceil(0.5 * d_rbf_stencil_size));
     IBTK_DO_ONCE(t_apply_reconstruction =
-                     TimerManager::getManager()->getTimer("ADS::RBFStructureReconstruction::applyReconstruction()"););
+                     TimerManager::getManager()->getTimer("ADS::RBFDivergenceReconstruction::applyReconstruction()"););
     return;
 } // RBFDivergenceReconstructions
 
@@ -112,6 +112,7 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
             const hier::Index<NDIM>& idx_low = box.lower();
 
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+            const double* const dx = pgeom->getDx();
 
             Pointer<CellData<NDIM, double>> xstar_data = patch->getPatchData(path_idx);
             Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(u_idx);
@@ -138,7 +139,25 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
                     while (X_pts.size() < d_rbf_stencil_size)
                     {
 #ifndef NDEBUG
-                        TBOX_ASSERT(i < test_idxs.size());
+                        if (i >= test_idxs.size())
+                        {
+                            std::ostringstream err_msg;
+                            err_msg
+                                << d_object_name
+                                << "::applyReconstruction(): Could not find enough cells to perform reconstruction.\n";
+                            err_msg << "  Reconstructing on index: " << idx << " and level " << ln << " and patch num "
+                                    << patch->getPatchNumber() << "\n";
+                            err_msg << "  Reconstructing at point: " << x_loc.transpose() << "\n";
+                            err_msg << "  ls value: " << ls_val << "\n";
+                            err_msg << "  Searched " << i << " indices and found " << test_idxs.size()
+                                    << " valid indices\n";
+                            err_msg << "  Ls neighbor values: "
+                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerLeft)) << " "
+                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerRight)) << " "
+                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperLeft)) << " "
+                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperRight)) << "\n";
+                            TBOX_ERROR(err_msg.str());
+                        }
 #endif
                         const SideIndex<NDIM>& test_idx = test_idxs[i];
                         if (ADS::node_to_side(test_idx, *ls_data) * ls_val > 0.0)
@@ -203,9 +222,8 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
                                                             L_polys,
                                                             static_cast<void*>(&d));
                     // Now perform reconstruction.
-                    std::transform(
-                        u_vals.begin(), u_vals.end(), wgts.begin(), u_vals.begin(), std::multiplies<double>());
-                    (*div_data)(idx) = (*div_data)(idx) + std::accumulate(u_vals.begin(), u_vals.end(), 0.0);
+                    for (size_t i = 0; i < u_vals.size(); ++i)
+                        (*div_data)(idx) = (*div_data)(idx) + u_vals[i] * wgts[i] / dx[d];
                 }
             }
         }
