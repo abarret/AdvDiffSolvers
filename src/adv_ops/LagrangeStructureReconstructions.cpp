@@ -257,7 +257,26 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
                     while (X_pts.size() < d_rbf_stencil_size)
                     {
 #ifndef NDEBUG
-                        TBOX_ASSERT(i < new_idxs.size());
+                        if (i >= new_idxs.size())
+                        {
+                            std::ostringstream err_msg;
+                            err_msg
+                                << d_object_name
+                                << "::applyReconstruction(): Could not find enough cells to perform reconstruction.\n";
+                            err_msg << "  Reconstructing on index: " << idx << " and level " << ln << " and patch num "
+                                    << patch->getPatchNumber() << "\n";
+                            err_msg << "  Reconstructing at point: " << x_loc.transpose() << "\n";
+                            err_msg << "  ls value: " << ls_new_val << "\n";
+                            err_msg << "  Searched " << i << " indices and found " << new_idxs.size()
+                                    << " valid indices\n";
+                            err_msg << "  Ls neighbor values: "
+                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerLeft)) << " "
+                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerRight)) << " "
+                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperLeft)) << " "
+                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperRight)) << "\n";
+                            pout << err_msg.str() << "\n";
+                            TBOX_ERROR(err_msg.str());
+                        }
 #endif
                         const CellIndex<NDIM>& new_idx = new_idxs[i];
                         // Add new idx to list of X_vals

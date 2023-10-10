@@ -27,6 +27,11 @@ CutCellMeshMapping::initializeObjectState(Pointer<PatchHierarchy<NDIM>> hierarch
     // Reset mappings
     const int finest_ln = d_hierarchy->getFinestLevelNumber();
     d_idx_cut_cell_elems_map_vec.resize(finest_ln + 1);
+    for (int ln = 0; ln <= finest_ln; ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+        d_idx_cut_cell_elems_map_vec[ln].resize(level->getProcessorMapping().getNumberOfLocalIndices());
+    }
 
     d_is_initialized = true;
 }
