@@ -114,7 +114,6 @@ main(int argc, char* argv[])
 // Uncomment to draw data.
 // #define DRAW_DATA 1
 #ifdef DRAW_DATA
-        std::unique_ptr<ExodusII_IO> reaction_exodus_io(new ExodusII_IO(*meshes[REACTION_MESH_ID]));
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
         visit_data_writer->registerPlotQuantity("ls", "SCALAR", ls_idx);
         visit_data_writer->registerPlotQuantity("vol", "SCALAR", vol_idx);
