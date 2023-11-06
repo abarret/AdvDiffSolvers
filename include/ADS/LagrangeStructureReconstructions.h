@@ -67,7 +67,8 @@ public:
     /*!
      * \brief Provide the structural system name for the exact solution.
      */
-    void setQSystemName(std::string Q_sys_name);
+    void setInsideQSystemName(std::string Q_sys_name);
+    void setOutsideQSystemName(std::string Q_sys_name);
 
 private:
     /*!
@@ -88,7 +89,7 @@ private:
     SAMRAI::tbox::Pointer<CutCellVolumeMeshMapping> d_cut_cell_mapping;
 
     // Structural value information
-    std::string d_Q_sys_name;
+    std::string d_Q_in_sys_name, d_Q_out_sys_name;
 
     // Truncation info
     double d_low_cutoff = -std::numeric_limits<double>::max();

@@ -98,9 +98,15 @@ LagrangeStructureReconstructions::setCutCellMapping(Pointer<CutCellVolumeMeshMap
 }
 
 void
-LagrangeStructureReconstructions::setQSystemName(std::string Q_sys_name)
+LagrangeStructureReconstructions::setInsideQSystemName(std::string Q_sys_name)
 {
-    d_Q_sys_name = std::move(Q_sys_name);
+    d_Q_in_sys_name = std::move(Q_sys_name);
+}
+
+void
+LagrangeStructureReconstructions::setOutsideQSystemName(std::string Q_sys_name)
+{
+    d_Q_out_sys_name = std::move(Q_sys_name);
 }
 
 void
@@ -117,8 +123,10 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
     const std::vector<std::shared_ptr<FEMeshPartitioner>>& mesh_partitioners =
         d_cut_cell_mapping->getMeshPartitioners();
     const int num_parts = d_cut_cell_mapping->getNumParts();
-    std::vector<NumericVector<double>*> X_vecs(num_parts, nullptr), Q_vecs(num_parts, nullptr);
-    std::vector<DofMap*> X_dof_map_vecs(num_parts, nullptr), Q_dof_map_vecs(num_parts, nullptr);
+    std::vector<NumericVector<double>*> X_vecs(num_parts, nullptr), Q_in_vecs(num_parts, nullptr),
+        Q_out_vecs(num_parts, nullptr);
+    std::vector<DofMap*> X_dof_map_vecs(num_parts, nullptr), Q_in_dof_map_vecs(num_parts, nullptr),
+        Q_out_dof_map_vecs(num_parts, nullptr);
     for (int part = 0; part < num_parts; ++part)
     {
         EquationSystems* eq_sys = mesh_partitioners[part]->getEquationSystems();
@@ -127,9 +135,13 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
         X_vecs[part] = X_sys.current_local_solution.get();
         X_dof_map_vecs[part] = &X_sys.get_dof_map();
 
-        auto& Q_sys = eq_sys->get_system<ExplicitSystem>(d_Q_sys_name);
-        Q_vecs[part] = Q_sys.current_local_solution.get();
-        Q_dof_map_vecs[part] = &Q_sys.get_dof_map();
+        auto& Q_in_sys = eq_sys->get_system<ExplicitSystem>(d_Q_in_sys_name);
+        Q_in_vecs[part] = Q_in_sys.current_local_solution.get();
+        Q_in_dof_map_vecs[part] = &Q_in_sys.get_dof_map();
+
+        auto& Q_out_sys = eq_sys->get_system<ExplicitSystem>(d_Q_out_sys_name);
+        Q_out_vecs[part] = Q_out_sys.current_local_solution.get();
+        Q_out_dof_map_vecs[part] = &Q_out_sys.get_dof_map();
     }
 
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
@@ -216,7 +228,7 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
                                              (*Q_cur_data)(ll + one_x + one_y) * x_loc[0] * x_loc[1];
                     }
                 }
-                else if (ADS::node_to_cell(idx, *ls_new_data) < 0.0 && cut_cell_map.count(IndexList(patch, idx)) > 0)
+                else if (cut_cell_map.count(IndexList(patch, idx)) > 0)
                 {
                     // Our reconstruction can use boundary data.
                     // Need to determine closest points. If we are on a cut cell, we use the parent element's nodes
@@ -241,8 +253,16 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
                             X_dof_map_vecs[part]->dof_indices(node, dofs);
                             for (int d = 0; d < NDIM; ++d) X_pt[d] = (*X_vecs[part])(dofs[d]);
                             X_pts.push_back(X_pt);
-                            Q_dof_map_vecs[part]->dof_indices(node, dofs);
-                            Q_vals.push_back((*Q_vecs[part])(dofs[0]));
+                            if (ADS::node_to_cell(idx, *ls_new_data) < 0.0)
+                            {
+                                Q_in_dof_map_vecs[part]->dof_indices(node, dofs);
+                                Q_vals.push_back((*Q_in_vecs[part])(dofs[0]));
+                            }
+                            else
+                            {
+                                Q_out_dof_map_vecs[part]->dof_indices(node, dofs);
+                                Q_vals.push_back((*Q_out_vecs[part])(dofs[0]));
+                            }
                         }
                     }
 
