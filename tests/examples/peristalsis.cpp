@@ -411,6 +411,7 @@ main(int argc, char* argv[])
                 std::make_shared<LagrangeStructureReconstructions>("RBFReconstruct", input_db->getDatabase("AdvOps"));
             adv_op_reconstruct->setCutCellMapping(cut_cell_mapping);
             adv_op_reconstruct->setInsideQSystemName(Q_exact_str);
+            adv_op_reconstruct->setReconstructionOutside(false);
             adv_diff_integrator->registerAdvectionReconstruction(Q_var, adv_op_reconstruct);
         }
 
