@@ -11,6 +11,7 @@
 #include "ADS/reconstructions.h"
 
 #include "CellVariable.h"
+#include "SideVariable.h"
 
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
@@ -73,6 +74,8 @@ private:
     // Scratch data
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_scr_var;
     int d_u_scr_idx = IBTK::invalid_index;
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> d_div_var;
+    int d_div_idx = IBTK::invalid_index;
 
     // Weight caching
     bool d_weights_cached = false;

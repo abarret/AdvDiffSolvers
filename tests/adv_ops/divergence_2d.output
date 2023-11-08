@@ -3,6 +3,6 @@ Minimum volume on level:     0 is: 0.015625
 Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 1
 Computing error in divergence interpolation:
- L1-norm:  0.024628
- L2-norm:  0.0278146
- max-norm: 0.0442169
+ L1-norm:  8.10373e-16
+ L2-norm:  1.16325e-15
+ max-norm: 3.46077e-15

@@ -137,7 +137,7 @@ main(int argc, char* argv[])
                 for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
-                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = static_cast<double>(idx(d)) + 0.5;
+                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = static_cast<double>(idx(d)) + 0.25;
                 }
             }
         }

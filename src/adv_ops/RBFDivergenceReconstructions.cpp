@@ -6,6 +6,7 @@
 #include <ADS/reconstructions.h>
 
 #include "ibtk/HierarchyGhostCellInterpolation.h"
+#include "ibtk/HierarchyMathOps.h"
 
 #include "SAMRAIVectorReal.h"
 
@@ -22,7 +23,8 @@ namespace ADS
 {
 RBFDivergenceReconstructions::RBFDivergenceReconstructions(std::string object_name, Pointer<Database> input_db)
     : AdvectiveReconstructionOperator(std::move(object_name)),
-      d_u_scr_var(new SideVariable<NDIM, double>(d_object_name + "::Q_scratch"))
+      d_u_scr_var(new SideVariable<NDIM, double>(d_object_name + "::Q_scratch")),
+      d_div_var(new CellVariable<NDIM, double>(d_object_name + "::Div"))
 {
     d_rbf_stencil_size = input_db->getInteger("stencil_size");
     d_rbf_order = Reconstruct::string_to_enum<Reconstruct::RBFPolyOrder>(input_db->getString("rbf_order"));
@@ -30,6 +32,9 @@ RBFDivergenceReconstructions::RBFDivergenceReconstructions(std::string object_na
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_u_scr_idx = var_db->registerVariableAndContext(
         d_u_scr_var, var_db->getContext(d_object_name + "::CTX"), std::ceil(0.5 * d_rbf_stencil_size));
+    d_div_idx =
+        var_db->registerVariableAndContext(d_div_var, var_db->getContext(d_object_name + "::CTX"), IntVector<NDIM>(2));
+
     IBTK_DO_ONCE(t_apply_reconstruction =
                      TimerManager::getManager()->getTimer("ADS::RBFDivergenceReconstruction::applyReconstruction()"););
     return;
@@ -72,6 +77,7 @@ RBFDivergenceReconstructions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
         if (!level->checkAllocated(d_u_scr_idx)) level->allocatePatchData(d_u_scr_idx);
+        if (!level->checkAllocated(d_div_idx)) level->allocatePatchData(d_div_idx);
     }
     d_is_allocated = true;
 }
@@ -100,6 +106,16 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
     TBOX_ASSERT(d_new_ls_idx > 0);
 #endif
 
+    // Compute div(u) using centered differences. We'll interpolate this if we can, otherwise we'll use RBF-FD
+    HierarchyMathOps hier_math_ops("hier_math_ops", d_hierarchy);
+    hier_math_ops.div(d_div_idx, d_div_var, 1.0, u_idx, d_u_scr_var, nullptr, 0.0, true);
+    // Fill ghost cells
+    using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+    std::vector<ITC> ghost_cell_comp = { ITC(d_div_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE") };
+    HierarchyGhostCellInterpolation hier_ghost_fill;
+    hier_ghost_fill.initializeOperatorState(ghost_cell_comp, d_hierarchy);
+    hier_ghost_fill.fillData(0.0);
+
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -119,6 +135,26 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
             Pointer<CellData<NDIM, double>> div_data = patch->getPatchData(div_idx);
             Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(d_cur_ls_idx);
             Pointer<NodeData<NDIM, double>> ls_new_data = patch->getPatchData(d_new_ls_idx);
+            Pointer<CellData<NDIM, double>> fd_div_data = patch->getPatchData(d_div_idx);
+
+            auto within_regular_interpolant =
+                [](const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data, const double ls_val) -> bool {
+                for (int axis = 0; axis < NDIM; ++axis)
+                {
+                    SideIndex<NDIM> si(idx, axis, 0);
+                    IntVector<NDIM> shft;
+                    for (int i = -1; i <= 1; ++i)
+                    {
+                        shft(0) = i;
+                        for (int j = -1; j <= 1; ++j)
+                        {
+                            shft(1) = j;
+                            if (ADS::node_to_side(si + shft, ls_data) * ls_val < 0.0) return false;
+                        }
+                    }
+                }
+                return true;
+            };
 
             div_data->fillAll(0.0);
 
@@ -130,100 +166,143 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
                 IBTK::VectorNd x_loc;
                 for (int d = 0; d < NDIM; ++d) x_loc[d] = (*xstar_data)(idx, d);
 
-                for (int d = 0; d < NDIM; ++d)
+                // Determine if we can use a standard FD stencil
+                if (within_regular_interpolant(idx, *ls_data, ls_val))
                 {
-                    std::vector<VectorNd> X_pts;
-                    std::vector<double> u_vals;
-                    std::vector<SideIndex<NDIM>> test_idxs = { SideIndex<NDIM>(idx, d, 0), SideIndex<NDIM>(idx, d, 1) };
-                    unsigned int i = 0;
-                    while (X_pts.size() < d_rbf_stencil_size)
-                    {
-#ifndef NDEBUG
-                        if (i >= test_idxs.size())
-                        {
-                            std::ostringstream err_msg;
-                            err_msg
-                                << d_object_name
-                                << "::applyReconstruction(): Could not find enough cells to perform reconstruction.\n";
-                            err_msg << "  Reconstructing on index: " << idx << " and level " << ln << " and patch num "
-                                    << patch->getPatchNumber() << "\n";
-                            err_msg << "  Reconstructing at point: " << x_loc.transpose() << "\n";
-                            err_msg << "  ls value: " << ls_val << "\n";
-                            err_msg << "  Searched " << i << " indices and found " << test_idxs.size()
-                                    << " valid indices\n";
-                            err_msg << "  Ls neighbor values: "
-                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerLeft)) << " "
-                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerRight)) << " "
-                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperLeft)) << " "
-                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperRight)) << "\n";
-                            TBOX_ERROR(err_msg.str());
-                        }
-#endif
-                        const SideIndex<NDIM>& test_idx = test_idxs[i];
-                        if (ADS::node_to_side(test_idx, *ls_data) * ls_val > 0.0)
-                        {
-                            u_vals.push_back((*u_data)(test_idx));
-                            VectorNd xpt;
-                            for (int dd = 0; dd < NDIM; ++dd)
-                                xpt[dd] = static_cast<double>(test_idx(dd) - idx_low(dd)) + (dd == d ? 0.0 : 0.5);
-                            X_pts.push_back(xpt);
-                        }
+                    // Interpolate fd_div_data to x_loc.
+                    for (int d = 0; d < NDIM; ++d)
+                        x_loc[d] = (*xstar_data)(idx, d) - (static_cast<double>(idx(d)) + 0.5);
+                    IntVector<NDIM> one_x(1, 0), one_y(0, 1);
+                    (*div_data)(idx) = (*fd_div_data)(idx) * (x_loc[0] - 1.0) * (x_loc[0] + 1.0) * (x_loc[1] - 1.0) *
+                                           (x_loc[1] + 1.0) -
+                                       (*fd_div_data)(idx + one_x) * 0.5 * x_loc[0] * (x_loc[0] + 1.0) *
+                                           (x_loc[1] - 1.0) * (x_loc[1] + 1.0) -
+                                       (*fd_div_data)(idx - one_x) * 0.5 * x_loc[0] * (x_loc[0] - 1.0) *
+                                           (x_loc[1] - 1.0) * (x_loc[1] + 1.0) -
+                                       (*fd_div_data)(idx + one_y) * 0.5 * x_loc[1] * (x_loc[1] + 1.0) *
+                                           (x_loc[0] - 1.0) * (x_loc[0] + 1.0) -
+                                       (*fd_div_data)(idx - one_y) * 0.5 * x_loc[1] * (x_loc[1] - 1.0) *
+                                           (x_loc[0] - 1.0) * (x_loc[0] + 1.0);
 
-                        // Add neighboring points to new_idxs.
-                        IntVector<NDIM> l(-1, 0), r(1, 0), b(0, -1), u(0, 1);
-                        SideIndex<NDIM> idx_l(test_idx + l), idx_r(test_idx + r);
-                        SideIndex<NDIM> idx_u(test_idx + u), idx_b(test_idx + b);
-                        if (ADS::node_to_cell(idx_l, *ls_data) * ls_val > 0.0 &&
-                            (std::find(test_idxs.begin(), test_idxs.end(), idx_l) == test_idxs.end()))
-                            test_idxs.push_back(idx_l);
-                        if (ADS::node_to_cell(idx_r, *ls_data) * ls_val > 0.0 &&
-                            (std::find(test_idxs.begin(), test_idxs.end(), idx_r) == test_idxs.end()))
-                            test_idxs.push_back(idx_r);
-                        if (ADS::node_to_cell(idx_u, *ls_data) * ls_val > 0.0 &&
-                            (std::find(test_idxs.begin(), test_idxs.end(), idx_u) == test_idxs.end()))
-                            test_idxs.push_back(idx_u);
-                        if (ADS::node_to_cell(idx_b, *ls_data) * ls_val > 0.0 &&
-                            (std::find(test_idxs.begin(), test_idxs.end(), idx_b) == test_idxs.end()))
-                            test_idxs.push_back(idx_b);
-                        ++i;
+                    // Check if we need to limit.
+                    // Grab "lower left" index
+                    CellIndex<NDIM> ll;
+                    for (int d = 0; d < NDIM; ++d) ll(d) = std::round((*xstar_data)(idx, d)) - 1.0;
+                    double q00 = (*fd_div_data)(ll);
+                    double q10 = (*fd_div_data)(ll + one_x);
+                    double q01 = (*fd_div_data)(ll + one_y);
+                    double q11 = (*fd_div_data)(ll + one_x + one_y);
+                    if ((*div_data)(idx) > std::max({ q00, q10, q01, q11 }) ||
+                        (*div_data)(idx) < std::min({ q00, q10, q01, q11 }))
+                    {
+                        CellIndex<NDIM> ll;
+                        for (int d = 0; d < NDIM; ++d) ll(d) = std::round((*xstar_data)(idx, d)) - 1;
+                        for (int d = 0; d < NDIM; ++d)
+                            x_loc[d] = (*xstar_data)(idx, d) - (static_cast<double>(ll(d)) + 0.5);
+                        (*div_data)(idx) = (*fd_div_data)(ll) * (x_loc[0] - 1.0) * (x_loc[1] - 1.0) -
+                                           (*fd_div_data)(ll + one_y) * x_loc[1] * (x_loc[0] - 1.0) -
+                                           (*fd_div_data)(ll + one_x) * x_loc[0] * (x_loc[1] - 1.0) +
+                                           (*fd_div_data)(ll + one_x + one_y) * x_loc[0] * x_loc[1];
                     }
-
-                    // We have all the points. Now determine weights.
-                    auto rbf = [](const double r) -> double { return r * r * r; };
-                    auto L_rbf = [](const VectorNd& xi, const VectorNd& xj, void* ctx) -> double
+                }
+                else
+                {
+                    for (int d = 0; d < NDIM; ++d)
                     {
-                        int d = *static_cast<int*>(ctx);
-                        return 3.0 * (xi[d] - xj[d]) * (xi - xj).norm();
-                    };
+                        std::vector<VectorNd> X_pts;
+                        std::vector<double> u_vals;
+                        std::vector<SideIndex<NDIM>> test_idxs = { SideIndex<NDIM>(idx, d, 0),
+                                                                   SideIndex<NDIM>(idx, d, 1) };
+                        unsigned int i = 0;
+                        while (X_pts.size() < d_rbf_stencil_size)
+                        {
+#ifndef NDEBUG
+                            if (i >= test_idxs.size())
+                            {
+                                std::ostringstream err_msg;
+                                err_msg << d_object_name
+                                        << "::applyReconstruction(): Could not find enough cells to perform "
+                                           "reconstruction.\n";
+                                err_msg << "  Reconstructing on index: " << idx << " and level " << ln
+                                        << " and patch num " << patch->getPatchNumber() << "\n";
+                                err_msg << "  Reconstructing at point: " << x_loc.transpose() << "\n";
+                                err_msg << "  ls value: " << ls_val << "\n";
+                                err_msg << "  Searched " << i << " indices and found " << test_idxs.size()
+                                        << " valid indices\n";
+                                err_msg << "  Ls neighbor values: "
+                                        << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerLeft)) << " "
+                                        << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerRight)) << " "
+                                        << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperLeft)) << " "
+                                        << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperRight)) << "\n";
+                                TBOX_ERROR(err_msg.str());
+                            }
+#endif
+                            const SideIndex<NDIM>& test_idx = test_idxs[i];
+                            if (ADS::node_to_side(test_idx, *ls_data) * ls_val > 0.0)
+                            {
+                                u_vals.push_back((*u_data)(test_idx));
+                                VectorNd xpt;
+                                for (int dd = 0; dd < NDIM; ++dd)
+                                    xpt[dd] = static_cast<double>(test_idx(dd) - idx_low(dd)) + (dd == d ? 0.0 : 0.5);
+                                X_pts.push_back(xpt);
+                            }
 
-                    auto L_polys = [](const std::vector<VectorNd>& xpts,
-                                      int poly_degree,
-                                      double dx,
-                                      VectorNd base_pt,
-                                      void* ctx) -> VectorXd
-                    {
-                        int d = *static_cast<int*>(ctx);
-                        if (d == 0)
-                            return PolynomialBasis::dPdxMonomials(xpts, poly_degree, dx, base_pt).transpose();
-                        else
-                            return PolynomialBasis::dPdyMonomials(xpts, poly_degree, dx, base_pt).transpose();
-                    };
+                            // Add neighboring points to new_idxs.
+                            IntVector<NDIM> l(-1, 0), r(1, 0), b(0, -1), u(0, 1);
+                            SideIndex<NDIM> idx_l(test_idx + l), idx_r(test_idx + r);
+                            SideIndex<NDIM> idx_u(test_idx + u), idx_b(test_idx + b);
+                            if (ADS::node_to_side(idx_l, *ls_data) * ls_val > 0.0 &&
+                                (std::find(test_idxs.begin(), test_idxs.end(), idx_l) == test_idxs.end()))
+                                test_idxs.push_back(idx_l);
+                            if (ADS::node_to_side(idx_r, *ls_data) * ls_val > 0.0 &&
+                                (std::find(test_idxs.begin(), test_idxs.end(), idx_r) == test_idxs.end()))
+                                test_idxs.push_back(idx_r);
 
-                    std::vector<double> wgts;
-                    std::vector<double> dummy_dx = { 1.0, 1.0 };
-                    Reconstruct::RBFFDReconstruct<VectorNd>(wgts,
-                                                            x_loc,
-                                                            X_pts,
-                                                            d_rbf_order == Reconstruct::RBFPolyOrder::LINEAR ? 1 : 2,
-                                                            dummy_dx.data(),
-                                                            rbf,
-                                                            L_rbf,
-                                                            static_cast<void*>(&d),
-                                                            L_polys,
-                                                            static_cast<void*>(&d));
-                    // Now perform reconstruction.
-                    for (size_t i = 0; i < u_vals.size(); ++i)
-                        (*div_data)(idx) = (*div_data)(idx) + u_vals[i] * wgts[i] / dx[d];
+                            if (ADS::node_to_side(idx_u, *ls_data) * ls_val > 0.0 &&
+                                (std::find(test_idxs.begin(), test_idxs.end(), idx_u) == test_idxs.end()))
+                                test_idxs.push_back(idx_u);
+                            if (ADS::node_to_side(idx_b, *ls_data) * ls_val > 0.0 &&
+                                (std::find(test_idxs.begin(), test_idxs.end(), idx_b) == test_idxs.end()))
+                                test_idxs.push_back(idx_b);
+                            ++i;
+                        }
+
+                        // We have all the points. Now determine weights.
+                        auto rbf = [](const double r) -> double { return r * r * r; };
+                        auto L_rbf = [](const VectorNd& xi, const VectorNd& xj, void* ctx) -> double {
+                            int d = *static_cast<int*>(ctx);
+                            return 3.0 * (xi[d] - xj[d]) * (xi - xj).norm();
+                        };
+
+                        auto L_polys = [](const std::vector<VectorNd>& xpts,
+                                          int poly_degree,
+                                          double dx,
+                                          VectorNd base_pt,
+                                          void* ctx) -> VectorXd {
+                            int d = *static_cast<int*>(ctx);
+                            if (d == 0)
+                                return PolynomialBasis::dPdxMonomials(xpts, poly_degree, dx, base_pt).transpose();
+                            else
+                                return PolynomialBasis::dPdyMonomials(xpts, poly_degree, dx, base_pt).transpose();
+                        };
+
+                        std::vector<double> wgts;
+                        std::vector<double> dummy_dx = { 1.0, 1.0 };
+                        Reconstruct::RBFFDReconstruct<VectorNd>(wgts,
+                                                                x_loc,
+                                                                X_pts,
+                                                                d_rbf_order == Reconstruct::RBFPolyOrder::LINEAR ? 1 :
+                                                                                                                   2,
+                                                                dummy_dx.data(),
+                                                                rbf,
+                                                                L_rbf,
+                                                                static_cast<void*>(&d),
+                                                                L_polys,
+                                                                static_cast<void*>(&d));
+                        // Now perform reconstruction.
+                        for (size_t i = 0; i < u_vals.size(); ++i)
+                            (*div_data)(idx) = (*div_data)(idx) + u_vals[i] * wgts[i] / dx[d];
+                    }
                 }
             }
         }
