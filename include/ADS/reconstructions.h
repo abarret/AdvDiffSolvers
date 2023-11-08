@@ -40,8 +40,7 @@ string_to_enum(const std::string& /*val*/)
  * \brief Routine for converting enums to strings.
  */
 template <typename T>
-inline std::string
-enum_to_string(T /*val*/)
+inline std::string enum_to_string(T /*val*/)
 {
     TBOX_ERROR("UNSUPPORTED ENUM TYPE\n");
     return "UNKNOWN";
@@ -122,6 +121,22 @@ mls_weight(double r)
 }
 
 /*!
+ * Use a flood filling algorithm to find neighboring points to a given index. Uses the value of the level set to
+ * determine whether indices point to the same size.
+ *
+ * Note that fill_pts does not need to be empty. This function will append fill_pts until it's size is equal to
+ * stencil_size.
+ *
+ * If compiled with debugging flags, throws a runtime_error if the flood filling algorithm could not find the requested
+ * number of points.
+ */
+void floodFillForPoints(std::vector<SAMRAI::pdat::CellIndex<NDIM>>& fill_pts,
+                        const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                        const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
+                        double ls,
+                        size_t stencil_size);
+
+/*!
  * Reconstruct the data at position x_loc, using a stencil centered at idx. Only uses points that have a non-zero volume
  * fraction in vol_data. The reconstruction uses a polyharmonic spline fit.
  *
@@ -198,6 +213,25 @@ RBFFDReconstruct(std::vector<double>& wgts,
                  void* rbf_ctx,
                  std::function<IBTK::VectorXd(const std::vector<Point>&, int, double, const Point&, void*)> L_polys,
                  void* poly_ctx);
+
+/*!
+ * Compute the quadratic Lagrange interpolant to the location x using an interpolant centered at idx.
+ *
+ * Note that x must be given in index space, and should be shifted so that idx corresponds to (0,0).
+ */
+double quadraticLagrangeInterpolant(const IBTK::VectorNd& x,
+                                    const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                                    const SAMRAI::pdat::CellData<NDIM, double>& Q_data);
+
+/*!
+ * Compute the quadratic Lagrange interpolant to the location x using an interpolant centered at idx. Limit the
+ * interpolant if the reconstructed value falls outside the neighboring values.
+ *
+ * Note that x must be given in index space, and should be shifted so that idx corresponds to (0,0).
+ */
+double quadraticLagrangeInterpolantLimited(IBTK::VectorNd x,
+                                           const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                                           const SAMRAI::pdat::CellData<NDIM, double>& Q_data);
 } // namespace Reconstruct
 
 #include <ADS/private/reconstructions_inc.h>

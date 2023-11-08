@@ -293,56 +293,24 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
     // If we use a linear polynomial, include 6 closest points.
     // If we use a quadratic polynomial, include 14 closest points.
     // Use flooding to find points
-    std::vector<CellIndex<NDIM>> new_idxs = { idx };
+    std::vector<CellIndex<NDIM>> stencil_idxs;
+    try
+    {
+        floodFillForPoints(stencil_idxs, idx, ls_data, ls_val, stencil_size);
+    }
+    catch (const std::runtime_error& e)
+    {
+        pout << e.what() << "\n";
+        TBOX_ERROR("radialBasisFunctionReconstruction(): Could not find enough cells to perform reconstruction\n");
+    }
     std::vector<VectorNd> X_vals;
     std::vector<double> Q_vals;
-    unsigned int i = 0;
-    while (X_vals.size() < stencil_size)
+    for (const auto& idx : stencil_idxs)
     {
-#ifndef NDEBUG
-        if (i >= new_idxs.size())
-        {
-            std::ostringstream err_msg;
-            err_msg << "radialBasisFunctionReconstruction(): Could not find enough cells to perform reconstruction.\n";
-            err_msg << "  Reconstructing on index: " << idx << " and level " << patch->getPatchLevelNumber()
-                    << " and patch num " << patch->getPatchNumber() << "\n";
-            err_msg << "  Reconstructing at point: " << x_loc.transpose() << "\n";
-            err_msg << "  ls value: " << ls_val << "\n";
-            err_msg << "  Searched " << i << " indices and found " << new_idxs.size() << " valid indices\n";
-            err_msg << "  Ls neighbor values: " << ls_data(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerLeft)) << " "
-                    << ls_data(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerRight)) << " "
-                    << ls_data(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperLeft)) << " "
-                    << ls_data(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperRight)) << "\n";
-            TBOX_ERROR(err_msg.str());
-        }
-#endif
-        CellIndex<NDIM> new_idx = new_idxs[i];
-        // Add new idx to list of X_vals
-        if (ADS::node_to_cell(new_idx, ls_data) * ls_val > 0.0)
-        {
-            Q_vals.push_back(Q_data(new_idx));
-            VectorNd x_cent_c;
-            for (int d = 0; d < NDIM; ++d)
-                x_cent_c[d] = xlow[d] + dx[d] * (new_idx(d) - static_cast<double>(idx_low(d)) + 0.5);
-            X_vals.push_back(x_cent_c);
-        }
-        // Add neighboring points to new_idxs
-        IntVector<NDIM> l(-1, 0), r(1, 0), b(0, -1), u(0, 1);
-        CellIndex<NDIM> idx_l(new_idx + l), idx_r(new_idx + r);
-        CellIndex<NDIM> idx_u(new_idx + u), idx_b(new_idx + b);
-        if (ADS::node_to_cell(idx_l, ls_data) * ls_val > 0.0 &&
-            (std::find(new_idxs.begin(), new_idxs.end(), idx_l) == new_idxs.end()))
-            new_idxs.push_back(idx_l);
-        if (ADS::node_to_cell(idx_r, ls_data) * ls_val > 0.0 &&
-            (std::find(new_idxs.begin(), new_idxs.end(), idx_r) == new_idxs.end()))
-            new_idxs.push_back(idx_r);
-        if (ADS::node_to_cell(idx_u, ls_data) * ls_val > 0.0 &&
-            (std::find(new_idxs.begin(), new_idxs.end(), idx_u) == new_idxs.end()))
-            new_idxs.push_back(idx_u);
-        if (ADS::node_to_cell(idx_b, ls_data) * ls_val > 0.0 &&
-            (std::find(new_idxs.begin(), new_idxs.end(), idx_b) == new_idxs.end()))
-            new_idxs.push_back(idx_b);
-        ++i;
+        Q_vals.push_back(Q_data(idx));
+        VectorNd x_cent_c;
+        for (int d = 0; d < NDIM; ++d) x_cent_c[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
+        X_vals.push_back(x_cent_c);
     }
 
     return radialBasisFunctionReconstruction(x_loc, X_vals, Q_vals, order);
