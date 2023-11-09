@@ -27,6 +27,7 @@ LagrangeStructureReconstructions::LagrangeStructureReconstructions(std::string o
     d_rbf_order = Reconstruct::string_to_enum<Reconstruct::RBFPolyOrder>(input_db->getString("rbf_order"));
     d_low_cutoff = input_db->getDoubleWithDefault("low_cutoff", d_low_cutoff);
     d_high_cutoff = input_db->getDoubleWithDefault("high_cutoff", d_high_cutoff);
+    d_default_value = input_db->getDoubleWithDefault("default_value", d_default_value);
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_Q_scr_idx = var_db->registerVariableAndContext(
@@ -98,9 +99,21 @@ LagrangeStructureReconstructions::setCutCellMapping(Pointer<CutCellVolumeMeshMap
 }
 
 void
-LagrangeStructureReconstructions::setQSystemName(std::string Q_sys_name)
+LagrangeStructureReconstructions::setInsideQSystemName(std::string Q_sys_name)
 {
-    d_Q_sys_name = std::move(Q_sys_name);
+    d_Q_in_sys_name = std::move(Q_sys_name);
+}
+
+void
+LagrangeStructureReconstructions::setOutsideQSystemName(std::string Q_sys_name)
+{
+    d_Q_out_sys_name = std::move(Q_sys_name);
+}
+
+void
+LagrangeStructureReconstructions::setReconstructionOutside(const bool reconstruct_outside)
+{
+    d_reconstruct_outside = reconstruct_outside;
 }
 
 void
@@ -117,8 +130,10 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
     const std::vector<std::shared_ptr<FEMeshPartitioner>>& mesh_partitioners =
         d_cut_cell_mapping->getMeshPartitioners();
     const int num_parts = d_cut_cell_mapping->getNumParts();
-    std::vector<NumericVector<double>*> X_vecs(num_parts, nullptr), Q_vecs(num_parts, nullptr);
-    std::vector<DofMap*> X_dof_map_vecs(num_parts, nullptr), Q_dof_map_vecs(num_parts, nullptr);
+    std::vector<NumericVector<double>*> X_vecs(num_parts, nullptr), Q_in_vecs(num_parts, nullptr),
+        Q_out_vecs(num_parts, nullptr);
+    std::vector<DofMap*> X_dof_map_vecs(num_parts, nullptr), Q_in_dof_map_vecs(num_parts, nullptr),
+        Q_out_dof_map_vecs(num_parts, nullptr);
     for (int part = 0; part < num_parts; ++part)
     {
         EquationSystems* eq_sys = mesh_partitioners[part]->getEquationSystems();
@@ -127,9 +142,16 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
         X_vecs[part] = X_sys.current_local_solution.get();
         X_dof_map_vecs[part] = &X_sys.get_dof_map();
 
-        auto& Q_sys = eq_sys->get_system<ExplicitSystem>(d_Q_sys_name);
-        Q_vecs[part] = Q_sys.current_local_solution.get();
-        Q_dof_map_vecs[part] = &Q_sys.get_dof_map();
+        auto& Q_in_sys = eq_sys->get_system<ExplicitSystem>(d_Q_in_sys_name);
+        Q_in_vecs[part] = Q_in_sys.current_local_solution.get();
+        Q_in_dof_map_vecs[part] = &Q_in_sys.get_dof_map();
+
+        if (d_reconstruct_outside)
+        {
+            auto& Q_out_sys = eq_sys->get_system<ExplicitSystem>(d_Q_out_sys_name);
+            Q_out_vecs[part] = Q_out_sys.current_local_solution.get();
+            Q_out_dof_map_vecs[part] = &Q_out_sys.get_dof_map();
+        }
     }
 
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
@@ -178,152 +200,93 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
                 IBTK::VectorNd x_loc;
                 for (int d = 0; d < NDIM; ++d) x_loc(d) = (*xstar_data)(idx, d);
 
+                const double ls_val = ADS::node_to_cell(idx, *ls_new_data);
+
                 // If we are in the bulk, we can use a regular polynomial interpolant.
-                if (within_lagrange_interpolant(idx, *ls_data))
+                if (d_reconstruct_outside || ls_val < 0.0)
                 {
-                    for (int d = 0; d < NDIM; ++d)
-                        x_loc[d] = (*xstar_data)(idx, d) - (static_cast<double>(idx(d)) + 0.5);
-                    IntVector<NDIM> one_x(1, 0), one_y(0, 1);
-                    (*Q_new_data)(idx) =
-                        (*Q_cur_data)(idx) * (x_loc[0] - 1.0) * (x_loc[0] + 1.0) * (x_loc[1] - 1.0) * (x_loc[1] + 1.0) -
-                        (*Q_cur_data)(idx + one_x) * 0.5 * x_loc[0] * (x_loc[0] + 1.0) * (x_loc[1] - 1.0) *
-                            (x_loc[1] + 1.0) -
-                        (*Q_cur_data)(idx - one_x) * 0.5 * x_loc[0] * (x_loc[0] - 1.0) * (x_loc[1] - 1.0) *
-                            (x_loc[1] + 1.0) -
-                        (*Q_cur_data)(idx + one_y) * 0.5 * x_loc[1] * (x_loc[1] + 1.0) * (x_loc[0] - 1.0) *
-                            (x_loc[0] + 1.0) -
-                        (*Q_cur_data)(idx - one_y) * 0.5 * x_loc[1] * (x_loc[1] - 1.0) * (x_loc[0] - 1.0) *
-                            (x_loc[0] + 1.0);
-
-                    // Check if we need to limit.
-                    // Grab "lower left" index
-                    CellIndex<NDIM> ll;
-                    for (int d = 0; d < NDIM; ++d) ll(d) = std::round((*xstar_data)(idx, d)) - 1.0;
-                    double q00 = (*Q_cur_data)(ll);
-                    double q10 = (*Q_cur_data)(ll + one_x);
-                    double q01 = (*Q_cur_data)(ll + one_y);
-                    double q11 = (*Q_cur_data)(ll + one_x + one_y);
-                    if ((*Q_new_data)(idx) > std::max({ q00, q10, q01, q11 }) ||
-                        (*Q_new_data)(idx) < std::min({ q00, q10, q01, q11 }))
+                    if (within_lagrange_interpolant(idx, *ls_data))
                     {
-                        CellIndex<NDIM> ll;
-                        for (int d = 0; d < NDIM; ++d) ll(d) = std::round((*xstar_data)(idx, d)) - 1;
+                        (*Q_new_data)(idx) = Reconstruct::quadraticLagrangeInterpolantLimited(x_loc, idx, *Q_cur_data);
+                    }
+                    else if (cut_cell_map.count(IndexList(patch, idx)) > 0 &&
+                             (ls_val < 0.0 || !d_Q_out_sys_name.empty()))
+                    {
+                        // Our reconstruction can use boundary data.
+                        // Need to determine closest points. If we are on a cut cell, we use the parent element's nodes
+                        // in the stencil
+                        // List of points and values
+                        std::vector<VectorNd> X_pts;
+                        std::vector<double> Q_vals;
+
+                        const std::vector<CutCellElems>& cut_cell_elems = cut_cell_map.at(IndexList(patch, idx));
+                        for (const auto& cut_cell_elem : cut_cell_elems)
+                        {
+                            const Elem* elem = cut_cell_elem.d_parent_elem;
+                            const int part = cut_cell_elem.d_part;
+
+                            // Grab the position of the nodes
+                            for (unsigned int node_num = 0; node_num < elem->n_nodes(); ++node_num)
+                            {
+                                const Node* node = elem->node_ptr(node_num);
+                                VectorNd X_pt;
+                                std::vector<dof_id_type> dofs;
+                                X_dof_map_vecs[part]->dof_indices(node, dofs);
+                                for (int d = 0; d < NDIM; ++d) X_pt[d] = (*X_vecs[part])(dofs[d]);
+                                X_pts.push_back(X_pt);
+                                if (ls_val < 0.0)
+                                {
+                                    Q_in_dof_map_vecs[part]->dof_indices(node, dofs);
+                                    Q_vals.push_back((*Q_in_vecs[part])(dofs[0]));
+                                }
+                                else
+                                {
+                                    Q_out_dof_map_vecs[part]->dof_indices(node, dofs);
+                                    Q_vals.push_back((*Q_out_vecs[part])(dofs[0]));
+                                }
+                            }
+                        }
+
+                        // We have the points on the structure that we are using to reconstruct the function. Grab the
+                        // rest from the Cartesian grid.
                         for (int d = 0; d < NDIM; ++d)
-                            x_loc[d] = (*xstar_data)(idx, d) - (static_cast<double>(ll(d)) + 0.5);
-                        (*Q_new_data)(idx) = (*Q_cur_data)(ll) * (x_loc[0] - 1.0) * (x_loc[1] - 1.0) -
-                                             (*Q_cur_data)(ll + one_y) * x_loc[1] * (x_loc[0] - 1.0) -
-                                             (*Q_cur_data)(ll + one_x) * x_loc[0] * (x_loc[1] - 1.0) +
-                                             (*Q_cur_data)(ll + one_x + one_y) * x_loc[0] * x_loc[1];
-                    }
-                }
-                else if (ADS::node_to_cell(idx, *ls_new_data) < 0.0 && cut_cell_map.count(IndexList(patch, idx)) > 0)
-                {
-                    // Our reconstruction can use boundary data.
-                    // Need to determine closest points. If we are on a cut cell, we use the parent element's nodes
-                    // in the stencil
-                    const double ls_new_val = node_to_cell(idx, *ls_new_data);
-                    // List of points and values
-                    std::vector<VectorNd> X_pts;
-                    std::vector<double> Q_vals;
+                            x_loc[d] = xlow[d] + dx[d] * (x_loc[d] - static_cast<double>(idx_low(d)));
 
-                    const std::vector<CutCellElems>& cut_cell_elems = cut_cell_map.at(IndexList(patch, idx));
-                    for (const auto& cut_cell_elem : cut_cell_elems)
-                    {
-                        const Elem* elem = cut_cell_elem.d_parent_elem;
-                        const int part = cut_cell_elem.d_part;
-
-                        // Grab the position of the nodes
-                        for (unsigned int node_num = 0; node_num < elem->n_nodes(); ++node_num)
+                        // Flood fill for Eulerian points
+                        std::vector<CellIndex<NDIM>> idx_vec;
+                        try
                         {
-                            const Node* node = elem->node_ptr(node_num);
-                            VectorNd X_pt;
-                            std::vector<dof_id_type> dofs;
-                            X_dof_map_vecs[part]->dof_indices(node, dofs);
-                            for (int d = 0; d < NDIM; ++d) X_pt[d] = (*X_vecs[part])(dofs[d]);
-                            X_pts.push_back(X_pt);
-                            Q_dof_map_vecs[part]->dof_indices(node, dofs);
-                            Q_vals.push_back((*Q_vecs[part])(dofs[0]));
+                            Reconstruct::floodFillForPoints(
+                                idx_vec, idx, *ls_data, ls_val, d_rbf_stencil_size - X_pts.size());
                         }
-                    }
-
-                    // We have the points on the structure that we are using to reconstruct the function. Grab the
-                    // rest from the Cartesian grid.
-                    for (int d = 0; d < NDIM; ++d)
-                        x_loc[d] = xlow[d] + dx[d] * (x_loc[d] - static_cast<double>(idx_low(d)));
-
-                    // Flood fill for Eulerian points
-                    std::vector<CellIndex<NDIM>> new_idxs = { idx };
-                    unsigned int i = 0;
-                    while (X_pts.size() < d_rbf_stencil_size)
-                    {
-#ifndef NDEBUG
-                        if (i >= new_idxs.size())
+                        catch (const std::runtime_error& e)
                         {
-                            std::ostringstream err_msg;
-                            err_msg
-                                << d_object_name
-                                << "::applyReconstruction(): Could not find enough cells to perform reconstruction.\n";
-                            err_msg << "  Reconstructing on index: " << idx << " and level " << ln << " and patch num "
-                                    << patch->getPatchNumber() << "\n";
-                            err_msg << "  Reconstructing at point: " << x_loc.transpose() << "\n";
-                            err_msg << "  ls value: " << ls_new_val << "\n";
-                            err_msg << "  Searched " << i << " indices and found " << new_idxs.size()
-                                    << " valid indices\n";
-                            err_msg << "  Ls neighbor values: "
-                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerLeft)) << " "
-                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::LowerRight)) << " "
-                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperLeft)) << " "
-                                    << (*ls_new_data)(NodeIndex<NDIM>(idx, NodeIndex<NDIM>::UpperRight)) << "\n";
-                            pout << err_msg.str() << "\n";
-                            TBOX_ERROR(err_msg.str());
+                            pout << e.what() << "\n";
+                            TBOX_ERROR(d_object_name + "::applyReconstruction(): Could not perform reconstruction!\n");
                         }
-#endif
-                        const CellIndex<NDIM>& new_idx = new_idxs[i];
-                        // Add new idx to list of X_vals
-                        if (ADS::node_to_cell(new_idx, *ls_data) * ls_new_val > 0.0)
+                        for (const auto& idx : idx_vec)
                         {
-                            Q_vals.push_back((*Q_cur_data)(new_idx));
+                            Q_vals.push_back((*Q_cur_data)(idx));
                             VectorNd x_cent_c;
                             for (int d = 0; d < NDIM; ++d)
-                                x_cent_c[d] = xlow[d] + dx[d] * (static_cast<double>(new_idx(d) - idx_low(d)) + 0.5);
+                                x_cent_c[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
                             X_pts.push_back(x_cent_c);
                         }
 
-                        // Add neighboring points to new_idxs.
-                        IntVector<NDIM> l(-1, 0), r(1, 0), b(0, -1), u(0, 1);
-                        CellIndex<NDIM> idx_l(new_idx + l), idx_r(new_idx + r);
-                        CellIndex<NDIM> idx_u(new_idx + u), idx_b(new_idx + b);
-                        if (ADS::node_to_cell(idx_l, *ls_data) * ls_new_val > 0.0 &&
-                            (std::find(new_idxs.begin(), new_idxs.end(), idx_l) == new_idxs.end()))
-                            new_idxs.push_back(idx_l);
-                        if (ADS::node_to_cell(idx_r, *ls_data) * ls_new_val > 0.0 &&
-                            (std::find(new_idxs.begin(), new_idxs.end(), idx_r) == new_idxs.end()))
-                            new_idxs.push_back(idx_r);
-                        if (ADS::node_to_cell(idx_u, *ls_data) * ls_new_val > 0.0 &&
-                            (std::find(new_idxs.begin(), new_idxs.end(), idx_u) == new_idxs.end()))
-                            new_idxs.push_back(idx_u);
-                        if (ADS::node_to_cell(idx_b, *ls_data) * ls_new_val > 0.0 &&
-                            (std::find(new_idxs.begin(), new_idxs.end(), idx_b) == new_idxs.end()))
-                            new_idxs.push_back(idx_b);
-                        ++i;
+                        // Now reconstruct the function
+                        (*Q_new_data)(idx) =
+                            Reconstruct::radialBasisFunctionReconstruction(x_loc, X_pts, Q_vals, d_rbf_order);
                     }
-
-                    // Now reconstruct the function
-                    (*Q_new_data)(idx) =
-                        Reconstruct::radialBasisFunctionReconstruction(x_loc, X_pts, Q_vals, d_rbf_order);
+                    else
+                    {
+                        // A node doesn't touch this cell. Just use normal interpolation.
+                        (*Q_new_data)(idx) = Reconstruct::radialBasisFunctionReconstruction(
+                            x_loc, ls_val, idx, *Q_cur_data, *ls_data, patch, d_rbf_order, d_rbf_stencil_size);
+                    }
                 }
                 else
                 {
-                    // A node doesn't touch this cell. Just use normal interpolation.
-                    (*Q_new_data)(idx) =
-                        Reconstruct::radialBasisFunctionReconstruction(x_loc,
-                                                                       ADS::node_to_cell(idx, *ls_new_data),
-                                                                       idx,
-                                                                       *Q_cur_data,
-                                                                       *ls_data,
-                                                                       patch,
-                                                                       d_rbf_order,
-                                                                       d_rbf_stencil_size);
+                    (*Q_new_data)(idx) = d_default_value;
                 }
 
                 // Cutoff solution if applicable

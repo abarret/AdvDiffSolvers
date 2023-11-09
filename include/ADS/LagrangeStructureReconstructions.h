@@ -18,7 +18,16 @@ namespace ADS
 {
 /*!
  * \brief Class LagrangeStructureReconstructions is a abstract class for an implementation of
- * a convective differencing operator.
+ * a semi-Lagrangian interpolation operator for the advection equation.
+ *
+ * Uses polyharmonic splines near the structure and limited quadratic Lagrange interpolants away from the structure.
+ *
+ * The input database is searched for the following items:
+ * - stencil_size: Total number of points to be used for polyharmonic spline.
+ * - rbf_order: Order for polynomials to be appended to RBF.
+ * - low_cutoff: Minimum allowable reconstructed value (used to limit reconstruction).
+ * - high_cutoff: Largest allowable reconstructed value (used to limit reconstruction).
+ * - default_value: Default value to use for reconstructing in invalid regions.
  */
 class LagrangeStructureReconstructions : public AdvectiveReconstructionOperator
 {
@@ -55,19 +64,34 @@ public:
     void deallocateOperatorState() override;
 
     /*!
-     * \brief Compute N = u * grad Q.
+     * \brief Interpolate Q interpolated to positions stored in path_idx. End result is given in N_idx.
      */
     void applyReconstruction(int Q_idx, int N_idx, int path_idx) override;
 
     /*!
-     * \brief Provide information on the location of the mesh
+     * \brief Provide information on the location of the mesh.
      */
     void setCutCellMapping(SAMRAI::tbox::Pointer<CutCellVolumeMeshMapping> mesh_partitioner);
 
     /*!
-     * \brief Provide the structural system name for the exact solution.
+     * \brief Provide the structural system name for the exact solution on the "interior" side of the object.
      */
-    void setQSystemName(std::string Q_sys_name);
+    void setInsideQSystemName(std::string Q_sys_name);
+
+    /*!
+     * \brief Provide the structural system name for the exact solution on the "exterior" side of the object.
+     *
+     * \note This is only used if reconstruct_outside is true, see setReconstructionOutside.
+     */
+    void setOutsideQSystemName(std::string Q_sys_name);
+
+    /*!
+     * Specify whether to reconstruct on the outside the structure. If this is set to false, then the default value is
+     * used in outside grid cells.
+     *
+     * This is by default set to true.
+     */
+    void setReconstructionOutside(bool reconstruct_outside);
 
 private:
     /*!
@@ -88,11 +112,13 @@ private:
     SAMRAI::tbox::Pointer<CutCellVolumeMeshMapping> d_cut_cell_mapping;
 
     // Structural value information
-    std::string d_Q_sys_name;
+    std::string d_Q_in_sys_name, d_Q_out_sys_name;
 
     // Truncation info
     double d_low_cutoff = -std::numeric_limits<double>::max();
     double d_high_cutoff = std::numeric_limits<double>::max();
+    bool d_reconstruct_outside = true;
+    double d_default_value = 0.0;
 };
 } // namespace ADS
 
