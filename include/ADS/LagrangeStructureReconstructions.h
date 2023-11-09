@@ -81,12 +81,15 @@ public:
     /*!
      * \brief Provide the structural system name for the exact solution on the "exterior" side of the object.
      *
-     * \note This is only used if reconstruct_outside is true, see setReconstructionSides.
+     * \note This is only used if reconstruct_outside is true, see setReconstructionOutside.
      */
     void setOutsideQSystemName(std::string Q_sys_name);
 
     /*!
-     * Specify whether to reconstruct on the outside the structure.
+     * Specify whether to reconstruct on the outside the structure. If this is set to false, then the default value is
+     * used in outside grid cells.
+     *
+     * This is by default set to true.
      */
     void setReconstructionOutside(bool reconstruct_outside);
 

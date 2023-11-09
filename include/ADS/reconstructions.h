@@ -217,9 +217,9 @@ RBFFDReconstruct(std::vector<double>& wgts,
 /*!
  * Compute the quadratic Lagrange interpolant to the location x using an interpolant centered at idx.
  *
- * Note that x must be given in index space, and should be shifted so that idx corresponds to (0,0).
+ * Note that x must be given in index space.
  */
-double quadraticLagrangeInterpolant(const IBTK::VectorNd& x,
+double quadraticLagrangeInterpolant(IBTK::VectorNd x,
                                     const SAMRAI::pdat::CellIndex<NDIM>& idx,
                                     const SAMRAI::pdat::CellData<NDIM, double>& Q_data);
 
@@ -227,7 +227,7 @@ double quadraticLagrangeInterpolant(const IBTK::VectorNd& x,
  * Compute the quadratic Lagrange interpolant to the location x using an interpolant centered at idx. Limit the
  * interpolant if the reconstructed value falls outside the neighboring values.
  *
- * Note that x must be given in index space, and should be shifted so that idx corresponds to (0,0).
+ * Note that x must be given in index space.
  */
 double quadraticLagrangeInterpolantLimited(IBTK::VectorNd x,
                                            const SAMRAI::pdat::CellIndex<NDIM>& idx,

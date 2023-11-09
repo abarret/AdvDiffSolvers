@@ -27,6 +27,7 @@ LagrangeStructureReconstructions::LagrangeStructureReconstructions(std::string o
     d_rbf_order = Reconstruct::string_to_enum<Reconstruct::RBFPolyOrder>(input_db->getString("rbf_order"));
     d_low_cutoff = input_db->getDoubleWithDefault("low_cutoff", d_low_cutoff);
     d_high_cutoff = input_db->getDoubleWithDefault("high_cutoff", d_high_cutoff);
+    d_default_value = input_db->getDoubleWithDefault("default_value", d_default_value);
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_Q_scr_idx = var_db->registerVariableAndContext(
@@ -206,8 +207,6 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
                 {
                     if (within_lagrange_interpolant(idx, *ls_data))
                     {
-                        for (int d = 0; d < NDIM; ++d)
-                            x_loc[d] = (*xstar_data)(idx, d) - (static_cast<double>(idx(d)) + 0.5);
                         (*Q_new_data)(idx) = Reconstruct::quadraticLagrangeInterpolantLimited(x_loc, idx, *Q_cur_data);
                     }
                     else if (cut_cell_map.count(IndexList(patch, idx)) > 0 &&
@@ -216,7 +215,6 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
                         // Our reconstruction can use boundary data.
                         // Need to determine closest points. If we are on a cut cell, we use the parent element's nodes
                         // in the stencil
-                        const double ls_new_val = node_to_cell(idx, *ls_new_data);
                         // List of points and values
                         std::vector<VectorNd> X_pts;
                         std::vector<double> Q_vals;
@@ -236,7 +234,7 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
                                 X_dof_map_vecs[part]->dof_indices(node, dofs);
                                 for (int d = 0; d < NDIM; ++d) X_pt[d] = (*X_vecs[part])(dofs[d]);
                                 X_pts.push_back(X_pt);
-                                if (ADS::node_to_cell(idx, *ls_new_data) < 0.0)
+                                if (ls_val < 0.0)
                                 {
                                     Q_in_dof_map_vecs[part]->dof_indices(node, dofs);
                                     Q_vals.push_back((*Q_in_vecs[part])(dofs[0]));
@@ -259,7 +257,7 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
                         try
                         {
                             Reconstruct::floodFillForPoints(
-                                idx_vec, idx, *ls_new_data, ls_new_val, d_rbf_stencil_size - X_pts.size());
+                                idx_vec, idx, *ls_data, ls_val, d_rbf_stencil_size - X_pts.size());
                         }
                         catch (const std::runtime_error& e)
                         {
@@ -282,15 +280,8 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
                     else
                     {
                         // A node doesn't touch this cell. Just use normal interpolation.
-                        (*Q_new_data)(idx) =
-                            Reconstruct::radialBasisFunctionReconstruction(x_loc,
-                                                                           ADS::node_to_cell(idx, *ls_new_data),
-                                                                           idx,
-                                                                           *Q_cur_data,
-                                                                           *ls_data,
-                                                                           patch,
-                                                                           d_rbf_order,
-                                                                           d_rbf_stencil_size);
+                        (*Q_new_data)(idx) = Reconstruct::radialBasisFunctionReconstruction(
+                            x_loc, ls_val, idx, *Q_cur_data, *ls_data, patch, d_rbf_order, d_rbf_stencil_size);
                     }
                 }
                 else

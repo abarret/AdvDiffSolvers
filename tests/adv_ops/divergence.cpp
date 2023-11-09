@@ -100,6 +100,8 @@ main(int argc, char* argv[])
         comps.setFlag(div_err_idx);
         comps.setFlag(path_idx);
 
+        RBFDivergenceReconstructions div_ops("div_ops", input_db->getDatabase("div_ops"));
+
         gridding_algorithm->makeCoarsestLevel(patch_hierarchy, 0.0);
         int tag_buffer = 1;
         int ln = 0;
@@ -137,7 +139,7 @@ main(int argc, char* argv[])
                 for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
-                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = static_cast<double>(idx(d)) + 0.25;
+                    for (int d = 0; d < NDIM; ++d) (*path_data)(idx, d) = static_cast<double>(idx(d)) + 0.5;
                 }
             }
         }
@@ -159,7 +161,6 @@ main(int argc, char* argv[])
 
         u_fcn.setDataOnPatchHierarchy(u_idx, u_var, patch_hierarchy, 0.0);
 
-        RBFDivergenceReconstructions div_ops("div_ops", input_db->getDatabase("div_ops"));
         div_ops.setLSData(ls_idx, vol_idx, ls_idx, vol_idx);
         div_ops.allocateOperatorState(patch_hierarchy, 0.0, 0.0);
         div_ops.applyReconstruction(u_idx, div_idx, path_idx);

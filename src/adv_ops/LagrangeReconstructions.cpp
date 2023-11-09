@@ -70,7 +70,7 @@ LagrangeReconstructions::applyReconstruction(const int Q_idx, const int N_idx, c
             {
                 const CellIndex<NDIM>& idx = ci();
                 VectorNd x_loc;
-                for (int d = 0; d < NDIM; ++d) x_loc[d] = (*xstar_data)(idx, d) - (static_cast<double>(idx(d)) + 0.5);
+                for (int d = 0; d < NDIM; ++d) x_loc[d] = (*xstar_data)(idx, d);
                 (*Q_new_data)(idx) = Reconstruct::quadraticLagrangeInterpolant(x_loc, idx, *Q_cur_data);
             }
         }

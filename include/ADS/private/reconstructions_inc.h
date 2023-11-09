@@ -105,10 +105,11 @@ RBFFDReconstruct(std::vector<double>& wgts,
 }
 
 inline double
-quadraticLagrangeInterpolant(const IBTK::VectorNd& x,
+quadraticLagrangeInterpolant(IBTK::VectorNd x,
                              const SAMRAI::pdat::CellIndex<NDIM>& idx,
                              const SAMRAI::pdat::CellData<NDIM, double>& Q_data)
 {
+    for (int d = 0; d < NDIM; ++d) x[d] -= static_cast<double>(idx(d)) + 0.5;
     SAMRAI::hier::IntVector<NDIM> one_x(1, 0), one_y(0, 1);
     return Q_data(idx) * (x[0] - 1.0) * (x[0] + 1.0) * (x[1] - 1.0) * (x[1] + 1.0) -
            Q_data(idx + one_x) * 0.5 * x[0] * (x[0] + 1.0) * (x[1] - 1.0) * (x[1] + 1.0) -
@@ -126,7 +127,7 @@ quadraticLagrangeInterpolantLimited(IBTK::VectorNd x,
 
     SAMRAI::hier::IntVector<NDIM> one_x(1, 0), one_y(0, 1);
     SAMRAI::pdat::CellIndex<NDIM> ll;
-    for (int d = 0; d < NDIM; ++d) ll(d) = idx(d) + std::round(x[d]);
+    for (int d = 0; d < NDIM; ++d) ll(d) = std::round(x[d]) - 1.0;
     double q00 = Q_data(ll);
     double q10 = Q_data(ll + one_x);
     double q01 = Q_data(ll + one_y);
@@ -134,7 +135,7 @@ quadraticLagrangeInterpolantLimited(IBTK::VectorNd x,
     if (Q > std::max({ q00, q10, q01, q11 }) || Q < std::min({ q00, q10, q01, q11 }))
     {
         // Need to potentially "reshift" x if it's the below idx.
-        for (int d = 0; d < NDIM; ++d) x[d] = x[d] - (idx(d) - ll(d));
+        for (int d = 0; d < NDIM; ++d) x[d] = x[d] - (static_cast<double>(ll(d)) + 0.5);
         Q = Q_data(ll) * (x[0] - 1.0) * (x[1] - 1.0) - Q_data(ll + one_y) * x[1] * (x[0] - 1.0) -
             Q_data(ll + one_x) * x[0] * (x[1] - 1.0) + Q_data(ll + one_x + one_y) * x[0] * x[1];
     }

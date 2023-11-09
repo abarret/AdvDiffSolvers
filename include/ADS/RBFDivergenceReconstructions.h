@@ -68,8 +68,8 @@ private:
     void applyReconstructionLS(int Q_idx, int N_idx, int path_idx);
 
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
-    Reconstruct::RBFPolyOrder d_rbf_order = Reconstruct::RBFPolyOrder::LINEAR;
-    unsigned int d_rbf_stencil_size = 5;
+    Reconstruct::RBFPolyOrder d_rbf_order = Reconstruct::RBFPolyOrder::QUADRATIC;
+    unsigned int d_rbf_stencil_size = 12;
 
     // Scratch data
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_u_scr_var;

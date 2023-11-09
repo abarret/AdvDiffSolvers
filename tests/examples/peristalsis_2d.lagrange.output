@@ -87,10 +87,11 @@ input_db {
    BDRY_INTERP_TYPE            = "LINEAR"                   // input not used
    LS                          = "1.0 + sin(2.0*PI*X_0)*cos(2.0*PI*X_1)" // input used
    AdvOps {
-      stencil_size = 12                                     // input used
-      rbf_order    = "QUADRATIC"                            // input used
-      low_cutoff   = 0                                      // input used
-      high_cutoff  = 1.79769e+308                           // from default
+      stencil_size  = 12                                    // input used
+      rbf_order     = "QUADRATIC"                           // input used
+      low_cutoff    = 0                                     // input used
+      high_cutoff   = 1.79769e+308                          // from default
+      default_value = 0                                     // from default
    }
    MeshMapping {
       alpha     = 1.25664                                   // input used

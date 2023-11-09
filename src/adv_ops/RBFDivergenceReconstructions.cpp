@@ -170,8 +170,7 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
                 if (within_regular_interpolant(idx, *ls_data, ls_val))
                 {
                     // Interpolate fd_div_data to x_loc.
-                    for (int d = 0; d < NDIM; ++d)
-                        x_loc[d] = (*xstar_data)(idx, d) - (static_cast<double>(idx(d)) + 0.5);
+                    for (int d = 0; d < NDIM; ++d) x_loc[d] = (*xstar_data)(idx, d);
                     (*div_data)(idx) = Reconstruct::quadraticLagrangeInterpolantLimited(x_loc, idx, *fd_div_data);
                 }
                 else
@@ -216,31 +215,51 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
                                 X_pts.push_back(xpt);
                             }
 
-                            // Add neighboring points to new_idxs.
+                            // Add neighboring points to new_idxs. Prefer to add points in direction of axis.
                             IntVector<NDIM> l(-1, 0), r(1, 0), b(0, -1), u(0, 1);
                             SideIndex<NDIM> idx_l(test_idx + l), idx_r(test_idx + r);
                             SideIndex<NDIM> idx_u(test_idx + u), idx_b(test_idx + b);
-                            if (ADS::node_to_side(idx_l, *ls_data) * ls_val > 0.0 &&
-                                (std::find(test_idxs.begin(), test_idxs.end(), idx_l) == test_idxs.end()))
-                                test_idxs.push_back(idx_l);
-                            if (ADS::node_to_side(idx_r, *ls_data) * ls_val > 0.0 &&
-                                (std::find(test_idxs.begin(), test_idxs.end(), idx_r) == test_idxs.end()))
-                                test_idxs.push_back(idx_r);
+                            if (d == 0)
+                            {
+                                if (ADS::node_to_side(idx_l, *ls_data) * ls_val > 0.0 &&
+                                    (std::find(test_idxs.begin(), test_idxs.end(), idx_l) == test_idxs.end()))
+                                    test_idxs.push_back(idx_l);
+                                if (ADS::node_to_side(idx_r, *ls_data) * ls_val > 0.0 &&
+                                    (std::find(test_idxs.begin(), test_idxs.end(), idx_r) == test_idxs.end()))
+                                    test_idxs.push_back(idx_r);
 
-                            if (ADS::node_to_side(idx_u, *ls_data) * ls_val > 0.0 &&
-                                (std::find(test_idxs.begin(), test_idxs.end(), idx_u) == test_idxs.end()))
-                                test_idxs.push_back(idx_u);
-                            if (ADS::node_to_side(idx_b, *ls_data) * ls_val > 0.0 &&
-                                (std::find(test_idxs.begin(), test_idxs.end(), idx_b) == test_idxs.end()))
-                                test_idxs.push_back(idx_b);
+                                if (ADS::node_to_side(idx_u, *ls_data) * ls_val > 0.0 &&
+                                    (std::find(test_idxs.begin(), test_idxs.end(), idx_u) == test_idxs.end()))
+                                    test_idxs.push_back(idx_u);
+                                if (ADS::node_to_side(idx_b, *ls_data) * ls_val > 0.0 &&
+                                    (std::find(test_idxs.begin(), test_idxs.end(), idx_b) == test_idxs.end()))
+                                    test_idxs.push_back(idx_b);
+                            }
+                            else
+                            {
+                                if (ADS::node_to_side(idx_u, *ls_data) * ls_val > 0.0 &&
+                                    (std::find(test_idxs.begin(), test_idxs.end(), idx_u) == test_idxs.end()))
+                                    test_idxs.push_back(idx_u);
+                                if (ADS::node_to_side(idx_b, *ls_data) * ls_val > 0.0 &&
+                                    (std::find(test_idxs.begin(), test_idxs.end(), idx_b) == test_idxs.end()))
+                                    test_idxs.push_back(idx_b);
+
+                                if (ADS::node_to_side(idx_l, *ls_data) * ls_val > 0.0 &&
+                                    (std::find(test_idxs.begin(), test_idxs.end(), idx_l) == test_idxs.end()))
+                                    test_idxs.push_back(idx_l);
+                                if (ADS::node_to_side(idx_r, *ls_data) * ls_val > 0.0 &&
+                                    (std::find(test_idxs.begin(), test_idxs.end(), idx_r) == test_idxs.end()))
+                                    test_idxs.push_back(idx_r);
+                            }
                             ++i;
                         }
 
                         // We have all the points. Now determine weights.
-                        auto rbf = [](const double r) -> double { return r * r * r; };
+                        auto rbf = [](const double r) -> double { return r * r * r * r * r; };
                         auto L_rbf = [](const VectorNd& xi, const VectorNd& xj, void* ctx) -> double {
                             int d = *static_cast<int*>(ctx);
-                            return 3.0 * (xi[d] - xj[d]) * (xi - xj).norm();
+                            double r = (xi - xj).norm();
+                            return 5.0 * (xi[d] - xj[d]) * r * r * r;
                         };
 
                         auto L_polys = [](const std::vector<VectorNd>& xpts,
@@ -255,10 +274,13 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
                                 return PolynomialBasis::dPdyMonomials(xpts, poly_degree, dx, base_pt).transpose();
                         };
 
+                        // Need to shift x_loc by idx_low
+                        VectorNd new_x_loc;
+                        for (int d = 0; d < NDIM; ++d) new_x_loc[d] = x_loc[d] - static_cast<double>(idx_low(d));
                         std::vector<double> wgts;
                         std::vector<double> dummy_dx = { 1.0, 1.0 };
                         Reconstruct::RBFFDReconstruct<VectorNd>(wgts,
-                                                                x_loc,
+                                                                new_x_loc,
                                                                 X_pts,
                                                                 d_rbf_order == Reconstruct::RBFPolyOrder::LINEAR ? 1 :
                                                                                                                    2,
