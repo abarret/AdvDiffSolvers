@@ -357,8 +357,8 @@ node_to_side(const SAMRAI::pdat::SideIndex<NDIM>& idx, const SAMRAI::pdat::NodeD
 #if (NDIM == 2)
     if (idx.getAxis() == 0)
     {
-        SAMRAI::pdat::NodeIndex<NDIM> idx_l(idx.toCell(0), SAMRAI::pdat::NodeIndex<NDIM>::UpperLeft);
-        SAMRAI::pdat::NodeIndex<NDIM> idx_u(idx.toCell(0), SAMRAI::pdat::NodeIndex<NDIM>::LowerLeft);
+        SAMRAI::pdat::NodeIndex<NDIM> idx_l(idx.toCell(0), SAMRAI::pdat::NodeIndex<NDIM>::UpperRight);
+        SAMRAI::pdat::NodeIndex<NDIM> idx_u(idx.toCell(0), SAMRAI::pdat::NodeIndex<NDIM>::LowerRight);
         return 0.5 * (ls_data(idx_l) + ls_data(idx_u));
     }
     else
