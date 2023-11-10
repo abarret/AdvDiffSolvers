@@ -169,7 +169,7 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
                 if (within_regular_interpolant(idx, *ls_data, ls_val))
                 {
                     // Interpolate fd_div_data to x_loc.
-                    (*div_data)(idx) = Reconstruct::quadraticLagrangeInterpolantLimited(x_loc, idx, *fd_div_data);
+                    (*div_data)(idx) = Reconstruct::quadratic_lagrange_interpolant_limited(x_loc, idx, *fd_div_data);
                 }
                 else
                 {

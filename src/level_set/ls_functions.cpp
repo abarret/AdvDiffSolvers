@@ -60,10 +60,10 @@ length_fraction(const double dx, const double phi_l, const double phi_u)
 }
 
 std::pair<double, double>
-findVolumeAndArea(const VectorNd& xloc,
-                  const double* const dx,
-                  Pointer<NodeData<NDIM, double>> phi_data,
-                  const CellIndex<NDIM>& idx)
+find_volume_and_area(const VectorNd& xloc,
+                     const double* const dx,
+                     Pointer<NodeData<NDIM, double>> phi_data,
+                     const CellIndex<NDIM>& idx)
 {
     double volume = 0.0, area = 0.0;
     // Create the initial simplices.
@@ -154,14 +154,14 @@ findVolumeAndArea(const VectorNd& xloc,
     }
     else
     {
-        volume = findVolume(simplices);
-        area = findArea(simplices);
+        volume = find_volume(simplices);
+        area = find_area(simplices);
     }
     return std::make_pair(volume, area);
 }
 
 double
-findVolume(const std::vector<Simplex>& simplices)
+find_volume(const std::vector<Simplex>& simplices)
 {
     // Loop over simplices
     std::vector<std::array<VectorNd, NDIM + 1>> final_simplices;
@@ -331,7 +331,7 @@ findVolume(const std::vector<Simplex>& simplices)
 }
 
 double
-findArea(const std::vector<Simplex>& simplices)
+find_area(const std::vector<Simplex>& simplices)
 {
     // We need a lower dimensional simplex here. We're computing areas
     std::vector<std::array<VectorNd, NDIM>> final_simplices;

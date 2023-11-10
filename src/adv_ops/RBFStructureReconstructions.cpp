@@ -242,20 +242,20 @@ RBFStructureReconstructions::applyReconstructionLS(const int Q_idx, const int N_
 
                         // Now reconstruct the function
                         (*Q_new_data)(idx) =
-                            Reconstruct::radialBasisFunctionReconstruction(x_loc, X_pts, Q_vals, d_rbf_order);
+                            Reconstruct::radial_basis_function_reconstruction(x_loc, X_pts, Q_vals, d_rbf_order);
                     }
                     else
                     {
                         // A node doesn't touch this cell. Just use normal interpolation.
                         (*Q_new_data)(idx) =
-                            Reconstruct::radialBasisFunctionReconstruction(x_loc,
-                                                                           ADS::node_to_cell(idx, *ls_new_data),
-                                                                           idx,
-                                                                           *Q_cur_data,
-                                                                           *ls_data,
-                                                                           patch,
-                                                                           d_rbf_order,
-                                                                           d_rbf_stencil_size);
+                            Reconstruct::radial_basis_function_reconstruction(x_loc,
+                                                                              ADS::node_to_cell(idx, *ls_new_data),
+                                                                              idx,
+                                                                              *Q_cur_data,
+                                                                              *ls_data,
+                                                                              patch,
+                                                                              d_rbf_order,
+                                                                              d_rbf_stencil_size);
                     }
                 }
                 else

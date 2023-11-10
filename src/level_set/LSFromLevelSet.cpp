@@ -89,7 +89,7 @@ LSFromLevelSet::doUpdateVolumeAreaSideLS(int vol_idx,
                 const CellIndex<NDIM>& idx = ci();
                 VectorNd x;
                 for (int d = 0; d < NDIM; ++d) x[d] = xlow[d] + dx[d] * static_cast<double>(idx(d) - patch_lower(d));
-                std::pair<double, double> vol_area_pair = findVolumeAndArea(x, dx, phi_data, idx);
+                std::pair<double, double> vol_area_pair = find_volume_and_area(x, dx, phi_data, idx);
                 double volume = vol_area_pair.first;
                 double area = vol_area_pair.second;
                 if (area_idx != IBTK::invalid_index)

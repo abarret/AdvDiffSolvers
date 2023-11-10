@@ -1741,7 +1741,7 @@ LSAdvDiffIntegrator::evaluateMappingOnHierarchy(const int xstar_idx,
                 const CellIndex<NDIM>& idx = ci();
                 IBTK::VectorNd x_loc;
                 for (int d = 0; d < NDIM; ++d) x_loc(d) = (*xstar_data)(idx, d);
-                (*Q_new_data)(idx) = Reconstruct::sumOverZSplines(x_loc, idx, *Q_cur_data, order);
+                (*Q_new_data)(idx) = Reconstruct::sum_over_z_splines(x_loc, idx, *Q_cur_data, order);
             }
         }
     }

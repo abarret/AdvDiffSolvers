@@ -143,7 +143,7 @@ BoundaryReconstructCache::cacheData()
                     [](const std::vector<VectorNd>& pt_vec, int poly_degree, double ds, const VectorNd& shft, void*)
                     -> MatrixXd { return PolynomialBasis::formMonomials(pt_vec, poly_degree, ds, shft).transpose(); };
                 int poly_degree = 1;
-                Reconstruct::RBFFDReconstruct<VectorNd>(
+                Reconstruct::RBFFD_reconstruct<VectorNd>(
                     wgts, x_node, X_list, poly_degree, dx, Reconstruct::rbf, L_rbf, nullptr, L_polys, nullptr);
 
                 // Now store the weights.

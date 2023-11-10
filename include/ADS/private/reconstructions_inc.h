@@ -14,11 +14,11 @@ namespace ADS
 namespace Reconstruct
 {
 inline void
-floodFillForPoints(std::vector<SAMRAI::pdat::CellIndex<NDIM>>& fill_pts,
-                   const SAMRAI::pdat::CellIndex<NDIM>& idx,
-                   const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
-                   const double ls,
-                   const size_t stencil_size)
+flood_fill_for_points(std::vector<SAMRAI::pdat::CellIndex<NDIM>>& fill_pts,
+                      const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                      const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
+                      const double ls,
+                      const size_t stencil_size)
 {
     // Flood fill for Eulerian points
     std::vector<SAMRAI::pdat::CellIndex<NDIM>> test_idxs = { idx };
@@ -61,12 +61,12 @@ floodFillForPoints(std::vector<SAMRAI::pdat::CellIndex<NDIM>>& fill_pts,
 }
 
 inline void
-floodFillForPoints(std::vector<SAMRAI::pdat::SideIndex<NDIM>>& fill_pts,
-                   const SAMRAI::pdat::CellIndex<NDIM>& idx,
-                   const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
-                   const double ls,
-                   const int axis,
-                   const size_t stencil_size)
+flood_fill_for_points(std::vector<SAMRAI::pdat::SideIndex<NDIM>>& fill_pts,
+                      const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                      const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
+                      const double ls,
+                      const int axis,
+                      const size_t stencil_size)
 {
     // Flood fill for Eulerian points
     std::vector<SAMRAI::pdat::SideIndex<NDIM>> test_idxs = { SAMRAI::pdat::SideIndex<NDIM>(idx, axis, 0),
@@ -132,16 +132,16 @@ floodFillForPoints(std::vector<SAMRAI::pdat::SideIndex<NDIM>>& fill_pts,
 
 template <class Point>
 void
-RBFFDReconstruct(std::vector<double>& wgts,
-                 const Point& base_pt,
-                 const std::vector<Point>& fd_pts,
-                 const int poly_degree,
-                 const double* const dx,
-                 std::function<double(double)> rbf,
-                 std::function<double(const Point&, const Point&, void*)> L_rbf,
-                 void* rbf_ctx,
-                 std::function<IBTK::VectorXd(const std::vector<Point>&, int, double, const Point&, void*)> L_polys,
-                 void* poly_ctx)
+RBFFD_reconstruct(std::vector<double>& wgts,
+                  const Point& base_pt,
+                  const std::vector<Point>& fd_pts,
+                  const int poly_degree,
+                  const double* const dx,
+                  std::function<double(double)> rbf,
+                  std::function<double(const Point&, const Point&, void*)> L_rbf,
+                  void* rbf_ctx,
+                  std::function<IBTK::VectorXd(const std::vector<Point>&, int, double, const Point&, void*)> L_polys,
+                  void* poly_ctx)
 {
     const int stencil_size = fd_pts.size();
     IBTK::MatrixXd A(IBTK::MatrixXd::Zero(stencil_size, stencil_size));
@@ -177,9 +177,9 @@ RBFFDReconstruct(std::vector<double>& wgts,
 }
 
 inline double
-quadraticLagrangeInterpolant(IBTK::VectorNd x,
-                             const SAMRAI::pdat::CellIndex<NDIM>& idx,
-                             const SAMRAI::pdat::CellData<NDIM, double>& Q_data)
+quadratic_lagrange_interpolant(IBTK::VectorNd x,
+                               const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                               const SAMRAI::pdat::CellData<NDIM, double>& Q_data)
 {
     for (int d = 0; d < NDIM; ++d) x[d] -= static_cast<double>(idx(d)) + 0.5;
     SAMRAI::hier::IntVector<NDIM> one_x(1, 0), one_y(0, 1);
@@ -191,11 +191,11 @@ quadraticLagrangeInterpolant(IBTK::VectorNd x,
 }
 
 inline double
-quadraticLagrangeInterpolantLimited(IBTK::VectorNd x,
-                                    const SAMRAI::pdat::CellIndex<NDIM>& idx,
-                                    const SAMRAI::pdat::CellData<NDIM, double>& Q_data)
+quadratic_lagrange_interpolant_limited(IBTK::VectorNd x,
+                                       const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                                       const SAMRAI::pdat::CellData<NDIM, double>& Q_data)
 {
-    double Q = quadraticLagrangeInterpolant(x, idx, Q_data);
+    double Q = quadratic_lagrange_interpolant(x, idx, Q_data);
 
     SAMRAI::hier::IntVector<NDIM> one_x(1, 0), one_y(0, 1);
     SAMRAI::pdat::CellIndex<NDIM> ll;
@@ -230,7 +230,7 @@ divergence(const IBTK::VectorNd& x,
     {
         // Need to grab indices, use flood filling
         std::vector<SAMRAI::pdat::SideIndex<NDIM>> idxs;
-        floodFillForPoints(idxs, idx, ls_data, ls, d, stencil_size);
+        flood_fill_for_points(idxs, idx, ls_data, ls, d, stencil_size);
 
         std::vector<IBTK::VectorNd> X_pts;
         std::vector<double> u_vals;
@@ -267,16 +267,16 @@ divergence(const IBTK::VectorNd& x,
         // Need to shift x_loc by idx_low
         std::vector<double> wgts;
         std::vector<double> dummy_dx = { 1.0, 1.0 };
-        Reconstruct::RBFFDReconstruct<IBTK::VectorNd>(wgts,
-                                                      x,
-                                                      X_pts,
-                                                      poly_order == Reconstruct::RBFPolyOrder::LINEAR ? 1 : 2,
-                                                      dummy_dx.data(),
-                                                      rbf,
-                                                      L_rbf,
-                                                      static_cast<void*>(&d),
-                                                      L_polys,
-                                                      static_cast<void*>(&d));
+        Reconstruct::RBFFD_reconstruct<IBTK::VectorNd>(wgts,
+                                                       x,
+                                                       X_pts,
+                                                       poly_order == Reconstruct::RBFPolyOrder::LINEAR ? 1 : 2,
+                                                       dummy_dx.data(),
+                                                       rbf,
+                                                       L_rbf,
+                                                       static_cast<void*>(&d),
+                                                       L_polys,
+                                                       static_cast<void*>(&d));
         // Now perform reconstruction.
         for (size_t i = 0; i < u_vals.size(); ++i) div += u_vals[i] * wgts[i] / dx[d];
     }

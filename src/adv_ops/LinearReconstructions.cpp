@@ -87,9 +87,9 @@ LinearReconstructions::applyReconstruction(const int Q_idx, const int N_idx, con
                     std::vector<double> temp_dx = { 1.0, 1.0 };
                     if (use_bilinear)
                         (*Q_new_data)(idx) =
-                            Reconstruct::bilinearReconstruction(x_loc, x_ll, idx_ll, *Q_cur_data, temp_dx.data());
+                            Reconstruct::bilinear_reconstruction(x_loc, x_ll, idx_ll, *Q_cur_data, temp_dx.data());
                     else
-                        (*Q_new_data)(idx) = Reconstruct::radialBasisFunctionReconstruction(
+                        (*Q_new_data)(idx) = Reconstruct::radial_basis_function_reconstruction(
                             x_loc, idx, *Q_cur_data, *vol_cur_data, *ls_data, patch, d_rbf_order, d_rbf_stencil_size);
                 }
                 else

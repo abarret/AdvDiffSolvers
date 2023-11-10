@@ -14,14 +14,14 @@ namespace ADS
 namespace Reconstruct
 {
 double
-sumOverZSplines(const IBTK::VectorNd& x_loc,
-                const CellIndex<NDIM>& idx,
-                const CellData<NDIM, double>& Q_data,
-                const int order)
+sum_over_z_splines(const IBTK::VectorNd& x_loc,
+                   const CellIndex<NDIM>& idx,
+                   const CellData<NDIM, double>& Q_data,
+                   const int order)
 {
     double val = 0.0;
     Box<NDIM> box(idx, idx);
-    box.grow(getSplineWidth(order) + 1);
+    box.grow(get_spline_width(order) + 1);
     const Box<NDIM>& ghost_box = Q_data.getGhostBox();
     TBOX_ASSERT(ghost_box.contains(box));
     for (CellIterator<NDIM> ci(box); ci; ci++)
@@ -29,13 +29,13 @@ sumOverZSplines(const IBTK::VectorNd& x_loc,
         const CellIndex<NDIM>& idx_c = ci();
         VectorNd xx;
         for (int d = 0; d < NDIM; ++d) xx(d) = idx_c(d) + 0.5;
-        val += Q_data(idx_c) * evaluateZSpline(x_loc - xx, order);
+        val += Q_data(idx_c) * evaluate_z_spline(x_loc - xx, order);
     }
     return val;
 }
 
 bool
-indexWithinWidth(const int stencil_width, const CellIndex<NDIM>& idx, const CellData<NDIM, double>& vol_data)
+index_within_width(const int stencil_width, const CellIndex<NDIM>& idx, const CellData<NDIM, double>& vol_data)
 {
     bool withinWidth = true;
     Box<NDIM> check_box(idx, idx);
@@ -49,24 +49,24 @@ indexWithinWidth(const int stencil_width, const CellIndex<NDIM>& idx, const Cell
 }
 
 double
-evaluateZSpline(const VectorNd x, const int order)
+evaluate_z_spline(const VectorNd x, const int order)
 {
     double val = 1.0;
     for (int d = 0; d < NDIM; ++d)
     {
-        val *= ZSpline(x(d), order);
+        val *= z_spline(x(d), order);
     }
     return val;
 }
 
 int
-getSplineWidth(const int order)
+get_spline_width(const int order)
 {
     return order + 1;
 }
 
 double
-ZSpline(double x, const int order)
+z_spline(double x, const int order)
 {
     x = std::fabs(x);
     switch (order)
@@ -102,14 +102,14 @@ ZSpline(double x, const int order)
 }
 
 double
-radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
-                                  const CellIndex<NDIM>& idx,
-                                  const CellData<NDIM, double>& Q_data,
-                                  const CellData<NDIM, double>& vol_data,
-                                  const NodeData<NDIM, double>& ls_data,
-                                  const Pointer<Patch<NDIM>>& patch,
-                                  const RBFPolyOrder order,
-                                  const unsigned int stencil_size)
+radial_basis_function_reconstruction(IBTK::VectorNd x_loc,
+                                     const CellIndex<NDIM>& idx,
+                                     const CellData<NDIM, double>& Q_data,
+                                     const CellData<NDIM, double>& vol_data,
+                                     const NodeData<NDIM, double>& ls_data,
+                                     const Pointer<Patch<NDIM>>& patch,
+                                     const RBFPolyOrder order,
+                                     const unsigned int stencil_size)
 {
     Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
     const double* const dx = pgeom->getDx();
@@ -156,17 +156,17 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
         ++i;
     }
 
-    return radialBasisFunctionReconstruction(x_loc, X_vals, Q_vals, order);
+    return radial_basis_function_reconstruction(x_loc, X_vals, Q_vals, order);
 }
 
 double
-leastSquaresReconstruction(IBTK::VectorNd x_loc,
-                           const CellIndex<NDIM>& idx,
-                           const CellData<NDIM, double>& Q_data,
-                           const CellData<NDIM, double>& vol_data,
-                           const NodeData<NDIM, double>& ls_data,
-                           const Pointer<Patch<NDIM>>& patch,
-                           LeastSquaresOrder order)
+least_squares_reconstruction(IBTK::VectorNd x_loc,
+                             const CellIndex<NDIM>& idx,
+                             const CellData<NDIM, double>& Q_data,
+                             const CellData<NDIM, double>& vol_data,
+                             const NodeData<NDIM, double>& ls_data,
+                             const Pointer<Patch<NDIM>>& patch,
+                             LeastSquaresOrder order)
 {
 #if (NDIM == 3)
     TBOX_ERROR("MLS reconstruction not implemented for 3 spatial dimensions. Use RBF reconstruction.\n");
@@ -259,11 +259,11 @@ leastSquaresReconstruction(IBTK::VectorNd x_loc,
 }
 
 double
-bilinearReconstruction(const VectorNd& x_loc,
-                       const VectorNd& x_ll,
-                       const CellIndex<NDIM>& idx_ll,
-                       const CellData<NDIM, double>& Q_data,
-                       const double* const dx)
+bilinear_reconstruction(const VectorNd& x_loc,
+                        const VectorNd& x_ll,
+                        const CellIndex<NDIM>& idx_ll,
+                        const CellData<NDIM, double>& Q_data,
+                        const double* const dx)
 {
     double q00 = Q_data(idx_ll);
     double q01 = Q_data(idx_ll + IntVector<NDIM>(0, 1));
@@ -274,14 +274,14 @@ bilinearReconstruction(const VectorNd& x_loc,
 }
 
 double
-radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
-                                  const double ls_val,
-                                  const CellIndex<NDIM>& idx,
-                                  const CellData<NDIM, double>& Q_data,
-                                  const NodeData<NDIM, double>& ls_data,
-                                  const Pointer<Patch<NDIM>>& patch,
-                                  const RBFPolyOrder order,
-                                  const unsigned int stencil_size)
+radial_basis_function_reconstruction(IBTK::VectorNd x_loc,
+                                     const double ls_val,
+                                     const CellIndex<NDIM>& idx,
+                                     const CellData<NDIM, double>& Q_data,
+                                     const NodeData<NDIM, double>& ls_data,
+                                     const Pointer<Patch<NDIM>>& patch,
+                                     const RBFPolyOrder order,
+                                     const unsigned int stencil_size)
 {
     Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
     const double* const dx = pgeom->getDx();
@@ -298,7 +298,7 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
     std::vector<CellIndex<NDIM>> stencil_idxs;
     try
     {
-        floodFillForPoints(stencil_idxs, idx, ls_data, ls_val, stencil_size);
+        flood_fill_for_points(stencil_idxs, idx, ls_data, ls_val, stencil_size);
     }
     catch (const std::runtime_error& e)
     {
@@ -315,14 +315,14 @@ radialBasisFunctionReconstruction(IBTK::VectorNd x_loc,
         X_vals.push_back(x_cent_c);
     }
 
-    return radialBasisFunctionReconstruction(x_loc, X_vals, Q_vals, order);
+    return radial_basis_function_reconstruction(x_loc, X_vals, Q_vals, order);
 }
 
 double
-radialBasisFunctionReconstruction(const IBTK::VectorNd& x_loc,
-                                  const std::vector<IBTK::VectorNd>& X_pts,
-                                  const std::vector<double>& Q_vals,
-                                  const RBFPolyOrder order)
+radial_basis_function_reconstruction(const IBTK::VectorNd& x_loc,
+                                     const std::vector<IBTK::VectorNd>& X_pts,
+                                     const std::vector<double>& Q_vals,
+                                     const RBFPolyOrder order)
 {
     int poly_size = 0;
     switch (order)
