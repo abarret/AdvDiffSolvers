@@ -320,8 +320,8 @@ main(int argc, char* argv[])
         {
             adv_diff_integrator->registerVisItDataWriter(visit_data_writer);
         }
-        libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[REACTION_MESH_ID]) :
-                                                                         NULL);
+        std::unique_ptr<ExodusII_IO> reaction_exodus_io(uses_exodus ? new ExodusII_IO(*meshes[REACTION_MESH_ID]) :
+                                                                      NULL);
 
         auto var_db = VariableDatabase<NDIM>::getDatabase();
         Pointer<CellVariable<NDIM, double>> dist_var = new CellVariable<NDIM, double>("distance");

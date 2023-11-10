@@ -310,7 +310,7 @@ main(int argc, char* argv[])
         const int eul_map = global_indexing->getEulerianMap();
         const std::map<int, int>& lag_map = global_indexing->getLagrangianMap();
         const std::vector<int> dofs_per_proc = global_indexing->getDofsPerProc();
-        copyDataToPetsc(x_vec, x_eul_vec, patch_hierarchy, x_bdry_sys, eul_map, lag_map, dofs_per_proc);
+        copy_data_to_petsc(x_vec, x_eul_vec, patch_hierarchy, x_bdry_sys, eul_map, lag_map, dofs_per_proc);
         fillGhostCells(x_vec, solver.getGhostPoints(), global_indexing);
 
         // Now we can apply the matrix
@@ -322,7 +322,7 @@ main(int argc, char* argv[])
         IBTK_CHKERRQ(ierr);
         // Now copy data back to original specifications
         pout << "Copying data from petsc representation\n";
-        copyDataFromPetsc(b_vec, b_eul_vec, patch_hierarchy, b_bdry_sys, *solver.getBulkConditionMap());
+        copy_data_from_petsc(b_vec, b_eul_vec, patch_hierarchy, b_bdry_sys, *solver.getBulkConditionMap());
 
         pout << "Checking errors\n";
         // Compute errors
