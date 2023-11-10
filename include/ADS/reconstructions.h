@@ -9,6 +9,8 @@
 #include "CellIndex.h"
 #include "NodeData.h"
 
+namespace ADS
+{
 namespace Reconstruct
 {
 double sumOverZSplines(const IBTK::VectorNd& x_loc,
@@ -122,7 +124,7 @@ mls_weight(double r)
 
 /*!
  * Use a flood filling algorithm to find neighboring points to a given index. Uses the value of the level set to
- * determine whether indices point to the same size.
+ * determine whether indices point to the same side.
  *
  * Note that fill_pts does not need to be empty. This function will append fill_pts until it's size is equal to
  * stencil_size.
@@ -134,6 +136,25 @@ void floodFillForPoints(std::vector<SAMRAI::pdat::CellIndex<NDIM>>& fill_pts,
                         const SAMRAI::pdat::CellIndex<NDIM>& idx,
                         const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
                         double ls,
+                        size_t stencil_size);
+
+/*!
+ * Use a flood filling algorithm to find neighboring points to a given side index. Uses the value of the level set to
+ * determine whether indices point to same side.
+ *
+ * The cell index idx must contain sides on each axis that match the sign of ls.
+ *
+ * Note that fill_pts does not need to be empty. This function will append fill_pts until it's size is equal to
+ * stencil_size.
+ *
+ * If compiled with debugging flags, throws a runtime_error if the flood filling algorithm could not find the requested
+ * number of points.
+ */
+void floodFillForPoints(std::vector<SAMRAI::pdat::SideIndex<NDIM>>& fill_pts,
+                        const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                        const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
+                        double ls,
+                        const int axis,
                         size_t stencil_size);
 
 /*!
@@ -232,7 +253,27 @@ double quadraticLagrangeInterpolant(IBTK::VectorNd x,
 double quadraticLagrangeInterpolantLimited(IBTK::VectorNd x,
                                            const SAMRAI::pdat::CellIndex<NDIM>& idx,
                                            const SAMRAI::pdat::CellData<NDIM, double>& Q_data);
-} // namespace Reconstruct
 
+/*!
+ * Compute the divergence of a side centered velocity field using a finite difference stencil centered at idx.
+ *
+ * Note that x must be given in index space.
+ *
+ * The sign of ls determines the side from which we grab points.
+ *
+ * The cell index idx must contain sides on each axis that match the sign of ls.
+ *
+ * Uses the RBF r^5 with polynomials appended up to order RBFPolyOrder.
+ */
+double divergence(const IBTK::VectorNd& x,
+                  const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                  double ls,
+                  const SAMRAI::pdat::SideData<NDIM, double>& u_data,
+                  const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
+                  RBFPolyOrder poly_order,
+                  int stencil_size,
+                  const double* const dx);
+} // namespace Reconstruct
+} // namespace ADS
 #include <ADS/private/reconstructions_inc.h>
 #endif

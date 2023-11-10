@@ -9,6 +9,8 @@
 #include "CellData.h"
 #include "NodeData.h"
 
+namespace ADS
+{
 namespace Reconstruct
 {
 double
@@ -383,3 +385,4 @@ radialBasisFunctionReconstruction(const IBTK::VectorNd& x_loc,
 }
 
 } // namespace Reconstruct
+} // namespace ADS
