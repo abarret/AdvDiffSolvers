@@ -331,11 +331,11 @@ main(int argc, char* argv[])
         {
             adv_diff_integrator->registerVisItDataWriter(visit_data_writer);
         }
-        libMesh::UniquePtr<ExodusII_IO> lower_exodus_io(
+        std::unique_ptr<ExodusII_IO> lower_exodus_io(
             uses_exodus ? new ExodusII_IO(*mesh_mapping->getBoundaryMesh(LOWER_MESH_ID)) : NULL);
-        libMesh::UniquePtr<ExodusII_IO> upper_exodus_io(
+        std::unique_ptr<ExodusII_IO> upper_exodus_io(
             uses_exodus ? new ExodusII_IO(*mesh_mapping->getBoundaryMesh(UPPER_MESH_ID)) : NULL);
-        libMesh::UniquePtr<ExodusII_IO> reaction_exodus_io(
+        std::unique_ptr<ExodusII_IO> reaction_exodus_io(
             uses_exodus ? new ExodusII_IO(*mesh_mapping->getBoundaryMesh(REACTION_MESH_ID)) : NULL);
         mesh_mapping->initializeFEData();
         // Initialize hierarchy configuration and data on all patches.

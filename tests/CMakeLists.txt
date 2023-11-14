@@ -114,6 +114,7 @@ SETUP_2D(rbffd point_list.cpp)
 
 SETUP_3D(rbffd point_list.cpp)
 
+SETUP_2D(reconstructions divergence.cpp)
 SETUP_2D(reconstructions fd_weights.cpp)
 
 SETUP_3D(reconstructions fd_weights.cpp)

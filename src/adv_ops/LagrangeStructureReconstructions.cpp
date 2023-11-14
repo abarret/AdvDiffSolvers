@@ -207,7 +207,8 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
                 {
                     if (within_lagrange_interpolant(idx, *ls_data))
                     {
-                        (*Q_new_data)(idx) = Reconstruct::quadraticLagrangeInterpolantLimited(x_loc, idx, *Q_cur_data);
+                        (*Q_new_data)(idx) =
+                            Reconstruct::quadratic_lagrange_interpolant_limited(x_loc, idx, *Q_cur_data);
                     }
                     else if (cut_cell_map.count(IndexList(patch, idx)) > 0 &&
                              (ls_val < 0.0 || !d_Q_out_sys_name.empty()))
@@ -256,7 +257,7 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
                         std::vector<CellIndex<NDIM>> idx_vec;
                         try
                         {
-                            Reconstruct::floodFillForPoints(
+                            Reconstruct::flood_fill_for_points(
                                 idx_vec, idx, *ls_data, ls_val, d_rbf_stencil_size - X_pts.size());
                         }
                         catch (const std::runtime_error& e)
@@ -275,12 +276,12 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
 
                         // Now reconstruct the function
                         (*Q_new_data)(idx) =
-                            Reconstruct::radialBasisFunctionReconstruction(x_loc, X_pts, Q_vals, d_rbf_order);
+                            Reconstruct::radial_basis_function_reconstruction(x_loc, X_pts, Q_vals, d_rbf_order);
                     }
                     else
                     {
                         // A node doesn't touch this cell. Just use normal interpolation.
-                        (*Q_new_data)(idx) = Reconstruct::radialBasisFunctionReconstruction(
+                        (*Q_new_data)(idx) = Reconstruct::radial_basis_function_reconstruction(
                             x_loc, ls_val, idx, *Q_cur_data, *ls_data, patch, d_rbf_order, d_rbf_stencil_size);
                     }
                 }

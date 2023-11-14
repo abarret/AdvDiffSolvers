@@ -118,7 +118,7 @@ RBFReconstructions::applyReconstructionCutCell(const int Q_idx, const int N_idx,
                 {
                     IBTK::VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d) x_loc(d) = (*xstar_data)(idx, d);
-                    (*Q_new_data)(idx) = Reconstruct::radialBasisFunctionReconstruction(
+                    (*Q_new_data)(idx) = Reconstruct::radial_basis_function_reconstruction(
                         x_loc, idx, *Q_cur_data, *vol_cur_data, *ls_data, patch, d_rbf_order, d_rbf_stencil_size);
                 }
                 else
@@ -165,14 +165,14 @@ RBFReconstructions::applyReconstructionLS(const int Q_idx, const int N_idx, cons
                     IBTK::VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d) x_loc(d) = (*xstar_data)(idx, d);
                     (*Q_new_data)(idx) =
-                        Reconstruct::radialBasisFunctionReconstruction(x_loc,
-                                                                       ADS::node_to_cell(idx, *ls_new_data),
-                                                                       idx,
-                                                                       *Q_cur_data,
-                                                                       *ls_data,
-                                                                       patch,
-                                                                       d_rbf_order,
-                                                                       d_rbf_stencil_size);
+                        Reconstruct::radial_basis_function_reconstruction(x_loc,
+                                                                          ADS::node_to_cell(idx, *ls_new_data),
+                                                                          idx,
+                                                                          *Q_cur_data,
+                                                                          *ls_data,
+                                                                          patch,
+                                                                          d_rbf_order,
+                                                                          d_rbf_stencil_size);
                 }
                 else
                 {

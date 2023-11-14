@@ -263,7 +263,7 @@ RBFFDWeightsCache::findRBFFDWeights()
         {
             const std::vector<FDPoint>& pt_vec = d_pair_pt_map.at(patch.getPointer()).at(base_pt);
             std::vector<double> wgts;
-            Reconstruct::RBFFDReconstruct<FDPoint>(
+            Reconstruct::RBFFD_reconstruct<FDPoint>(
                 wgts, base_pt, pt_vec, d_poly_degree, dx, d_rbf_fcn, Lrbf_fcn, nullptr, Lpoly_fcn, nullptr);
             d_pt_weight_map[patch.getPointer()][base_pt] = std::move(wgts);
         }

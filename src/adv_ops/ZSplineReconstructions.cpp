@@ -66,7 +66,7 @@ ZSplineReconstructions::applyReconstruction(const int Q_idx, const int N_idx, co
 
             Q_new_data->fillAll(0.0);
 
-            const int stencil_width = Reconstruct::getSplineWidth(d_order);
+            const int stencil_width = Reconstruct::get_spline_width(d_order);
 
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
@@ -76,10 +76,10 @@ ZSplineReconstructions::applyReconstruction(const int Q_idx, const int N_idx, co
                     IBTK::VectorNd x_loc;
                     for (int d = 0; d < NDIM; ++d) x_loc(d) = (*xstar_data)(idx, d);
                     // Check if we can use z-spline
-                    if (Reconstruct::indexWithinWidth(stencil_width, idx, *vol_cur_data))
-                        (*Q_new_data)(idx) = Reconstruct::sumOverZSplines(x_loc, idx, *Q_cur_data, d_order);
+                    if (Reconstruct::index_within_width(stencil_width, idx, *vol_cur_data))
+                        (*Q_new_data)(idx) = Reconstruct::sum_over_z_splines(x_loc, idx, *Q_cur_data, d_order);
                     else
-                        (*Q_new_data)(idx) = Reconstruct::radialBasisFunctionReconstruction(
+                        (*Q_new_data)(idx) = Reconstruct::radial_basis_function_reconstruction(
                             x_loc, idx, *Q_cur_data, *vol_cur_data, *ls_data, patch, d_rbf_order, d_rbf_stencil_size);
                 }
                 else

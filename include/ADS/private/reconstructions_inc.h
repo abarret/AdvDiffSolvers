@@ -9,14 +9,16 @@
 
 #include <exception>
 
+namespace ADS
+{
 namespace Reconstruct
 {
 inline void
-floodFillForPoints(std::vector<SAMRAI::pdat::CellIndex<NDIM>>& fill_pts,
-                   const SAMRAI::pdat::CellIndex<NDIM>& idx,
-                   const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
-                   const double ls,
-                   const size_t stencil_size)
+flood_fill_for_points(std::vector<SAMRAI::pdat::CellIndex<NDIM>>& fill_pts,
+                      const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                      const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
+                      const double ls,
+                      const size_t stencil_size)
 {
     // Flood fill for Eulerian points
     std::vector<SAMRAI::pdat::CellIndex<NDIM>> test_idxs = { idx };
@@ -58,18 +60,88 @@ floodFillForPoints(std::vector<SAMRAI::pdat::CellIndex<NDIM>>& fill_pts,
     }
 }
 
+inline void
+flood_fill_for_points(std::vector<SAMRAI::pdat::SideIndex<NDIM>>& fill_pts,
+                      const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                      const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
+                      const double ls,
+                      const int axis,
+                      const size_t stencil_size)
+{
+    // Flood fill for Eulerian points
+    std::vector<SAMRAI::pdat::SideIndex<NDIM>> test_idxs = { SAMRAI::pdat::SideIndex<NDIM>(idx, axis, 0),
+                                                             SAMRAI::pdat::SideIndex<NDIM>(idx, axis, 1) };
+    unsigned int i = 0;
+    while (fill_pts.size() < stencil_size)
+    {
+#ifndef NDEBUG
+        if (i >= test_idxs.size())
+        {
+            std::ostringstream err_msg;
+            err_msg << "Could not find enough cells to fill stencil.\n";
+            err_msg << "  Starting at base point " << idx << "\n";
+            err_msg << "  ls value: " << ls << "\n";
+            err_msg << "  Searched " << i << " indices and found " << fill_pts.size() << " total pts\n";
+            throw std::runtime_error(err_msg.str());
+        }
+#endif
+        const SAMRAI::pdat::SideIndex<NDIM>& new_idx = test_idxs[i];
+        // Add new idx to list of X_vals
+        if (ADS::node_to_side(new_idx, ls_data) * ls > 0.0) fill_pts.push_back(new_idx);
+
+        // Add neighboring points to new_idxs.
+        // Prefer to add points preferentially depending on the axis
+        SAMRAI::hier::IntVector<NDIM> l(-1, 0), r(1, 0), b(0, -1), u(0, 1);
+        SAMRAI::pdat::SideIndex<NDIM> idx_l(new_idx + l), idx_r(new_idx + r);
+        SAMRAI::pdat::SideIndex<NDIM> idx_u(new_idx + u), idx_b(new_idx + b);
+        if (axis == 0)
+        {
+            // Add x points first
+            if (ADS::node_to_side(idx_l, ls_data) * ls > 0.0 &&
+                (std::find(test_idxs.begin(), test_idxs.end(), idx_l) == test_idxs.end()))
+                test_idxs.push_back(idx_l);
+            if (ADS::node_to_side(idx_r, ls_data) * ls > 0.0 &&
+                (std::find(test_idxs.begin(), test_idxs.end(), idx_r) == test_idxs.end()))
+                test_idxs.push_back(idx_r);
+            if (ADS::node_to_side(idx_u, ls_data) * ls > 0.0 &&
+                (std::find(test_idxs.begin(), test_idxs.end(), idx_u) == test_idxs.end()))
+                test_idxs.push_back(idx_u);
+            if (ADS::node_to_side(idx_b, ls_data) * ls > 0.0 &&
+                (std::find(test_idxs.begin(), test_idxs.end(), idx_b) == test_idxs.end()))
+                test_idxs.push_back(idx_b);
+        }
+        else
+        {
+            // Add y points first.
+            if (ADS::node_to_side(idx_u, ls_data) * ls > 0.0 &&
+                (std::find(test_idxs.begin(), test_idxs.end(), idx_u) == test_idxs.end()))
+                test_idxs.push_back(idx_u);
+            if (ADS::node_to_side(idx_b, ls_data) * ls > 0.0 &&
+                (std::find(test_idxs.begin(), test_idxs.end(), idx_b) == test_idxs.end()))
+                test_idxs.push_back(idx_b);
+            if (ADS::node_to_side(idx_l, ls_data) * ls > 0.0 &&
+                (std::find(test_idxs.begin(), test_idxs.end(), idx_l) == test_idxs.end()))
+                test_idxs.push_back(idx_l);
+            if (ADS::node_to_side(idx_r, ls_data) * ls > 0.0 &&
+                (std::find(test_idxs.begin(), test_idxs.end(), idx_r) == test_idxs.end()))
+                test_idxs.push_back(idx_r);
+        }
+        ++i;
+    }
+}
+
 template <class Point>
 void
-RBFFDReconstruct(std::vector<double>& wgts,
-                 const Point& base_pt,
-                 const std::vector<Point>& fd_pts,
-                 const int poly_degree,
-                 const double* const dx,
-                 std::function<double(double)> rbf,
-                 std::function<double(const Point&, const Point&, void*)> L_rbf,
-                 void* rbf_ctx,
-                 std::function<IBTK::VectorXd(const std::vector<Point>&, int, double, const Point&, void*)> L_polys,
-                 void* poly_ctx)
+RBFFD_reconstruct(std::vector<double>& wgts,
+                  const Point& base_pt,
+                  const std::vector<Point>& fd_pts,
+                  const int poly_degree,
+                  const double* const dx,
+                  std::function<double(double)> rbf,
+                  std::function<double(const Point&, const Point&, void*)> L_rbf,
+                  void* rbf_ctx,
+                  std::function<IBTK::VectorXd(const std::vector<Point>&, int, double, const Point&, void*)> L_polys,
+                  void* poly_ctx)
 {
     const int stencil_size = fd_pts.size();
     IBTK::MatrixXd A(IBTK::MatrixXd::Zero(stencil_size, stencil_size));
@@ -105,9 +177,9 @@ RBFFDReconstruct(std::vector<double>& wgts,
 }
 
 inline double
-quadraticLagrangeInterpolant(IBTK::VectorNd x,
-                             const SAMRAI::pdat::CellIndex<NDIM>& idx,
-                             const SAMRAI::pdat::CellData<NDIM, double>& Q_data)
+quadratic_lagrange_interpolant(IBTK::VectorNd x,
+                               const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                               const SAMRAI::pdat::CellData<NDIM, double>& Q_data)
 {
     for (int d = 0; d < NDIM; ++d) x[d] -= static_cast<double>(idx(d)) + 0.5;
     SAMRAI::hier::IntVector<NDIM> one_x(1, 0), one_y(0, 1);
@@ -119,11 +191,11 @@ quadraticLagrangeInterpolant(IBTK::VectorNd x,
 }
 
 inline double
-quadraticLagrangeInterpolantLimited(IBTK::VectorNd x,
-                                    const SAMRAI::pdat::CellIndex<NDIM>& idx,
-                                    const SAMRAI::pdat::CellData<NDIM, double>& Q_data)
+quadratic_lagrange_interpolant_limited(IBTK::VectorNd x,
+                                       const SAMRAI::pdat::CellIndex<NDIM>& idx,
+                                       const SAMRAI::pdat::CellData<NDIM, double>& Q_data)
 {
-    double Q = quadraticLagrangeInterpolant(x, idx, Q_data);
+    double Q = quadratic_lagrange_interpolant(x, idx, Q_data);
 
     SAMRAI::hier::IntVector<NDIM> one_x(1, 0), one_y(0, 1);
     SAMRAI::pdat::CellIndex<NDIM> ll;
@@ -143,6 +215,74 @@ quadraticLagrangeInterpolantLimited(IBTK::VectorNd x,
     return Q;
 }
 
-} // namespace Reconstruct
+inline double
+divergence(const IBTK::VectorNd& x,
+           const SAMRAI::pdat::CellIndex<NDIM>& idx,
+           const double ls,
+           const SAMRAI::pdat::SideData<NDIM, double>& u_data,
+           const SAMRAI::pdat::NodeData<NDIM, double>& ls_data,
+           const RBFPolyOrder poly_order,
+           const int stencil_size,
+           const double* const dx)
+{
+    double div = 0.0;
+    for (int d = 0; d < NDIM; ++d)
+    {
+        // Need to grab indices, use flood filling
+        std::vector<SAMRAI::pdat::SideIndex<NDIM>> idxs;
+        flood_fill_for_points(idxs, idx, ls_data, ls, d, stencil_size);
 
+        std::vector<IBTK::VectorNd> X_pts;
+        std::vector<double> u_vals;
+        for (const auto& si : idxs)
+        {
+            u_vals.push_back(u_data(si));
+            IBTK::VectorNd xpt;
+            for (int i = 0; i < NDIM; ++i) xpt[i] = static_cast<double>(si(i)) + (d == i ? 0.0 : 0.5);
+            X_pts.push_back(xpt);
+        }
+
+        // We have all the points. Now determine weights.
+        auto rbf = [](const double r) -> double { return r * r * r * r * r; };
+        auto L_rbf = [](const IBTK::VectorNd& xi, const IBTK::VectorNd& xj, void* ctx) -> double
+        {
+            int d = *static_cast<int*>(ctx);
+            double r = (xi - xj).norm();
+            return 5.0 * (xi[d] - xj[d]) * r * r * r;
+        };
+
+        auto L_polys = [](const std::vector<IBTK::VectorNd>& xpts,
+                          int poly_degree,
+                          double dx,
+                          IBTK::VectorNd base_pt,
+                          void* ctx) -> IBTK::VectorXd
+        {
+            int d = *static_cast<int*>(ctx);
+            if (d == 0)
+                return PolynomialBasis::dPdxMonomials(xpts, poly_degree, dx, base_pt).transpose();
+            else
+                return PolynomialBasis::dPdyMonomials(xpts, poly_degree, dx, base_pt).transpose();
+        };
+
+        // Need to shift x_loc by idx_low
+        std::vector<double> wgts;
+        std::vector<double> dummy_dx = { 1.0, 1.0 };
+        Reconstruct::RBFFD_reconstruct<IBTK::VectorNd>(wgts,
+                                                       x,
+                                                       X_pts,
+                                                       poly_order == Reconstruct::RBFPolyOrder::LINEAR ? 1 : 2,
+                                                       dummy_dx.data(),
+                                                       rbf,
+                                                       L_rbf,
+                                                       static_cast<void*>(&d),
+                                                       L_polys,
+                                                       static_cast<void*>(&d));
+        // Now perform reconstruction.
+        for (size_t i = 0; i < u_vals.size(); ++i) div += u_vals[i] * wgts[i] / dx[d];
+    }
+    return div;
+}
+
+} // namespace Reconstruct
+} // namespace ADS
 #endif

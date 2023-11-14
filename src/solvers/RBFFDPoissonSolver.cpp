@@ -188,20 +188,20 @@ RBFFDPoissonSolver::solveSystem(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
     EquationSystems* eq_sys = d_fe_mesh_partitioner->getEquationSystems();
     System& x_sys = eq_sys->get_system(d_sys_x_name);
     System& b_sys = eq_sys->get_system(d_sys_b_name);
-    copyDataToPetsc(d_petsc_x,
-                    x,
-                    d_hierarchy,
-                    x_sys,
-                    d_index_ptr->getEulerianMap(),
-                    d_index_ptr->getLagrangianMap(),
-                    d_index_ptr->getDofsPerProc());
-    copyDataToPetsc(d_petsc_b,
-                    b,
-                    d_hierarchy,
-                    b_sys,
-                    d_index_ptr->getEulerianMap(),
-                    d_index_ptr->getLagrangianMap(),
-                    d_index_ptr->getDofsPerProc());
+    copy_data_to_petsc(d_petsc_x,
+                       x,
+                       d_hierarchy,
+                       x_sys,
+                       d_index_ptr->getEulerianMap(),
+                       d_index_ptr->getLagrangianMap(),
+                       d_index_ptr->getDofsPerProc());
+    copy_data_to_petsc(d_petsc_b,
+                       b,
+                       d_hierarchy,
+                       b_sys,
+                       d_index_ptr->getEulerianMap(),
+                       d_index_ptr->getLagrangianMap(),
+                       d_index_ptr->getDofsPerProc());
 
     // Now solve the system
     ierr = KSPSolve(d_petsc_ksp, d_petsc_b, d_petsc_x);
@@ -223,13 +223,13 @@ RBFFDPoissonSolver::solveSystem(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorR
          << "\n";
 
     // Copy data back to other representations
-    copyDataFromPetsc(d_petsc_x,
-                      x,
-                      d_hierarchy,
-                      x_sys,
-                      d_index_ptr->getEulerianMap(),
-                      d_index_ptr->getLagrangianMap(),
-                      d_index_ptr->getDofsPerProc());
+    copy_data_from_petsc(d_petsc_x,
+                         x,
+                         d_hierarchy,
+                         x_sys,
+                         d_index_ptr->getEulerianMap(),
+                         d_index_ptr->getLagrangianMap(),
+                         d_index_ptr->getDofsPerProc());
 
     // Deallocate the solver, when necessary.
     if (deallocate_after_solve) deallocateSolverState();
@@ -729,7 +729,7 @@ RBFFDPoissonSolver::findFDWeights()
                     tree.knnSearch(base_pt, 7, idx_vec, distance_vec);
 #endif
                     for (const auto& idx : idx_vec) fd_pts.push_back(global_fd_points[idx]);
-                    Reconstruct::RBFFDReconstruct<FDPoint>(
+                    Reconstruct::RBFFD_reconstruct<FDPoint>(
                         wgts, base_pt, fd_pts, d_poly_degree, dx, d_rbf, d_lap_rbf, nullptr, d_lap_polys, nullptr);
                 }
                 else if (node_to_cell(idx, *ls_data) < -d_eps)
@@ -739,7 +739,7 @@ RBFFDPoissonSolver::findFDWeights()
                     tree.knnSearch(base_pt, d_stencil_size, idx_vec, distance_vec);
                     for (const auto& idx : idx_vec) fd_pts.push_back(global_fd_points[idx]);
                     // Now compute finite difference weights with these points.
-                    Reconstruct::RBFFDReconstruct<FDPoint>(
+                    Reconstruct::RBFFD_reconstruct<FDPoint>(
                         wgts, base_pt, fd_pts, d_poly_degree, dx, d_rbf, d_lap_rbf, nullptr, d_lap_polys, nullptr);
                 }
                 else
@@ -781,16 +781,16 @@ RBFFDPoissonSolver::findFDWeights()
 
                         // Now compute finite difference weights with these points.
                         std::vector<double> wgts;
-                        Reconstruct::RBFFDReconstruct<FDPoint>(wgts,
-                                                               pt,
-                                                               fd_pts,
-                                                               d_poly_degree,
-                                                               dx,
-                                                               d_rbf,
-                                                               d_lap_rbf,
-                                                               static_cast<void*>(&normal),
-                                                               d_lap_polys,
-                                                               static_cast<void*>(&normal));
+                        Reconstruct::RBFFD_reconstruct<FDPoint>(wgts,
+                                                                pt,
+                                                                fd_pts,
+                                                                d_poly_degree,
+                                                                dx,
+                                                                d_rbf,
+                                                                d_lap_rbf,
+                                                                static_cast<void*>(&normal),
+                                                                d_lap_polys,
+                                                                static_cast<void*>(&normal));
                         // TODO: This is a potentially dangerous hack. FD weights must be associated with an FDPoint,
                         // but we have no FDPoint's that live on the Eulerian boundary. The interior FDPoint can't be
                         // the base pt, because then we would use the corner FDPoints multiple times. Instead, we
@@ -832,18 +832,18 @@ RBFFDPoissonSolver::findFDWeights()
                     // Now find the finite difference. These are all boundary points, so create FD points that enforce
                     // both the boundary condition and PDE Now compute finite difference weights with these points.
                     std::vector<double> bdry_wgts, bulk_wgts;
-                    Reconstruct::RBFFDReconstruct<FDPoint>(
+                    Reconstruct::RBFFD_reconstruct<FDPoint>(
                         bulk_wgts, base_pt, fd_pts, d_poly_degree, dx, d_rbf, d_lap_rbf, nullptr, d_lap_polys, nullptr);
-                    Reconstruct::RBFFDReconstruct<FDPoint>(bdry_wgts,
-                                                           base_pt,
-                                                           fd_pts,
-                                                           d_poly_degree,
-                                                           dx,
-                                                           d_rbf,
-                                                           d_lap_rbf,
-                                                           static_cast<void*>(&n),
-                                                           d_lap_polys,
-                                                           static_cast<void*>(&n));
+                    Reconstruct::RBFFD_reconstruct<FDPoint>(bdry_wgts,
+                                                            base_pt,
+                                                            fd_pts,
+                                                            d_poly_degree,
+                                                            dx,
+                                                            d_rbf,
+                                                            d_lap_rbf,
+                                                            static_cast<void*>(&n),
+                                                            d_lap_polys,
+                                                            static_cast<void*>(&n));
                     d_bulk_weights->cachePoint(patch, base_pt, fd_pts, bulk_wgts);
                     d_bdry_weights->cachePoint(patch, base_pt, fd_pts, bdry_wgts);
                 }

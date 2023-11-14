@@ -55,10 +55,10 @@ void copy_face_to_side(const int u_s_idx,
                        const int u_f_idx,
                        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
 
-bool findIntersection(libMesh::Point& p,
-                      libMesh::Elem* elem,
-                      const libMesh::Point& r,
-                      const libMesh::VectorValue<double>& q);
+bool find_intersection(libMesh::Point& p,
+                       libMesh::Elem* elem,
+                       const libMesh::Point& r,
+                       const libMesh::VectorValue<double>& q);
 
 std::string get_libmesh_restart_file_name(const std::string& restart_dump_dirname,
                                           const std::string& base_filename,
@@ -79,20 +79,20 @@ std::string get_libmesh_restart_file_name(const std::string& restart_dump_dirnam
  * Returns:
  * pair consisting of the volume (first) and the area (second)
  */
-std::pair<double, double> findVolumeAndArea(const IBTK::VectorNd& xlow,
-                                            const double* const dx,
-                                            SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeData<NDIM, double>> phi,
-                                            const SAMRAI::pdat::CellIndex<NDIM>& idx);
+std::pair<double, double> find_volume_and_area(const IBTK::VectorNd& xlow,
+                                               const double* const dx,
+                                               SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeData<NDIM, double>> phi,
+                                               const SAMRAI::pdat::CellIndex<NDIM>& idx);
 
 /*!
  * Find the volume of a vector of simplices (tri in 2D, tet in 3D)
  */
-double findVolume(const std::vector<Simplex>& simplices);
+double find_volume(const std::vector<Simplex>& simplices);
 
 /*!
  * Find the surface area of a vector of simplices (tri in 2D, tet in 3D)
  */
-double findArea(const std::vector<Simplex>& simplices);
+double find_area(const std::vector<Simplex>& simplices);
 
 /*!
  * Use a flood filling algorithm to compute the correct sign for the node centered level set on the provided patch

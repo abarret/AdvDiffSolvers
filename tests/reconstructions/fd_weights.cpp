@@ -95,7 +95,7 @@ main(int argc, char* argv[])
             for (int j = 0; j < num_pts; ++j) fd_pts[j] = ADS::Point(h * (base_fd_pts[j] - base_pt) + base_pt);
 
             std::vector<double> wgts;
-            Reconstruct::RBFFDReconstruct<ADS::Point>(
+            Reconstruct::RBFFD_reconstruct<ADS::Point>(
                 wgts, ADS::Point(base_pt), fd_pts, 3, dx.data(), rbf, L_rbf, nullptr, L_poly, nullptr);
 
             double approx = 0.0;

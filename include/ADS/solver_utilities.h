@@ -14,27 +14,27 @@
 
 namespace ADS
 {
-void copyDataToPetsc(Vec& petsc_vec,
-                     const SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& x_eul_vec,
-                     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
-                     const libMesh::System& x_lag_sys,
-                     int eul_map_idx,
-                     const std::map<int, int>& lag_dof_map,
-                     const std::vector<int>& dofs_per_proc);
+void copy_data_to_petsc(Vec& petsc_vec,
+                        const SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& x_eul_vec,
+                        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                        const libMesh::System& x_lag_sys,
+                        int eul_map_idx,
+                        const std::map<int, int>& lag_dof_map,
+                        const std::vector<int>& dofs_per_proc);
 
-void copyDataFromPetsc(Vec& petsc_vec,
-                       const SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& x_eul_vec,
-                       SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
-                       libMesh::System& x_lag_sys,
-                       int eul_map_idx,
-                       const std::map<int, int>& lag_dof_map,
-                       const std::vector<int>& dofs_per_proc);
+void copy_data_from_petsc(Vec& petsc_vec,
+                          const SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& x_eul_vec,
+                          SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                          libMesh::System& x_lag_sys,
+                          int eul_map_idx,
+                          const std::map<int, int>& lag_dof_map,
+                          const std::vector<int>& dofs_per_proc);
 
-void copyDataFromPetsc(Vec& petsc_vec,
-                       const SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& x_eul_vec,
-                       SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
-                       libMesh::System& x_lag_sys,
-                       const ConditionCounter& cc);
+void copy_data_from_petsc(Vec& petsc_vec,
+                          const SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& x_eul_vec,
+                          SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                          libMesh::System& x_lag_sys,
+                          const ConditionCounter& cc);
 } // namespace ADS
 
 #endif // #ifndef included_ADS_solver_utilities

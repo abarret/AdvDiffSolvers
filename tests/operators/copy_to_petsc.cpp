@@ -234,9 +234,9 @@ main(int argc, char* argv[])
             VecCreateMPI(IBTK_MPI::getCommunicator(), dofs_per_proc[IBTK_MPI::getRank()], PETSC_DETERMINE, &x_vec);
         IBTK_CHKERRQ(ierr);
         // Now copy data to x_vec
-        copyDataToPetsc(x_vec, exact_eul_vec, patch_hierarchy, exact_bdry_sys, eul_map, lag_map, dofs_per_proc);
+        copy_data_to_petsc(x_vec, exact_eul_vec, patch_hierarchy, exact_bdry_sys, eul_map, lag_map, dofs_per_proc);
         // Now copy data back
-        copyDataFromPetsc(x_vec, copied_eul_vec, patch_hierarchy, copied_bdry_sys, eul_map, lag_map, dofs_per_proc);
+        copy_data_from_petsc(x_vec, copied_eul_vec, patch_hierarchy, copied_bdry_sys, eul_map, lag_map, dofs_per_proc);
 
         pout << "Checking copied data\n";
         // Only check finest level
