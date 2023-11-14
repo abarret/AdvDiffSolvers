@@ -191,6 +191,13 @@ public:
                                        bool skip_synchronize_new_state_data,
                                        int num_cycles = 1) override;
 
+    /*!
+     * Register a function that executes any steps needed after computing the new level set, but before doing the
+     * advection update.
+     */
+    using PreAdvectionCallbackFcnPtr = std::function<void(double, double, void*)>;
+    void registerPreAdvectionUpdateFcnCallback(PreAdvectionCallbackFcnPtr fcn, void* ctx);
+
 protected:
     void initializeCompositeHierarchyDataSpecialized(double current_time, bool initial_time) override;
     void regridHierarchyEndSpecialized() override;
@@ -265,12 +272,17 @@ protected:
     SAMRAI::tbox::Pointer<SAMRAI::math::HierarchyFaceDataOpsReal<NDIM, double>> d_hier_fc_data_ops;
 
 private:
+    void executePreAdvectionCallbacks(double current_time, double new_time);
+
     // Two is a good number for the current default INSStaggeredHierarchyIntegrator.
     int d_num_cycles = 2;
     bool d_use_rbfs = false;
     unsigned int d_rbf_stencil_size = 8;
     unsigned int d_mls_stencil_size = 8;
     Reconstruct::RBFPolyOrder d_rbf_poly_order = Reconstruct::RBFPolyOrder::UNKNOWN_ORDER;
+
+    std::vector<PreAdvectionCallbackFcnPtr> d_preadvection_callback_fcns;
+    std::vector<void*> d_preadvection_callback_ctxs;
 }; // Class SLAdvIntegrator
 } // namespace ADS
 

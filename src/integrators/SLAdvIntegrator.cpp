@@ -540,6 +540,8 @@ SLAdvIntegrator::postprocessIntegrateHierarchy(const double current_time,
                                        true);
     }
 
+    executePreAdvectionCallbacks(current_time, new_time);
+
     // Now do advective update for each variable
     for (const auto& Q_var : d_Q_var)
     {
@@ -687,6 +689,13 @@ SLAdvIntegrator::resetHierarchyConfigurationSpecialized(const Pointer<BasePatchH
     AdvDiffHierarchyIntegrator::resetHierarchyConfigurationSpecialized(base_hierarchy, coarsest_ln, finest_ln);
     d_hier_fc_data_ops->setPatchHierarchy(base_hierarchy);
     d_hier_fc_data_ops->resetLevels(0, finest_ln);
+}
+
+void
+SLAdvIntegrator::registerPreAdvectionUpdateFcnCallback(PreAdvectionCallbackFcnPtr fcn, void* ctx)
+{
+    d_preadvection_callback_fcns.push_back(fcn);
+    d_preadvection_callback_ctxs.push_back(ctx);
 }
 
 /////////////////////// PRIVATE ///////////////////////////////
@@ -981,6 +990,15 @@ SLAdvIntegrator::setDefaultReconstructionOperator(Pointer<CellVariable<NDIM, dou
             TBOX_ERROR("Unknown adv reconstruction type " << enum_to_string(d_default_adv_reconstruct_type) << "\n");
             break;
         }
+    }
+}
+
+void
+SLAdvIntegrator::executePreAdvectionCallbacks(double current_time, double new_time)
+{
+    for (size_t l = 0; l < d_preadvection_callback_ctxs.size(); ++l)
+    {
+        d_preadvection_callback_fcns[l](current_time, new_time, d_preadvection_callback_ctxs[l]);
     }
 }
 } // namespace ADS
