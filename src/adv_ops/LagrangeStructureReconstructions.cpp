@@ -146,7 +146,7 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
         Q_in_vecs[part] = Q_in_sys.current_local_solution.get();
         Q_in_dof_map_vecs[part] = &Q_in_sys.get_dof_map();
 
-        if (d_reconstruct_outside)
+        if (d_reconstruct_outside && !d_Q_out_sys_name.empty())
         {
             auto& Q_out_sys = eq_sys->get_system<ExplicitSystem>(d_Q_out_sys_name);
             Q_out_vecs[part] = Q_out_sys.current_local_solution.get();
