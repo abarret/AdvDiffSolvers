@@ -1,6 +1,6 @@
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
-#include "ADS/RBFDivergenceReconstructions.h"
+#include "ADS/InterpDivergenceReconstructions.h"
 #include "ADS/app_namespaces.h" // IWYU pragma: keep
 #include "ADS/ls_functions.h"
 #include <ADS/reconstructions.h>
@@ -21,7 +21,7 @@ static Timer* t_apply_reconstruction;
 
 namespace ADS
 {
-RBFDivergenceReconstructions::RBFDivergenceReconstructions(std::string object_name, Pointer<Database> input_db)
+InterpDivergenceReconstructions::InterpDivergenceReconstructions(std::string object_name, Pointer<Database> input_db)
     : AdvectiveReconstructionOperator(std::move(object_name)),
       d_u_scr_var(new SideVariable<NDIM, double>(d_object_name + "::Q_scratch")),
       d_div_var(new CellVariable<NDIM, double>(d_object_name + "::Div"))
@@ -35,19 +35,19 @@ RBFDivergenceReconstructions::RBFDivergenceReconstructions(std::string object_na
     d_div_idx =
         var_db->registerVariableAndContext(d_div_var, var_db->getContext(d_object_name + "::CTX"), IntVector<NDIM>(2));
 
-    IBTK_DO_ONCE(t_apply_reconstruction =
-                     TimerManager::getManager()->getTimer("ADS::RBFDivergenceReconstruction::applyReconstruction()"););
+    IBTK_DO_ONCE(t_apply_reconstruction = TimerManager::getManager()->getTimer(
+                     "ADS::InterpDivergenceReconstruction::applyReconstruction()"););
     return;
-} // RBFDivergenceReconstructions
+} // InterpDivergenceReconstructions
 
-RBFDivergenceReconstructions::~RBFDivergenceReconstructions()
+InterpDivergenceReconstructions::~InterpDivergenceReconstructions()
 {
     deallocateOperatorState();
     return;
-} // ~RBFDivergenceReconstructions
+} // ~InterpDivergenceReconstructions
 
 void
-RBFDivergenceReconstructions::applyReconstruction(const int Q_idx, const int N_idx, const int path_idx)
+InterpDivergenceReconstructions::applyReconstruction(const int Q_idx, const int N_idx, const int path_idx)
 {
     ADS_TIMER_START(t_apply_reconstruction);
     int coarsest_ln = 0;
@@ -66,9 +66,9 @@ RBFDivergenceReconstructions::applyReconstruction(const int Q_idx, const int N_i
 }
 
 void
-RBFDivergenceReconstructions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierarchy,
-                                                    double current_time,
-                                                    double new_time)
+InterpDivergenceReconstructions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                                                       double current_time,
+                                                       double new_time)
 {
     AdvectiveReconstructionOperator::allocateOperatorState(hierarchy, current_time, new_time);
     d_hierarchy = hierarchy;
@@ -83,7 +83,7 @@ RBFDivergenceReconstructions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>
 }
 
 void
-RBFDivergenceReconstructions::deallocateOperatorState()
+InterpDivergenceReconstructions::deallocateOperatorState()
 {
     AdvectiveReconstructionOperator::deallocateOperatorState();
     if (!d_is_allocated) return;
@@ -97,7 +97,7 @@ RBFDivergenceReconstructions::deallocateOperatorState()
 }
 
 void
-RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int div_idx, const int path_idx)
+InterpDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int div_idx, const int path_idx)
 {
     int coarsest_ln = 0;
     int finest_ln = d_hierarchy->getFinestLevelNumber();
@@ -106,7 +106,7 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
     TBOX_ASSERT(d_new_ls_idx > 0);
 #endif
 
-    // Compute div(u) using centered differences. We'll interpolate this if we can, otherwise we'll use RBF-FD
+    // Compute div(u) using centered differences. We'll interpolate this quantity.
     HierarchyMathOps hier_math_ops("hier_math_ops", d_hierarchy);
     hier_math_ops.div(d_div_idx, d_div_var, 1.0, u_idx, d_u_scr_var, nullptr, 0.0, true);
     // Fill ghost cells
@@ -136,27 +136,23 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
             Pointer<NodeData<NDIM, double>> ls_new_data = patch->getPatchData(d_new_ls_idx);
             Pointer<CellData<NDIM, double>> fd_div_data = patch->getPatchData(d_div_idx);
 
-            auto within_regular_interpolant =
-                [](const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data, const double ls_val) -> bool {
+            div_data->fillAll(0.0);
+
+            auto within_lagrange_interpolant =
+                [](const CellIndex<NDIM>& idx, NodeData<NDIM, double>& ls_data, const double ls_val) -> bool
+            {
+                Box<NDIM> box(idx, idx);
+                box.grow(2);
                 for (int axis = 0; axis < NDIM; ++axis)
                 {
-                    SideIndex<NDIM> si(idx, axis, 0);
-                    IntVector<NDIM> shft;
-                    for (int i = -1; i <= 1; ++i)
+                    for (SideIterator<NDIM> si(box, axis); si; si++)
                     {
-                        shft(0) = i;
-                        for (int j = -1; j <= 1; ++j)
-                        {
-                            shft(1) = j;
-                            if (!ls_data.getGhostBox().contains(si + shft)) return true;
-                            if (ADS::node_to_side(si + shft, ls_data) * ls_val < 0.0) return false;
-                        }
+                        const SideIndex<NDIM>& sc = si();
+                        if (ADS::node_to_side(sc, ls_data) * ls_val < 0.0) return false;
                     }
                 }
                 return true;
             };
-
-            div_data->fillAll(0.0);
 
             for (CellIterator<NDIM> ci(box); ci; ci++)
             {
@@ -167,7 +163,7 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
                 for (int d = 0; d < NDIM; ++d) x_loc[d] = (*xstar_data)(idx, d);
 
                 // Determine if we can use a standard FD stencil
-                if (within_regular_interpolant(idx, *ls_data, ls_val))
+                if (within_lagrange_interpolant(idx, *ls_data, ls_val))
                 {
                     // Interpolate fd_div_data to x_loc.
                     (*div_data)(idx) = Reconstruct::quadratic_lagrange_interpolant_limited(x_loc, idx, *fd_div_data);
@@ -177,8 +173,8 @@ RBFDivergenceReconstructions::applyReconstructionLS(const int u_idx, const int d
                     // Use a finite difference stencil
                     try
                     {
-                        (*div_data)(idx) = Reconstruct::divergence(
-                            x_loc, idx, ls_val, *u_data, *ls_data, d_rbf_order, d_rbf_stencil_size, dx);
+                        (*div_data)(idx) = Reconstruct::radial_basis_function_reconstruction(
+                            x_loc, ls_val, idx, *fd_div_data, *ls_data, patch, d_rbf_order, d_rbf_stencil_size);
                     }
                     catch (const std::runtime_error& e)
                     {
