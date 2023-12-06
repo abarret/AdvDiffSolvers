@@ -1,5 +1,6 @@
 #include <ibamr/config.h>
 
+#include <ADS/InterpDivergenceReconstructions.h>
 #include <ADS/LSFromLevelSet.h>
 #include <ADS/PointwiseFunction.h>
 #include <ADS/RBFDivergenceReconstructions.h>
@@ -100,7 +101,11 @@ main(int argc, char* argv[])
         comps.setFlag(div_err_idx);
         comps.setFlag(path_idx);
 
-        RBFDivergenceReconstructions div_ops("div_ops", input_db->getDatabase("div_ops"));
+        Pointer<AdvectiveReconstructionOperator> div_ops;
+        if (input_db->getBool("USE_RBF"))
+            div_ops = new RBFDivergenceReconstructions("div_ops", input_db->getDatabase("div_ops"));
+        else
+            div_ops = new InterpDivergenceReconstructions("div_ops", input_db->getDatabase("div_ops"));
 
         gridding_algorithm->makeCoarsestLevel(patch_hierarchy, 0.0);
         int tag_buffer = 1;
@@ -161,10 +166,10 @@ main(int argc, char* argv[])
 
         u_fcn.setDataOnPatchHierarchy(u_idx, u_var, patch_hierarchy, 0.0);
 
-        div_ops.setLSData(ls_idx, vol_idx, ls_idx, vol_idx);
-        div_ops.allocateOperatorState(patch_hierarchy, 0.0, 0.0);
-        div_ops.applyReconstruction(u_idx, div_idx, path_idx);
-        div_ops.deallocateOperatorState();
+        div_ops->setLSData(ls_idx, vol_idx, ls_idx, vol_idx);
+        div_ops->allocateOperatorState(patch_hierarchy, 0.0, 0.0);
+        div_ops->applyReconstruction(u_idx, div_idx, path_idx);
+        div_ops->deallocateOperatorState();
 
         // Compute error
         div_fcn.setDataOnPatchHierarchy(div_err_idx, div_var, patch_hierarchy, 0.0);

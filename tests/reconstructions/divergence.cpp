@@ -145,7 +145,7 @@ compute_divergence(std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping,
         VectorNd x_idx;
         for (int d = 0; d < NDIM; ++d) x_idx[d] = (xpt[d] - xlow[d]) / dx[d] + idx_low(d);
         double div = ADS::Reconstruct::divergence(
-            x_idx, idx, ls, *u_data, *ls_data, ADS::Reconstruct::RBFPolyOrder::QUADRATIC, 12, dx, false);
+            x_idx, idx, ls, *u_data, *ls_data, ADS::Reconstruct::RBFPolyOrder::QUADRATIC, 12, dx);
 
         std::vector<dof_id_type> divu_dofs;
         divu_dof_map.dof_indices(node, divu_dofs);

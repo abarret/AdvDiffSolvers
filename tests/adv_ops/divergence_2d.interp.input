@@ -1,21 +1,22 @@
 // grid spacing parameters
-MAX_LEVELS = 2                            // maximum number of levels in locally refined grid
+MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
 N = 64                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = 1.0/NFINEST
+USE_RBF = FALSE
 
 ls_fcn {
   function = "0.5-sqrt(X_0*X_0 + X_1*X_1)"
 }
 
 u {
-  function_0 = "sin(2*PI*X_0)*sin(2*PI*X_1)"
-  function_1 = "cos(2*PI*X_0)*cos(2*PI*X_1)"
+   function_0 = "(sin(0.5*PI*X_0)*sin(0.5*PI*X_1))^4.0"
+   function_1 = "(sin(0.5*PI*X_0)*sin(0.5*PI*X_1))^4.0"
 }
 
 div {
-  function = "0.0"
+   function = "2.0*PI*(cos(0.5*PI*X_1)*sin(0.5*PI*X_0)*(sin(0.5*PI*X_0)*sin(0.5*PI*X_1))^3)+2.0*PI*(cos(0.5*PI*X_0)*sin(0.5*PI*X_1)*(sin(0.5*PI*X_0)*sin(0.5*PI*X_1))^3)"
 }
 
 div_ops {

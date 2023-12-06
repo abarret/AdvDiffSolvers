@@ -19,6 +19,7 @@ ENDFOREACH()
 SET(CXX_SRC
     
     adv_ops/AdvectiveReconstructionOperator.cpp
+    adv_ops/InterpDivergenceReconstructions.cpp
     adv_ops/LagrangeReconstructions.cpp
     adv_ops/LagrangeStructureReconstructions.cpp
     adv_ops/LinearReconstructions.cpp
