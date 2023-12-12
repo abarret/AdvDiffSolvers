@@ -2,7 +2,8 @@ ADD_LIBRARY(ADS2d)
 ADD_LIBRARY(ADS3d)
 
 SET(FORTRAN_SRC_BASE
-	fortran/advection_routines)
+	fortran/advection_routines
+	level_set/fortran/level_set_utils)
 
 FOREACH(_d ${ADS_DIMENSIONS})
   FOREACH(_fortran_root_name ${FORTRAN_SRC_BASE})
@@ -40,6 +41,7 @@ SET(CXX_SRC
     level_set/LSFindCellVolume.cpp
     level_set/LSFromLevelSet.cpp
     level_set/LSFromMesh.cpp
+    level_set/ReinitializeLevelSet.cpp
     level_set/ls_functions.cpp
     
     rbffd/FDWeightsCache.cpp

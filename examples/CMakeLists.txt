@@ -1,5 +1,5 @@
 ADD_CUSTOM_TARGET(examples)
-SET(EXAMPLE_DIRECTORIES compressible couette disk peristalsis pipe_flow_no_ins
+SET(EXAMPLE_DIRECTORIES compressible couette disk level_set peristalsis pipe_flow_no_ins
                         pipe_flow_no_struct radial reacting_couette rotational
                         solvers operators semi_lagrangian)
 
