@@ -23,7 +23,7 @@ extern "C"
 namespace ADS
 {
 ReinitializeLevelSet::ReinitializeLevelSet(std::string object_name, Pointer<Database> input_db)
-    : d_object_name(std::move(object_name)), d_nc_var(new NodeVariable<NDIM, int>(d_object_name + "::fixed_vals"))
+    : d_object_name(std::move(object_name))
 {
     if (input_db)
     {
@@ -33,6 +33,11 @@ ReinitializeLevelSet::ReinitializeLevelSet(std::string object_name, Pointer<Data
     }
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
+    std::string var_name = d_object_name + "::fixed_vals";
+    if (var_db->checkVariableExists(var_name))
+        d_nc_var = var_db->getVariable(var_name);
+    else
+        d_nc_var = new NodeVariable<NDIM, int>(var_name);
     d_nc_idx = var_db->registerVariableAndContext(d_nc_var, var_db->getContext(d_object_name + "::CTX"));
 }
 

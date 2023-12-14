@@ -27,12 +27,17 @@ MeshMapping {
 }
 
 CutCellMapping {
-  perturb_nodes = FALSE
+  perturb_nodes = TRUE
 }
 
 ReintializeLevelSet {
    max_iterations = 20
    tolerance = 1.0e-10
+}
+
+InternalFill {
+   max_iterations = 200
+   tolerance = 1.0e-5
 }
 
 Main {

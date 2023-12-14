@@ -36,7 +36,8 @@ SET(CXX_SRC
     integrators/SBAdvDiffIntegrator.cpp
     integrators/SBIntegrator.cpp
     integrators/SLAdvIntegrator.cpp
-    
+
+    level_set/InternalBdryFill.cpp    
     level_set/LSCartGridFunction.cpp
     level_set/LSFindCellVolume.cpp
     level_set/LSFromLevelSet.cpp

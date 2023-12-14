@@ -1,4 +1,5 @@
-
+#ifndef included_ADS_ReinitializeLevelSet
+#define included_ADS_ReinitializeLevelSet
 #include <ibtk/ibtk_utilities.h>
 
 #include <PatchHierarchy.h>
@@ -78,3 +79,4 @@ private:
     int d_nc_idx = IBTK::invalid_index;
 };
 } // namespace ADS
+#endif

@@ -1,9 +1,10 @@
 #include <ADS/CutCellVolumeMeshMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
+#include <ADS/InternalBdryFill.h>
 #include <ADS/LSFromMesh.h>
+#include <ADS/PointwiseFunction.h>
 #include <ADS/ReinitializeLevelSet.h>
 #include <ADS/app_namespaces.h>
-#include <ADS/PointwiseFunction.h>
 
 #include <ibtk/AppInitializer.h>
 #include <ibtk/IBTKInit.h>
@@ -32,22 +33,23 @@ double lower_perim = 0.0;
 double MFAC = 0.0;
 double dx = 0.0;
 double L = 0.0;
+double ls_time = 0.0;
 
 VectorNd
-upper_channel(const double s)
+upper_channel(const double s, const double t)
 {
     VectorNd x;
     x(0) = s;
-    x(1) = alpha / (2.0 * M_PI) * (1.0 + g * std::sin(2.0 * M_PI * (s + 0.5)));
+    x(1) = alpha / (2.0 * M_PI) * (1.0 + g * std::sin(2.0 * M_PI * (s + t)));
     return x;
 }
 
 VectorNd
-lower_channel(const double s)
+lower_channel(const double s, const double t)
 {
     VectorNd x;
     x(0) = s;
-    x(1) = -alpha / (2.0 * M_PI) * (1.0 + g * std::sin(2.0 * M_PI * (s + 0.5)));
+    x(1) = -alpha / (2.0 * M_PI) * (1.0 + g * std::sin(2.0 * M_PI * (s + t)));
     return x;
 }
 void
@@ -62,7 +64,7 @@ generate_channel(const int strct_num, int& num_vertices, std::vector<IBTK::Point
         vertex_posn.resize(num_vertices);
         for (int i = 0; i < num_vertices; ++i)
         {
-            VectorNd x = upper_channel(ds * (static_cast<double>(i) + 0.15));
+            VectorNd x = upper_channel(ds * (static_cast<double>(i) + 0.15), 0.0);
             vertex_posn[i] = x;
         }
     }
@@ -74,7 +76,7 @@ generate_channel(const int strct_num, int& num_vertices, std::vector<IBTK::Point
         vertex_posn.resize(num_vertices);
         for (int i = 0; i < num_vertices; ++i)
         {
-            VectorNd x = lower_channel(ds * (static_cast<double>(i) + 0.15));
+            VectorNd x = lower_channel(ds * (static_cast<double>(i) + 0.15), 0.0);
             vertex_posn[i] = x;
         }
     }
@@ -89,7 +91,7 @@ Q_fcn_peristalsis(double, const VectorNd& X, double time)
     cent(1) = 0.2;
     double R = 0.25;
     double r = (X - cent).norm();
-    return (X[1] <= (alpha / (2.0 * M_PI) * (1.0 + g * std::sin(2.0 * M_PI * (X[0] + 0.5)))) && r <= R) ?
+    return (X[1] <= (alpha / (2.0 * M_PI) * (1.0 + g * std::sin(2.0 * M_PI * (X[0] + time)))) && r <= R) ?
                std::max(0.8 * std::cos(M_PI * r / (2.0 * R)) + 0.025, 0.025) :
                0.025;
 }
@@ -97,8 +99,8 @@ Q_fcn_peristalsis(double, const VectorNd& X, double time)
 void
 ls_bdry_fcn(const VectorNd& X, double& ls_val)
 {
-    double yup = upper_channel(X[0])[1];
-    double ylow = lower_channel(X[0])[1];
+    double yup = upper_channel(X[0], ls_time)[1];
+    double ylow = lower_channel(X[0], ls_time)[1];
     if (X[1] <= yup && X[1] >= ylow)
         ls_val = -1.0;
     else
@@ -232,11 +234,11 @@ main(int argc, char* argv[])
                 }
 
                 // Add extra node on the LEFT boundary
-                VectorNd x = lower_channel(0.0);
+                VectorNd x = lower_channel(0.0, 0.0);
                 actual_meshes[0]->add_point(libMesh::Point(x[0], x[1], 0.0), num_vertices);
 
                 // Add extra node on the RIGHT boundary
-                x = lower_channel(1.0);
+                x = lower_channel(1.0, 0.0);
                 actual_meshes[0]->add_point(libMesh::Point(x[0], x[1], 0.0), num_vertices + 1);
 
                 // Generate elements
@@ -270,11 +272,11 @@ main(int argc, char* argv[])
                 }
 
                 // Add extra node on the LEFT boundary
-                VectorNd x = upper_channel(0.0);
+                VectorNd x = upper_channel(0.0, 0.0);
                 actual_meshes[1]->add_point(libMesh::Point(x[0], x[1], 0.0), num_vertices);
 
                 // Add extra node on the RIGHT boundary
-                x = upper_channel(1.0);
+                x = upper_channel(1.0, 0.0);
                 actual_meshes[1]->add_point(libMesh::Point(x[0], x[1], 0.0), num_vertices + 1);
 
                 // Generate elements
@@ -405,17 +407,6 @@ main(int argc, char* argv[])
             ++ln;
         }
 
-        std::for_each(mesh_mapping->getMeshPartitioners().begin(),
-                      mesh_mapping->getMeshPartitioners().end(),
-                      [&patch_hierarchy](const std::shared_ptr<FEMeshPartitioner>& fe_mesh) -> void
-                      {
-                          fe_mesh->setPatchHierarchy(patch_hierarchy);
-                          fe_mesh->reinitElementMappings();
-                      });
-
-        cut_cell_mapping->initializeObjectState(patch_hierarchy);
-        cut_cell_mapping->generateCutCellMappings();
-
         // Allocate patch data
         for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
         {
@@ -445,207 +436,159 @@ main(int argc, char* argv[])
         plog << "Input database:\n";
         input_db->printClassData(plog);
 
-        vol_fcn->updateVolumeAreaSideLS(
-            vol_idx, vol_var, IBTK::invalid_index, nullptr, IBTK::invalid_index, nullptr, ls_idx, ls_var, 0.0, false);
-
-        // Now generate the signed distance function. First interpolate to cell centers
-        Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierMathOps", patch_hierarchy);
-        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-        std::vector<ITC> ghost_comp{ ITC(ls_idx, "LINEAR_REFINE", false, "NONE") };
-        Pointer<HierarchyGhostCellInterpolation> ls_ghost_fill = new HierarchyGhostCellInterpolation();
-        ls_ghost_fill->initializeOperatorState(ghost_comp, patch_hierarchy);
-
-        ReinitializeLevelSet ls_method("LS", input_db->getDatabase("ReintializeLevelSet"));
+        double t = 0.0;
+        double T = 1.0;
+        double dt = 0.05;
+        int iter_num = 0;
+        while (t < T)
         {
-            const int coarsest_ln = 0;
-            const int finest_ln = patch_hierarchy->getFinestLevelNumber();
-
-            for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+            // Update position of structures
+            if (use_channel)
             {
-                Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
-                for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+                ls_time = t;
+                for (int i = 0; i < meshes.size(); ++i)
                 {
-                    Pointer<Patch<NDIM>> patch = level->getPatch(p());
+                    std::shared_ptr<FEMeshPartitioner>& mesh_partitioner = mesh_mapping->getMeshPartitioner(i);
+                    EquationSystems* eq_sys = mesh_partitioner->getEquationSystems();
 
-                    Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
-                    Pointer<NodeData<NDIM, int>> valid_data = patch->getPatchData(valid_idx);
+                    System& X_bdry_sys = eq_sys->get_system("COORDINATES_SYSTEM");
+                    System& dX_bdry_sys = eq_sys->get_system("DISPLACEMENT_SYSTEM");
+                    NumericVector<double>* X_bdry_vec = X_bdry_sys.solution.get();
+                    NumericVector<double>* dX_bdry_vec = dX_bdry_sys.solution.get();
 
-                    Box<NDIM> ghost_node_box = NodeGeometry<NDIM>::toNodeBox(valid_data->getGhostBox());
+                    const DofMap& X_bdry_dof_map = X_bdry_sys.get_dof_map();
 
-                    for (NodeIterator<NDIM> ni(patch->getBox()); ni; ni++)
+                    auto node_it = eq_sys->get_mesh().local_nodes_begin();
+                    const auto node_end = eq_sys->get_mesh().local_nodes_end();
+                    for (; node_it != node_end; ++node_it)
                     {
-                        const NodeIndex<NDIM>& idx = ni();
-
-                        if (std::abs((*ls_data)(idx)) < 1.0)
+                        Node* node = *node_it;
+                        VectorNd xpt = i == 0 ? lower_channel((*node)(0), t) : upper_channel((*node)(0), t);
+                        std::vector<dof_id_type> X_bdry_dof_indices;
+                        for (int d = 0; d < NDIM; ++d)
                         {
-                            (*valid_data)(idx) = 1;
-                        }
-                        else
-                        {
-                            (*valid_data)(idx) = 2;
+                            X_bdry_dof_map.dof_indices(node, X_bdry_dof_indices, d);
+                            X_bdry_vec->set(X_bdry_dof_indices[0], xpt(d));
+                            dX_bdry_vec->set(X_bdry_dof_indices[0], xpt(d) - (*node)(d));
                         }
                     }
 
-                    // Now only compute level set in nearby indices of structure
-                    for (NodeIterator<NDIM> ni(patch->getBox()); ni; ni++)
-                    {
-                        const NodeIndex<NDIM>& idx = ni();
+                    X_bdry_vec->close();
+                    dX_bdry_vec->close();
+                    X_bdry_sys.update();
+                    dX_bdry_sys.update();
+                }
+            }
+            std::for_each(mesh_mapping->getMeshPartitioners().begin(),
+                          mesh_mapping->getMeshPartitioners().end(),
+                          [&patch_hierarchy](const std::shared_ptr<FEMeshPartitioner>& fe_mesh) -> void
+                          {
+                              fe_mesh->setPatchHierarchy(patch_hierarchy);
+                              fe_mesh->reinitElementMappings();
+                          });
 
-                        if ((*valid_data)(idx) == 1)
+            cut_cell_mapping->initializeObjectState(patch_hierarchy);
+            cut_cell_mapping->generateCutCellMappings();
+
+            vol_fcn->updateVolumeAreaSideLS(vol_idx,
+                                            vol_var,
+                                            IBTK::invalid_index,
+                                            nullptr,
+                                            IBTK::invalid_index,
+                                            nullptr,
+                                            ls_idx,
+                                            ls_var,
+                                            0.0,
+                                            false);
+
+            // Set initial conditions for Q
+            if (use_channel)
+            {
+                PointwiseFunction<PointwiseFunctions::ScalarFcn> Q_init("QInit", Q_fcn_peristalsis);
+                Q_init.setDataOnPatchHierarchy(Q_idx, Q_var, patch_hierarchy, t);
+            }
+            else
+            {
+                PointwiseFunction<PointwiseFunctions::ScalarFcn> Q_init("QInit", Q_fcn_cylinder);
+                Q_init.setDataOnPatchHierarchy(Q_idx, Q_var, patch_hierarchy, t);
+            }
+
+            // Now generate the signed distance function. First interpolate to cell centers
+            Pointer<HierarchyMathOps> hier_math_ops = new HierarchyMathOps("HierMathOps", patch_hierarchy);
+            using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+            std::vector<ITC> ghost_comp{ ITC(ls_idx, "LINEAR_REFINE", false, "NONE") };
+            Pointer<HierarchyGhostCellInterpolation> ls_ghost_fill = new HierarchyGhostCellInterpolation();
+            ls_ghost_fill->initializeOperatorState(ghost_comp, patch_hierarchy);
+
+            ReinitializeLevelSet ls_method("LS", input_db->getDatabase("ReintializeLevelSet"));
+            {
+                const int coarsest_ln = 0;
+                const int finest_ln = patch_hierarchy->getFinestLevelNumber();
+
+                for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+                {
+                    Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
+                    for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+                    {
+                        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+
+                        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+                        Pointer<NodeData<NDIM, int>> valid_data = patch->getPatchData(valid_idx);
+
+                        Box<NDIM> ghost_node_box = NodeGeometry<NDIM>::toNodeBox(valid_data->getGhostBox());
+
+                        for (NodeIterator<NDIM> ni(patch->getBox()); ni; ni++)
                         {
-                            // We have a correctly specified index. Set 5 closest indices to be invalid but changeable
-                            // values
-                            Box<NDIM> region(idx, idx);
-                            region.grow(10);
-                            for (NodeIterator<NDIM> ni2(region); ni2; ni2++)
+                            const NodeIndex<NDIM>& idx = ni();
+
+                            if (std::abs((*ls_data)(idx)) < 1.0)
                             {
-                                const NodeIndex<NDIM>& idx2 = ni2();
-                                if (ghost_node_box.contains(idx2) && (*valid_data)(idx2) != 1) (*valid_data)(idx2) = 0;
+                                (*valid_data)(idx) = 1;
+                            }
+                            else
+                            {
+                                (*valid_data)(idx) = 2;
+                            }
+                        }
+
+                        // Now only compute level set in nearby indices of structure
+                        for (NodeIterator<NDIM> ni(patch->getBox()); ni; ni++)
+                        {
+                            const NodeIndex<NDIM>& idx = ni();
+
+                            if ((*valid_data)(idx) == 1)
+                            {
+                                // We have a correctly specified index. Set 5 closest indices to be invalid but
+                                // changeable values
+                                Box<NDIM> region(idx, idx);
+                                region.grow(10);
+                                for (NodeIterator<NDIM> ni2(region); ni2; ni2++)
+                                {
+                                    const NodeIndex<NDIM>& idx2 = ni2();
+                                    if (ghost_node_box.contains(idx2) && (*valid_data)(idx2) != 1)
+                                        (*valid_data)(idx2) = 0;
+                                }
                             }
                         }
                     }
                 }
             }
-        }
 
-        HierarchyNodeDataOpsReal<NDIM, double> hier_nc_data_ops(patch_hierarchy);
-        hier_nc_data_ops.copyData(phi_idx, ls_idx);
-        ls_method.computeSignedDistanceFunction(phi_idx, *phi_var, patch_hierarchy, 0.0, valid_idx);
+            HierarchyNodeDataOpsReal<NDIM, double> hier_nc_data_ops(patch_hierarchy);
+            hier_nc_data_ops.copyData(phi_idx, ls_idx);
+            ls_method.computeSignedDistanceFunction(phi_idx, *phi_var, patch_hierarchy, t, valid_idx);
 
-        // Now advect quantities in normal into unphysical (positive) domain.
-        // First compute the normal
-        for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
-        {
-            Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
-            for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-            {
-                Pointer<Patch<NDIM>> patch = level->getPatch(p());
-                Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-                const double* const dx = pgeom->getDx();
+            InternalBdryFill advect_in_normal("InternalFill", input_db->getDatabase("InternalFill"));
+            advect_in_normal.advectInNormal(Q_idx, Q_var, phi_idx, phi_var, patch_hierarchy, t);
 
-                Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
-                Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(u_idx);
-                // X axis
-                for (int axis = 0; axis < NDIM; ++axis)
-                {
-                    for (SideIterator<NDIM> si(patch->getBox(), axis); si; si++)
-                    {
-                        const SideIndex<NDIM>& idx = si();
-                        CellIndex<NDIM> idx_up = idx.toCell(1), idx_low = idx.toCell(0);
-                        NodeIndex<NDIM> idx_ll(idx_low, NodeIndex<NDIM>::LowerLeft);
-                        NodeIndex<NDIM> idx_ul(idx_low, NodeIndex<NDIM>::UpperLeft);
-                        NodeIndex<NDIM> idx_lr(idx_low, NodeIndex<NDIM>::LowerRight);
-                        NodeIndex<NDIM> idx_ur(idx_low, NodeIndex<NDIM>::UpperRight);
-                        VectorNd normal;
-                        if (axis == 0)
-                        {
-                            normal(0) = ((*phi_data)(idx_lr) + (*phi_data)(idx_ur) - (*phi_data)(idx_ll) - (*phi_data)(idx_ul)) / (2.0 * dx[0]);
-                            normal(1) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::UpperLeft)) - (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerLeft))) / dx[1];
-                            normal.normalize();
-                            (*u_data)(idx) = normal(0);
-                        }
-                        else if (axis == 1)
-                        {
-                            normal(0) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerRight)) - (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerLeft))) / dx[0];
-                            normal(1) = ((*phi_data)(idx_ul) + (*phi_data)(idx_ur) - (*phi_data)(idx_ll) - (*phi_data)(idx_lr)) / (2.0 * dx[1]);
-
-                            normal.normalize();
-                            (*u_data)(idx) = normal(1);
-                        }
-                        else
-                            TBOX_ERROR("Unsupported dimension " << NDIM << "\n");
-                    }
-                }
-            }
-        }
-
-        // Interpolate normal to cell center for visualization
-        hier_math_ops->interp(u_draw_idx, u_draw_var, u_idx, u_var, nullptr, 0.0, false);
-        hier_math_ops->interp(ls_cent_idx, ls_cent_var, phi_idx, phi_var, nullptr, 0.0, false);
-
-        // Set initial conditions for Q
-        if (use_channel)
-        {
-            PointwiseFunction<PointwiseFunctions::ScalarFcn> Q_init("QInit", Q_fcn_peristalsis);
-            Q_init.setDataOnPatchHierarchy(Q_idx, Q_var, patch_hierarchy, 0.0);
-        }
-        else
-        {
-            PointwiseFunction<PointwiseFunctions::ScalarFcn> Q_init("QInit", Q_fcn_cylinder);
-            Q_init.setDataOnPatchHierarchy(Q_idx, Q_var, patch_hierarchy, 0.0);
-        }
-
-        // Write out initial visualization data.
-        visit_data_writer->writePlotData(patch_hierarchy, 0, 0.0);
-        for (size_t i = 0; i < exodus_io.size(); ++i)
-        {
-            exodus_io[i]->write_timestep(
-                exodus_io_strs[i], *mesh_mapping->getMeshPartitioner(i)->getEquationSystems(), 1, 0.0);
-        }
-
-        // Now do a pseudo-time integration
-        double tau = 0.0;
-        double T = 1.0;
-        // We should be able to run at a CFL number of 0.5. Velocity should be 1 (normal vectors)
-        const double CFL_MAX = 0.5;
-        const double dt = CFL_MAX * dx;
-        int iter_num = 1;
-        while(tau < T)
-        {
-            // Copy data and fill ghost cells
-            HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(patch_hierarchy);
-            hier_cc_data_ops.copyData(Q_old_idx, Q_idx);
-            using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-            std::vector<ITC> ghost_cell_comp{ITC(Q_old_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE")};
-            HierarchyGhostCellInterpolation hier_ghost_fill;
-            hier_ghost_fill.initializeOperatorState(ghost_cell_comp, patch_hierarchy);
-            hier_ghost_fill.fillData(0.0);
-
-            // Perform simple upwinding, only changing values that have positive level sets.
-            for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
-            {
-                Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
-                for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-                {
-                    Pointer<Patch<NDIM>> patch = level->getPatch(p());
-
-                    Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-                    const double* const dx = pgeom->getDx();
-
-                    Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
-                    Pointer<CellData<NDIM, double>> Q_old_data = patch->getPatchData(Q_old_idx);
-                    Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(u_idx);
-                    Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
-
-                    for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
-                    {
-                        const CellIndex<NDIM>& idx = ci();
-                        double diff = 0.0;
-                        if (ADS::node_to_cell(idx, *phi_data) > (-1.0e-3*(*std::min_element(dx, dx + NDIM))))
-                        {
-                            // Upwinding
-                            SideIndex<NDIM> idx_l(idx, 0, 0), idx_r(idx, 0, 1);
-                            SideIndex<NDIM> idx_b(idx, 1, 0), idx_u(idx, 1, 1);
-                            IntVector<NDIM> x(1, 0), y(0, 1);
-                            diff = (std::max((*u_data)(idx_r), 0.0) * ((*Q_old_data)(idx) - (*Q_old_data)(idx - x))
-                                    + std::min((*u_data)(idx_l), 0.0) * ((*Q_old_data)(idx + x) - (*Q_old_data)(idx))) / dx[0]
-                                    + (std::max((*u_data)(idx_u), 0.0) * ((*Q_old_data)(idx) - (*Q_old_data)(idx - y))
-                                    + std::min((*u_data)(idx_b), 0.0) * ((*Q_old_data)(idx + y) - (*Q_old_data)(idx))) / dx[1];
-                        }
-                        (*Q_data)(idx) = (*Q_old_data)(idx) - dt * diff;
-                    }
-                }
-            }
-
-            // Write visualizations
-            visit_data_writer->writePlotData(patch_hierarchy, iter_num, tau);
+            visit_data_writer->writePlotData(patch_hierarchy, iter_num, t);
             for (size_t i = 0; i < exodus_io.size(); ++i)
             {
                 exodus_io[i]->write_timestep(
-                    exodus_io_strs[i], *mesh_mapping->getMeshPartitioner(i)->getEquationSystems(), iter_num + 1, tau);
+                    exodus_io_strs[i], *mesh_mapping->getMeshPartitioner(i)->getEquationSystems(), iter_num + 1, t);
             }
-            // Update for next iteration
-            tau += dt;
+
+            t += dt;
             ++iter_num;
         }
 

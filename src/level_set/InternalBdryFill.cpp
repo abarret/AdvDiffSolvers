@@ -1,0 +1,222 @@
+#include <ADS/InternalBdryFill.h>
+#include <ADS/ads_utilities.h>
+#include <ADS/app_namespaces.h>
+#include <ADS/ls_functions.h>
+
+#include <ibtk/HierarchyGhostCellInterpolation.h>
+#include <ibtk/HierarchyMathOps.h>
+
+// Fortran routines
+extern "C"
+{
+#if (NDIM == 2)
+    void fast_sweep_2d_(double* U,
+                        const int& U_gcw,
+                        const int& ilower0,
+                        const int& iupper0,
+                        const int& ilower1,
+                        const int& iupper1,
+                        const double* dx,
+                        int* v,
+                        const int& v_gcw);
+#endif
+}
+
+namespace ADS
+{
+InternalBdryFill::InternalBdryFill(std::string object_name, Pointer<Database> input_db)
+    : d_object_name(std::move(object_name))
+{
+    if (input_db)
+    {
+        d_tol = input_db->getDoubleWithDefault("tolerance", d_tol);
+        d_max_iters = input_db->getIntegerWithDefault("max_iterations", d_max_iters);
+        d_enable_logging = input_db->getBoolWithDefault("enable_logging", d_enable_logging);
+    }
+
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    std::string var_name = d_object_name + "::normal";
+    if (var_db->checkVariableExists(var_name))
+        d_sc_var = var_db->getVariable(var_name);
+    else
+        d_sc_var = new SideVariable<NDIM, double>(var_name);
+    d_sc_idx = var_db->registerVariableAndContext(d_sc_var, var_db->getContext(d_object_name + "::CTX"));
+}
+
+InternalBdryFill::~InternalBdryFill()
+{
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    var_db->removePatchDataIndex(d_sc_idx);
+}
+
+void
+InternalBdryFill::advectInNormal(const int Q_idx,
+                                 Pointer<CellVariable<NDIM, double>> Q_var,
+                                 const int phi_idx,
+                                 Pointer<NodeVariable<NDIM, double>> phi_var,
+                                 Pointer<PatchHierarchy<NDIM>> hierarchy,
+                                 const double time)
+{
+    const int coarsest_ln = 0;
+    const int finest_ln = hierarchy->getFinestLevelNumber();
+    // Use a pseudo-time integration routine to advect
+    // We need a scratch variable.
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    const int Q_scr_idx = var_db->registerClonedPatchDataIndex(Q_var, Q_idx);
+    allocate_patch_data({ d_sc_idx, Q_scr_idx }, hierarchy, time, coarsest_ln, finest_ln);
+
+    // Compute the velocity for advection
+    fillNormal(phi_idx, hierarchy);
+
+    HierarchyMathOps hier_math_ops("hier_math_ops", hierarchy);
+
+    // Now do time integration
+    // We are using simple upwinding, speed has magnitude 1, so max CFL number should be 0.5.
+    const double CFL_MAX = 0.5;
+    // Determine the time step
+    double dt = std::numeric_limits<double>::max();
+    Pointer<CartesianGridGeometry<NDIM>> grid_geom = hierarchy->getGridGeometry();
+    Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(finest_ln);
+    const IntVector<NDIM>& ratio_to_coarsest = level->getRatio();
+    for (int d = 0; d < NDIM; ++d) dt = std::min(dt, grid_geom->getDx()[d] * ratio_to_coarsest[d]);
+    dt *= CFL_MAX;
+    // Final time
+    int iter_num = 0;
+    bool not_converged = true;
+    // Iterate until we've hit a final time or we converged
+    while (iter_num < d_max_iters && not_converged)
+    {
+        HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy);
+        hier_cc_data_ops.copyData(Q_scr_idx, Q_idx);
+
+        // Fill ghost cells
+        using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+        std::vector<ITC> ghost_cell_comp{ ITC(Q_scr_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE") };
+        HierarchyGhostCellInterpolation hier_ghost_fill;
+        hier_ghost_fill.initializeOperatorState(ghost_cell_comp, hierarchy);
+        hier_ghost_fill.fillData(time);
+
+        for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+        {
+            Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+            for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+            {
+                Pointer<Patch<NDIM>> patch = level->getPatch(p());
+
+                Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+                const double* const dx = pgeom->getDx();
+                const double min_ls = -1.0e-3 * (*std::min_element(dx, dx + NDIM));
+
+                Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(Q_scr_idx);
+                Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+                Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(d_sc_idx);
+                Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
+
+                for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    double diff = 0.0;
+                    if (ADS::node_to_cell(idx, *phi_data) > min_ls)
+                    {
+                        // Upwinding
+                        SideIndex<NDIM> idx_l(idx, 0, 0), idx_r(idx, 0, 1);
+                        SideIndex<NDIM> idx_b(idx, 1, 0), idx_u(idx, 1, 1);
+                        IntVector<NDIM> x(1, 0), y(0, 1);
+                        diff = (std::max((*u_data)(idx_r), 0.0) * ((*Q_scr_data)(idx) - (*Q_scr_data)(idx - x)) +
+                                std::min((*u_data)(idx_l), 0.0) * ((*Q_scr_data)(idx + x) - (*Q_scr_data)(idx))) /
+                                   dx[0] +
+                               (std::max((*u_data)(idx_u), 0.0) * ((*Q_scr_data)(idx) - (*Q_scr_data)(idx - y)) +
+                                std::min((*u_data)(idx_b), 0.0) * ((*Q_scr_data)(idx + y) - (*Q_scr_data)(idx))) /
+                                   dx[1];
+                    }
+                    (*Q_data)(idx) = (*Q_scr_data)(idx)-dt * diff;
+                }
+            }
+        }
+        // Determine if we need another iteration
+        hier_cc_data_ops.subtract(Q_scr_idx, Q_idx, Q_scr_idx);
+        const double max_diff = hier_cc_data_ops.maxNorm(Q_scr_idx);
+
+        if (max_diff <= d_tol) not_converged = false;
+        if (d_enable_logging)
+            plog << d_object_name << ": After " << iter_num << " iterations, the max norm is " << max_diff << "\n";
+        ++iter_num;
+    }
+
+    if (d_enable_logging)
+    {
+        if (not_converged)
+        {
+            plog << d_object_name << ": After " << iter_num << " iterations, the solver failed to converge!\n";
+            if (d_error_on_non_convergence) TBOX_ERROR("Failed to converge!\n");
+        }
+        else
+        {
+            plog << d_object_name << ": After " << iter_num << " iterations, the solver converged!\n";
+        }
+    }
+
+    deallocate_patch_data({ d_sc_idx, Q_scr_idx }, hierarchy, coarsest_ln, finest_ln);
+    var_db->removePatchDataIndex(Q_scr_idx);
+}
+
+void
+InternalBdryFill::fillNormal(const int phi_idx, Pointer<PatchHierarchy<NDIM>> hierarchy)
+{
+    const int coarsest_ln = 0;
+    const int finest_ln = hierarchy->getFinestLevelNumber();
+    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+    {
+        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            Pointer<Patch<NDIM>> patch = level->getPatch(p());
+
+            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+            const double* const dx = pgeom->getDx();
+
+            Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
+            Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(d_sc_idx);
+
+            for (int axis = 0; axis < NDIM; ++axis)
+            {
+                for (SideIterator<NDIM> si(patch->getBox(), axis); si; si++)
+                {
+                    const SideIndex<NDIM>& idx = si();
+                    CellIndex<NDIM> idx_up = idx.toCell(1), idx_low = idx.toCell(0);
+                    NodeIndex<NDIM> idx_ll(idx_low, NodeIndex<NDIM>::LowerLeft);
+                    NodeIndex<NDIM> idx_ul(idx_low, NodeIndex<NDIM>::UpperLeft);
+                    NodeIndex<NDIM> idx_lr(idx_low, NodeIndex<NDIM>::LowerRight);
+                    NodeIndex<NDIM> idx_ur(idx_low, NodeIndex<NDIM>::UpperRight);
+                    VectorNd normal;
+                    if (axis == 0)
+                    {
+                        normal(0) =
+                            ((*phi_data)(idx_lr) + (*phi_data)(idx_ur) - (*phi_data)(idx_ll) - (*phi_data)(idx_ul)) /
+                            (2.0 * dx[0]);
+                        normal(1) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::UpperLeft)) -
+                                     (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerLeft))) /
+                                    dx[1];
+                        normal.normalize();
+                        (*u_data)(idx) = normal(0);
+                    }
+                    else if (axis == 1)
+                    {
+                        normal(0) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerRight)) -
+                                     (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerLeft))) /
+                                    dx[0];
+                        normal(1) =
+                            ((*phi_data)(idx_ul) + (*phi_data)(idx_ur) - (*phi_data)(idx_ll) - (*phi_data)(idx_lr)) /
+                            (2.0 * dx[1]);
+
+                        normal.normalize();
+                        (*u_data)(idx) = normal(1);
+                    }
+                    else
+                        TBOX_ERROR("Unsupported dimension " << NDIM << "\n");
+                }
+            }
+        }
+    }
+}
+} // namespace ADS
