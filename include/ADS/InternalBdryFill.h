@@ -39,8 +39,8 @@ private:
     void fillNormal(int phi_idx, SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
 
     std::string d_object_name;
-    double d_tol = 1.0e-3;
-    int d_max_iters = 100;
+    double d_tol = 1.0e-5;
+    int d_max_iters = 500;
     bool d_enable_logging = true;
     bool d_error_on_non_convergence = true;
 
