@@ -8,7 +8,7 @@ ADS_ADD_EXAMPLE(
   EXAMPLE_GROUP
     examples
   SOURCES
-  main.cpp IBBoundaryMeshMapping.cpp QFcn.cpp LSCUIConvectiveOperator.cpp
+  main.cpp IBBoundaryMeshMapping.cpp QFcn.cpp LSCUIConvectiveOperator.cpp ExtrapolatedAdvDiffHierarchyIntegrator.cpp
   LINK_TARGETS
     ADS2d
   INPUT_FILES

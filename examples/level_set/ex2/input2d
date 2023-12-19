@@ -83,7 +83,7 @@ BDRY_INTERP_TYPE = "LINEAR"
 AdvOps {
   stencil_size = 12
   rbf_order = "QUADRATIC"
-  low_cutoff = 0.025
+  low_cutoff = 0.0
 }
 
 MeshMapping {
@@ -93,7 +93,7 @@ MeshMapping {
 }
 
 CutCellMapping {
-  perturb_nodes = FALSE
+  perturb_nodes = TRUE
 }
 
 VelocityInitialConditions {

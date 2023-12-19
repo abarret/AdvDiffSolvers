@@ -96,43 +96,45 @@ InternalBdryFill::advectInNormal(const int Q_idx,
         hier_ghost_fill.initializeOperatorState(ghost_cell_comp, hierarchy);
         hier_ghost_fill.fillData(time);
 
-        for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+        auto fcn = [](Pointer<Patch<NDIM>> patch,
+                      const int Q_scr_idx,
+                      const int Q_idx,
+                      const int sc_idx,
+                      const int phi_idx,
+                      const double dt)
         {
-            Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-            for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+            const double* const dx = pgeom->getDx();
+            const double min_ls = -1.0e-3 * (*std::min_element(dx, dx + NDIM));
+
+            Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(Q_scr_idx);
+            Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+            Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(sc_idx);
+            Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
+
+            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
             {
-                Pointer<Patch<NDIM>> patch = level->getPatch(p());
-
-                Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-                const double* const dx = pgeom->getDx();
-                const double min_ls = -1.0e-3 * (*std::min_element(dx, dx + NDIM));
-
-                Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(Q_scr_idx);
-                Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
-                Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(d_sc_idx);
-                Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
-
-                for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+                const CellIndex<NDIM>& idx = ci();
+                double diff = 0.0;
+                if (ADS::node_to_cell(idx, *phi_data) > min_ls)
                 {
-                    const CellIndex<NDIM>& idx = ci();
-                    double diff = 0.0;
-                    if (ADS::node_to_cell(idx, *phi_data) > min_ls)
-                    {
-                        // Upwinding
-                        SideIndex<NDIM> idx_l(idx, 0, 0), idx_r(idx, 0, 1);
-                        SideIndex<NDIM> idx_b(idx, 1, 0), idx_u(idx, 1, 1);
-                        IntVector<NDIM> x(1, 0), y(0, 1);
-                        diff = (std::max((*u_data)(idx_r), 0.0) * ((*Q_scr_data)(idx) - (*Q_scr_data)(idx - x)) +
-                                std::min((*u_data)(idx_l), 0.0) * ((*Q_scr_data)(idx + x) - (*Q_scr_data)(idx))) /
-                                   dx[0] +
-                               (std::max((*u_data)(idx_u), 0.0) * ((*Q_scr_data)(idx) - (*Q_scr_data)(idx - y)) +
-                                std::min((*u_data)(idx_b), 0.0) * ((*Q_scr_data)(idx + y) - (*Q_scr_data)(idx))) /
-                                   dx[1];
-                    }
-                    (*Q_data)(idx) = (*Q_scr_data)(idx)-dt * diff;
+                    // Upwinding
+                    SideIndex<NDIM> idx_l(idx, 0, 0), idx_r(idx, 0, 1);
+                    SideIndex<NDIM> idx_b(idx, 1, 0), idx_u(idx, 1, 1);
+                    IntVector<NDIM> x(1, 0), y(0, 1);
+                    diff = (std::max((*u_data)(idx_r), 0.0) * ((*Q_scr_data)(idx) - (*Q_scr_data)(idx - x)) +
+                            std::min((*u_data)(idx_l), 0.0) * ((*Q_scr_data)(idx + x) - (*Q_scr_data)(idx))) /
+                               dx[0] +
+                           (std::max((*u_data)(idx_u), 0.0) * ((*Q_scr_data)(idx) - (*Q_scr_data)(idx - y)) +
+                            std::min((*u_data)(idx_b), 0.0) * ((*Q_scr_data)(idx + y) - (*Q_scr_data)(idx))) /
+                               dx[1];
                 }
+                (*Q_data)(idx) = (*Q_scr_data)(idx)-dt * diff;
             }
-        }
+        };
+
+        perform_on_patch_hierarchy(hierarchy, fcn, Q_scr_idx, Q_idx, d_sc_idx, phi_idx, dt);
+
         // Determine if we need another iteration
         hier_cc_data_ops.subtract(Q_scr_idx, Q_idx, Q_scr_idx);
         const double max_diff = hier_cc_data_ops.maxNorm(Q_scr_idx);
@@ -163,60 +165,54 @@ InternalBdryFill::advectInNormal(const int Q_idx,
 void
 InternalBdryFill::fillNormal(const int phi_idx, Pointer<PatchHierarchy<NDIM>> hierarchy)
 {
-    const int coarsest_ln = 0;
-    const int finest_ln = hierarchy->getFinestLevelNumber();
-    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+    auto fcn = [](Pointer<Patch<NDIM>> patch, const int phi_idx, const int sc_idx)
     {
-        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+        const double* const dx = pgeom->getDx();
+
+        Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
+        Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(sc_idx);
+
+        for (int axis = 0; axis < NDIM; ++axis)
         {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-
-            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-
-            Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
-            Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(d_sc_idx);
-
-            for (int axis = 0; axis < NDIM; ++axis)
+            for (SideIterator<NDIM> si(patch->getBox(), axis); si; si++)
             {
-                for (SideIterator<NDIM> si(patch->getBox(), axis); si; si++)
+                const SideIndex<NDIM>& idx = si();
+                CellIndex<NDIM> idx_up = idx.toCell(1), idx_low = idx.toCell(0);
+                NodeIndex<NDIM> idx_ll(idx_low, NodeIndex<NDIM>::LowerLeft);
+                NodeIndex<NDIM> idx_ul(idx_low, NodeIndex<NDIM>::UpperLeft);
+                NodeIndex<NDIM> idx_lr(idx_low, NodeIndex<NDIM>::LowerRight);
+                NodeIndex<NDIM> idx_ur(idx_low, NodeIndex<NDIM>::UpperRight);
+                VectorNd normal;
+                if (axis == 0)
                 {
-                    const SideIndex<NDIM>& idx = si();
-                    CellIndex<NDIM> idx_up = idx.toCell(1), idx_low = idx.toCell(0);
-                    NodeIndex<NDIM> idx_ll(idx_low, NodeIndex<NDIM>::LowerLeft);
-                    NodeIndex<NDIM> idx_ul(idx_low, NodeIndex<NDIM>::UpperLeft);
-                    NodeIndex<NDIM> idx_lr(idx_low, NodeIndex<NDIM>::LowerRight);
-                    NodeIndex<NDIM> idx_ur(idx_low, NodeIndex<NDIM>::UpperRight);
-                    VectorNd normal;
-                    if (axis == 0)
-                    {
-                        normal(0) =
-                            ((*phi_data)(idx_lr) + (*phi_data)(idx_ur) - (*phi_data)(idx_ll) - (*phi_data)(idx_ul)) /
-                            (2.0 * dx[0]);
-                        normal(1) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::UpperLeft)) -
-                                     (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerLeft))) /
-                                    dx[1];
-                        normal.normalize();
-                        (*u_data)(idx) = normal(0);
-                    }
-                    else if (axis == 1)
-                    {
-                        normal(0) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerRight)) -
-                                     (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerLeft))) /
-                                    dx[0];
-                        normal(1) =
-                            ((*phi_data)(idx_ul) + (*phi_data)(idx_ur) - (*phi_data)(idx_ll) - (*phi_data)(idx_lr)) /
-                            (2.0 * dx[1]);
-
-                        normal.normalize();
-                        (*u_data)(idx) = normal(1);
-                    }
-                    else
-                        TBOX_ERROR("Unsupported dimension " << NDIM << "\n");
+                    normal(0) =
+                        ((*phi_data)(idx_lr) + (*phi_data)(idx_ur) - (*phi_data)(idx_ll) - (*phi_data)(idx_ul)) /
+                        (2.0 * dx[0]);
+                    normal(1) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::UpperLeft)) -
+                                 (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerLeft))) /
+                                dx[1];
+                    normal.normalize();
+                    (*u_data)(idx) = normal(0);
                 }
+                else if (axis == 1)
+                {
+                    normal(0) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerRight)) -
+                                 (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerLeft))) /
+                                dx[0];
+                    normal(1) =
+                        ((*phi_data)(idx_ul) + (*phi_data)(idx_ur) - (*phi_data)(idx_ll) - (*phi_data)(idx_lr)) /
+                        (2.0 * dx[1]);
+
+                    normal.normalize();
+                    (*u_data)(idx) = normal(1);
+                }
+                else
+                    TBOX_ERROR("Unsupported dimension " << NDIM << "\n");
             }
         }
-    }
+    };
+
+    perform_on_patch_hierarchy(hierarchy, fcn, phi_idx, d_sc_idx);
 }
 } // namespace ADS

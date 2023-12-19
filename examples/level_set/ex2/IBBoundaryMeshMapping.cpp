@@ -87,9 +87,16 @@ IBBoundaryMeshMapping::updateBoundaryLocation(const double time, unsigned int pa
         }
     }
 
-    // Last point is set manually. We only need to set y coordinate.
+    // Last two point is set manually. We only need to set y coordinate.
     Node* bdry_node = d_bdry_meshes[part]->node_ptr(d_bdry_meshes[part]->n_nodes() - 1);
     std::vector<dof_id_type> dofs;
+    X_bdry_dof_map.dof_indices(bdry_node, dofs, 1);
+    X_bdry_vec->set(dofs[0], part == 1 ? upper_channel(1.0, time) : lower_channel(1.0, time));
+    dX_bdry_vec->set(dofs[0], (part == 1 ? upper_channel(1.0, time) : lower_channel(1.0, time)) - (*bdry_node)(1));
+    X_bdry_dof_map.dof_indices(bdry_node, dofs, 0);
+    dX_bdry_vec->set(dofs[0], 0.0);
+
+    bdry_node = d_bdry_meshes[part]->node_ptr(d_bdry_meshes[part]->n_nodes() - 2);
     X_bdry_dof_map.dof_indices(bdry_node, dofs, 1);
     X_bdry_vec->set(dofs[0], part == 1 ? upper_channel(0.0, time) : lower_channel(0.0, time));
     dX_bdry_vec->set(dofs[0], (part == 1 ? upper_channel(0.0, time) : lower_channel(0.0, time)) - (*bdry_node)(1));

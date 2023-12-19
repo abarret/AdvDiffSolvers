@@ -4,7 +4,9 @@
 #include <ADS/LagrangeStructureReconstructions.h>
 #include <ADS/RBFStructureReconstructions.h>
 #include <ADS/SLAdvIntegrator.h>
+#include <ADS/ads_utilities.h>
 #include <ADS/app_namespaces.h>
+#include <ADS/reconstructions.h>
 
 #include <ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h>
 #include <ibamr/CFINSForcing.h>
@@ -47,6 +49,7 @@
 #include <memory>
 
 // Local includes
+#include "ExtrapolatedAdvDiffHierarchyIntegrator.h"
 #include "IBBoundaryMeshMapping.h"
 #include "LSCUIConvectiveOperator.h"
 #include "QFcn.h"
@@ -191,6 +194,22 @@ ls_bdry_fcn(const VectorNd& X, double& ls_val)
         ls_val = 1.0;
 }
 
+void interpolate_to_centroid(int dst_idx,
+                             int src_idx,
+                             int scr_idx,
+                             int ls_idx,
+                             int vol_idx,
+                             Pointer<PatchHierarchy<NDIM>> hierarchy,
+                             double time);
+
+void print_total_on_each_side_to_file(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                                      int Q_idx,
+                                      double t,
+                                      int ls_idx,
+                                      int vol_idx,
+                                      const std::string& filename,
+                                      std::ios_base::openmode mode);
+
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
  * be given on the command line.  For non-restarted case, command line is:     *
@@ -251,13 +270,18 @@ main(int argc, char* argv[])
             new SLAdvIntegrator("AdvDiffIntegrator",
                                 app_initializer->getComponentDatabase("AdvDiffIntegrator"),
                                 true /*register_for_restart*/);
-        Pointer<AdvDiffSemiImplicitHierarchyIntegrator> adv_diff_integrator =
-            new AdvDiffSemiImplicitHierarchyIntegrator(
+        Pointer<ExtrapolatedAdvDiffHierarchyIntegrator> adv_diff_integrator =
+            new ExtrapolatedAdvDiffHierarchyIntegrator(
                 "AdvDiffSemiImplicitIntegrator",
                 app_initializer->getComponentDatabase("AdvDiffSemiImplicitIntegrator"),
                 true /*register_for_restart*/);
+        Pointer<AdvDiffSemiImplicitHierarchyIntegrator> si_integrator = new AdvDiffSemiImplicitHierarchyIntegrator(
+            "SemiImplicitIntegrator",
+            app_initializer->getComponentDatabase("AdvDiffSemiImplicitIntegrator"),
+            true /*register_for_restart*/);
         ins_integrator->registerAdvDiffHierarchyIntegrator(sl_integrator);
         ins_integrator->registerAdvDiffHierarchyIntegrator(adv_diff_integrator);
+        ins_integrator->registerAdvDiffHierarchyIntegrator(si_integrator);
         Pointer<CartesianGridGeometry<NDIM>> grid_geometry = new CartesianGridGeometry<NDIM>(
             "CartesianGeometry", app_initializer->getComponentDatabase("CartesianGeometry"));
         Pointer<PatchHierarchy<NDIM>> patch_hierarchy = new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
@@ -303,6 +327,11 @@ main(int argc, char* argv[])
         adv_diff_integrator->registerTransportedQuantity(Q_fv_var, true);
         adv_diff_integrator->setAdvectionVelocity(Q_fv_var, ins_integrator->getAdvectionVelocityVariable());
         adv_diff_integrator->setInitialConditions(Q_fv_var, Q_init_fcn);
+
+        Pointer<CellVariable<NDIM, double>> Q_si_var = new CellVariable<NDIM, double>("Q_SI");
+        si_integrator->registerTransportedQuantity(Q_si_var, true);
+        si_integrator->setAdvectionVelocity(Q_si_var, ins_integrator->getAdvectionVelocityVariable());
+        si_integrator->setInitialConditions(Q_si_var, Q_init_fcn);
 
         ib_initializer->setStructureNamesOnLevel(finest_ln, struct_list);
         ib_initializer->registerInitStructureFunction(generate_structure);
@@ -443,6 +472,10 @@ main(int argc, char* argv[])
         sl_integrator->restrictToLevelSet(Q_sl_var, ls_var);
         sl_integrator->registerGeneralBoundaryMeshMapping(mesh_mapping);
 
+        adv_diff_integrator->registerLevelSetVariable(ls_var, vol_fcn);
+        adv_diff_integrator->restrictToLevelSet(Q_fv_var, ls_var);
+        adv_diff_integrator->setMeshMapping(mesh_mapping);
+
         // Setup systems.
         const std::string Q_exact_str = "Q_EXACT";
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
@@ -476,22 +509,12 @@ main(int argc, char* argv[])
         }
 
         // setup the AdvDiffIntegrator
-        Pointer<LSCUIConvectiveOperator> convec_op =
-            new LSCUIConvectiveOperator("LSCUI",
-                                        Q_fv_var,
-                                        nullptr,
-                                        ConvectiveDifferencingType::ADVECTIVE,
-                                        adv_diff_integrator->getPhysicalBcCoefs(Q_fv_var));
-        auto var_db = VariableDatabase<NDIM>::getDatabase();
-        adv_diff_integrator->setConvectiveOperator(Q_fv_var, convec_op);
+        adv_diff_integrator->setMeshMapping(mesh_mapping);
 
         mesh_mapping->initializeFEData();
 
         // Initialize hierarchy configuration and data on all patches.
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
-
-        const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, sl_integrator->getCurrentContext());
-        convec_op->setLSData(ls_var, ls_idx, patch_hierarchy);
 
         // Set the exact solution
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
@@ -519,6 +542,19 @@ main(int argc, char* argv[])
             Q_exact_sys.update();
         }
 
+        // Create some things for interior integration
+        Pointer<CellVariable<NDIM, double>> Q_sl_cent_var = new CellVariable<NDIM, double>("Q_sl_cent");
+        Pointer<CellVariable<NDIM, double>> Q_fv_cent_var = new CellVariable<NDIM, double>("Q_fv_cent");
+        Pointer<CellVariable<NDIM, double>> Q_si_cent_var = new CellVariable<NDIM, double>("Q_si_cent");
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        const int Q_sl_cent_idx = var_db->registerVariableAndContext(Q_sl_cent_var, var_db->getContext("CENTROID"), 0);
+        const int Q_fv_cent_idx = var_db->registerVariableAndContext(Q_fv_cent_var, var_db->getContext("CENTROID"), 0);
+        const int Q_si_cent_idx = var_db->registerVariableAndContext(Q_si_cent_var, var_db->getContext("CENTROID"), 0);
+        const int Q_scr_idx = var_db->registerVariableAndContext(Q_sl_cent_var, var_db->getContext("SCR"), 2);
+        visit_data_writer->registerPlotQuantity("Q_SL_CENTROID", "SCALAR", Q_sl_cent_idx);
+        visit_data_writer->registerPlotQuantity("Q_FV_CENTROID", "SCALAR", Q_fv_cent_idx);
+        visit_data_writer->registerPlotQuantity("Q_SI_CENTROID", "SCALAR", Q_si_cent_idx);
+
         // Create mesh visualization.
         auto lower_exodus_io = std::make_unique<ExodusII_IO>(*mesh_mapping->getBoundaryMesh(0));
         auto upper_exodus_io = std::make_unique<ExodusII_IO>(*mesh_mapping->getBoundaryMesh(1));
@@ -536,6 +572,45 @@ main(int argc, char* argv[])
         std::string filename = "amounts";
         int iteration_num = time_integrator->getIntegratorStep();
         double loop_time = time_integrator->getIntegratorTime();
+
+        // Determine the total amount of "stuff."
+        const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, sl_integrator->getCurrentContext());
+        const int vol_idx = var_db->mapVariableAndContextToIndex(sl_integrator->getVolumeVariable(ls_var),
+                                                                 sl_integrator->getCurrentContext());
+        mesh_mapping->updateBoundaryLocation(loop_time);
+        vol_fcn->updateVolumeAreaSideLS(vol_idx,
+                                        sl_integrator->getVolumeVariable(ls_var),
+                                        IBTK::invalid_index,
+                                        nullptr,
+                                        IBTK::invalid_index,
+                                        nullptr,
+                                        ls_idx,
+                                        ls_var,
+                                        loop_time);
+        allocate_patch_data({ Q_sl_cent_idx, Q_fv_cent_idx, Q_si_cent_idx, Q_scr_idx },
+                            patch_hierarchy,
+                            loop_time,
+                            0,
+                            patch_hierarchy->getFinestLevelNumber());
+        {
+            int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_fv_var, adv_diff_integrator->getCurrentContext());
+            interpolate_to_centroid(Q_fv_cent_idx, Q_cur_idx, Q_scr_idx, ls_idx, vol_idx, patch_hierarchy, loop_time);
+            print_total_on_each_side_to_file(
+                patch_hierarchy, Q_fv_cent_idx, loop_time, ls_idx, vol_idx, "FV_amount.txt", std::ios_base::out);
+        }
+        {
+            int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_si_var, si_integrator->getCurrentContext());
+            interpolate_to_centroid(Q_si_cent_idx, Q_cur_idx, Q_scr_idx, ls_idx, vol_idx, patch_hierarchy, loop_time);
+            print_total_on_each_side_to_file(
+                patch_hierarchy, Q_si_cent_idx, loop_time, ls_idx, vol_idx, "SI_amount.txt", std::ios_base::out);
+        }
+        {
+            int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_sl_var, sl_integrator->getCurrentContext());
+            interpolate_to_centroid(Q_sl_cent_idx, Q_cur_idx, Q_scr_idx, ls_idx, vol_idx, patch_hierarchy, loop_time);
+            print_total_on_each_side_to_file(
+                patch_hierarchy, Q_sl_cent_idx, loop_time, ls_idx, vol_idx, "SL_amount.txt", std::ios_base::out);
+        }
+
         if (dump_viz_data && uses_visit)
         {
             pout << "\n\nWriting visualization files...\n\n";
@@ -557,6 +632,10 @@ main(int argc, char* argv[])
                                             iteration_num / viz_dump_interval + 1,
                                             loop_time);
         }
+        deallocate_patch_data({ Q_sl_cent_idx, Q_fv_cent_idx, Q_si_cent_idx, Q_scr_idx },
+                              patch_hierarchy,
+                              0,
+                              patch_hierarchy->getFinestLevelNumber());
 
         // Main time step loop.
         double loop_time_end = time_integrator->getEndTime();
@@ -589,6 +668,49 @@ main(int argc, char* argv[])
             pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
             pout << "\n";
 
+            // Determine the total amount of "stuff."
+            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, sl_integrator->getCurrentContext());
+            const int vol_idx = var_db->mapVariableAndContextToIndex(sl_integrator->getVolumeVariable(ls_var),
+                                                                     sl_integrator->getCurrentContext());
+            mesh_mapping->updateBoundaryLocation(loop_time);
+            vol_fcn->updateVolumeAreaSideLS(vol_idx,
+                                            sl_integrator->getVolumeVariable(ls_var),
+                                            IBTK::invalid_index,
+                                            nullptr,
+                                            IBTK::invalid_index,
+                                            nullptr,
+                                            ls_idx,
+                                            ls_var,
+                                            loop_time);
+            allocate_patch_data({ Q_sl_cent_idx, Q_fv_cent_idx, Q_si_cent_idx, Q_scr_idx },
+                                patch_hierarchy,
+                                loop_time,
+                                0,
+                                patch_hierarchy->getFinestLevelNumber());
+            {
+                int Q_cur_idx =
+                    var_db->mapVariableAndContextToIndex(Q_fv_var, adv_diff_integrator->getCurrentContext());
+                interpolate_to_centroid(
+                    Q_fv_cent_idx, Q_cur_idx, Q_scr_idx, ls_idx, vol_idx, patch_hierarchy, loop_time);
+                print_total_on_each_side_to_file(
+                    patch_hierarchy, Q_fv_cent_idx, loop_time, ls_idx, vol_idx, "FV_amount.txt", std::ios_base::app);
+            }
+            {
+                int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_si_var, si_integrator->getCurrentContext());
+                interpolate_to_centroid(
+                    Q_si_cent_idx, Q_cur_idx, Q_scr_idx, ls_idx, vol_idx, patch_hierarchy, loop_time);
+                print_total_on_each_side_to_file(
+                    patch_hierarchy, Q_si_cent_idx, loop_time, ls_idx, vol_idx, "SI_amount.txt", std::ios_base::app);
+            }
+            {
+                int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_sl_var, sl_integrator->getCurrentContext());
+                interpolate_to_centroid(
+                    Q_sl_cent_idx, Q_cur_idx, Q_scr_idx, ls_idx, vol_idx, patch_hierarchy, loop_time);
+                print_total_on_each_side_to_file(
+                    patch_hierarchy, Q_sl_cent_idx, loop_time, ls_idx, vol_idx, "SL_amount.txt", std::ios_base::app);
+            }
+
             // At specified intervals, write visualization and restart files,
             // print out timer data, and store hierarchy data for post
             // processing.
@@ -619,6 +741,11 @@ main(int argc, char* argv[])
                 pout << "\nWriting timer data...\n\n";
                 TimerManager::getManager()->print(plog);
             }
+
+            deallocate_patch_data({ Q_sl_cent_idx, Q_fv_cent_idx, Q_si_cent_idx, Q_scr_idx },
+                                  patch_hierarchy,
+                                  0,
+                                  patch_hierarchy->getFinestLevelNumber());
         }
 
     } // cleanup dynamically allocated objects prior to shutdown
@@ -633,7 +760,7 @@ interpolate_to_centroid(const int dst_idx,
                         Pointer<PatchHierarchy<NDIM>> hierarchy,
                         const double time)
 {
-    // Now interpolate from cell centers to cell centroids
+    // Interpolate from cell centers to cell centroids
     {
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
         std::vector<ITC> ghost_cell_comps(1);
@@ -644,41 +771,65 @@ interpolate_to_centroid(const int dst_idx,
         hier_ghost_cell.fillData(time);
     }
 
-    RBFReconstructCache reconstruct_cache(8);
-    reconstruct_cache.setLSData(ls_idx, vol_idx);
-    reconstruct_cache.setUseCentroids(false);
-    reconstruct_cache.setPatchHierarchy(hierarchy);
-    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    auto fcn = [](Pointer<Patch<NDIM>> patch, const int dst_idx, const int scr_idx, const int ls_idx, const int vol_idx)
     {
-        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
-        {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-            const double* const xlow = pgeom->getXLower();
-            const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+        Pointer<CellData<NDIM, double>> Q_new_data = patch->getPatchData(dst_idx);
+        Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(scr_idx);
+        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+        Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
 
-            Pointer<CellData<NDIM, double>> Q_new_data = patch->getPatchData(dst_idx);
-            Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(scr_idx);
-            Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
-            Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
-            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+        for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+        {
+            const CellIndex<NDIM>& idx = ci();
+            if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
             {
-                const CellIndex<NDIM>& idx = ci();
-                if ((*vol_data)(idx) < 1.0 && (*vol_data)(idx) > 0.0)
-                {
-                    // Reconstruct from cell center to cell centroid
-                    VectorNd x_loc = find_cell_centroid(idx, *ls_data);
-                    for (int d = 0; d < NDIM; ++d)
-                        x_loc[d] = xlow[d] + dx[d] * (x_loc(d) - static_cast<double>(idx_low(d)));
-                    (*Q_new_data)(idx) = reconstruct_cache.reconstructOnIndex(x_loc, idx, *Q_scr_data, patch);
-                }
-                else
-                {
-                    (*Q_new_data)(idx) = (*Q_scr_data)(idx);
-                }
+                // We need to perform a reconstruction on this index.
+                VectorNd x_loc = find_cell_centroid(idx, *ls_data);
+                (*Q_new_data)(idx) = Reconstruct::radial_basis_function_reconstruction(
+                    x_loc, -1.0, idx, *Q_scr_data, *ls_data, patch, Reconstruct::RBFPolyOrder::QUADRATIC, 12);
+            }
+            else
+            {
+                (*Q_new_data)(idx) = (*Q_scr_data)(idx);
             }
         }
-    }
+    };
+
+    perform_on_patch_hierarchy(hierarchy, fcn, dst_idx, scr_idx, ls_idx, vol_idx);
+}
+
+void
+print_total_on_each_side_to_file(Pointer<PatchHierarchy<NDIM>> hierarchy,
+                                 const int Q_idx,
+                                 const double t,
+                                 const int ls_idx,
+                                 const int vol_idx,
+                                 const std::string& filename,
+                                 std::ios_base::openmode mode)
+{
+    std::ofstream stream(filename, mode);
+
+    HierarchyMathOps hier_math_ops("hier_math_ops", hierarchy);
+    const int wgt_cc_idx = hier_math_ops.getCellWeightPatchDescriptorIndex();
+    HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(hierarchy);
+    pout << " Total amount at time " << t << ": " << hier_cc_data_ops.integral(Q_idx, wgt_cc_idx) << "\n";
+    stream << t << " ";
+    stream << std::setprecision(10) << hier_cc_data_ops.integral(Q_idx, wgt_cc_idx) << " ";
+
+    auto fcn = [](Pointer<Patch<NDIM>> patch, int wgt_cc_idx, int vol_idx)
+    {
+        Pointer<CellData<NDIM, double>> wgt_data = patch->getPatchData(wgt_cc_idx);
+        Pointer<CellData<NDIM, double>> vol_data = patch->getPatchData(vol_idx);
+        for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+        {
+            const CellIndex<NDIM>& idx = ci();
+            (*wgt_data)(idx) = (*wgt_data)(idx) * (*vol_data)(idx);
+        }
+    };
+
+    perform_on_patch_hierarchy(hierarchy, fcn, wgt_cc_idx, vol_idx);
+
+    pout << " Total inside amount at time " << t << ": " << hier_cc_data_ops.integral(Q_idx, wgt_cc_idx) << "\n";
+    stream << hier_cc_data_ops.integral(Q_idx, wgt_cc_idx) << "\n";
+    stream.close();
 }

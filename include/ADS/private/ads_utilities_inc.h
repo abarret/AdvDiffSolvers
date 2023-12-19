@@ -85,11 +85,9 @@ deallocate_patch_data(const int idx,
     deallocate_patch_data(comps, hierarchy, coarsest_ln, finest_ln);
 }
 
-template <typename... Args>
+template <class F, typename... Args>
 void
-perform_on_patch_hierarchy(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
-                           std::function<void(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>, Args...)> fcn,
-                           Args... args)
+perform_on_patch_hierarchy(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy, F fcn, Args... args)
 {
     const int coarsest_ln = 0;
     const int finest_ln = hierarchy->getFinestLevelNumber();
