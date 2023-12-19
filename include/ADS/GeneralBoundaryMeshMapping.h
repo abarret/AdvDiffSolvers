@@ -2,8 +2,6 @@
 #define included_ADS_GeneralBoundaryMeshMapping
 #include "ADS/CutCellMeshMapping.h"
 #include "ADS/FEMeshPartitioner.h"
-#include "ADS/ls_functions.h"
-#include "ADS/ls_utilities.h"
 
 #include "ibtk/FEDataManager.h"
 
