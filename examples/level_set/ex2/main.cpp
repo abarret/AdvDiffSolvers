@@ -1,4 +1,5 @@
 #include <ADS/CutCellVolumeMeshMapping.h>
+#include <ADS/ExtrapolatedAdvDiffHierarchyIntegrator.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/LSFromMesh.h>
 #include <ADS/LagrangeStructureReconstructions.h>
@@ -49,9 +50,7 @@
 #include <memory>
 
 // Local includes
-#include "ExtrapolatedAdvDiffHierarchyIntegrator.h"
 #include "IBBoundaryMeshMapping.h"
-#include "LSCUIConvectiveOperator.h"
 #include "QFcn.h"
 
 int finest_ln;

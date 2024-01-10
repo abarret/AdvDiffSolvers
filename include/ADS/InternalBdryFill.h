@@ -40,7 +40,7 @@ private:
 
     std::string d_object_name;
     double d_tol = 1.0e-5;
-    int d_max_iters = 500;
+    int d_max_iters = 1000;
     bool d_enable_logging = true;
     bool d_error_on_non_convergence = true;
 

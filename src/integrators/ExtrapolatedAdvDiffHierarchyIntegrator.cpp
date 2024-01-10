@@ -1,23 +1,19 @@
+#include <ADS/ExtrapolatedAdvDiffHierarchyIntegrator.h>
 #include <ADS/InternalBdryFill.h>
 #include <ADS/ReinitializeLevelSet.h>
 #include <ADS/ads_utilities.h>
 
-#include "ibamr/AdvDiffConvectiveOperatorManager.h"
-#include "ibamr/AdvDiffHierarchyIntegrator.h"
 #include "ibamr/ConvectiveOperator.h"
 #include "ibamr/ibamr_enums.h"
 #include "ibamr/ibamr_utilities.h"
 #include "ibamr/namespaces.h" // IWYU pragma: keep
 
-#include "ibtk/CartGridFunction.h"
 #include "ibtk/IBTK_MPI.h"
-#include "ibtk/LaplaceOperator.h"
-#include "ibtk/PoissonSolver.h"
+#include <ibtk/LaplaceOperator.h>
+#include <ibtk/PoissonSolver.h>
 
-#include "BasePatchHierarchy.h"
 #include "CartesianGridGeometry.h"
 #include "CartesianPatchGeometry.h"
-#include "CellDataFactory.h"
 #include "CellVariable.h"
 #include "FaceData.h"
 #include "FaceVariable.h"
@@ -29,32 +25,20 @@
 #include "IntVector.h"
 #include "MultiblockDataTranslator.h"
 #include "Patch.h"
-#include "PatchFaceDataOpsReal.h"
 #include "PatchHierarchy.h"
 #include "PatchLevel.h"
 #include "PoissonSpecifications.h"
 #include "SideVariable.h"
-#include "Variable.h"
 #include "VariableContext.h"
 #include "VariableDatabase.h"
-#include "tbox/Database.h"
 #include "tbox/MathUtilities.h"
-#include "tbox/MemoryDatabase.h"
 #include "tbox/PIO.h"
-#include "tbox/Pointer.h"
 #include "tbox/RestartManager.h"
 #include "tbox/Utilities.h"
 
 #include <algorithm>
-#include <deque>
-#include <map>
 #include <ostream>
-#include <set>
-#include <string>
 #include <utility>
-#include <vector>
-// Local includes
-#include "ExtrapolatedAdvDiffHierarchyIntegrator.h"
 
 /////////////////////////////// NAMESPACE ////////////////////////////////////
 
@@ -71,12 +55,23 @@ ExtrapolatedAdvDiffHierarchyIntegrator::ExtrapolatedAdvDiffHierarchyIntegrator(c
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_valid_idx = var_db->registerVariableAndContext(d_valid_var, var_db->getContext(d_object_name + "::SCR"));
+
+    if (input_db) d_default_reset_val = input_db->getDoubleWithDefault("reset_value", d_default_reset_val);
 }
 
 void
 ExtrapolatedAdvDiffHierarchyIntegrator::setMeshMapping(std::shared_ptr<GeneralBoundaryMeshMapping> mesh_mapping)
 {
     d_mesh_mapping = mesh_mapping;
+}
+
+void
+ExtrapolatedAdvDiffHierarchyIntegrator::registerTransportedQuantity(Pointer<CellVariable<NDIM, double>> Q_var,
+                                                                    const double reset_val,
+                                                                    const bool output_var)
+{
+    AdvDiffSemiImplicitHierarchyIntegrator::registerTransportedQuantity(Q_var, output_var);
+    d_Q_reset_val_map[Q_var] = reset_val;
 }
 
 void
@@ -130,6 +125,12 @@ ExtrapolatedAdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(Pointer<Pa
         static const IntVector<NDIM> ghosts = 1;
         int ls_idx;
         registerVariable(ls_idx, ls_var, ghosts, getCurrentContext());
+    }
+
+    // Set the default reconstruction values (if they are not set)
+    for (const auto& Q_var : d_Q_var)
+    {
+        if (d_Q_reset_val_map.count(Q_var) == 0) d_Q_reset_val_map[Q_var] = d_default_reset_val;
     }
 
     // Register scratch index
@@ -451,7 +452,8 @@ ExtrapolatedAdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(const doub
         auto fcn = [](Pointer<Patch<NDIM>> patch,
                       const int ls_idx,
                       const std::set<Pointer<CellVariable<NDIM, double>>>& Q_vars,
-                      Pointer<VariableContext> ctx)
+                      Pointer<VariableContext> ctx,
+                      const std::map<Pointer<CellVariable<NDIM, double>>, double>& reset_map)
         {
             for (const auto& Q_var : Q_vars)
             {
@@ -460,11 +462,11 @@ ExtrapolatedAdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(const doub
                 for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
-                    if (ADS::node_to_cell(idx, *ls_data) > 0.0) (*Q_new_data)(idx) = 0.0;
+                    if (ADS::node_to_cell(idx, *ls_data) > 0.0) (*Q_new_data)(idx) = reset_map.at(Q_var);
                 }
             }
         };
-        perform_on_patch_hierarchy(d_hierarchy, fcn, ls_idx, d_ls_Q_map[ls_var], getNewContext());
+        perform_on_patch_hierarchy(d_hierarchy, fcn, ls_idx, d_ls_Q_map[ls_var], getNewContext(), d_Q_reset_val_map);
     }
     AdvDiffSemiImplicitHierarchyIntegrator::postprocessIntegrateHierarchy(
         current_time, new_time, skip_synchronize_new_state_data, num_cycles);

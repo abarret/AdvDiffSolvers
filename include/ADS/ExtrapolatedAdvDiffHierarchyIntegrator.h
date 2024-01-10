@@ -11,8 +11,10 @@
 #include "ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h"
 #include "ibamr/ibamr_utilities.h"
 
-#include "tbox/Database.h"
-#include "tbox/Pointer.h"
+#include <tbox/Database.h>
+#include <tbox/Pointer.h>
+
+#include <CellVariable.h>
 
 #include <map>
 #include <set>
@@ -28,6 +30,7 @@ namespace ADS
  * distance function. In preprocessIntegrateHierarchy(), this class computes the level set corresponding to the immersed
  * boundary, converts the level set into a signed distance, and advects concentrations using the normal field. During
  * postprocessIntegrateHierarchy(), this class zeros values that appear on the unphysical side of the boundary.
+ *
  */
 class ExtrapolatedAdvDiffHierarchyIntegrator : public IBAMR::AdvDiffSemiImplicitHierarchyIntegrator
 {
@@ -37,6 +40,10 @@ public:
      * some default values, reads in configuration information from input and
      * restart databases, and registers the integrator object with the restart
      * manager when requested.
+     *
+     * The input database will be searched for the optional double parameter "reset_value." This value is the used as
+     * the default reset value in unphysical regimes. Other reset values for a transported quantity may be set when
+     * registering that variable.
      */
     ExtrapolatedAdvDiffHierarchyIntegrator(const std::string& object_name,
                                            SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
@@ -49,6 +56,14 @@ public:
      * structure before the level set is calculated.
      */
     void setMeshMapping(std::shared_ptr<GeneralBoundaryMeshMapping> mesh_mapping);
+
+    /*!
+     * \brief Register an advected concentration field. Can also set the default reset value for unphysical cell
+     * indices.
+     */
+    void registerTransportedQuantity(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+                                     double reset_val,
+                                     bool output_var = true);
 
     /*!
      * \brief Registers a node centered level set variable with the integrator. A level set function must be supplied
@@ -99,7 +114,7 @@ private:
 
     // Map between the level set variable and the list of concentration fields that are restricted to that level set.
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>,
-             std::set<SAMRAI::tbox::Pointer<CellVariable<NDIM, double>>>>
+             std::set<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>>
         d_ls_Q_map;
 
     // Map between level set variable and the function that computes the level set.
@@ -110,6 +125,9 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, int>> d_valid_var;
     int d_valid_idx = IBTK::invalid_index;
     std::shared_ptr<GeneralBoundaryMeshMapping> d_mesh_mapping;
+
+    double d_default_reset_val = 0.0;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, double> d_Q_reset_val_map;
 };
 } // namespace ADS
 
