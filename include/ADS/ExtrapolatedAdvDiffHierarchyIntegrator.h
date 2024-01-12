@@ -64,6 +64,7 @@ public:
     void registerTransportedQuantity(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                      double reset_val,
                                      bool output_var = true);
+    using IBAMR::AdvDiffSemiImplicitHierarchyIntegrator::registerTransportedQuantity;
 
     /*!
      * \brief Registers a node centered level set variable with the integrator. A level set function must be supplied
@@ -99,6 +100,13 @@ public:
     void preprocessIntegrateHierarchy(double current_time, double new_time, int num_cycles = 1) override;
 
     /*!
+     * Perform advection and diffusion of integrated quantities.
+     *
+     * Effectively the same as AdvDiffSemiImplicitHierarchyIntegrator, but uses extrapolated quantities to integrate.
+     */
+    void integrateHierarchy(double current_time, double new_time, int cycle_num = 0) override;
+
+    /*!
      * Clean up data following call(s) to integrateHierarchy().
      *
      * Zeros out data in concentration fields outside of their physical regime (where the level set is positive).
@@ -128,6 +136,7 @@ private:
 
     double d_default_reset_val = 0.0;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, double> d_Q_reset_val_map;
+    SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> d_extrap_ctx;
 };
 } // namespace ADS
 

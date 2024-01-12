@@ -55,6 +55,7 @@ ExtrapolatedAdvDiffHierarchyIntegrator::ExtrapolatedAdvDiffHierarchyIntegrator(c
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_valid_idx = var_db->registerVariableAndContext(d_valid_var, var_db->getContext(d_object_name + "::SCR"));
+    d_extrap_ctx = var_db->getContext(d_object_name + "::Extrapolated");
 
     if (input_db) d_default_reset_val = input_db->getDoubleWithDefault("reset_value", d_default_reset_val);
 }
@@ -125,6 +126,14 @@ ExtrapolatedAdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(Pointer<Pa
         static const IntVector<NDIM> ghosts = 1;
         int ls_idx;
         registerVariable(ls_idx, ls_var, ghosts, getCurrentContext());
+
+        // For each variable restricted to this level set, create an index to hold the current state.
+        for (const auto& Q_var : d_ls_Q_map[ls_var])
+        {
+            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            int Q_idx = var_db->registerVariableAndContext(Q_var, d_extrap_ctx, 0 /*ghosts*/);
+            d_scratch_data.setFlag(Q_idx);
+        }
     }
 
     // Set the default reconstruction values (if they are not set)
@@ -264,7 +273,9 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
         {
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
             const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
+            const int Q_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_ctx);
             d_hier_cc_data_ops->copyData(Q_scr_idx, Q_cur_idx);
+            d_hier_cc_data_ops->copyData(Q_extrap_idx, Q_cur_idx);
             InternalBdryFill advect_in_norm("InternalFill", nullptr);
             advect_in_norm.advectInNormal(Q_scr_idx, Q_var, ls_idx, ls_var, d_hierarchy, current_time);
             d_hier_cc_data_ops->copyData(Q_cur_idx, Q_scr_idx);
@@ -423,8 +434,53 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
 
     // Execute any registered callbacks.
     executePreprocessIntegrateHierarchyCallbackFcns(current_time, new_time, num_cycles);
+
+    // Make sure current Q_idx is reset.
+    for (const auto& ls_var : d_ls_vars)
+    {
+        for (const auto& Q_var : d_ls_Q_map[ls_var])
+        {
+            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
+            const int Q_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_ctx);
+            perform_on_patch_hierarchy(d_hierarchy, swap_patch_data, Q_cur_idx, Q_extrap_idx);
+        }
+    }
     return;
 } // preprocessIntegrateHierarchy
+
+void
+ExtrapolatedAdvDiffHierarchyIntegrator::integrateHierarchy(const double current_time,
+                                                           const double new_time,
+                                                           const int cycle_num)
+{
+    // First copy data to current context.
+    for (const auto& ls_var : d_ls_vars)
+    {
+        for (const auto& Q_var : d_ls_Q_map[ls_var])
+        {
+            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
+            const int Q_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_ctx);
+            perform_on_patch_hierarchy(d_hierarchy, swap_patch_data, Q_cur_idx, Q_extrap_idx);
+        }
+    }
+
+    // Now perform advection diffusion steps
+    AdvDiffSemiImplicitHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
+
+    // Now reset Q_cur
+    for (const auto& ls_var : d_ls_vars)
+    {
+        for (const auto& Q_var : d_ls_Q_map[ls_var])
+        {
+            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
+            const int Q_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_ctx);
+            perform_on_patch_hierarchy(d_hierarchy, swap_patch_data, Q_cur_idx, Q_extrap_idx);
+        }
+    }
+}
 
 void
 ExtrapolatedAdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(const double current_time,

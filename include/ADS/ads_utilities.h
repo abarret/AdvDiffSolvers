@@ -56,6 +56,11 @@ template <typename... Args>
 void perform_on_patch_hierarchy(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                                 std::function<void(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>, Args...)> fcn,
                                 Args... args);
+
+/*!
+ * Function that swaps patch data.
+ */
+void swap_patch_data(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const int data1_idx, const int data2_idx);
 } // namespace ADS
 
 #include <ADS/private/ads_utilities_inc.h>

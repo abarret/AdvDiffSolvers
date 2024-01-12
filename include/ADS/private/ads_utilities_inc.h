@@ -102,5 +102,23 @@ perform_on_patch_hierarchy(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<ND
     }
 }
 
+inline void
+swap_patch_data(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const int data1_idx, const int data2_idx)
+{
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchData<NDIM>> data1 = patch->getPatchData(data1_idx);
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchData<NDIM>> data2 = patch->getPatchData(data2_idx);
+#ifndef NDEBUG
+    // Ensure that data1 and data2 encapsulate same space
+    TBOX_ASSERT(data1->getBox() == data2->getBox());
+#endif
+
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchDataFactory<NDIM>> factory =
+        patch->getPatchDescriptor()->getPatchDataFactory(data1_idx);
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchData<NDIM>> temp_data = factory->allocate(data1->getBox());
+    temp_data->copy(*data1);
+    data1->copy(*data2);
+    data2->copy(*temp_data);
+}
+
 } // namespace ADS
 #endif

@@ -1,4 +1,5 @@
 #include <ADS/ReinitializeLevelSet.h>
+#include <ADS/ads_utilities.h>
 #include <ADS/app_namespaces.h>
 
 #include <ibtk/HierarchyGhostCellInterpolation.h>
@@ -56,38 +57,29 @@ ReinitializeLevelSet::computeSignedDistanceFunction(const int phi_idx,
 {
     const int coarsest_ln = 0;
     const int finest_ln = hierarchy->getFinestLevelNumber();
+    allocate_patch_data(d_nc_idx, hierarchy, time, coarsest_ln, finest_ln);
 
     // Now determine which cells should be fixed.
-    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+    auto fcn = [](Pointer<Patch<NDIM>> patch, const int phi_idx, const int nc_idx, const double value_to_be_changed)
     {
-        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        level->allocatePatchData(d_nc_idx, time);
+        Pointer<NodeData<NDIM, double>> ls_vals = patch->getPatchData(phi_idx);
+        Pointer<NodeData<NDIM, int>> fixed_vals = patch->getPatchData(nc_idx);
 
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        for (NodeIterator<NDIM> ni(patch->getBox()); ni; ni++)
         {
-            Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            Pointer<NodeData<NDIM, double>> ls_vals = patch->getPatchData(phi_idx);
-            Pointer<NodeData<NDIM, int>> fixed_vals = patch->getPatchData(d_nc_idx);
-
-            for (NodeIterator<NDIM> ni(patch->getBox()); ni; ni++)
-            {
-                const NodeIndex<NDIM>& idx = ni();
-                if ((*ls_vals)(idx) == value_to_be_changed)
-                    (*fixed_vals)(idx) = 0;
-                else
-                    (*fixed_vals)(idx) = 1;
-            }
+            const NodeIndex<NDIM>& idx = ni();
+            if ((*ls_vals)(idx) == value_to_be_changed)
+                (*fixed_vals)(idx) = 0;
+            else
+                (*fixed_vals)(idx) = 1;
         }
-    }
+    };
+    perform_on_patch_hierarchy(hierarchy, fcn, phi_idx, d_nc_idx, value_to_be_changed);
 
     computeSignedDistanceFunction(phi_idx, phi_var, hierarchy, time, d_nc_idx);
 
-    // Now deallocate data and remove the patch index
-    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        level->deallocatePatchData(d_nc_idx);
-    }
+    // Now deallocate data
+    deallocate_patch_data(d_nc_idx, hierarchy, coarsest_ln, finest_ln);
 }
 
 void
@@ -112,11 +104,7 @@ ReinitializeLevelSet::computeSignedDistanceFunction(const int phi_idx,
     HierarchyNodeDataOpsReal<NDIM, double> hier_nc_data_ops(hierarchy);
 
     // Allocate temporary data
-    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        level->allocatePatchData(phi_old_idx, time);
-    }
+    allocate_patch_data(phi_old_idx, hierarchy, time, coarsest_ln, finest_ln);
 
     double L2_norm = std::numeric_limits<double>::max();
     int iter_num = 0;
@@ -143,11 +131,7 @@ ReinitializeLevelSet::computeSignedDistanceFunction(const int phi_idx,
     }
 
     // Deallocate temporary data
-    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        level->deallocatePatchData(phi_old_idx);
-    }
+    deallocate_patch_data(phi_old_idx, hierarchy, coarsest_ln, finest_ln);
 
     // Remove scratch index from database
     var_db->removePatchDataIndex(phi_old_idx);
@@ -198,6 +182,9 @@ ReinitializeLevelSet::doSweepOnPatch(Pointer<Patch<NDIM>> patch, const int phi_i
                    fixed_data->getGhostCellWidth().max());
 #endif
 #if (NDIM == 3)
+    NULL_USE(dx);
+    NULL_USE(idx_low);
+    NULL_USE(idx_up);
     TBOX_ERROR("3D version not implemented yet!\n");
 #endif
 }

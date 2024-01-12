@@ -83,6 +83,7 @@ InternalBdryFill::advectInNormal(const int Q_idx,
     // Final time
     int iter_num = 0;
     bool not_converged = true;
+    double max_diff = std::numeric_limits<double>::max();
     // Iterate until we've hit a final time or we converged
     while (iter_num < d_max_iters && not_converged)
     {
@@ -137,11 +138,9 @@ InternalBdryFill::advectInNormal(const int Q_idx,
 
         // Determine if we need another iteration
         hier_cc_data_ops.subtract(Q_scr_idx, Q_idx, Q_scr_idx);
-        const double max_diff = hier_cc_data_ops.maxNorm(Q_scr_idx);
+        max_diff = hier_cc_data_ops.maxNorm(Q_scr_idx);
 
         if (max_diff <= d_tol) not_converged = false;
-        if (d_enable_logging)
-            plog << d_object_name << ": After " << iter_num << " iterations, the max norm is " << max_diff << "\n";
         ++iter_num;
     }
 
@@ -150,11 +149,15 @@ InternalBdryFill::advectInNormal(const int Q_idx,
         if (not_converged)
         {
             plog << d_object_name << ": After " << iter_num << " iterations, the solver failed to converge!\n";
+            plog << d_object_name << ": Final residual tolerance was: " << max_diff << "\n";
             if (d_error_on_non_convergence) TBOX_ERROR("Failed to converge!\n");
+            else
+                TBOX_WARNING("Failed to converge after " << iter_num << " iterations!\n");
         }
         else
         {
-            plog << d_object_name << ": After " << iter_num << " iterations, the solver converged!\n";
+            plog << d_object_name << ": After " << iter_num << " iterations, the solver converged to a tolerance of "
+                 << max_diff << "!\n";
         }
     }
 

@@ -42,7 +42,7 @@ private:
     double d_tol = 1.0e-5;
     int d_max_iters = 1000;
     bool d_enable_logging = true;
-    bool d_error_on_non_convergence = true;
+    bool d_error_on_non_convergence = false;
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_sc_var;
     int d_sc_idx = IBTK::invalid_index;
