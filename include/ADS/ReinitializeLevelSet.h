@@ -11,12 +11,28 @@ namespace ADS
  * Class ReinitailizeLevelSet generates a signed distance function from a level set using a fast sweeping algorithm to
  * solve the Eikonal equation.
  *
+ * Note that this class can have problems on coarse levels if not enough correct values are specified on the finer
+ * levels. This is problem is amplified for larger refinement ratios. If it is necessary to have signed distance
+ * functions on coarse levels, you need to specify a large enough region on the fine level. An alternative is to specify
+ * correct values on the coarse level and perform no coarsening of the hierarchy. This would require internal changes to
+ * the class.
+ *
+ *
+ *
  * This class uses routines based on those found in FastSweepingLSMethod in IBAMR.
  */
 class ReinitializeLevelSet
 {
 public:
-    ReinitializeLevelSet(std::string object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db);
+    /*!
+     * Constructor that reads some items from the optional input file.
+     *
+     * The input file (if provided) is searched for the following items:
+     * -- tolerance: Tolerance for determining if L2 norm of signed distance function has converged (default 1.0e-3).
+     * -- max_iterations: The maximum number of sweeps to perform (default 100).
+     * -- enable_logging: Bool to determine whether to write convergence criteria to input file (default true).
+     */
+    ReinitializeLevelSet(std::string object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db = nullptr);
 
     /*!
      * Deleted default constructor.

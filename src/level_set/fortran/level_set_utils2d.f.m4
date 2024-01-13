@@ -147,6 +147,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           u(i0,i1) = MIN(u(i0,i1),val)
       end
 
+
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c     Perform the sweep on given indices for negative level set values  c
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

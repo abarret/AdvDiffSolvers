@@ -68,7 +68,7 @@ ReinitializeLevelSet::computeSignedDistanceFunction(const int phi_idx,
         for (NodeIterator<NDIM> ni(patch->getBox()); ni; ni++)
         {
             const NodeIndex<NDIM>& idx = ni();
-            if ((*ls_vals)(idx) == value_to_be_changed)
+            if (std::abs((*ls_vals)(idx)) == value_to_be_changed)
                 (*fixed_vals)(idx) = 0;
             else
                 (*fixed_vals)(idx) = 1;
@@ -97,7 +97,7 @@ ReinitializeLevelSet::computeSignedDistanceFunction(const int phi_idx,
     const int phi_old_idx = var_db->registerClonedPatchDataIndex(phi_var_ptr, phi_idx);
     // Create a ghost filling object.
     using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-    std::vector<ITC> ghost_comp{ ITC(phi_idx, "LINEAR_REFINE", false, "NONE") };
+    std::vector<ITC> ghost_comp{ ITC(phi_idx, "LINEAR_REFINE", false, "CONSTANT_COARSEN") };
     HierarchyGhostCellInterpolation ghost_fill;
     ghost_fill.initializeOperatorState(ghost_comp, hierarchy, coarsest_ln, finest_ln);
 
@@ -106,9 +106,9 @@ ReinitializeLevelSet::computeSignedDistanceFunction(const int phi_idx,
     // Allocate temporary data
     allocate_patch_data(phi_old_idx, hierarchy, time, coarsest_ln, finest_ln);
 
-    double L2_norm = std::numeric_limits<double>::max();
+    double max_norm = std::numeric_limits<double>::max();
     int iter_num = 0;
-    while (L2_norm > d_tol && iter_num < d_max_iters)
+    while (max_norm > d_tol && iter_num < d_max_iters)
     {
         // Prepare for a new iteration. Copy data into old index
         hier_nc_data_ops.copyData(phi_old_idx, phi_idx);
@@ -121,11 +121,11 @@ ReinitializeLevelSet::computeSignedDistanceFunction(const int phi_idx,
 
         // Compute residual
         hier_nc_data_ops.subtract(phi_old_idx, phi_idx, phi_old_idx);
-        L2_norm = hier_nc_data_ops.maxNorm(phi_old_idx);
+        max_norm = hier_nc_data_ops.maxNorm(phi_old_idx);
         if (d_enable_logging)
         {
             plog << "After iteration " << iter_num << "\n";
-            plog << "  Residual: " << L2_norm << "\n";
+            plog << "  Residual: " << max_norm << "\n";
         }
         ++iter_num;
     }

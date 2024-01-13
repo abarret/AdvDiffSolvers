@@ -6,6 +6,7 @@
 #include "ADS/LSFromMesh.h"
 #include "ADS/SBBoundaryConditions.h"
 #include "ADS/SBIntegrator.h"
+#include <ADS/app_namespaces.h>
 
 #include <ibamr/FESurfaceDistanceEvaluator.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
@@ -22,7 +23,6 @@
 #include <ibtk/IBTKInit.h>
 
 #include "tbox/Pointer.h"
-#include <ADS/app_namespaces.h>
 
 #include <libmesh/boundary_mesh.h>
 #include <libmesh/equation_systems.h>
@@ -222,7 +222,7 @@ main(int argc, char* argv[])
         }
         FEDataManager* fe_data_manager = ib_method_ops->getFEDataManager(REACTION_MESH_ID);
 // Uncomment to draw data.
-//#define DRAW_DATA 1
+// #define DRAW_DATA 1
 #ifdef DRAW_DATA
         std::unique_ptr<ExodusII_IO> reaction_exodus_io(new ExodusII_IO(*meshes[REACTION_MESH_ID]));
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
