@@ -164,8 +164,6 @@ main2d
 main3d
 /.metadata/
 
-*.log
-*bdry_info*
 *.png
 *.py
 \.*
@@ -179,7 +177,6 @@ finest
 command
 *viz*
 convergence_tester2d
-*bdry*
 *.mpg
 *visit*
 *session*

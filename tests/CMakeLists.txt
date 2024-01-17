@@ -18,7 +18,7 @@ ADD_CUSTOM_TARGET(tests)
 #    only compiles the IBFE tests.
 # 2. all input and output files in these source directories are symlinked into
 #    their corresponding build directories.
-SET(TEST_DIRECTORIES adv_ops examples operators find_vol rbffd reconstructions surfaces utilities)
+SET(TEST_DIRECTORIES adv_ops examples operators level_set rbffd reconstructions surfaces utilities)
 
 FOREACH(_dir ${TEST_DIRECTORIES})
   ADD_CUSTOM_TARGET("tests-${_dir}")
@@ -95,7 +95,9 @@ SETUP_2D(examples peristalsis.cpp)
 SETUP_2D(examples radial.cpp)
 SETUP_2D(examples semi_lagrangian_01.cpp)
 
-SETUP_2D(find_vol find_vol.cpp)
+SETUP_2D(level_set internal_bdry_fill.cpp)
+SETUP_2D(level_set find_vol.cpp)
+SETUP_2D(level_set reinitialize_level_set.cpp)
 
 SETUP_2D(operators apply_rbf_matrix.cpp)
 SETUP_2D(operators boundary_reconstruction_cache.cpp)

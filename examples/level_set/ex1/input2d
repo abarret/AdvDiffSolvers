@@ -1,0 +1,111 @@
+PI = 3.1415926535
+// physical parameters
+L   = 1.0
+MFAC = 1.0
+
+USE_CHANNEL = TRUE
+
+// CHANNEL PARAMS
+ALPHA = 0.4 * PI
+GAMMA = 0.25
+
+// CYLINDER PARAMS
+R = 0.25
+CENT = 0.5, 0.0
+
+// grid spacing parameters
+MAX_LEVELS = 1                                 // maximum number of levels in locally refined grid
+REF_RATIO  = 4                                 // refinement ratio between levels
+N = 64                                         // actual    number of grid cells on coarsest grid level
+NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N       // effective number of grid cells on finest   grid level
+DXFINEST = L/NFINEST
+
+MeshMapping {
+  alpha = ALPHA
+  gamma = GAMMA
+  max_level = MAX_LEVELS
+}
+
+CutCellMapping {
+  perturb_nodes = TRUE
+}
+
+ReintializeLevelSet {
+   max_iterations = 20
+   tolerance = 1.0e-10
+}
+
+InternalFill {
+   max_iterations = 200
+   tolerance = 1.0e-5
+}
+
+Main {
+// log file parameters
+   log_file_name               = "blob.log"
+   log_all_nodes               = FALSE
+
+// visualization dump parameters
+   viz_writer                  = "VisIt","Silo"
+   viz_dump_interval           = 200
+   viz_dump_dirname            = "viz.blob"
+   visit_number_procs_per_file = 1
+
+// restart dump parameters
+   restart_dump_interval       = 0
+   restart_dump_dirname        = "restart_IB2d"
+
+// hierarchy data dump parameters
+   data_dump_interval          = 0
+   data_dump_dirname           = "hier_data_IB2d"
+
+// timer dump parameters
+   timer_dump_interval         = 0
+}
+
+CartesianGeometry {
+   domain_boxes = [ (0,0),(N - 1,N - 1) ]
+   x_lo = 0,-0.5*L
+   x_up = L,0.5*L
+   periodic_dimension = 1,1
+}
+
+GriddingAlgorithm {
+   max_levels = MAX_LEVELS
+   ratio_to_coarser {
+      level_1 = REF_RATIO,REF_RATIO
+      level_2 = REF_RATIO,REF_RATIO
+      level_3 = REF_RATIO,REF_RATIO
+      level_4 = REF_RATIO,REF_RATIO
+      level_5 = REF_RATIO,REF_RATIO
+   }
+   largest_patch_size {
+      level_0 = 512,512  // all finer levels will use same values as level_0
+   }
+   smallest_patch_size {
+      level_0 =   8,  8  // all finer levels will use same values as level_0
+   }
+   efficiency_tolerance = 0.75e0  // min % of tag cells in new patch level
+   combine_efficiency   = 0.75e0  // chop box if sum of volumes of smaller boxes < efficiency * vol of large box
+
+   allow_patches_smaller_than_ghostwidth = TRUE
+   allow_patches_smaller_than_minimum_size_to_prevent_overlaps = TRUE
+   coalesce_boxes = TRUE
+   extend_tags_to_bdry = TRUE
+}
+
+StandardTagAndInitialize {
+   tagging_method = "NONE"
+}
+
+LoadBalancer {
+   bin_pack_method     = "SPATIAL"
+   max_workload_factor = 1
+}
+
+TimerManager{
+   print_exclusive = FALSE
+   print_total     = TRUE
+   print_threshold = 0.1
+   timer_list      = "IBAMR::*::*","IBTK::*::*","*::*::*"
+}
