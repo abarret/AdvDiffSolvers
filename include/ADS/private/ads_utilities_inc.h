@@ -8,7 +8,7 @@ namespace ADS
 {
 inline void
 allocate_patch_data(const SAMRAI::hier::ComponentSelector& comp,
-                    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                    const SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>>& hierarchy,
                     const double time,
                     int coarsest_ln,
                     int finest_ln)
@@ -24,32 +24,31 @@ allocate_patch_data(const SAMRAI::hier::ComponentSelector& comp,
 
 inline void
 allocate_patch_data(const std::set<int>& idxs,
-                    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                    const SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>>& hierarchy,
                     const double time,
                     const int coarsest_ln,
                     const int finest_ln)
 {
-    SAMRAI::hier::ComponentSelector comps;
-    for (const auto& idx : idxs) comps.setFlag(idx);
-
-    allocate_patch_data(comps, hierarchy, time, coarsest_ln, finest_ln);
+    SAMRAI::hier::ComponentSelector comp;
+    for (const auto& idx : idxs) comp.setFlag(idx);
+    allocate_patch_data(comp, hierarchy, time, coarsest_ln, finest_ln);
 }
 
 inline void
 allocate_patch_data(const int idx,
-                    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                    const SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>>& hierarchy,
                     const double time,
                     const int coarsest_ln,
                     const int finest_ln)
 {
-    SAMRAI::hier::ComponentSelector comps;
-    comps.setFlag(idx);
-    allocate_patch_data(comps, hierarchy, time, coarsest_ln, finest_ln);
+    SAMRAI::hier::ComponentSelector comp;
+    comp.setFlag(idx);
+    allocate_patch_data(comp, hierarchy, time, coarsest_ln, finest_ln);
 }
 
 inline void
 deallocate_patch_data(const SAMRAI::hier::ComponentSelector& comp,
-                      SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                      const SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>>& hierarchy,
                       int coarsest_ln,
                       int finest_ln)
 {
@@ -64,7 +63,7 @@ deallocate_patch_data(const SAMRAI::hier::ComponentSelector& comp,
 
 inline void
 deallocate_patch_data(const std::set<int>& idxs,
-                      SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                      const SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>>& hierarchy,
                       const int coarsest_ln,
                       const int finest_ln)
 {
@@ -76,7 +75,7 @@ deallocate_patch_data(const std::set<int>& idxs,
 
 inline void
 deallocate_patch_data(const int idx,
-                      SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                      const SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>>& hierarchy,
                       const int coarsest_ln,
                       const int finest_ln)
 {
