@@ -40,7 +40,7 @@ void deallocate_patch_data(const SAMRAI::hier::ComponentSelector& comp,
                            int coarsest_ln,
                            int finest_ln);
 void deallocate_patch_data(const std::set<int>& idxs,
-                           SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>>& hierarchy,
+                           const SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>>& hierarchy,
                            int coarsest_ln,
                            int finest_ln);
 void deallocate_patch_data(const int idx,
