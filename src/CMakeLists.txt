@@ -46,25 +46,16 @@ SET(CXX_SRC
     level_set/ReinitializeLevelSet.cpp
     level_set/ls_functions.cpp
     
-    rbffd/FDWeightsCache.cpp
-    rbffd/GhostPoints.cpp
-    rbffd/GlobalIndexing.cpp
-    rbffd/PointList.cpp
-    rbffd/RBFFDWeightsCache.cpp
-    
     reconstructions/BoundaryReconstructCache.cpp
     reconstructions/MLSReconstructCache.cpp
     reconstructions/RBFReconstructCache.cpp
     reconstructions/ReconstructCache.cpp
     reconstructions/reconstructions.cpp
 
-    solvers/ConditionCounter.cpp
     solvers/LSCutCellBoundaryConditions.cpp
     solvers/LSCutCellLaplaceOperator.cpp
     solvers/PETScAugmentedKrylovLinearSolver.cpp
     solvers/PETScAugmentedLinearOperator.cpp
-    solvers/RBFFDPoissonSolver.cpp
-    solvers/RBFLaplaceOperator.cpp
     solvers/SBBoundaryConditions.cpp
     
     surfaces/FEMeshPartitioner.cpp
@@ -75,7 +66,6 @@ SET(CXX_SRC
 
     utilities/IntegrateFunction.cpp
     utilities/PointwiseFunction.cpp
-    utilities/solver_utilities.cpp
     )
 
 TARGET_SOURCES(ADS2d PRIVATE ${FORTRAN_GENERATED_SRC2D} ${CXX_SRC})

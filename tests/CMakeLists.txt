@@ -99,27 +99,11 @@ SETUP_2D(level_set internal_bdry_fill.cpp)
 SETUP_2D(level_set find_vol.cpp)
 SETUP_2D(level_set reinitialize_level_set.cpp)
 
-SETUP_2D(operators apply_rbf_matrix.cpp)
 SETUP_2D(operators boundary_reconstruction_cache.cpp)
-SETUP_2D(operators copy_to_petsc.cpp)
-SETUP_2D(operators condition_counter.cpp)
-SETUP_2D(operators global_indexing.cpp)
 SETUP_2D(operators laplace.cpp)
-SETUP_2D(operators rbf_fd_weights.cpp)
 SETUP_2D(operators reconstructions.cpp)
 
-SETUP_3D(operators apply_rbf_matrix.cpp)
-SETUP_3D(operators global_indexing.cpp)
-SETUP_3D(operators rbf_fd_weights.cpp)
-
-SETUP_2D(rbffd point_list.cpp)
-
-SETUP_3D(rbffd point_list.cpp)
-
 SETUP_2D(reconstructions divergence.cpp)
-SETUP_2D(reconstructions fd_weights.cpp)
-
-SETUP_3D(reconstructions fd_weights.cpp)
 
 SETUP_2D(surfaces surface_jacobian.cpp)
 

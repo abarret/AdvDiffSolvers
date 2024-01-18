@@ -1,3 +1,0 @@
-FOREACH(_dir rbfs)
-  ADD_SUBDIRECTORY(${_dir})
-ENDFOREACH()
