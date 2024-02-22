@@ -710,9 +710,11 @@ LSAdvDiffIntegrator::preprocessIntegrateHierarchy(const double current_time,
 }
 
 void
-LSAdvDiffIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
+LSAdvDiffIntegrator::integrateHierarchySpecialized(const double current_time,
+                                                   const double new_time,
+                                                   const int cycle_num)
 {
-    AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
+    AdvDiffHierarchyIntegrator::integrateHierarchySpecialized(current_time, new_time, cycle_num);
     ADS_TIMER_START(t_integrate_hierarchy);
     const double half_time = current_time + 0.5 * (new_time - current_time);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
@@ -978,7 +980,6 @@ LSAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
             }
         }
     }
-    executeIntegrateHierarchyCallbackFcns(current_time, new_time, cycle_num);
     ADS_TIMER_STOP(t_integrate_hierarchy);
 }
 

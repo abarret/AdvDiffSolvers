@@ -127,7 +127,6 @@ InterpDivergenceReconstructions::applyReconstructionLS(const int u_idx, const in
             const Box<NDIM>& box = patch->getBox();
 
             Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
 
             Pointer<CellData<NDIM, double>> xstar_data = patch->getPatchData(path_idx);
             Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(u_idx);

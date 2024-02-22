@@ -485,16 +485,15 @@ SLAdvIntegrator::preprocessIntegrateHierarchy(const double current_time, const d
 }
 
 void
-SLAdvIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
+SLAdvIntegrator::integrateHierarchySpecialized(const double current_time, const double new_time, const int cycle_num)
 {
-    AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
+    AdvDiffHierarchyIntegrator::integrateHierarchySpecialized(current_time, new_time, cycle_num);
     ADS_TIMER_START(t_integrate_hierarchy);
 
     // Intentionally blank. Semi-Lagrangian methods require everything at the END of the timestep.
     // TODO: We need to be more careful about this. In particular, we should double check that "current" and "new" data
     // is still present at the end of posprocessIntegrateHierarchy().
 
-    executeIntegrateHierarchyCallbackFcns(current_time, new_time, cycle_num);
     ADS_TIMER_STOP(t_integrate_hierarchy);
 }
 

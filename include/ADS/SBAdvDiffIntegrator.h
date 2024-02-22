@@ -63,7 +63,7 @@ public:
      * Synchronously advance each level in the hierarchy over the given time
      * increment.
      */
-    void integrateHierarchy(double current_time, double new_time, int cycle_num = 0) override;
+    void integrateHierarchySpecialized(double current_time, double new_time, int cycle_num = 0) override;
 
 protected:
 

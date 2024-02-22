@@ -104,7 +104,7 @@ public:
      *
      * Effectively the same as AdvDiffSemiImplicitHierarchyIntegrator, but uses extrapolated quantities to integrate.
      */
-    void integrateHierarchy(double current_time, double new_time, int cycle_num = 0) override;
+    void integrateHierarchySpecialized(double current_time, double new_time, int cycle_num = 0) override;
 
     /*!
      * Clean up data following call(s) to integrateHierarchy().
