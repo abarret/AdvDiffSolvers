@@ -450,9 +450,9 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
 } // preprocessIntegrateHierarchy
 
 void
-ExtrapolatedAdvDiffHierarchyIntegrator::integrateHierarchy(const double current_time,
-                                                           const double new_time,
-                                                           const int cycle_num)
+ExtrapolatedAdvDiffHierarchyIntegrator::integrateHierarchySpecialized(const double current_time,
+                                                                      const double new_time,
+                                                                      const int cycle_num)
 {
     // First copy data to current context.
     for (const auto& ls_var : d_ls_vars)
@@ -467,7 +467,7 @@ ExtrapolatedAdvDiffHierarchyIntegrator::integrateHierarchy(const double current_
     }
 
     // Now perform advection diffusion steps
-    AdvDiffSemiImplicitHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
+    AdvDiffSemiImplicitHierarchyIntegrator::integrateHierarchySpecialized(current_time, new_time, cycle_num);
 
     // Now reset Q_cur
     for (const auto& ls_var : d_ls_vars)

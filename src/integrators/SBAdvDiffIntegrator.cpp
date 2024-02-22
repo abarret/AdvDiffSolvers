@@ -96,10 +96,12 @@ SBAdvDiffIntegrator::getNumberOfCycles() const
 }
 
 void
-SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double new_time, const int cycle_num)
+SBAdvDiffIntegrator::integrateHierarchySpecialized(const double current_time,
+                                                   const double new_time,
+                                                   const int cycle_num)
 {
     if (!(d_used_with_ib && cycle_num == 500))
-        AdvDiffHierarchyIntegrator::integrateHierarchy(current_time, new_time, cycle_num);
+        AdvDiffHierarchyIntegrator::integrateHierarchySpecialized(current_time, new_time, cycle_num);
     ADS_TIMER_START(t_integrate_hierarchy);
     const double half_time = current_time + 0.5 * (new_time - current_time);
     auto var_db = VariableDatabase<NDIM>::getDatabase();
@@ -414,7 +416,6 @@ SBAdvDiffIntegrator::integrateHierarchy(const double current_time, const double 
             }
         }
     }
-    executeIntegrateHierarchyCallbackFcns(current_time, new_time, cycle_num);
     ADS_TIMER_STOP(t_integrate_hierarchy);
 }
 
