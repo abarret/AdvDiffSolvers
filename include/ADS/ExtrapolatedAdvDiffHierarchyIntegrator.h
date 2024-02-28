@@ -136,7 +136,7 @@ private:
 
     double d_default_reset_val = 0.0;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, double> d_Q_reset_val_map;
-    SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> d_extrap_ctx;
+    SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> d_extrap_cur_ctx, d_extrap_new_ctx;
 };
 } // namespace ADS
 
