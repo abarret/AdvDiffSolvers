@@ -55,7 +55,8 @@ ExtrapolatedAdvDiffHierarchyIntegrator::ExtrapolatedAdvDiffHierarchyIntegrator(c
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_valid_idx = var_db->registerVariableAndContext(d_valid_var, var_db->getContext(d_object_name + "::SCR"));
-    d_extrap_ctx = var_db->getContext(d_object_name + "::Extrapolated");
+    d_extrap_cur_ctx = var_db->getContext(d_object_name + "::ExtrapolatedCurrent");
+    d_extrap_new_ctx = var_db->getContext(d_object_name + "::ExtrapolatedNew");
 
     if (input_db) d_default_reset_val = input_db->getDoubleWithDefault("reset_value", d_default_reset_val);
 }
@@ -131,8 +132,10 @@ ExtrapolatedAdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(Pointer<Pa
         for (const auto& Q_var : d_ls_Q_map[ls_var])
         {
             auto var_db = VariableDatabase<NDIM>::getDatabase();
-            int Q_idx = var_db->registerVariableAndContext(Q_var, d_extrap_ctx, 0 /*ghosts*/);
-            d_scratch_data.setFlag(Q_idx);
+            int Q_cur_idx = var_db->registerVariableAndContext(Q_var, d_extrap_cur_ctx, 0 /*ghosts*/);
+            int Q_new_idx = var_db->registerVariableAndContext(Q_var, d_extrap_new_ctx, 0 /*ghosts*/);
+            d_scratch_data.setFlag(Q_cur_idx);
+            d_scratch_data.setFlag(Q_new_idx);
         }
     }
 
@@ -273,9 +276,9 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
         {
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
             const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
-            const int Q_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_ctx);
+            const int Q_cur_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_cur_ctx);
             d_hier_cc_data_ops->copyData(Q_scr_idx, Q_cur_idx);
-            d_hier_cc_data_ops->copyData(Q_extrap_idx, Q_cur_idx);
+            d_hier_cc_data_ops->copyData(Q_cur_extrap_idx, Q_cur_idx);
             InternalBdryFill advect_in_norm("InternalFill", nullptr);
             advect_in_norm.advectInNormal(Q_scr_idx, Q_var, ls_idx, ls_var, d_hierarchy, current_time);
             d_hier_cc_data_ops->copyData(Q_cur_idx, Q_scr_idx);
@@ -442,8 +445,12 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
         {
             auto var_db = VariableDatabase<NDIM>::getDatabase();
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
-            const int Q_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_ctx);
+            const int Q_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_cur_ctx);
             perform_on_patch_hierarchy(d_hierarchy, swap_patch_data, Q_cur_idx, Q_extrap_idx);
+            const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+            const int Q_extrap_new_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_new_ctx);
+            perform_on_patch_hierarchy(d_hierarchy, copy_patch_data, Q_extrap_new_idx, Q_new_idx);
+            d_hier_cc_data_ops->copyData(Q_new_idx, Q_cur_idx);
         }
     }
     return;
@@ -461,24 +468,49 @@ ExtrapolatedAdvDiffHierarchyIntegrator::integrateHierarchySpecialized(const doub
         {
             auto var_db = VariableDatabase<NDIM>::getDatabase();
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
-            const int Q_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_ctx);
-            perform_on_patch_hierarchy(d_hierarchy, swap_patch_data, Q_cur_idx, Q_extrap_idx);
+            const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+            const int Q_extrap_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_cur_ctx);
+            const int Q_extrap_new_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_new_ctx);
+            perform_on_patch_hierarchy(d_hierarchy, swap_patch_data, Q_cur_idx, Q_extrap_cur_idx);
+            perform_on_patch_hierarchy(d_hierarchy, copy_patch_data, Q_new_idx, Q_extrap_new_idx);
         }
     }
 
     // Now perform advection diffusion steps
     AdvDiffSemiImplicitHierarchyIntegrator::integrateHierarchySpecialized(current_time, new_time, cycle_num);
 
-    // Now reset Q_cur
+    // Now reset Q_cur and copy Q_new
     for (const auto& ls_var : d_ls_vars)
     {
         for (const auto& Q_var : d_ls_Q_map[ls_var])
         {
             auto var_db = VariableDatabase<NDIM>::getDatabase();
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
-            const int Q_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_ctx);
+            const int Q_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_cur_ctx);
             perform_on_patch_hierarchy(d_hierarchy, swap_patch_data, Q_cur_idx, Q_extrap_idx);
+            const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+            const int Q_extrap_new_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_new_ctx);
+            perform_on_patch_hierarchy(d_hierarchy, copy_patch_data, Q_extrap_new_idx, Q_new_idx);
         }
+    }
+
+    // Clear out any unphysical values
+    d_mesh_mapping->updateBoundaryLocation(new_time, true);
+    for (const auto& ls_var : d_ls_vars)
+    {
+        auto var_db = VariableDatabase<NDIM>::getDatabase();
+        const int ls_idx = var_db->mapVariableAndContextToIndex(ls_var, getCurrentContext());
+        d_ls_fcn_map[ls_var]->updateVolumeAreaSideLS(IBTK::invalid_index,
+                                                     nullptr,
+                                                     IBTK::invalid_index,
+                                                     nullptr,
+                                                     IBTK::invalid_index,
+                                                     nullptr,
+                                                     ls_idx,
+                                                     ls_var,
+                                                     new_time);
+        reset_unphysical_values(
+            d_hierarchy, ls_idx, d_ls_Q_map.at(ls_var), getNewContext(), d_Q_reset_val_map, true /*use_negative*/);
     }
 }
 
@@ -489,6 +521,16 @@ ExtrapolatedAdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(const doub
                                                                       const int num_cycles)
 {
     // Clear out any unphysical values
+    for (const auto& ls_var : d_ls_vars)
+    {
+        for (const auto& Q_var : d_ls_Q_map[ls_var])
+        {
+            auto var_db = VariableDatabase<NDIM>::getDatabase();
+            const int Q_new_idx = var_db->mapVariableAndContextToIndex(Q_var, getNewContext());
+            const int Q_extrap_new_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_new_ctx);
+            perform_on_patch_hierarchy(d_hierarchy, copy_patch_data, Q_new_idx, Q_extrap_new_idx);
+        }
+    }
     d_mesh_mapping->updateBoundaryLocation(new_time, true);
     for (const auto& ls_var : d_ls_vars)
     {
@@ -505,24 +547,8 @@ ExtrapolatedAdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(const doub
                                                      ls_var,
                                                      new_time);
 
-        auto fcn = [](Pointer<Patch<NDIM>> patch,
-                      const int ls_idx,
-                      const std::set<Pointer<CellVariable<NDIM, double>>>& Q_vars,
-                      Pointer<VariableContext> ctx,
-                      const std::map<Pointer<CellVariable<NDIM, double>>, double>& reset_map)
-        {
-            for (const auto& Q_var : Q_vars)
-            {
-                Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
-                Pointer<CellData<NDIM, double>> Q_new_data = patch->getPatchData(Q_var, ctx);
-                for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
-                {
-                    const CellIndex<NDIM>& idx = ci();
-                    if (ADS::node_to_cell(idx, *ls_data) > 0.0) (*Q_new_data)(idx) = reset_map.at(Q_var);
-                }
-            }
-        };
-        perform_on_patch_hierarchy(d_hierarchy, fcn, ls_idx, d_ls_Q_map[ls_var], getNewContext(), d_Q_reset_val_map);
+        reset_unphysical_values(
+            d_hierarchy, ls_idx, d_ls_Q_map.at(ls_var), getNewContext(), d_Q_reset_val_map, true /*use_negative*/);
     }
     AdvDiffSemiImplicitHierarchyIntegrator::postprocessIntegrateHierarchy(
         current_time, new_time, skip_synchronize_new_state_data, num_cycles);

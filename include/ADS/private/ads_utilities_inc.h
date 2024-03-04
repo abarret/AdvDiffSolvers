@@ -1,6 +1,7 @@
 #ifndef included_ADS_ads_utilities_inc
 #define included_ADS_ads_utilities_inc
 #include <ADS/ads_utilities.h>
+#include <ADS/ls_functions.h>
 
 #include <PatchLevel.h>
 
@@ -117,6 +118,96 @@ swap_patch_data(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const in
     temp_data->copy(*data1);
     data1->copy(*data2);
     data2->copy(*temp_data);
+}
+
+inline void
+copy_patch_data(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const int dst_idx, const int src_idx)
+{
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchData<NDIM>> dst = patch->getPatchData(dst_idx);
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchData<NDIM>> src = patch->getPatchData(src_idx);
+#ifndef NDEBUG
+    // Ensure that data1 and data2 encapsulate same space
+    TBOX_ASSERT(dst->getBox() == src->getBox());
+#endif
+    dst->copy(*src);
+}
+
+inline void
+reset_unphysical_values(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                        const int ls_idx,
+                        const int dst_idx,
+                        const int src_idx,
+                        double reset_val,
+                        const bool use_negative)
+{
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        for (SAMRAI::hier::PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch = level->getPatch(p());
+            SAMRAI::tbox::Pointer<SAMRAI::pdat::CellData<NDIM, double>> dst_data = patch->getPatchData(dst_idx);
+            SAMRAI::tbox::Pointer<SAMRAI::pdat::CellData<NDIM, double>> src_data = patch->getPatchData(src_idx);
+            SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+            for (SAMRAI::pdat::CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+            {
+                const SAMRAI::pdat::CellIndex<NDIM>& idx = ci();
+                if ((use_negative ? 1.0 : -1.0) * node_to_cell(idx, *ls_data) > 0.0)
+                    (*dst_data)(idx) = reset_val;
+                else
+                    (*dst_data)(idx) = (*src_data)(idx);
+            }
+        }
+    }
+}
+
+inline void
+reset_unphysical_values(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                        const int ls_idx,
+                        SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+                        SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> ctx,
+                        double reset_val,
+                        const bool use_negative)
+{
+    for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
+    {
+        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+        for (SAMRAI::hier::PatchLevel<NDIM>::Iterator p(level); p; p++)
+        {
+            SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch = level->getPatch(p());
+            SAMRAI::tbox::Pointer<SAMRAI::pdat::CellData<NDIM, double>> Q_data = patch->getPatchData(Q_var, ctx);
+            SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
+            for (SAMRAI::pdat::CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+            {
+                const SAMRAI::pdat::CellIndex<NDIM>& idx = ci();
+                if ((use_negative ? 1.0 : -1.0) * node_to_cell(idx, *ls_data) > 0.0) (*Q_data)(idx) = reset_val;
+            }
+        }
+    }
+}
+
+inline void
+reset_unphysical_values(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                        const int ls_idx,
+                        const std::set<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>& Q_vars,
+                        SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> ctx,
+                        double reset_val,
+                        const bool use_negative)
+{
+    for (const auto& Q_var : Q_vars) reset_unphysical_values(hierarchy, ls_idx, Q_var, ctx, reset_val, use_negative);
+}
+
+inline void
+reset_unphysical_values(
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+    const int ls_idx,
+    const std::set<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>& Q_vars,
+    SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> ctx,
+    const std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, double>& reset_map,
+    const bool use_negative)
+{
+    for (const auto& Q_var : Q_vars)
+        reset_unphysical_values(hierarchy, ls_idx, Q_var, ctx, reset_map.at(Q_var), use_negative);
 }
 
 } // namespace ADS

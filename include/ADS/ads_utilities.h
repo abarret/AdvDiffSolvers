@@ -1,9 +1,12 @@
 #ifndef included_ADS_ads_utilities
 #define included_ADS_ads_utilities
 
+#include <ibamr/ibamr_utilities.h>
+
 #include <ComponentSelector.h>
 #include <PatchHierarchy.h>
 
+#include <map>
 #include <set>
 
 namespace ADS
@@ -61,6 +64,42 @@ void perform_on_patch_hierarchy(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarc
  * Function that swaps patch data.
  */
 void swap_patch_data(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const int data1_idx, const int data2_idx);
+
+/*!
+ * Function that copies patch data.
+ */
+void copy_patch_data(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch, const int dst_idx, const int src_idx);
+
+/*!
+ * Functions that resets unphysical values
+ */
+///\{
+void reset_unphysical_values(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                             int ls_idx,
+                             int dst_idx,
+                             int src_idx,
+                             double reset_val,
+                             bool use_negative);
+void reset_unphysical_values(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                             int ls_idx,
+                             SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+                             SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> ctx,
+                             double reset_val = 0.0,
+                             bool use_negative = true);
+void reset_unphysical_values(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                             int ls_idx,
+                             std::set<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>& Q_vars,
+                             SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> ctx,
+                             double reset_val = 0.0,
+                             bool use_negative = true);
+void reset_unphysical_values(
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+    const int ls_idx,
+    const std::set<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>& Q_vars,
+    SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> ctx,
+    const std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, double>& reset_map,
+    const bool use_negative = true);
+///\}
 } // namespace ADS
 
 #include <ADS/private/ads_utilities_inc.h>
