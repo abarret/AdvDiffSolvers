@@ -25,11 +25,16 @@ namespace ADS
 {
 /*!
  * \brief Class ExtrapolatedAdvDiffHierarchyIntegrator is a specialization of the class
- * AdvDiffSemiImplicitHierarchyIntegrator. This class extrapolates concentration fields in the normal direction across
+ * AdvDiffSemiImplicitHierarchyIntegrator.
+ *
+ * This class extrapolates concentration fields in the normal direction across
  * immersed boundaries by solving an advection equation in which the velocity is given by the normal of the signed
  * distance function. In preprocessIntegrateHierarchy(), this class computes the level set corresponding to the immersed
  * boundary, converts the level set into a signed distance, and advects concentrations using the normal field. During
  * postprocessIntegrateHierarchy(), this class zeros values that appear on the unphysical side of the boundary.
+ *
+ * \Note This class should not be used with level sets that touch the physical boundary. Ghost cells are not currently
+ * set in a consistent way at physical boundaries.
  *
  */
 class ExtrapolatedAdvDiffHierarchyIntegrator : public IBAMR::AdvDiffSemiImplicitHierarchyIntegrator

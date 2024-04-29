@@ -3,7 +3,7 @@
 #include <ibtk/ibtk_utilities.h>
 
 #include <PatchHierarchy.h>
-#include <VisItDataWriter.h>
+#include <RobinBcCoefStrategy.h>
 
 namespace ADS
 {
@@ -12,6 +12,12 @@ namespace ADS
  * advection in the normal direction. The normal direction is computed from a signed distance function. The advection
  * step is done via simple upwinding, with values in the "physical" regime remaining constant. In effect, this performs
  * a normal constant extrapolation.
+ *
+ * If this class fails to find a steady state, visualization files will be written. Check the log file for the specific
+ * folder name.
+ *
+ * Note: Care must be taken when using this class with level sets near the physical boundary. Ghost cells can easily be
+ * filled in ways that are inconsistent with this class.
  */
 class InternalBdryFill
 {
@@ -45,6 +51,7 @@ public:
         SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> phi_var,
         SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
         double time);
+
     /*!
      * Advect the given concentration in the normal direction. Computes the normal direction from the signed distance
      * function in phi_idx.
@@ -61,21 +68,32 @@ private:
      * Compute the normal from the provided signed distance function. Stores the normal in d_sc_idx.
      */
     void fillNormal(int phi_idx, SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy, double time);
+
     /*!
      * Advect the concentration field in the normal direction. This assumes the correct velocity is stored in d_sc_idx.
      */
-    void doAdvectInNormal(int Q_idx,
+    bool doAdvectInNormal(int Q_idx,
                           SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                           int phi_idx,
                           SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> phi_var,
                           SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                           double time);
 
+    /*!
+     * Write visualization files of the advected quantities.
+     */
+    void writeVizFiles(
+        const std::vector<std::pair<int, SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>>& Q_vars,
+        int phi_idx,
+        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+        double time,
+        const int inter_num);
+
     std::string d_object_name;
     double d_tol = 1.0e-5;
     int d_max_iters = 1000;
     bool d_enable_logging = true;
-    bool d_error_on_non_convergence = false;
+    bool d_error_on_non_convergence = true;
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_sc_var;
     int d_sc_idx = IBTK::invalid_index;

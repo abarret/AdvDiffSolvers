@@ -6,6 +6,8 @@
 #include <ibtk/HierarchyGhostCellInterpolation.h>
 #include <ibtk/HierarchyMathOps.h>
 
+#include <VisItDataWriter.h>
+
 // Fortran routines
 extern "C"
 {
@@ -24,6 +26,7 @@ extern "C"
 
 namespace ADS
 {
+
 InternalBdryFill::InternalBdryFill(std::string object_name, Pointer<Database> input_db)
     : d_object_name(std::move(object_name))
 {
@@ -63,9 +66,17 @@ InternalBdryFill::advectInNormal(const std::vector<std::pair<int, Pointer<CellVa
     // Compute the velocity for advection
     fillNormal(phi_idx, hierarchy, time);
     // Now fill in normal cells for each index
+    bool converged = true;
     for (const auto& Q_idx_var_pair : Q_vars)
     {
-        doAdvectInNormal(Q_idx_var_pair.first, Q_idx_var_pair.second, phi_idx, phi_var, hierarchy, time);
+        converged = converged &&
+                    doAdvectInNormal(Q_idx_var_pair.first, Q_idx_var_pair.second, phi_idx, phi_var, hierarchy, time);
+    }
+
+    if (!converged)
+    {
+        writeVizFiles(Q_vars, phi_idx, hierarchy, time, 0);
+        if (d_error_on_non_convergence) TBOX_ERROR(d_object_name + "::advectInNormal(): Failed to converge!\n");
     }
 
     // Deallocate velocity data
@@ -90,7 +101,7 @@ InternalBdryFill::fillNormal(const int phi_idx, Pointer<PatchHierarchy<NDIM>> hi
     const int coarsest_ln = 0;
     const int finest_ln = hierarchy->getFinestLevelNumber();
     using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-    std::vector<ITC> ghost_cell_comp = { ITC(phi_idx, "LINEAR_REFINE", false, "NONE") };
+    std::vector<ITC> ghost_cell_comp = { ITC(phi_idx, "LINEAR_REFINE", false, "NONE", "LINEAR") };
     HierarchyGhostCellInterpolation hier_ghost_fill;
     hier_ghost_fill.initializeOperatorState(ghost_cell_comp, hierarchy, coarsest_ln, finest_ln);
     hier_ghost_fill.fillData(time);
@@ -108,16 +119,14 @@ InternalBdryFill::fillNormal(const int phi_idx, Pointer<PatchHierarchy<NDIM>> hi
             {
                 const SideIndex<NDIM>& idx = si();
                 CellIndex<NDIM> idx_up = idx.toCell(1), idx_low = idx.toCell(0);
-                NodeIndex<NDIM> idx_ll(idx_low, NodeIndex<NDIM>::LowerLeft);
-                NodeIndex<NDIM> idx_ul(idx_low, NodeIndex<NDIM>::UpperLeft);
-                NodeIndex<NDIM> idx_lr(idx_low, NodeIndex<NDIM>::LowerRight);
-                NodeIndex<NDIM> idx_ur(idx_low, NodeIndex<NDIM>::UpperRight);
                 VectorNd normal;
                 if (axis == 0)
                 {
-                    normal(0) =
-                        ((*phi_data)(idx_lr) + (*phi_data)(idx_ur) - (*phi_data)(idx_ll) - (*phi_data)(idx_ul)) /
-                        (2.0 * dx[0]);
+                    normal(0) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::UpperRight)) +
+                                 (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerRight)) -
+                                 (*phi_data)(NodeIndex<NDIM>(idx_low, NodeIndex<NDIM>::UpperLeft)) -
+                                 (*phi_data)(NodeIndex<NDIM>(idx_low, NodeIndex<NDIM>::LowerLeft))) /
+                                (2.0 * dx[0]);
                     normal(1) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::UpperLeft)) -
                                  (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerLeft))) /
                                 dx[1];
@@ -129,9 +138,11 @@ InternalBdryFill::fillNormal(const int phi_idx, Pointer<PatchHierarchy<NDIM>> hi
                     normal(0) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerRight)) -
                                  (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::LowerLeft))) /
                                 dx[0];
-                    normal(1) =
-                        ((*phi_data)(idx_ul) + (*phi_data)(idx_ur) - (*phi_data)(idx_ll) - (*phi_data)(idx_lr)) /
-                        (2.0 * dx[1]);
+                    normal(1) = ((*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::UpperRight)) +
+                                 (*phi_data)(NodeIndex<NDIM>(idx_up, NodeIndex<NDIM>::UpperLeft)) -
+                                 (*phi_data)(NodeIndex<NDIM>(idx_low, NodeIndex<NDIM>::LowerRight)) -
+                                 (*phi_data)(NodeIndex<NDIM>(idx_low, NodeIndex<NDIM>::LowerLeft))) /
+                                (2.0 * dx[1]);
 
                     normal.normalize();
                     (*u_data)(idx) = normal(1);
@@ -145,7 +156,7 @@ InternalBdryFill::fillNormal(const int phi_idx, Pointer<PatchHierarchy<NDIM>> hi
     perform_on_patch_hierarchy(hierarchy, fcn, phi_idx, d_sc_idx);
 }
 
-void
+bool
 InternalBdryFill::doAdvectInNormal(const int Q_idx,
                                    Pointer<CellVariable<NDIM, double>> Q_var,
                                    const int phi_idx,
@@ -183,7 +194,7 @@ InternalBdryFill::doAdvectInNormal(const int Q_idx,
 
         // Fill ghost cells
         using ITC = HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
-        std::vector<ITC> ghost_cell_comp{ ITC(Q_scr_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE") };
+        std::vector<ITC> ghost_cell_comp{ ITC(Q_scr_idx, "CONSERVATIVE_LINEAR_REFINE", false, "NONE", "LINEAR") };
         HierarchyGhostCellInterpolation hier_ghost_fill;
         hier_ghost_fill.initializeOperatorState(ghost_cell_comp, hierarchy);
         hier_ghost_fill.fillData(time);
@@ -233,7 +244,6 @@ InternalBdryFill::doAdvectInNormal(const int Q_idx,
         // Determine if we need another iteration
         hier_cc_data_ops.subtract(Q_scr_idx, Q_idx, Q_scr_idx);
         max_diff = hier_cc_data_ops.maxNorm(Q_scr_idx);
-
         if (max_diff <= d_tol) not_converged = false;
         ++iter_num;
     }
@@ -244,9 +254,7 @@ InternalBdryFill::doAdvectInNormal(const int Q_idx,
         {
             plog << d_object_name << ": After " << iter_num << " iterations, the solver failed to converge!\n";
             plog << d_object_name << ": Final residual tolerance was: " << max_diff << "\n";
-            if (d_error_on_non_convergence) TBOX_ERROR("Failed to converge!\n");
-            else
-                TBOX_WARNING("Failed to converge after " << iter_num << " iterations!\n");
+            TBOX_WARNING("Failed to converge after " << iter_num << " iterations!\n");
         }
         else
         {
@@ -258,5 +266,51 @@ InternalBdryFill::doAdvectInNormal(const int Q_idx,
     // Deallocate patch data and remove scratch index
     deallocate_patch_data(Q_scr_idx, hierarchy, coarsest_ln, finest_ln);
     var_db->removePatchDataIndex(Q_scr_idx);
+
+    return !not_converged;
+}
+
+void
+InternalBdryFill::writeVizFiles(const std::vector<std::pair<int, Pointer<CellVariable<NDIM, double>>>>& Q_vars,
+                                const int phi_idx,
+                                Pointer<PatchHierarchy<NDIM>> hierarchy,
+                                const double time,
+                                const int iter_num)
+{
+    pout << d_object_name << ": Writing viz files to folder: interval_fill_viz\n";
+    VisItDataWriter<NDIM> viz_writer(d_object_name + "::VizWriter", "internal_fill_viz");
+    viz_writer.registerPlotQuantity("PHI", "SCALAR", phi_idx);
+    for (const auto& Q_idx_var_pair : Q_vars)
+    {
+        // Retrieve the depth. Note that this will probably fail if we are running in parallel (if a level has no
+        // patches).
+        Pointer<CellDataFactory<NDIM, double>> fac = Q_idx_var_pair.second->getPatchDataFactory();
+        const int depth = fac->getDefaultDepth();
+
+        switch (depth)
+        {
+        case 1:
+            // Scalar
+            viz_writer.registerPlotQuantity(Q_idx_var_pair.second->getName(), "SCALAR", Q_idx_var_pair.first);
+            break;
+        case NDIM:
+            // Vector
+            viz_writer.registerPlotQuantity(Q_idx_var_pair.second->getName(), "VECTOR", Q_idx_var_pair.first);
+            break;
+        case (NDIM * NDIM):
+            // Tensor
+            viz_writer.registerPlotQuantity(Q_idx_var_pair.second->getName(), "TENSOR", Q_idx_var_pair.first);
+            break;
+        default:
+            // Plot components separately
+            for (int d = 0; d < depth; ++d)
+                viz_writer.registerPlotQuantity(
+                    Q_idx_var_pair.second->getName() + "_" + std::to_string(d), "SCALAR", Q_idx_var_pair.first, d);
+            break;
+        }
+    }
+    std::string sum_file_name = "summary.samrai";
+    viz_writer.setSummaryFilename(sum_file_name);
+    viz_writer.writePlotData(hierarchy, iter_num, time);
 }
 } // namespace ADS
