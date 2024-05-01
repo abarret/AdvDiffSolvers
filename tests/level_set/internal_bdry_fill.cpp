@@ -9,6 +9,7 @@
 #include <ibtk/AppInitializer.h>
 #include <ibtk/HierarchyMathOps.h>
 #include <ibtk/IBTKInit.h>
+#include <ibtk/muParserRobinBcCoefs.h>
 
 #include "tbox/Pointer.h"
 
@@ -18,6 +19,38 @@
 #include <LoadBalancer.h>
 #include <SAMRAI_config.h>
 #include <StandardTagAndInitialize.h>
+
+enum class InterfaceType
+{
+    DISK,
+    CHANNEL,
+    UNKNOWN
+};
+
+std::string
+enum_to_string(InterfaceType e)
+{
+    switch (e)
+    {
+    case InterfaceType::DISK:
+        return "DISK";
+        break;
+    case InterfaceType::CHANNEL:
+        return "CHANNEL";
+        break;
+    default:
+        return "UNKNOWN";
+        break;
+    }
+}
+
+InterfaceType
+string_to_enum(const std::string& str)
+{
+    if (strcasecmp(str.c_str(), "DISK") == 0) return InterfaceType::DISK;
+    if (strcasecmp(str.c_str(), "CHANNEL") == 0) return InterfaceType::CHANNEL;
+    return InterfaceType::UNKNOWN;
+}
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -98,6 +131,8 @@ main(int argc, char* argv[])
             ++ln;
         }
 
+        InterfaceType interface = string_to_enum(input_db->getString("INTERFACE_TYPE"));
+
 // Uncomment to draw data.
 #define DRAW_DATA 1
 #ifdef DRAW_DATA
@@ -112,40 +147,86 @@ main(int argc, char* argv[])
         allocate_patch_data(idxs, patch_hierarchy, 0.0, coarsest_ln, finest_ln);
 
         // Fill level set data.
-        auto ls_ghost_box_fcn = [](Pointer<Patch<NDIM>> patch, const int Q_idx, const int phi_idx)
+        if (interface == InterfaceType::DISK)
         {
-            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-            const double* const xlow = pgeom->getXLower();
-            const hier::Index<NDIM>& idx_low = patch->getBox().lower();
-
-            Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
-            Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
-            for (NodeIterator<NDIM> ni(phi_data->getGhostBox()); ni; ni++)
+            auto ls_ghost_box_fcn = [](Pointer<Patch<NDIM>> patch, const int Q_idx, const int phi_idx)
             {
-                const NodeIndex<NDIM>& idx = ni();
-                VectorNd x;
-                for (int d = 0; d < NDIM; ++d) x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)));
-                const double r = x.norm();
-                static const double R = 1.0;
-                (*phi_data)(idx) = r - R;
-            }
+                Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+                const double* const dx = pgeom->getDx();
+                const double* const xlow = pgeom->getXLower();
+                const hier::Index<NDIM>& idx_low = patch->getBox().lower();
 
-            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+                Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+                Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
+                for (NodeIterator<NDIM> ni(phi_data->getGhostBox()); ni; ni++)
+                {
+                    const NodeIndex<NDIM>& idx = ni();
+                    VectorNd x;
+                    for (int d = 0; d < NDIM; ++d) x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)));
+                    const double r = x.norm();
+                    static const double R = 1.0;
+                    (*phi_data)(idx) = r - R;
+                }
+
+                for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    VectorNd x;
+                    for (int d = 0; d < NDIM; ++d)
+                        x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
+                    const double r = x.norm();
+                    static const double R = 1.0;
+                    if (r < R)
+                        (*Q_data)(idx) = std::cos(2.0 * M_PI * r);
+                    else
+                        (*Q_data)(idx) = -1.0;
+                }
+            };
+            perform_on_patch_hierarchy(patch_hierarchy, ls_ghost_box_fcn, Q_idx, phi_idx);
+        }
+        else if (interface == InterfaceType::CHANNEL)
+        {
+            double theta = input_db->getDouble("THETA");
+            double ylow = input_db->getDouble("YLOW");
+            double yup = input_db->getDouble("YUP");
+            auto ls_ghost_box_fcn =
+                [&theta, &ylow, &yup](Pointer<Patch<NDIM>> patch, const int Q_idx, const int phi_idx)
             {
-                const CellIndex<NDIM>& idx = ci();
-                VectorNd x;
-                for (int d = 0; d < NDIM; ++d)
-                    x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
-                const double r = x.norm();
-                static const double R = 1.0;
-                if (r < R)
-                    (*Q_data)(idx) = std::cos(2.0 * M_PI * r);
-                else
-                    (*Q_data)(idx) = -1.0;
-            }
-        };
-        perform_on_patch_hierarchy(patch_hierarchy, ls_ghost_box_fcn, Q_idx, phi_idx);
+                MatrixNd Q;
+                Q(0, 0) = Q(1, 1) = std::cos(theta);
+                Q(0, 1) = std::sin(theta);
+                Q(1, 0) = -std::sin(theta);
+                Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+                const double* const dx = pgeom->getDx();
+                const double* const xlow = pgeom->getXLower();
+                const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+
+                Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+                Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
+                for (NodeIterator<NDIM> ni(phi_data->getGhostBox()); ni; ni++)
+                {
+                    const NodeIndex<NDIM>& idx = ni();
+                    VectorNd x;
+                    for (int d = 0; d < NDIM; ++d) x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)));
+                    x = Q * x;
+                    (*phi_data)(idx) = std::max(x[1] - yup, ylow - x[1]);
+                }
+
+                for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    VectorNd x;
+                    for (int d = 0; d < NDIM; ++d)
+                        x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
+                    x = Q * x;
+                    if (x[1] < yup && x[1] > ylow)
+                        (*Q_data)(idx) = 1.0;
+                    else
+                        (*Q_data)(idx) = -1.0;
+                }
+            };
+            perform_on_patch_hierarchy(patch_hierarchy, ls_ghost_box_fcn, Q_idx, phi_idx);
+        }
 
 #ifdef DRAW_DATA
         visit_data_writer->writePlotData(patch_hierarchy, 0, 0.0);

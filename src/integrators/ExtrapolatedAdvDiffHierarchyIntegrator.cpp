@@ -127,6 +127,7 @@ ExtrapolatedAdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(Pointer<Pa
         static const IntVector<NDIM> ghosts = 1;
         int ls_idx;
         registerVariable(ls_idx, ls_var, ghosts, getCurrentContext());
+        if (d_visit_writer) d_visit_writer->registerPlotQuantity(ls_var->getName(), "SCALAR", ls_idx);
 
         // For each variable restricted to this level set, create an index to hold the current state.
         for (const auto& Q_var : d_ls_Q_map[ls_var])
@@ -257,7 +258,7 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
                 if ((*valid_data)(idx) == 1)
                 {
                     Box<NDIM> region(idx, idx);
-                    region.grow(10);
+                    region.grow(5);
                     for (NodeIterator<NDIM> ni2(region); ni2; ni2++)
                     {
                         const NodeIndex<NDIM>& idx2 = ni2();
