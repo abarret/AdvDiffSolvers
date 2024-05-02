@@ -58,7 +58,11 @@ ExtrapolatedAdvDiffHierarchyIntegrator::ExtrapolatedAdvDiffHierarchyIntegrator(c
     d_extrap_cur_ctx = var_db->getContext(d_object_name + "::ExtrapolatedCurrent");
     d_extrap_new_ctx = var_db->getContext(d_object_name + "::ExtrapolatedNew");
 
-    if (input_db) d_default_reset_val = input_db->getDoubleWithDefault("reset_value", d_default_reset_val);
+    if (input_db)
+    {
+        d_default_reset_val = input_db->getDoubleWithDefault("reset_value", d_default_reset_val);
+        d_num_cells_to_extrap = input_db->getIntegerWithDefault("num_cells_to_extrap", d_num_cells_to_extrap);
+    }
 }
 
 void
@@ -258,7 +262,7 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
                 if ((*valid_data)(idx) == 1)
                 {
                     Box<NDIM> region(idx, idx);
-                    region.grow(5);
+                    region.grow(d_num_cells_to_extrap);
                     for (NodeIterator<NDIM> ni2(region); ni2; ni2++)
                     {
                         const NodeIndex<NDIM>& idx2 = ni2();
@@ -273,6 +277,7 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
         ReinitializeLevelSet ls_method("LS", nullptr);
         ls_method.computeSignedDistanceFunction(ls_idx, *ls_var, d_hierarchy, current_time, d_valid_idx);
 
+        std::vector<std::pair<int, Pointer<CellVariable<NDIM, double>>>> Q_idx_var_vec;
         for (const auto& Q_var : d_ls_Q_map[ls_var])
         {
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
@@ -280,8 +285,14 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
             const int Q_cur_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_cur_ctx);
             d_hier_cc_data_ops->copyData(Q_scr_idx, Q_cur_idx);
             d_hier_cc_data_ops->copyData(Q_cur_extrap_idx, Q_cur_idx);
-            InternalBdryFill advect_in_norm("InternalFill", nullptr);
-            advect_in_norm.advectInNormal(Q_scr_idx, Q_var, ls_idx, ls_var, d_hierarchy, current_time);
+            Q_idx_var_vec.push_back(std::make_pair(Q_scr_idx, Q_var));
+        }
+        InternalBdryFill advect_in_norm("InternalFill", nullptr);
+        advect_in_norm.advectInNormal(Q_idx_var_vec, ls_idx, ls_var, d_hierarchy, current_time);
+        for (const auto& Q_var : d_ls_Q_map[ls_var])
+        {
+            const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
+            const int Q_scr_idx = var_db->mapVariableAndContextToIndex(Q_var, getScratchContext());
             d_hier_cc_data_ops->copyData(Q_cur_idx, Q_scr_idx);
         }
     }
