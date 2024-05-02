@@ -237,7 +237,7 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
         // Now compute the signed distance function from the level set
         // First, mark valid cells. Cells to change are marked with 0, valid cells that should not be changed are marked
         // with 1. Cells that should be ignored are marked with 2.
-        auto fcn = [](Pointer<Patch<NDIM>> patch, const int ls_idx, const int valid_idx)
+        auto fcn = [](Pointer<Patch<NDIM>> patch, const int ls_idx, const int valid_idx, int num_cells_to_extrap)
         {
             Pointer<NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
             Pointer<NodeData<NDIM, int>> valid_data = patch->getPatchData(valid_idx);
@@ -262,7 +262,7 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
                 if ((*valid_data)(idx) == 1)
                 {
                     Box<NDIM> region(idx, idx);
-                    region.grow(d_num_cells_to_extrap);
+                    region.grow(num_cells_to_extrap);
                     for (NodeIterator<NDIM> ni2(region); ni2; ni2++)
                     {
                         const NodeIndex<NDIM>& idx2 = ni2();
@@ -271,7 +271,7 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
                 }
             }
         };
-        perform_on_patch_hierarchy(d_hierarchy, fcn, ls_idx, d_valid_idx);
+        perform_on_patch_hierarchy(d_hierarchy, fcn, ls_idx, d_valid_idx, d_num_cells_to_extrap);
 
         // Generate signed distance function from level set.
         ReinitializeLevelSet ls_method("LS", nullptr);
