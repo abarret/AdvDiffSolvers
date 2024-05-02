@@ -49,6 +49,9 @@ public:
      * The input database will be searched for the optional double parameter "reset_value." This value is the used as
      * the default reset value in unphysical regimes. Other reset values for a transported quantity may be set when
      * registering that variable.
+     *
+     * The input database is also searched for "num_cells_to_extrap," which is the number of cells in which
+     * concentrations will be extrapolated to. By default, this value is 2.
      */
     ExtrapolatedAdvDiffHierarchyIntegrator(const std::string& object_name,
                                            SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
@@ -142,6 +145,9 @@ private:
     double d_default_reset_val = 0.0;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, double> d_Q_reset_val_map;
     SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> d_extrap_cur_ctx, d_extrap_new_ctx;
+
+    // Number of cells to fill in level set. This controls the number of cells that concentrations are extrapolated.
+    int d_num_cells_to_extrap = 2;
 };
 } // namespace ADS
 
