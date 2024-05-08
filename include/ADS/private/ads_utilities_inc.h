@@ -148,14 +148,21 @@ reset_unphysical_values(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>
             SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch = level->getPatch(p());
             SAMRAI::tbox::Pointer<SAMRAI::pdat::CellData<NDIM, double>> dst_data = patch->getPatchData(dst_idx);
             SAMRAI::tbox::Pointer<SAMRAI::pdat::CellData<NDIM, double>> src_data = patch->getPatchData(src_idx);
+#ifndef NDEBUG
+            TBOX_ASSERT(dst_data->getDepth() == src_data->getDepth());
+#endif
             SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeData<NDIM, double>> ls_data = patch->getPatchData(ls_idx);
             for (SAMRAI::pdat::CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
             {
                 const SAMRAI::pdat::CellIndex<NDIM>& idx = ci();
                 if ((use_negative ? 1.0 : -1.0) * node_to_cell(idx, *ls_data) > 0.0)
-                    (*dst_data)(idx) = reset_val;
+                {
+                    for (int d = 0; d < dst_data->getDepth(); ++d) (*dst_data)(idx, d) = reset_val;
+                }
                 else
-                    (*dst_data)(idx) = (*src_data)(idx);
+                {
+                    for (int d = 0; d < dst_data->getDepth(); ++d) (*dst_data)(idx, d) = (*src_data)(idx, d);
+                }
             }
         }
     }
@@ -180,7 +187,10 @@ reset_unphysical_values(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>
             for (SAMRAI::pdat::CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
             {
                 const SAMRAI::pdat::CellIndex<NDIM>& idx = ci();
-                if ((use_negative ? 1.0 : -1.0) * node_to_cell(idx, *ls_data) > 0.0) (*Q_data)(idx) = reset_val;
+                if ((use_negative ? 1.0 : -1.0) * node_to_cell(idx, *ls_data) > 0.0)
+                {
+                    for (int d = 0; d < Q_data->getDepth(); ++d) (*Q_data)(idx, d) = reset_val;
+                }
             }
         }
     }
