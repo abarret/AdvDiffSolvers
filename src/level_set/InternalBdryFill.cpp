@@ -26,7 +26,6 @@ extern "C"
 
 namespace ADS
 {
-
 InternalBdryFill::InternalBdryFill(std::string object_name, Pointer<Database> input_db)
     : d_object_name(std::move(object_name))
 {
@@ -164,6 +163,8 @@ InternalBdryFill::doAdvectInNormal(const int Q_idx,
                                    Pointer<PatchHierarchy<NDIM>> hierarchy,
                                    const double time)
 {
+    HierarchyMathOps hier_math_ops("hier_math_ops", hierarchy);
+    const int wgt_cc_idx = hier_math_ops.getCellWeightPatchDescriptorIndex();
     const int coarsest_ln = 0;
     const int finest_ln = hierarchy->getFinestLevelNumber();
     // Use a pseudo-time integration routine to advect
@@ -243,7 +244,7 @@ InternalBdryFill::doAdvectInNormal(const int Q_idx,
 
         // Determine if we need another iteration
         hier_cc_data_ops.subtract(Q_scr_idx, Q_idx, Q_scr_idx);
-        max_diff = hier_cc_data_ops.maxNorm(Q_scr_idx);
+        max_diff = hier_cc_data_ops.maxNorm(Q_scr_idx, wgt_cc_idx);
         if (max_diff <= d_tol) not_converged = false;
         ++iter_num;
     }
