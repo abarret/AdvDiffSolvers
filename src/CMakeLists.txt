@@ -53,6 +53,8 @@ SET(CXX_SRC
     reconstructions/ReconstructCache.cpp
     reconstructions/reconstructions.cpp
 
+    sharp_interface/sharp_interface_utilities.cpp
+
     solvers/LSCutCellBoundaryConditions.cpp
     solvers/LSCutCellLaplaceOperator.cpp
     solvers/PETScAugmentedKrylovLinearSolver.cpp
