@@ -6,6 +6,7 @@
 #include <ibtk/ibtk_utilities.h>
 
 #include <PatchHierarchy.h>
+
 namespace ADS
 {
 namespace sharp_interface
