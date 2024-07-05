@@ -5,9 +5,11 @@
 
 #include <ibamr/ibamr_utilities.h>
 
+#include <CellVariable.h>
 #include <ComponentSelector.h>
 #include <PatchHierarchy.h>
 
+#include <functional>
 #include <map>
 #include <set>
 
