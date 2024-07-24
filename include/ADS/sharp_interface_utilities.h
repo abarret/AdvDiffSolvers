@@ -2,6 +2,7 @@
 #define included_ads_sharp_interface_utilities
 
 #include <ADS/CutCellMeshMapping.h>
+#include <ADS/FEMeshPartitioner.h>
 
 #include <ibtk/ibtk_utilities.h>
 
@@ -15,6 +16,22 @@ using PointType = int;
 static constexpr PointType FLUID = 0;
 static constexpr PointType GHOST = 1;
 static constexpr PointType INVALID = -1;
+
+struct ImagePointData
+{
+public:
+    // Physical data
+    IBTK::VectorNd d_bp_location;
+    IBTK::VectorNd d_ip_location;
+    IBTK::VectorNd d_normal;
+
+    // Lag structure information
+    libMesh::Elem* d_parent_elem = nullptr;
+    unsigned int d_part = 0;
+
+    // Hierarchy data
+    SAMRAI::pdat::CellIndex<NDIM> d_ip_idx, d_gp_idx;
+};
 
 /*
  * Classify each point in the domain as either FLUID, GHOST, or INVALID.
@@ -88,6 +105,18 @@ void trim_classified_points(int i_idx,
                             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                             int coarsest_ln = IBTK::invalid_level_number,
                             int finest_ln = IBTK::invalid_level_number);
+
+/*!
+ * Determine the location of the image points on the provided level number.
+ *
+ * Returns the locations of all the image points in a vector of vectors. The outer vector consists of the local patch
+ * numbers, the inner vector consists of the image point data for all points on the patch.
+ */
+std::vector<std::vector<ImagePointData>>
+find_image_points(int i_idx,
+                  SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                  int ln,
+                  const std::vector<std::shared_ptr<FEMeshPartitioner>>& mesh_partitioners);
 } // namespace sharp_interface
 } // namespace ADS
 #endif
