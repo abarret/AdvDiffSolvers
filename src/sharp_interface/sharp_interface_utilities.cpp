@@ -4,6 +4,7 @@
 
 #include <ibtk/HierarchyGhostCellInterpolation.h>
 #include <ibtk/IBTK_MPI.h>
+#include <ibtk/IndexUtilities.h>
 
 #include <queue>
 
@@ -11,6 +12,64 @@ namespace ADS
 {
 namespace sharp_interface
 {
+// Local helper functions
+bool
+is_ghost_point(const SAMRAI::pdat::CellIndex<NDIM>& idx, const SAMRAI::pdat::CellData<NDIM, int>& i_data)
+{
+    return i_data(idx) == GHOST;
+}
+
+template <typename T>
+T
+get_cell_center_location(const CellIndex<NDIM>& idx,
+                         const double* const dx,
+                         const double* const xlow,
+                         const hier::Index<NDIM>& idx_low)
+{
+    T x;
+    for (int d = 0; d < NDIM; ++d) x(d) = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
+    return x;
+}
+
+VectorNd
+point_to_vec(const libMesh::Point& pt)
+{
+    VectorNd vec;
+    for (int d = 0; d < NDIM; ++d) vec[d] = pt(d);
+    return vec;
+}
+
+double
+project_onto_element(libMesh::Point& n, libMesh::Point& P, const Elem* elem, const libMesh::Point& X)
+{
+    switch (elem->type())
+    {
+    case libMesh::EDGE2:
+    {
+        // Project X onto the line given by elem: p(t) = elem(0) + t * (elem(1) - elem(0)).
+        // Closest point to element is:
+        //      {elem(0) if t < 0
+        //  P = {p(t)    if 0 <= t <= 1
+        //      {elem(1) if t > 1
+        // vector n is given by n = P - X. This is the normal vector if 0 <= t <= 1.
+        const double t =
+            (X - elem->point(0)) * (elem->point(1) - elem->point(0)) / (elem->point(1) - elem->point(0)).norm_sq();
+        if (t < 0)
+            P = elem->point(0);
+        else if (t > 1)
+            P = elem->point(1);
+        else
+            P = elem->point(0) + t * (elem->point(1) - elem->point(0));
+        n = P - X;
+        return t;
+    }
+    break;
+    default:
+        TBOX_ERROR("Unsupported element type\n");
+    }
+    return std::numeric_limits<double>::quiet_NaN();
+}
+
 void
 classify_points(const int i_idx,
                 const int ls_idx,
@@ -65,8 +124,6 @@ classify_points_struct(const int i_idx,
 {
     coarsest_ln = coarsest_ln == IBTK::invalid_level_number ? 0 : coarsest_ln;
     finest_ln = finest_ln == IBTK::invalid_level_number ? hierarchy->getFinestLevelNumber() : finest_ln;
-
-    // If reverse mappings was not set, we need something else
 
     cut_cell_mapping->initializeObjectState(hierarchy);
     cut_cell_mapping->generateCutCellMappings();
@@ -171,7 +228,6 @@ classify_points_struct(const int i_idx,
                         avg_proj /= static_cast<double>(num_min);
                         avg_unit_normal /= static_cast<double>(num_min);
                         avg_unit_normal.normalize();
-                        double sgn = (avg_unit_normal.dot(P - avg_proj) <= 0.0) ? -1.0 : 1.0;
                         (*i_data)(idx_2) = (avg_unit_normal.dot(P - avg_proj) <= 0.0) ? FLUID : GHOST;
                     }
                 }
@@ -397,6 +453,135 @@ trim_classified_points(int i_idx, Pointer<PatchHierarchy<NDIM>> hierarchy, int c
             }
         }
     }
+}
+
+std::vector<std::vector<ImagePointData>>
+find_image_points(const int i_idx,
+                  Pointer<PatchHierarchy<NDIM>> hierarchy,
+                  const int ln,
+                  const std::vector<std::shared_ptr<FEMeshPartitioner>>& mesh_partitioners)
+{
+    Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+    std::vector<std::vector<ImagePointData>> ip_data_vec_vec;
+    ip_data_vec_vec.resize(level->getNumberOfPatches());
+
+    int local_patch_num = 0;
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
+    {
+        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+
+        Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+        const double* const dx = pgeom->getDx();
+        const double* const xlow = pgeom->getXLower();
+        const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+
+        Pointer<CellData<NDIM, int>> i_data = patch->getPatchData(i_idx);
+        std::vector<ImagePointData>& ip_data_vec = ip_data_vec_vec[local_patch_num];
+
+        for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+        {
+            const CellIndex<NDIM>& idx = ci();
+            if (!is_ghost_point(idx, *i_data)) continue;
+
+            libMesh::Point gp_x = get_cell_center_location<libMesh::Point>(idx, dx, xlow, idx_low);
+
+            ImagePointData ip;
+            // First we determine which NODE is closest, that will tell us which ELEMENT to search for boundary
+            // intercept points.
+            unsigned int min_part, min_node_id;
+            double min_dist = std::numeric_limits<double>::max();
+            for (unsigned int part = 0; part < mesh_partitioners.size(); ++part)
+            {
+                const auto& mesh_partitioner = mesh_partitioners[part];
+                const DofMap& dof_map = mesh_partitioner->getEquationSystems()
+                                            ->get_system(mesh_partitioner->COORDINATES_SYSTEM_NAME)
+                                            .get_dof_map();
+                NumericVector<double>* X_vec = mesh_partitioner->getCoordsVector();
+                const std::vector<Node*>& patch_nodes = mesh_partitioner->getActivePatchNodeMap(ln)[local_patch_num];
+                for (const auto& node : patch_nodes)
+                {
+                    libMesh::Point X;
+                    std::vector<dof_id_type> X_dofs;
+                    dof_map.dof_indices(node, X_dofs);
+                    X_vec->get(X_dofs, &X(0));
+
+                    // Compute the distance
+                    double dist = (X - gp_x).norm();
+                    if (dist < min_dist)
+                    {
+                        min_part = part;
+                        min_node_id = node->id();
+                        min_dist = dist;
+                    }
+                }
+            }
+
+            // We know which NODE is closest. Now find all elements that have that node.
+            const auto& mesh_partitioner = mesh_partitioners[min_part];
+            std::vector<Elem*> elems;
+            auto elem_it = mesh_partitioner->getEquationSystems()->get_mesh().local_elements_begin();
+            const auto elem_it_end = mesh_partitioner->getEquationSystems()->get_mesh().local_elements_end();
+            for (; elem_it != elem_it_end; ++elem_it)
+            {
+                Elem* elem = *elem_it;
+                for (unsigned int k = 0; k < elem->n_nodes(); ++k)
+                {
+                    if (elem->node_id(k) == min_node_id) elems.push_back(elem);
+                }
+            }
+
+            FEDataManager::SystemDofMapCache* X_dof_map_cache =
+                mesh_partitioner->getDofMapCache(mesh_partitioner->COORDINATES_SYSTEM_NAME);
+            NumericVector<double>* X_vec = mesh_partitioner->getCoordsVector();
+            auto X_petsc_vec = dynamic_cast<PetscVector<double>*>(X_vec);
+#ifndef NDEBUG
+            TBOX_ASSERT(X_petsc_vec != nullptr);
+#endif
+            const double* const X_soln = X_petsc_vec->get_array_read();
+
+            min_dist = std::numeric_limits<double>::max();
+            libMesh::Point bp_x;
+            libMesh::Point vec;
+            // Now find the boundary point. It will be the location with the MINIMUM distance to the ghost point.
+            for (const auto& elem : elems)
+            {
+                // Cache the element's reference configuration and determine current positions
+                std::vector<libMesh::Point> X_node_cache(elem->n_nodes());
+                boost::multi_array<double, 2> x_node;
+                const auto& X_dof_indices = X_dof_map_cache->dof_indices(elem);
+                IBTK::get_values_for_interpolation(x_node, *X_petsc_vec, X_soln, X_dof_indices);
+                for (unsigned int k = 0; k < elem->n_nodes(); ++k)
+                {
+                    X_node_cache[k] = elem->point(k);
+                    libMesh::Point X;
+                    for (unsigned int d = 0; d < NDIM; ++d) X(d) = x_node[k][d];
+                    elem->point(k) = X;
+                }
+
+                // Project the gp onto the element
+                libMesh::Point n, P;
+                project_onto_element(n, P, elem, gp_x);
+                if ((P - gp_x).norm() < min_dist)
+                {
+                    min_dist = (P - gp_x).norm();
+                    ip.d_bp_location = point_to_vec(P);
+                    ip.d_normal = point_to_vec(n);
+                    ip.d_ip_location = point_to_vec(gp_x + 2 * n);
+                    ip.d_parent_elem = elem;
+                    ip.d_part = min_part;
+                    ip.d_gp_idx = idx;
+                    ip.d_ip_idx = IBTK::IndexUtilities::getCellIndex(ip.d_ip_location, pgeom, patch->getBox());
+                }
+
+                // Reset the element's position
+                for (unsigned int k = 0; k < elem->n_nodes(); ++k) elem->point(k) = X_node_cache[k];
+            }
+
+            ip_data_vec.push_back(std::move(ip));
+            X_petsc_vec->restore_array();
+        }
+    }
+    return ip_data_vec_vec;
 }
 } // namespace sharp_interface
 } // namespace ADS
