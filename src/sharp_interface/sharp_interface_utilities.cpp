@@ -583,5 +583,91 @@ find_image_points(const int i_idx,
     }
     return ip_data_vec_vec;
 }
+
+std::vector<ImagePointWeightsMap>
+find_image_point_weights(int i_idx,
+                         Pointer<PatchHierarchy<NDIM>> hierarchy,
+                         const std::vector<std::vector<ImagePointData>>& img_data_vec_vec,
+                         int ln)
+{
+    std::vector<ImagePointWeightsMap> ip_weights_vec(img_data_vec_vec[ln].size());
+    Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+    int local_patch_num = 0;
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
+    {
+        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+        const std::vector<ImagePointData>& img_data_vec = img_data_vec_vec[local_patch_num];
+        if (img_data_vec.size() == 0) continue;
+        ImagePointWeightsMap& ip_weights = ip_weights_vec[local_patch_num];
+
+        Pointer<CellData<NDIM, int>> i_data = patch->getPatchData(i_idx);
+
+        Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+        const double* const dx = pgeom->getDx();
+        const double* const xlow = pgeom->getXLower();
+        const hier::Index<NDIM>& idx_low = patch->getBox().lower();
+
+        for (const auto& img_data : img_data_vec)
+        {
+            const CellIndex<NDIM>& gp_idx = img_data.d_gp_idx;
+            const CellIndex<NDIM>& ip_idx = img_data.d_ip_idx;
+#ifndef NDEBUG
+            TBOX_ASSERT((*i_data)(gp_idx) == GHOST);
+            TBOX_ASSERT((*i_data)(ip_idx) == FLUID);
+#endif
+            // Interpolate to the image point. Note that if we encounter the ghost cell we are solving for, we use the
+            // boundary condition value. Find the image point in index space
+            const VectorNd& x_ip = img_data.d_ip_location;
+            VectorNd x_idx_space;
+            for (int d = 0; d < NDIM; ++d)
+                x_idx_space[d] = (x_ip[d] - xlow[d]) / dx[d] + static_cast<double>(idx_low(d));
+            // Determine weights of all the neighboring corners of x_ip.
+            // Determine the bottom left of bounding box (0,0).
+            CellIndex<NDIM> bl_idx;
+            for (int d = 0; d < NDIM; ++d) bl_idx[d] = std::ceil(x_idx_space[d] - 0.5) - 1;
+            // Now loop over all edges, determine our stencil
+            CellIndex<NDIM> test_idx;
+            std::array<VectorNd, ImagePointWeights::s_num_pts> x_idxs;
+            std::array<CellIndex<NDIM>, ImagePointWeights::s_num_pts> idxs;
+            int i = 0;
+            for (int x = 0; x <= 1; ++x)
+            {
+                test_idx(0) = bl_idx(0) + x;
+                for (int y = 0; y <= 1; ++y)
+                {
+                    test_idx(1) = bl_idx(1) + y;
+                    if (test_idx == gp_idx)
+                    {
+                        // We've encountered the ghost cell, use the boundary condition.
+                        x_idxs[i] = img_data.d_bp_location;
+                    }
+                    else
+                    {
+                        VectorNd x;
+                        for (int d = 0; d < NDIM; ++d)
+                            x[d] = xlow[d] + dx[d] * (static_cast<double>(test_idx(d) - idx_low(d)) + 0.5);
+                        x_idxs[i] = x;
+                    }
+                    idxs[++i] = test_idx;
+                }
+            }
+
+            VectorXd b = VectorXd::Zero(4);
+            b(1) = 1.0;
+            MatrixXd A = MatrixXd::Ones(4, 4);
+            for (int i = 0; i < 4; ++i)
+            {
+                A(1, i) = idxs[i](0) - x_ip(0);
+                A(2, i) = idxs[i](1) - x_ip(1);
+                A(3, i) = (idxs[i](0) - x_ip(0)) * (idxs[i](1) - x_ip(1));
+            }
+            VectorXd w = A.lu().solve(b);
+            std::array<double, ImagePointWeights::s_num_pts> weights;
+            std::copy(w.data(), w.data() + 4, weights.begin());
+            ip_weights.insert(std::make_pair(gp_idx, ImagePointWeights(weights, idxs)));
+        }
+    }
+    return ip_weights_vec;
+}
 } // namespace sharp_interface
 } // namespace ADS
