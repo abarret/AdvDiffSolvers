@@ -17,10 +17,20 @@ static constexpr PointType FLUID = 0;
 static constexpr PointType GHOST = 1;
 static constexpr PointType INVALID = -1;
 
+/*!
+ * Structure for storing information about image points.
+ *
+ * We store the physical location of the image point, the boundary point, and the normal.
+ *
+ * For finite element structures, we include information about the parent element on which the boundary point is located, as well as the part in the finite element structure.
+ *
+ * The hierarchy data stores the cell index in which the image point and the ghost point are located.
+ *
+ * Note that no information concerning the patch or patch level is stored, therefore this structure is only intended to be used on a fixed patch and patch level.
+ */
 struct ImagePointData
 {
 public:
-    static constexpr int s_num_pts = 4;
     // Physical data
     IBTK::VectorNd d_bp_location;
     IBTK::VectorNd d_ip_location;
@@ -34,6 +44,13 @@ public:
     SAMRAI::pdat::CellIndex<NDIM> d_ip_idx, d_gp_idx;
 };
 
+/*!
+ * Structure for storing the weights used to interpolate to the image point. We store both the weights and the cell indices.
+ *
+ * Note that this structure has no information on whether those indices are ghost cells or fluid cells.
+ *
+ * Note that no information concerning the patch or patch level is stored, therefore this structure is only intended to be used on a fixed patch and patch level.
+ */
 struct ImagePointWeights
 {
 public:
@@ -46,23 +63,43 @@ public:
     std::array<SAMRAI::pdat::CellIndex<NDIM>, s_num_pts> d_idxs;
 };
 
+/*!
+ * Functor used to compare two cell indices.
+ *
+ * TODO: I don't think this is a partial ordering of the indices.
+ */
 struct Compare
 {
-    bool operator()(const SAMRAI::pdat::CellIndex<NDIM>& a, const SAMRAI::pdat::CellIndex<NDIM>& b) const
+	using key_type = std::pair<SAMRAI::pdat::CellIndex<NDIM>, SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>>;
+    bool operator()(const key_type& a, const key_type& b) const
     {
-        if (a(0) < b(0))
-            return true;
-        else if (a(1) < b(1))
-            return true;
-#if (NDIM == 3)
-        else if (a(2) < b(2))
-            return true;
-#endif
-        else
-            return false;
+    	if (a.second->getPatchNumber() < b.second->getPatchNumber())
+    		return true;
+    	else if (a.second->getPatchNumber() > b.second->getPatchNumber())
+    		return false;
+    	// Compute "global index" on the patch
+    	const hier::Index<NDIM>& idx_low = a.second->getBox().lower();
+    	const hier::Index<NDIM>& idx_up = a.second->getBox().upper();
+    	int a_global = 0, b_global = 0;
+    	int shft = 1;
+    	for (int d = 0; d < NDIM; ++d)
+    	{
+    		a_global += shft * (a.first(d) - idx_low(d));
+    		b_global += shft * (b.first(d) - idx_low(d));
+    		shft *= idx_up(d) - idx_low(d);
+    	}
+
+    	if (a_global < b_global)
+    		return true;
+    	else
+    		return false;
     }
 };
-using ImagePointWeightsMap = std::map<SAMRAI::pdat::CellIndex<NDIM>, ImagePointWeights, Compare>;
+
+/*!
+ * Alias for a map between cell indices and their weights, using a Compare functor.
+ */
+using ImagePointWeightsMap = std::map<Compare::key_type, ImagePointWeights, Compare>;
 
 /*
  * Classify each point in the domain as either FLUID, GHOST, or INVALID.

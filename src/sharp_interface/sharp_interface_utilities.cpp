@@ -613,7 +613,7 @@ find_image_point_weights(int i_idx,
             const CellIndex<NDIM>& ip_idx = img_data.d_ip_idx;
 #ifndef NDEBUG
             TBOX_ASSERT((*i_data)(gp_idx) == GHOST);
-            TBOX_ASSERT((*i_data)(ip_idx) == FLUID);
+            TBOX_ASSERT((*i_data)(ip_idx) == FLUID || (*i_data)(ip_idx) == GHOST);
 #endif
             // Interpolate to the image point. Note that if we encounter the ghost cell we are solving for, we use the
             // boundary condition value. Find the image point in index space
@@ -626,9 +626,10 @@ find_image_point_weights(int i_idx,
             CellIndex<NDIM> bl_idx;
             for (int d = 0; d < NDIM; ++d) bl_idx[d] = std::ceil(x_idx_space[d] - 0.5) - 1;
             // Now loop over all edges, determine our stencil
+            constexpr int num_pts = ImagePointWeights::s_num_pts;
             CellIndex<NDIM> test_idx;
-            std::array<VectorNd, ImagePointWeights::s_num_pts> x_idxs;
-            std::array<CellIndex<NDIM>, ImagePointWeights::s_num_pts> idxs;
+            std::array<VectorNd, num_pts> x_idxs;
+            std::array<CellIndex<NDIM>, num_pts> idxs;
             int i = 0;
             for (int x = 0; x <= 1; ++x)
             {
@@ -648,23 +649,23 @@ find_image_point_weights(int i_idx,
                             x[d] = xlow[d] + dx[d] * (static_cast<double>(test_idx(d) - idx_low(d)) + 0.5);
                         x_idxs[i] = x;
                     }
-                    idxs[++i] = test_idx;
+                    idxs[i++] = test_idx;
                 }
             }
 
-            VectorXd b = VectorXd::Zero(4);
-            b(1) = 1.0;
-            MatrixXd A = MatrixXd::Ones(4, 4);
-            for (int i = 0; i < 4; ++i)
+            VectorXd b = VectorXd::Zero(num_pts);
+            b(0) = 1.0;
+            MatrixXd A = MatrixXd::Ones(num_pts, num_pts);
+            for (int i = 0; i < num_pts; ++i)
             {
-                A(1, i) = idxs[i](0) - x_ip(0);
-                A(2, i) = idxs[i](1) - x_ip(1);
-                A(3, i) = (idxs[i](0) - x_ip(0)) * (idxs[i](1) - x_ip(1));
+                A(1, i) = x_idxs[i](0) - x_ip(0);
+                A(2, i) = x_idxs[i](1) - x_ip(1);
+                A(3, i) = (x_idxs[i](0) - x_ip(0)) * (x_idxs[i](1) - x_ip(1));
             }
             VectorXd w = A.lu().solve(b);
-            std::array<double, ImagePointWeights::s_num_pts> weights;
-            std::copy(w.data(), w.data() + 4, weights.begin());
-            ip_weights.insert(std::make_pair(gp_idx, ImagePointWeights(weights, idxs)));
+            std::array<double, num_pts> weights;
+            std::copy(w.data(), w.data() + num_pts, weights.begin());
+            ip_weights.insert(std::make_pair(std::make_pair(gp_idx, patch), ImagePointWeights(weights, idxs)));
         }
     }
     return ip_weights_vec;
