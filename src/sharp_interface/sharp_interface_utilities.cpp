@@ -670,5 +670,63 @@ find_image_point_weights(int i_idx,
     }
     return ip_weights_vec;
 }
+
+void
+fill_ghost_cells(int i_idx,
+                 int Q_idx,
+                 SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                 const std::vector<std::vector<ImagePointData>>& img_data_vec_vec,
+                 const std::vector<ImagePointWeightsMap>& img_wgts_vec,
+                 int ln,
+                 std::function<double(const VectorNd&)> bdry_fcn)
+{
+    Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+    int local_patch_num = 0;
+    for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
+    {
+        Pointer<Patch<NDIM>> patch = level->getPatch(p());
+        Pointer<CellData<NDIM, int>> i_data = patch->getPatchData(i_idx);
+        Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+        const unsigned int depth = Q_data->getDepth();
+
+        const std::vector<ImagePointData>& img_data_vec = img_data_vec_vec[local_patch_num];
+        const ImagePointWeightsMap& img_wgt_map = img_wgts_vec[local_patch_num];
+        for (const auto& img_data : img_data_vec)
+        {
+            const CellIndex<NDIM>& gp_idx = img_data.d_gp_idx;
+            const CellIndex<NDIM>& ip_idx = img_data.d_ip_idx;
+
+            auto gp_patch_pair = std::make_pair(gp_idx, patch);
+#ifndef NDEBUG
+            TBOX_ASSERT(img_wgt_map.count(gp_patch_pair) > 0);
+#endif
+            for (unsigned int d = 0; d < depth; ++d) (*Q_data)(gp_idx, d) = 0.0;
+            constexpr int num_pts = ImagePointWeights::s_num_pts;
+            for (int i = 0; i < num_pts; ++i)
+            {
+                const CellIndex<NDIM>& idx = img_wgt_map.at(gp_patch_pair).d_idxs[i];
+                const double wgt = img_wgt_map.at(gp_patch_pair).d_weights[i];
+                if (idx != gp_idx)
+                {
+                    for (unsigned int d = 0; d < depth; ++d)
+                    {
+                        (*Q_data)(gp_idx, d) += (*Q_data)(idx, d) * wgt;
+                    }
+                }
+                else
+                {
+                    for (unsigned int d = 0; d < depth; ++d)
+                    {
+                        (*Q_data)(gp_idx, d) += wgt * bdry_fcn(img_data.d_bp_location);
+                    }
+                }
+            }
+
+            // Now we fill in the ghost cell using the boundary condition
+            for (unsigned int d = 0; d < depth; ++d)
+                (*Q_data)(gp_idx, d) = 2.0 * bdry_fcn(img_data.d_bp_location) - (*Q_data)(gp_idx, d);
+        }
+    }
+}
 } // namespace sharp_interface
 } // namespace ADS
