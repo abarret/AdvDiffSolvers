@@ -109,6 +109,7 @@ SETUP_2D(reconstructions divergence.cpp)
 
 SETUP_2D(sharp_interface classify_points_ls.cpp)
 SETUP_2D(sharp_interface classify_points_struct.cpp)
+SETUP_2D(sharp_interface fill_ghost_cells.cpp)
 SETUP_2D(sharp_interface find_image_points.cpp)
 SETUP_2D(sharp_interface find_image_point_weights.cpp)
 
