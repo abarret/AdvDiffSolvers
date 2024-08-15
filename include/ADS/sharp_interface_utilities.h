@@ -198,6 +198,20 @@ find_image_point_weights(int i_idx,
                          SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                          const std::vector<std::vector<ImagePointData>>& img_data_vec_vec,
                          int ln);
+
+/*!
+ * Fill the interface ghost cell with the boundary condition, given the image point weights. Note that the data stored in Q_idx should already have patch and physical ghost cells filled.
+ *
+ * TODO: We need some sane way to set the boundary condition, probably with a system in the EquationSystems object
+ */
+void
+fill_ghost_cells(int i_idx,
+				 int Q_idx,
+				 SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+				 const std::vector<std::vector<ImagePointData>>& img_data_vec_vec,
+				 const std::vector<ImagePointWeightsMap>& img_wgts_vec,
+				 int ln,
+				 std::function<double(const IBTK::VectorNd& x)> bdry_fcn);
 } // namespace sharp_interface
 } // namespace ADS
 #endif
