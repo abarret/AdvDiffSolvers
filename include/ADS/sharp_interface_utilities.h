@@ -22,11 +22,13 @@ static constexpr PointType INVALID = -1;
  *
  * We store the physical location of the image point, the boundary point, and the normal.
  *
- * For finite element structures, we include information about the parent element on which the boundary point is located, as well as the part in the finite element structure.
+ * For finite element structures, we include information about the parent element on which the boundary point is
+ * located, as well as the part in the finite element structure.
  *
  * The hierarchy data stores the cell index in which the image point and the ghost point are located.
  *
- * Note that no information concerning the patch or patch level is stored, therefore this structure is only intended to be used on a fixed patch and patch level.
+ * Note that no information concerning the patch or patch level is stored, therefore this structure is only intended to
+ * be used on a fixed patch and patch level.
  */
 struct ImagePointData
 {
@@ -45,11 +47,13 @@ public:
 };
 
 /*!
- * Structure for storing the weights used to interpolate to the image point. We store both the weights and the cell indices.
+ * Structure for storing the weights used to interpolate to the image point. We store both the weights and the cell
+ * indices.
  *
  * Note that this structure has no information on whether those indices are ghost cells or fluid cells.
  *
- * Note that no information concerning the patch or patch level is stored, therefore this structure is only intended to be used on a fixed patch and patch level.
+ * Note that no information concerning the patch or patch level is stored, therefore this structure is only intended to
+ * be used on a fixed patch and patch level.
  */
 struct ImagePointWeights
 {
@@ -70,29 +74,29 @@ public:
  */
 struct Compare
 {
-	using key_type = std::pair<SAMRAI::pdat::CellIndex<NDIM>, SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>>;
+    using key_type = std::pair<SAMRAI::pdat::CellIndex<NDIM>, SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>>;
     bool operator()(const key_type& a, const key_type& b) const
     {
-    	if (a.second->getPatchNumber() < b.second->getPatchNumber())
-    		return true;
-    	else if (a.second->getPatchNumber() > b.second->getPatchNumber())
-    		return false;
-    	// Compute "global index" on the patch
-    	const hier::Index<NDIM>& idx_low = a.second->getBox().lower();
-    	const hier::Index<NDIM>& idx_up = a.second->getBox().upper();
-    	int a_global = 0, b_global = 0;
-    	int shft = 1;
-    	for (int d = 0; d < NDIM; ++d)
-    	{
-    		a_global += shft * (a.first(d) - idx_low(d));
-    		b_global += shft * (b.first(d) - idx_low(d));
-    		shft *= idx_up(d) - idx_low(d);
-    	}
+        if (a.second->getPatchNumber() < b.second->getPatchNumber())
+            return true;
+        else if (a.second->getPatchNumber() > b.second->getPatchNumber())
+            return false;
+        // Compute "global index" on the patch
+        const SAMRAI::hier::Index<NDIM>& idx_low = a.second->getBox().lower();
+        const SAMRAI::hier::Index<NDIM>& idx_up = a.second->getBox().upper();
+        int a_global = 0, b_global = 0;
+        int shft = 1;
+        for (int d = 0; d < NDIM; ++d)
+        {
+            a_global += shft * (a.first(d) - idx_low(d));
+            b_global += shft * (b.first(d) - idx_low(d));
+            shft *= idx_up(d) - idx_low(d);
+        }
 
-    	if (a_global < b_global)
-    		return true;
-    	else
-    		return false;
+        if (a_global < b_global)
+            return true;
+        else
+            return false;
     }
 };
 
@@ -200,18 +204,18 @@ find_image_point_weights(int i_idx,
                          int ln);
 
 /*!
- * Fill the interface ghost cell with the boundary condition, given the image point weights. Note that the data stored in Q_idx should already have patch and physical ghost cells filled.
+ * Fill the interface ghost cell with the boundary condition, given the image point weights. Note that the data stored
+ * in Q_idx should already have patch and physical ghost cells filled.
  *
  * TODO: We need some sane way to set the boundary condition, probably with a system in the EquationSystems object
  */
-void
-fill_ghost_cells(int i_idx,
-				 int Q_idx,
-				 SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
-				 const std::vector<std::vector<ImagePointData>>& img_data_vec_vec,
-				 const std::vector<ImagePointWeightsMap>& img_wgts_vec,
-				 int ln,
-				 std::function<double(const IBTK::VectorNd& x)> bdry_fcn);
+void fill_ghost_cells(int i_idx,
+                      int Q_idx,
+                      SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                      const std::vector<std::vector<ImagePointData>>& img_data_vec_vec,
+                      const std::vector<ImagePointWeightsMap>& img_wgts_vec,
+                      int ln,
+                      std::function<double(const IBTK::VectorNd& x)> bdry_fcn);
 } // namespace sharp_interface
 } // namespace ADS
 #endif
