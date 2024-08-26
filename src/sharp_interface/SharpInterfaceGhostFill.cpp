@@ -26,6 +26,10 @@ SharpInterfaceGhostFill::SharpInterfaceGhostFill(std::string object_name,
     d_generate_image_points.resize(num_levels, true);
     d_generate_image_point_weights.resize(num_levels, true);
 
+    const unsigned int num_parts = cut_cell_mapping->getNumParts();
+    d_norm_reverse_domain_ids.resize(num_parts);
+    d_reverse_normal.resize(num_parts);
+
     // Set up index labeling
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     std::string var_name = d_object_name + "::IndexVar";
@@ -33,7 +37,8 @@ SharpInterfaceGhostFill::SharpInterfaceGhostFill(std::string object_name,
         d_i_var = var_db->getVariable(d_object_name + "::IndexVar");
     else
         d_i_var = new CellVariable<NDIM, int>(d_object_name + "::IndexVar");
-    d_i_idx = var_db->registerVariableAndContext(d_i_var, var_db->getContext(d_object_name + "::CTX"));
+    d_i_idx =
+        var_db->registerVariableAndContext(d_i_var, var_db->getContext(d_object_name + "::CTX"), IntVector<NDIM>(1));
 }
 
 void
@@ -126,6 +131,7 @@ SharpInterfaceGhostFill::classifyPoints()
 void
 SharpInterfaceGhostFill::generateImagePoints(const int ln)
 {
+    if (d_classify_points) classifyPoints();
     d_img_pt_data_level_vec[ln] =
         find_image_points(d_i_idx, d_hierarchy, ln, d_cut_cell_mapping->getMeshPartitioners());
     d_generate_image_points[ln] = false;
@@ -134,6 +140,7 @@ SharpInterfaceGhostFill::generateImagePoints(const int ln)
 void
 SharpInterfaceGhostFill::generateImagePointWeights(const int ln)
 {
+    if (d_generate_image_points[ln]) generateImagePoints(ln);
     d_img_pt_wgts_level_vec[ln] = find_image_point_weights(d_i_idx, d_hierarchy, getImagePointData(ln), ln);
     d_generate_image_point_weights[ln] = false;
 }

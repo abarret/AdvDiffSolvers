@@ -112,6 +112,8 @@ SETUP_2D(sharp_interface classify_points_struct.cpp)
 SETUP_2D(sharp_interface fill_ghost_cells.cpp)
 SETUP_2D(sharp_interface find_image_points.cpp)
 SETUP_2D(sharp_interface find_image_point_weights.cpp)
+SETUP_2D(sharp_interface sharp_interface_laplace_op.cpp)
+SETUP_2D(sharp_interface sharp_interface_laplace_solve.cpp)
 
 SETUP_2D(surfaces surface_jacobian.cpp)
 
