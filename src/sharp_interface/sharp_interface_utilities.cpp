@@ -476,6 +476,9 @@ find_image_points(const int i_idx,
         const hier::Index<NDIM>& idx_low = patch->getBox().lower();
 
         Pointer<CellData<NDIM, int>> i_data = patch->getPatchData(i_idx);
+#ifndef NDEBUG
+        TBOX_ASSERT(i_data);
+#endif
         std::vector<ImagePointData>& ip_data_vec = ip_data_vec_vec[local_patch_num];
 
         for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)

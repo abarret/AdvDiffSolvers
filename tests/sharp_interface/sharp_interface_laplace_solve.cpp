@@ -1,8 +1,10 @@
 #include <ibamr/config.h>
 
+#include <ADS/CCSharpInterfaceLaplaceOperator.h>
 #include <ADS/CutCellVolumeMeshMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/PointwiseFunction.h>
+#include <ADS/SharpInterfaceGhostFill.h>
 #include <ADS/ads_utilities.h>
 #include <ADS/app_namespaces.h>
 #include <ADS/sharp_interface_utilities.h>
@@ -11,6 +13,7 @@
 #include <ibtk/AppInitializer.h>
 #include <ibtk/HierarchyMathOps.h>
 #include <ibtk/IBTKInit.h>
+#include <ibtk/PETScKrylovLinearSolver.h>
 #include <ibtk/muParserRobinBcCoefs.h>
 
 #include "tbox/Pointer.h"
@@ -76,6 +79,41 @@ string_to_enum(const std::string& str)
     return InterfaceType::UNKNOWN;
 }
 
+enum class FunctionType
+{
+    POLYNOMIAL,
+    TRIG,
+    UNKNOWN
+};
+
+std::string
+enum_to_string(FunctionType e)
+{
+    switch (e)
+    {
+    case FunctionType::POLYNOMIAL:
+        return "POLYNOMIAL";
+        break;
+    case FunctionType::TRIG:
+        return "TRIG";
+        break;
+    default:
+        return "UNKNOWN";
+        break;
+    }
+}
+namespace ADS
+{
+template <>
+FunctionType
+string_to_enum<FunctionType>(const std::string& str)
+{
+    if (strcasecmp(str.c_str(), "POLYNOMIAL") == 0) return FunctionType::POLYNOMIAL;
+    if (strcasecmp(str.c_str(), "TRIG") == 0) return FunctionType::TRIG;
+    return FunctionType::UNKNOWN;
+}
+} // namespace ADS
+FunctionType fcn_type;
 double R;
 double r;
 std::string elem_type;
@@ -154,16 +192,39 @@ build_channel(IBTKInit& init, std::vector<std::unique_ptr<Mesh>>& meshes)
 }
 
 double
-q_fcn(double, const VectorNd& x, double)
+x_fcn(double, const VectorNd& x, double)
 {
-    //    return std::sin(2.0 * M_PI * x[0]) * std::cos(2.0 * M_PI * x[1]);
-    return 1.0 + x[0] + x[1];
+    switch (fcn_type)
+    {
+    case FunctionType::POLYNOMIAL:
+        return 1.0 + x[0] + x[1] + x[1] * x[1] + x[0] * x[0];
+    case FunctionType::TRIG:
+        return std::sin(2.0 * M_PI * x[0]) * std::cos(2.0 * M_PI * x[1]);
+    default:
+        TBOX_ERROR("UNKNOWN FCN TYPE\n");
+        return 0.0;
+    }
 }
 
 double
 bdry_fcn(const VectorNd& x)
 {
-    return q_fcn(0.0, x, 0.0);
+    return x_fcn(0.0, x, 0.0);
+}
+
+double
+lap_fcn(double, const VectorNd& x, double)
+{
+    switch (fcn_type)
+    {
+    case FunctionType::POLYNOMIAL:
+        return 4.0;
+    case FunctionType::TRIG:
+        return -8.0 * M_PI * M_PI * std::sin(2.0 * M_PI * x[0]) * std::cos(2.0 * M_PI * x[1]);
+    default:
+        TBOX_ERROR("UNKNOWN FCN TYPE\n");
+        return 0.0;
+    }
 }
 
 /*******************************************************************************
@@ -182,6 +243,7 @@ main(int argc, char* argv[])
 {
     // Initialize PETSc, MPI, and SAMRAI.
     IBTKInit ibtk_init(argc, argv, MPI_COMM_WORLD);
+    PetscOptionsSetValue(nullptr, "-solver_ksp_rtol", "1.0e-12");
 
     // Suppress a warning
     SAMRAI::tbox::Logger::getInstance()->setWarning(false);
@@ -228,13 +290,17 @@ main(int argc, char* argv[])
                                         load_balancer);
 
         Pointer<CellVariable<NDIM, int>> pt_type_var = new CellVariable<NDIM, int>("pt_type");
-        Pointer<CellVariable<NDIM, double>> Q_var = new CellVariable<NDIM, double>("Q");
+        Pointer<CellVariable<NDIM, double>> X_var = new CellVariable<NDIM, double>("X");
+        Pointer<CellVariable<NDIM, double>> err_var = new CellVariable<NDIM, double>("Error");
+        Pointer<CellVariable<NDIM, double>> Y_var = new CellVariable<NDIM, double>("Y");
 
         auto var_db = VariableDatabase<NDIM>::getDatabase();
         Pointer<VariableContext> ctx = var_db->getContext("CTX");
         const int pt_type_idx = var_db->registerVariableAndContext(pt_type_var, ctx, IntVector<NDIM>(1));
-        const int Q_idx = var_db->registerVariableAndContext(Q_var, ctx, IntVector<NDIM>(1));
-        std::set<int> idx_set{ pt_type_idx, Q_idx };
+        const int X_idx = var_db->registerVariableAndContext(X_var, ctx, IntVector<NDIM>(1));
+        const int err_idx = var_db->registerVariableAndContext(err_var, ctx, IntVector<NDIM>(1));
+        const int Y_idx = var_db->registerVariableAndContext(Y_var, ctx, IntVector<NDIM>(1));
+        std::set<int> idx_set{ pt_type_idx, X_idx, err_idx, Y_idx };
         ComponentSelector idxs;
         for (const auto& idx : idx_set) idxs.setFlag(idx);
 
@@ -250,6 +316,7 @@ main(int argc, char* argv[])
         }
 
         InterfaceType interface = string_to_enum(input_db->getString("INTERFACE_TYPE"));
+        fcn_type = ADS::string_to_enum<FunctionType>(input_db->getString("FUNCTION_TYPE"));
 
         // Allocate data
         const int coarsest_ln = 0;
@@ -295,51 +362,101 @@ main(int argc, char* argv[])
             struct_writers.push_back(std::make_unique<ExodusII_IO>(*mesh_mapping->getBoundaryMesh(part)));
         Pointer<VisItDataWriter<NDIM>> visit_data_writer = app_initializer->getVisItDataWriter();
         visit_data_writer->registerPlotQuantity("Pt_type", "SCALAR", pt_type_idx);
-        visit_data_writer->registerPlotQuantity("Q", "SCALAR", Q_idx);
+        visit_data_writer->registerPlotQuantity("X", "SCALAR", X_idx);
+        visit_data_writer->registerPlotQuantity("Y", "SCALAR", Y_idx);
+        visit_data_writer->registerPlotQuantity("err", "SCALAR", err_idx);
 #endif
 
-        if (interface == InterfaceType::CHANNEL)
-        {
-            std::vector<int> reverse_norms = { 0, 1 };
-            sharp_interface::classify_points_struct(
-                pt_type_idx, patch_hierarchy, cut_cell_mapping, reverse_norms, false);
-        }
-        else
-        {
-            sharp_interface::classify_points_struct(pt_type_idx, patch_hierarchy, cut_cell_mapping, true);
-        }
+        PointwiseFunction<PointwiseFunctions::ScalarFcn> X_fcn("X_fcn", x_fcn);
+        X_fcn.setDataOnPatchHierarchy(err_idx, err_var, patch_hierarchy, 0.0);
+        PointwiseFunction<PointwiseFunctions::ScalarFcn> Y_fcn("Y_fcn", lap_fcn);
+        Y_fcn.setDataOnPatchHierarchy(Y_idx, Y_var, patch_hierarchy, 0.0);
 
-        PointwiseFunction<PointwiseFunctions::ScalarFcn> Q_fcn("Q_fcn", q_fcn);
-        Q_fcn.setDataOnPatchHierarchy(Q_idx, Q_var, patch_hierarchy, 0.0);
+        HierarchyMathOps hier_math_ops("hier_math_ops", patch_hierarchy);
+        hier_math_ops.resetLevels(coarsest_ln, finest_ln);
+        const int wgt_cc_idx = hier_math_ops.getCellWeightPatchDescriptorIndex();
 
-        // Now find the image points
-        for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
+        SAMRAIVectorReal<NDIM, double> x_vec("X_vec", patch_hierarchy, coarsest_ln, finest_ln),
+            y_vec("Y_vec", patch_hierarchy, coarsest_ln, finest_ln);
+        x_vec.addComponent(X_var, X_idx, wgt_cc_idx);
+        y_vec.addComponent(Y_var, Y_idx, wgt_cc_idx);
+
+        sharp_interface::SharpInterfaceGhostFill ghost_fill("GhostFill", patch_hierarchy, cut_cell_mapping);
+        Pointer<sharp_interface::CCSharpInterfaceLaplaceOperator> laplace_op =
+            new sharp_interface::CCSharpInterfaceLaplaceOperator("LaplaceOp", nullptr, ghost_fill, bdry_fcn, false);
+
+        for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
         {
-            std::vector<std::vector<sharp_interface::ImagePointData>> ip_data_vec_vec =
-                sharp_interface::find_image_points(
-                    pt_type_idx, patch_hierarchy, ln, mesh_mapping->getMeshPartitioners());
-            std::vector<sharp_interface::ImagePointWeightsMap> ip_wghts_vec =
-                sharp_interface::find_image_point_weights(pt_type_idx, patch_hierarchy, ip_data_vec_vec, ln);
-
-            sharp_interface::fill_ghost_cells(
-                pt_type_idx, Q_idx, patch_hierarchy, ip_data_vec_vec, ip_wghts_vec, ln, bdry_fcn);
             Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
-            int patch_num = 0;
-            for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
+            const std::vector<std::vector<sharp_interface::ImagePointData>>& img_pt_vec_vec =
+                ghost_fill.getImagePointData(ln);
+
+            int local_patch_num = 0;
+            for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
             {
                 Pointer<Patch<NDIM>> patch = level->getPatch(p());
-                for (const auto& ip_data : ip_data_vec_vec[patch_num])
+                Pointer<CellData<NDIM, int>> i_data = patch->getPatchData(ghost_fill.getIndexPatchIndex());
+                Pointer<CellData<NDIM, double>> X_data = patch->getPatchData(X_idx);
+                X_data->fillAll(0.0);
+
+                Pointer<CellData<NDIM, double>> Y_data = patch->getPatchData(Y_idx);
+                const std::vector<sharp_interface::ImagePointData>& img_data_vec = img_pt_vec_vec[local_patch_num];
+                for (const auto& img_data : img_data_vec)
                 {
-                    // Grab the cell index corresponding to the image point
-                    const CellIndex<NDIM>& gp_idx = ip_data.d_gp_idx;
-                    const CellIndex<NDIM>& ip_idx = ip_data.d_ip_idx;
-                    sharp_interface::ImagePointWeightsMap& ip_wghts_map = ip_wghts_vec[patch_num];
-                    auto gp_idx_patch = std::make_pair(gp_idx, patch);
-                    if (ip_wghts_map.count(gp_idx_patch) == 0)
-                        TBOX_ERROR("Couldn't find ghost point " << gp_idx << " in the map!\n");
+                    (*Y_data)(img_data.d_gp_idx) = 2.0 * bdry_fcn(img_data.d_bp_location);
+                }
+
+                Pointer<CellData<NDIM, double>> wgt_cc_data = patch->getPatchData(wgt_cc_idx);
+                for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    if ((*i_data)(idx) == sharp_interface::INVALID) (*wgt_cc_data)(idx) = 0.0;
                 }
             }
         }
+
+        PETScKrylovLinearSolver solver("solver", nullptr, "solver_");
+        solver.setOperator(laplace_op);
+        solver.setHomogeneousBc(false);
+        solver.setSolutionTime(0.0);
+        solver.initializeSolverState(x_vec, y_vec);
+        solver.solveSystem(x_vec, y_vec);
+
+        for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+        {
+            Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
+            const std::vector<std::vector<sharp_interface::ImagePointData>>& img_pt_vec_vec =
+                ghost_fill.getImagePointData(ln);
+
+            int local_patch_num = 0;
+            for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
+            {
+                Pointer<Patch<NDIM>> patch = level->getPatch(p());
+                Pointer<CellData<NDIM, int>> i_data = patch->getPatchData(ghost_fill.getIndexPatchIndex());
+                Pointer<CellData<NDIM, double>> X_data = patch->getPatchData(X_idx);
+                Pointer<CellData<NDIM, double>> err_data = patch->getPatchData(err_idx);
+                for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+                {
+                    const CellIndex<NDIM>& idx = ci();
+                    if ((*i_data)(idx) == sharp_interface::INVALID)
+                    {
+                        (*X_data)(idx) = 0.0;
+                        (*err_data)(idx) = 0.0;
+                    }
+                }
+            }
+        }
+
+        // Compute error
+        HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(patch_hierarchy, coarsest_ln, finest_ln);
+        hier_cc_data_ops.subtract(err_idx, err_idx, X_idx);
+        pout << "Error in X:\n"
+             << "  L1-norm:  " << std::setprecision(10) << hier_cc_data_ops.L1Norm(err_idx, wgt_cc_idx) << "\n"
+             << "  L2-norm:  " << std::setprecision(10) << hier_cc_data_ops.L2Norm(err_idx, wgt_cc_idx) << "\n"
+             << "  max-norm: " << std::setprecision(10) << hier_cc_data_ops.maxNorm(err_idx, wgt_cc_idx) << "\n";
+
+        HierarchyCellDataOpsReal<NDIM, int> hier_cc_int_data_ops(patch_hierarchy, coarsest_ln, finest_ln);
+        hier_cc_int_data_ops.copyData(pt_type_idx, ghost_fill.getIndexPatchIndex());
 
 #ifdef DRAW_DATA
         visit_data_writer->writePlotData(patch_hierarchy, 0, 0.0);
