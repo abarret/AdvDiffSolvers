@@ -1,10 +1,11 @@
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 128                                    // coarsest grid spacing
+N = 32                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = 3.0/NFINEST
 INTERFACE_TYPE = "DISK"
+FUNCTION_TYPE = "TRIG"
 R = 1.0
 MFAC = 0.75
 ELEM_TYPE = "TRI3"
@@ -43,7 +44,7 @@ CartesianGeometry {
    domain_boxes = [ (0,0),(N - 1,N - 1) ]
    x_lo = -1.5,-1.5
    x_up = 1.5,1.5
-   periodic_dimension = 0,0
+   periodic_dimension = 1,1
 }
 
 GriddingAlgorithm {
