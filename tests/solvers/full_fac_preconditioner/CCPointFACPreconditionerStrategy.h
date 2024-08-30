@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------
 //
-// Copyright (c) 2014 - 2020 by the IBAMR developers
+// Copyright (c) 2014 - 2021 by the IBAMR developers
 // All rights reserved.
 //
 // This file is part of IBAMR.
@@ -10,11 +10,12 @@
 // COPYRIGHT at the top level directory of IBAMR.
 //
 // ---------------------------------------------------------------------
+// File copied with minor alterations from IBAMR
 
 /////////////////////////////// INCLUDE GUARD ////////////////////////////////
 
-#ifndef included_IBTK_CCPointFACPreconditionerStrategy
-#define included_IBTK_CCPointFACPreconditionerStrategy
+#ifndef included_ADS_CCPointFACPreconditionerStrategy
+#define included_ADS_CCPointFACPreconditionerStrategy
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -42,44 +43,9 @@
 #include <string>
 #include <vector>
 
-namespace IBTK
-{
-class HierarchyGhostCellInterpolation;
-class HierarchyMathOps;
-} // namespace IBTK
-namespace SAMRAI
-{
-namespace hier
-{
-template <int DIM>
-class Variable;
-} // namespace hier
-namespace math
-{
-template <int DIM, class TYPE>
-class HierarchyDataOpsReal;
-} // namespace math
-namespace solv
-{
-template <int DIM>
-class RobinBcCoefStrategy;
-} // namespace solv
-namespace tbox
-{
-class Database;
-} // namespace tbox
-namespace xfer
-{
-template <int DIM>
-class CoarsenSchedule;
-template <int DIM>
-class RefineSchedule;
-} // namespace xfer
-} // namespace SAMRAI
-
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace IBTK
+namespace ADS
 {
 /*!
  * \brief Class CCPointFACPreconditionerStrategy is an abstract
@@ -453,12 +419,12 @@ protected:
     /*
      * Physical boundary operators.
      */
-    SAMRAI::tbox::Pointer<RobinPhysBdryPatchStrategy> d_bc_op;
+    SAMRAI::tbox::Pointer<IBTK::RobinPhysBdryPatchStrategy> d_bc_op;
 
     /*
      * Coarse-fine interface interpolation objects.
      */
-    SAMRAI::tbox::Pointer<CoarseFineBoundaryRefinePatchStrategy> d_cf_bdry_op;
+    SAMRAI::tbox::Pointer<IBTK::CoarseFineBoundaryRefinePatchStrategy> d_cf_bdry_op;
 
     /*
      * Variable fill pattern object.
@@ -468,33 +434,6 @@ protected:
     //\}
 
 private:
-    /*!
-     * \brief Default constructor.
-     *
-     * \note This constructor is not implemented and should not be used.
-     */
-    CCPointFACPreconditionerStrategy() = delete;
-
-    /*!
-     * \brief Copy constructor.
-     *
-     * \note This constructor is not implemented and should not be used.
-     *
-     * \param from The value to copy to this object.
-     */
-    CCPointFACPreconditionerStrategy(const CCPointFACPreconditionerStrategy& from) = delete;
-
-    /*!
-     * \brief Assignment operator.
-     *
-     * \note This operator is not implemented and should not be used.
-     *
-     * \param that The value to assign to this object.
-     *
-     * \return A reference to this object.
-     */
-    CCPointFACPreconditionerStrategy& operator=(const CCPointFACPreconditionerStrategy& that) = delete;
-
     /*!
      * \name Various refine and coarsen objects.
      */
@@ -529,8 +468,8 @@ private:
 
     //\}
 };
-} // namespace IBTK
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////
 
-#endif // #ifndef included_IBTK_CCPointFACPreconditionerStrategy
+#endif // #ifndef included_ADS_CCPointFACPreconditionerStrategy
