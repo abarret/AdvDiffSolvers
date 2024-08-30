@@ -57,6 +57,7 @@ SET(CXX_SRC
     sharp_interface/SharpInterfaceGhostFill.cpp
     sharp_interface/sharp_interface_utilities.cpp
 
+    solvers/FullFACPreconditioner.cpp
     solvers/LSCutCellBoundaryConditions.cpp
     solvers/LSCutCellLaplaceOperator.cpp
     solvers/PETScAugmentedKrylovLinearSolver.cpp

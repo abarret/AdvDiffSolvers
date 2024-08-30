@@ -10,6 +10,14 @@ R = 1.0
 MFAC = 0.75
 ELEM_TYPE = "TRI3"
 
+PRECOND {
+
+}
+
+PRECOND_PRECOND {
+
+}
+
 MeshMapping {
   max_level = MAX_LEVELS
 }

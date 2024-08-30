@@ -11,9 +11,12 @@
 
 #include "ibtk/CartGridFunctionSet.h"
 #include <ibtk/AppInitializer.h>
+#include <ibtk/CCLaplaceOperator.h>
+#include <ibtk/CCPoissonSolverManager.h>
 #include <ibtk/HierarchyMathOps.h>
 #include <ibtk/IBTKInit.h>
 #include <ibtk/PETScKrylovLinearSolver.h>
+#include <ibtk/PETScKrylovPoissonSolver.h>
 #include <ibtk/muParserRobinBcCoefs.h>
 
 #include "tbox/Pointer.h"
@@ -415,18 +418,41 @@ main(int argc, char* argv[])
             }
         }
 
+        // Preconditioner
+        auto poisson_manager = CCPoissonSolverManager::getManager();
+        Pointer<PoissonSolver> precond = poisson_manager->allocateSolver("PETSC_KRYLOV_SOLVER",
+                                                                         "PRECOND",
+                                                                         input_db->getDatabase("PRECOND"),
+                                                                         "precond_",
+                                                                         "HYPRE_LEVEL_SOLVER",
+                                                                         "PRECOND_PRECOND",
+                                                                         input_db->getDatabase("PRECOND_PRECOND"),
+                                                                         "precond_precond_",
+                                                                         "UNDEFINED",
+                                                                         "",
+                                                                         nullptr,
+                                                                         "");
+        PoissonSpecifications poisson_spec("poisson_spec");
+        poisson_spec.setCConstant(0.0);
+        poisson_spec.setDConstant(1.0);
+        precond->setPoissonSpecifications(poisson_spec);
+        precond->setHomogeneousBc(false);
+        precond->setSolutionTime(0.0);
+        precond->initializeSolverState(x_vec, y_vec);
+
         PETScKrylovLinearSolver solver("solver", nullptr, "solver_");
         solver.setOperator(laplace_op);
         solver.setHomogeneousBc(false);
+        solver.setPreconditioner(precond);
         solver.setSolutionTime(0.0);
         solver.initializeSolverState(x_vec, y_vec);
+
+        input_db->printClassData(plog);
         solver.solveSystem(x_vec, y_vec);
 
         for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
         {
             Pointer<PatchLevel<NDIM>> level = patch_hierarchy->getPatchLevel(ln);
-            const std::vector<std::vector<sharp_interface::ImagePointData>>& img_pt_vec_vec =
-                ghost_fill.getImagePointData(ln);
 
             int local_patch_num = 0;
             for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
