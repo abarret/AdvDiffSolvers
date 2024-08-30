@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------
 //
-// Copyright (c) 2014 - 2020 by the IBAMR developers
+// Copyright (c) 2014 - 2021 by the IBAMR developers
 // All rights reserved.
 //
 // This file is part of IBAMR.
@@ -10,11 +10,12 @@
 // COPYRIGHT at the top level directory of IBAMR.
 //
 // ---------------------------------------------------------------------
+// File copied with minor alterations from IBAMR
 
 /////////////////////////////// INCLUDE GUARD ////////////////////////////////
 
-#ifndef included_CCPointRelaxationFACOperator
-#define included_CCPointRelaxationFACOperator
+#ifndef included_ADS_CCPointRelaxationFACOperator
+#define included_ADS_CCPointRelaxationFACOperator
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -36,34 +37,9 @@
 // Local includes
 #include "CCPointFACPreconditionerStrategy.h"
 
-namespace SAMRAI
-{
-namespace hier
-{
-template <int DIM>
-class Box;
-template <int DIM>
-class BoxList;
-template <int DIM>
-class Patch;
-} // namespace hier
-namespace pdat
-{
-template <int DIM, class TYPE>
-class CellData;
-template <int DIM, class TYPE>
-class SideData;
-} // namespace pdat
-namespace solv
-{
-template <int DIM, class TYPE>
-class SAMRAIVectorReal;
-} // namespace solv
-} // namespace SAMRAI
-
 /////////////////////////////// CLASS DEFINITION /////////////////////////////
 
-namespace IBTK
+namespace ADS
 {
 /*!
  * \brief Class CCPointRelaxationFACOperator is a concrete
@@ -213,37 +189,11 @@ protected:
     void deallocateOperatorStateSpecialized(int coarsest_reset_ln, int finest_reset_ln) override;
 
 private:
-    /*!
-     * \brief Default constructor.
-     *
-     * \note This constructor is not implemented and should not be used.
-     */
-    CCPointRelaxationFACOperator() = delete;
-
-    /*!
-     * \brief Copy constructor.
-     *
-     * \note This constructor is not implemented and should not be used.
-     *
-     * \param from The value to copy to this object.
-     */
-    CCPointRelaxationFACOperator(const CCPointRelaxationFACOperator& from) = delete;
-
-    /*!
-     * \brief Assignment operator.
-     *
-     * \note This operator is not implemented and should not be used.
-     *
-     * \param that The value to assign to this object.
-     *
-     * \return A reference to this object.
-     */
-    CCPointRelaxationFACOperator& operator=(const CCPointRelaxationFACOperator& that) = delete;
 
     /*
      * Coarse level solvers and solver parameters.
      */
-    SAMRAI::tbox::Pointer<PoissonSolver> d_coarse_solver;
+    SAMRAI::tbox::Pointer<IBTK::PoissonSolver> d_coarse_solver;
     SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> d_coarse_solver_db;
 
     /*
@@ -252,8 +202,8 @@ private:
     std::vector<std::vector<SAMRAI::hier::BoxList<NDIM>>> d_patch_bc_box_overlap;
     std::vector<std::vector<std::map<int, SAMRAI::hier::Box<NDIM>>>> d_patch_neighbor_overlap;
 };
-} // namespace IBTK
+} // namespace ADS
 
 //////////////////////////////////////////////////////////////////////////////
 
-#endif // #ifndef included_IBTK_CCPointRelaxationFACOperator
+#endif // #ifndef included_ADS_CCPointRelaxationFACOperator

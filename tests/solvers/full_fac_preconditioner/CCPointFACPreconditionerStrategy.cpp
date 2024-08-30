@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------
 //
-// Copyright (c) 2014 - 2020 by the IBAMR developers
+// Copyright (c) 2014 - 2021 by the IBAMR developers
 // All rights reserved.
 //
 // This file is part of IBAMR.
@@ -10,6 +10,7 @@
 // COPYRIGHT at the top level directory of IBAMR.
 //
 // ---------------------------------------------------------------------
+// File copied with minor alterations from IBAMR
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
@@ -63,7 +64,7 @@
 
 /////////////////////////////// NAMESPACE ////////////////////////////////////
 
-namespace IBTK
+namespace ADS
 {
 /////////////////////////////// STATIC ///////////////////////////////////////
 
