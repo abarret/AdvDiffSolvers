@@ -97,10 +97,10 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
         double pre_fac = sgn * (d_ts_type == ADS::DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE ? 0.5 : 1.0);
         if (d_D == 0.0) pre_fac = 0.0;
 
-        const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner = d_sb_data_manager->getFEMeshPartitioner(part);
-        EquationSystems* eq_sys = fe_mesh_partitioner->getEquationSystems();
+        FEToHierarchyMapping& fe_hierarchy_mapping = d_sb_data_manager->getFEToHierarchyMapping(part);
+        EquationSystems* eq_sys = fe_hierarchy_mapping.getFESystemManager().getEquationSystems();
 
-        System& X_system = eq_sys->get_system(fe_mesh_partitioner->COORDINATES_SYSTEM_NAME);
+        System& X_system = eq_sys->get_system(fe_hierarchy_mapping.getCoordsSystemName());
         DofMap& X_dof_map = X_system.get_dof_map();
         FEType X_fe_type = X_dof_map.variable_type(0);
         NumericVector<double>* X_vec = X_system.solution.get();
@@ -108,7 +108,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
         TBOX_ASSERT(X_petsc_vec != nullptr);
         const double* const X_local_soln = X_petsc_vec->get_array_read();
         FEDataManager::SystemDofMapCache& X_dof_map_cache =
-            *fe_mesh_partitioner->getDofMapCache(fe_mesh_partitioner->COORDINATES_SYSTEM_NAME);
+            *fe_hierarchy_mapping.getFESystemManager().getDofMapCache(fe_hierarchy_mapping.getCoordsSystemName());
 
         System& J_sys = eq_sys->get_system(d_sb_data_manager->getJacobianName());
         DofMap& J_dof_map = J_sys.get_dof_map();
@@ -153,7 +153,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
         const std::vector<double>& JxW = fe->get_JxW();
 
         // Only changes are needed where the structure lives
-        const int level_num = fe_mesh_partitioner->getFinestPatchLevelNumber();
+        const int level_num = fe_hierarchy_mapping.getFinestPatchLevelNumber();
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(level_num);
         const Pointer<CartesianGridGeometry<NDIM>> grid_geom = level->getGridGeometry();
         VectorValue<double> n;

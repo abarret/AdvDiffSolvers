@@ -127,8 +127,7 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
 #endif
 
     // Grab the position and information
-    const std::vector<std::shared_ptr<FEMeshPartitioner>>& mesh_partitioners =
-        d_cut_cell_mapping->getMeshPartitioners();
+    const std::vector<FEToHierarchyMapping*>& fe_mappings = d_cut_cell_mapping->getMeshMappings();
     const int num_parts = d_cut_cell_mapping->getNumParts();
     std::vector<NumericVector<double>*> X_vecs(num_parts, nullptr), Q_in_vecs(num_parts, nullptr),
         Q_out_vecs(num_parts, nullptr);
@@ -136,9 +135,9 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
         Q_out_dof_map_vecs(num_parts, nullptr);
     for (int part = 0; part < num_parts; ++part)
     {
-        EquationSystems* eq_sys = mesh_partitioners[part]->getEquationSystems();
+        EquationSystems* eq_sys = fe_mappings[part]->getFESystemManager().getEquationSystems();
 
-        auto& X_sys = eq_sys->get_system<ExplicitSystem>(mesh_partitioners[part]->COORDINATES_SYSTEM_NAME);
+        auto& X_sys = eq_sys->get_system<ExplicitSystem>(fe_mappings[part]->getCoordsSystemName());
         X_vecs[part] = X_sys.current_local_solution.get();
         X_dof_map_vecs[part] = &X_sys.get_dof_map();
 

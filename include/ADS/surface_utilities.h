@@ -1,7 +1,7 @@
 #ifndef included_ADS_surface_utilities
 #define included_ADS_surface_utilities
 
-#include <ADS/FEMeshPartitioner.h>
+#include <ADS/FEToHierarchyMapping.h>
 
 #include <libmesh/equation_systems.h>
 
@@ -17,7 +17,7 @@ namespace ADS
  *
  * We assume the physical coordinates of the mesh elements are the reference configuration for the mesh.
  */
-void update_jacobian(const std::string& J_sys_name, FEMeshPartitioner& fe_partitioner);
+void update_jacobian(const std::string& J_sys_name, FESystemManager& fe_partitioner);
 
 } // namespace ADS
 #endif

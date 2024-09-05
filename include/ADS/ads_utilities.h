@@ -1,6 +1,8 @@
 #ifndef included_ADS_ads_utilities
 #define included_ADS_ads_utilities
 
+#include <ADS/FEToHierarchyMapping.h>
+
 #include <ibamr/ibamr_utilities.h>
 
 #include <ComponentSelector.h>
@@ -100,6 +102,12 @@ void reset_unphysical_values(
     const std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, double>& reset_map,
     const bool use_negative = true);
 ///\}
+
+template <typename T>
+std::vector<T*> unique_ptr_vec_to_raw_ptr_vec(const std::vector<std::unique_ptr<T>>& vec);
+
+std::vector<FESystemManager*> get_system_managers(const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings);
+
 } // namespace ADS
 
 #include <ADS/private/ads_utilities_inc.h>

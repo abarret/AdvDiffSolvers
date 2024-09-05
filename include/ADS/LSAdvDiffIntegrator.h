@@ -31,6 +31,12 @@ public:
     ~LSAdvDiffIntegrator() = default;
 
     /*!
+     * Return pointers to the FEToHierarchyMapping objects used by this class. Note that these are not set-up until the
+     * hierarchy is created, so this returns an empty vector prior to initializePatchHierarchy() is called.
+     */
+    std::vector<FEToHierarchyMapping*> getFEHierarchyMappings();
+
+    /*!
      * Register a cell-centered quantity to be advected and diffused by the
      * hierarchy integrator. Can optionally turn off outputting the quantity.
      *
@@ -198,6 +204,7 @@ protected:
         d_ls_strategy_map;
 
     std::shared_ptr<GeneralBoundaryMeshMapping> d_mesh_mapping;
+    std::vector<std::unique_ptr<FEToHierarchyMapping>> d_fe_hierarchy_mappings;
 
     // Advection reconstruction information
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>,

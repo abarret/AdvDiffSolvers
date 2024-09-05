@@ -1,7 +1,7 @@
 #ifndef included_ADS_CutCellVolumeMeshMapping
 #define included_ADS_CutCellVolumeMeshMapping
 #include "ADS/CutCellMeshMapping.h"
-#include "ADS/FEMeshPartitioner.h"
+#include "ADS/FEToHierarchyMapping.h"
 #include "ADS/ls_functions.h"
 #include "ADS/ls_utilities.h"
 
@@ -24,14 +24,14 @@ public:
      */
     CutCellVolumeMeshMapping(std::string object_name,
                              SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
-                             const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner);
+                             FEToHierarchyMapping* fe_hierarchy_mappings);
 
     /*!
      * \brief Constructor.
      */
     CutCellVolumeMeshMapping(std::string object_name,
                              SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
-                             const std::vector<std::shared_ptr<FEMeshPartitioner>>& fe_mesh_paritioners);
+                             const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings);
 
     /*!
      * \brief Constructor.
@@ -74,14 +74,14 @@ public:
         d_mapping_fcns[part] = fcn;
     }
 
-    inline const std::shared_ptr<FEMeshPartitioner>& getMeshPartitioner(unsigned int part = 0) const
+    inline const FEToHierarchyMapping* getMeshMapping(unsigned int part = 0)
     {
-        return d_bdry_mesh_partitioners.at(part);
+        return d_fe_hierarchy_mappings.at(part);
     }
 
-    inline const std::vector<std::shared_ptr<FEMeshPartitioner>>& getMeshPartitioners() const
+    inline const std::vector<FEToHierarchyMapping*>& getMeshMappings() const
     {
-        return d_bdry_mesh_partitioners;
+        return d_fe_hierarchy_mappings;
     }
 
 private:
@@ -89,7 +89,7 @@ private:
 
     bool findIntersection(libMesh::Point& p, libMesh::Elem* elem, libMesh::Point r, libMesh::VectorValue<double> q);
 
-    std::vector<std::shared_ptr<FEMeshPartitioner>> d_bdry_mesh_partitioners;
+    std::vector<FEToHierarchyMapping*> d_fe_hierarchy_mappings;
     std::vector<IBTK::FEDataManager*> d_fe_data_managers;
     std::vector<MappingFcn> d_mapping_fcns;
 };

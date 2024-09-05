@@ -63,6 +63,12 @@ public:
     virtual void registerGeneralBoundaryMeshMapping(const std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping);
 
     /*!
+     * Return pointers to the FEToHierarchyMapping objects used by this class. Note that these are not set-up until the
+     * hierarchy is created, so this returns an empty vector prior to initializePatchHierarchy() is called.
+     */
+    std::vector<FEToHierarchyMapping*> getFEHierarchyMappings();
+
+    /*!
      * Register a level set variable. Advected quantities should be restricted to the level set by the call
      * restrictToLevelSet.
      */
@@ -236,6 +242,7 @@ protected:
         d_ls_vol_fcn_map;
 
     std::shared_ptr<GeneralBoundaryMeshMapping> d_mesh_mapping;
+    std::vector<std::unique_ptr<FEToHierarchyMapping>> d_fe_hierarchy_mappings;
 
     // Advection reconstruction information
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>,

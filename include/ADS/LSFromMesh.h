@@ -4,7 +4,7 @@
 #include "ibtk/config.h"
 
 #include "ADS/CutCellMeshMapping.h"
-#include "ADS/FEMeshPartitioner.h"
+#include "ADS/FEToHierarchyMapping.h"
 #include "ADS/LSFindCellVolume.h"
 
 #include "ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h"

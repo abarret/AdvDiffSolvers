@@ -11,9 +11,9 @@ BoundaryReconstructCache::BoundaryReconstructCache(int ls_idx,
                                                    Pointer<PatchHierarchy<NDIM>> hierarchy,
                                                    std::shared_ptr<GeneralBoundaryMeshMapping> mesh_mapping,
                                                    const int stencil_size)
-    : d_stencil_size(stencil_size), d_hierarchy(hierarchy), d_mesh_mapping(std::move(mesh_mapping)), d_ls_idx(ls_idx)
+    : d_stencil_size(stencil_size), d_hierarchy(hierarchy), d_ls_idx(ls_idx)
 {
-    // intentionally blank
+    setMeshMapping(std::move(mesh_mapping));
 }
 
 BoundaryReconstructCache::BoundaryReconstructCache(const int stencil_size) : d_stencil_size(stencil_size)
@@ -55,7 +55,21 @@ BoundaryReconstructCache::setPatchHierarchy(Pointer<PatchHierarchy<NDIM>> hierar
 void
 BoundaryReconstructCache::setMeshMapping(std::shared_ptr<GeneralBoundaryMeshMapping> mesh_mapping)
 {
+#ifndef NDEBUG
+    TBOX_ASSERT(mesh_mapping.get());
+#endif
     d_mesh_mapping = std::move(mesh_mapping);
+    // Also create the FEToHierarchyMappings
+    const int num_parts = d_mesh_mapping->getNumParts();
+    for (int part = 0; part < num_parts; ++part)
+    {
+        d_fe_hierarchy_mappings.push_back(
+            std::make_unique<FEToHierarchyMapping>("FEToHierarchyMapping_" + std::to_string(part),
+                                                   &d_mesh_mapping->getSystemManager(part),
+                                                   nullptr,
+                                                   d_hierarchy->getNumberOfLevels(),
+                                                   IntVector<NDIM>(1)));
+    }
     clearCache();
     d_update_weights = true;
 }
@@ -67,17 +81,22 @@ BoundaryReconstructCache::cacheData()
     for (int part = 0; part < d_mesh_mapping->getNumParts(); ++part)
     {
         // Grab the position of the mesh
-        const std::shared_ptr<FEMeshPartitioner>& mesh_partitioner = d_mesh_mapping->getMeshPartitioner(part);
-        EquationSystems* eq_sys = mesh_partitioner->getEquationSystems();
-        const System& X_sys = eq_sys->get_system(mesh_partitioner->COORDINATES_SYSTEM_NAME);
+        FESystemManager& fe_sys_manager = d_mesh_mapping->getSystemManager(part);
+        EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
+        const System& X_sys = eq_sys->get_system(fe_sys_manager.COORDINATES_SYSTEM_NAME);
         NumericVector<double>* X_vec = X_sys.current_local_solution.get();
         const DofMap& X_dof_map = X_sys.get_dof_map();
+
+        // Sort elements to patches
+        d_fe_hierarchy_mappings[part]->setPatchHierarchy(d_hierarchy);
+        d_fe_hierarchy_mappings[part]->reinitElementMappings(1 /*gcw*/);
 
         // Mesh should be on finest level.
         // TODO: Relax this constraint?
         const int ln = d_hierarchy->getFinestLevelNumber();
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-        const std::vector<std::vector<Node*>>& patch_node_map = mesh_partitioner->getActivePatchNodeMap(ln);
+        const std::vector<std::vector<Node*>>& patch_node_map =
+            d_fe_hierarchy_mappings[part]->getActivePatchNodeMap(ln);
         int patch_num = 0;
         for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++patch_num)
         {
@@ -193,8 +212,8 @@ BoundaryReconstructCache::reconstruct(const int part, const std::string& Q_str, 
 #endif
     // Loop through all the nodes on the provided part number and compute the reconstruction.
     // First pull out the data we need
-    const std::shared_ptr<FEMeshPartitioner>& mesh_partitioner = d_mesh_mapping->getMeshPartitioner(part);
-    EquationSystems* eq_sys = mesh_partitioner->getEquationSystems();
+    FESystemManager& fe_sys_manager = d_mesh_mapping->getSystemManager(part);
+    EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
     System& Q_sys = eq_sys->get_system(Q_str);
     NumericVector<double>* Q_vec = Q_sys.solution.get();
     const DofMap& Q_dof_map = Q_sys.get_dof_map();

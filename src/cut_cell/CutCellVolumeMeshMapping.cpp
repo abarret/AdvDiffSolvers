@@ -10,18 +10,17 @@ namespace ADS
 {
 CutCellVolumeMeshMapping::CutCellVolumeMeshMapping(std::string object_name,
                                                    Pointer<Database> input_db,
-                                                   const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner)
-    : CutCellMeshMapping(std::move(object_name), input_db, 1), d_bdry_mesh_partitioners({ fe_mesh_partitioner })
+                                                   FEToHierarchyMapping* fe_hierarchy_mapping)
+    : CutCellMeshMapping(std::move(object_name), input_db, 1), d_fe_hierarchy_mappings({ fe_hierarchy_mapping })
 {
     commonConstructor(input_db);
 }
 
-CutCellVolumeMeshMapping::CutCellVolumeMeshMapping(
-    std::string object_name,
-    Pointer<Database> input_db,
-    const std::vector<std::shared_ptr<FEMeshPartitioner>>& fe_mesh_partitioners)
-    : CutCellMeshMapping(std::move(object_name), input_db, fe_mesh_partitioners.size()),
-      d_bdry_mesh_partitioners(fe_mesh_partitioners)
+CutCellVolumeMeshMapping::CutCellVolumeMeshMapping(std::string object_name,
+                                                   Pointer<Database> input_db,
+                                                   const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings)
+    : CutCellMeshMapping(std::move(object_name), input_db, fe_hierarchy_mappings.size()),
+      d_fe_hierarchy_mappings(fe_hierarchy_mappings)
 {
     commonConstructor(input_db);
 }
@@ -66,14 +65,15 @@ CutCellVolumeMeshMapping::generateCutCellMappings()
         FEDataManager::SystemDofMapCache* X_dof_map_cache = nullptr;
         const std::vector<std::vector<Elem*>>* active_patch_element_map = nullptr;
         int level_num = IBTK::invalid_level_number;
-        if (d_bdry_mesh_partitioners.size() > 0)
+        if (d_fe_hierarchy_mappings.size() > 0)
         {
-            const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner = d_bdry_mesh_partitioners[part];
-            eq_sys = fe_mesh_partitioner->getEquationSystems();
-            X_sys = &eq_sys->get_system(fe_mesh_partitioner->COORDINATES_SYSTEM_NAME);
-            X_dof_map_cache = fe_mesh_partitioner->getDofMapCache(fe_mesh_partitioner->COORDINATES_SYSTEM_NAME);
-            active_patch_element_map = &fe_mesh_partitioner->getActivePatchElementMap();
-            level_num = fe_mesh_partitioner->getFinestPatchLevelNumber();
+            FEToHierarchyMapping* fe_hierarchy_mapping = d_fe_hierarchy_mappings[part];
+            eq_sys = fe_hierarchy_mapping->getFESystemManager().getEquationSystems();
+            X_sys = &eq_sys->get_system(fe_hierarchy_mapping->getCoordsSystemName());
+            X_dof_map_cache =
+                fe_hierarchy_mapping->getFESystemManager().getDofMapCache(fe_hierarchy_mapping->getCoordsSystemName());
+            active_patch_element_map = &fe_hierarchy_mapping->getActivePatchElementMap();
+            level_num = fe_hierarchy_mapping->getFinestPatchLevelNumber();
         }
         else if (d_fe_data_managers.size() > 0)
         {

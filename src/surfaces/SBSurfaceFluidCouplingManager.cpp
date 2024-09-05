@@ -23,21 +23,20 @@ namespace ADS
 SBSurfaceFluidCouplingManager::SBSurfaceFluidCouplingManager(
     std::string object_name,
     const Pointer<Database>& input_db,
-    const std::vector<std::shared_ptr<FEMeshPartitioner>>& fe_mesh_partitioners)
+    const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings)
     : d_object_name(std::move(object_name)),
-      d_fe_mesh_partitioners(fe_mesh_partitioners),
+      d_fe_hierarchy_mappings(fe_hierarchy_mappings),
       d_J_sys_name("Jacobian"),
       d_scr_var(new CellVariable<NDIM, double>(d_object_name + "::SCR"))
 {
     commonConstructor(input_db);
 }
 
-SBSurfaceFluidCouplingManager::SBSurfaceFluidCouplingManager(
-    std::string object_name,
-    const Pointer<Database>& input_db,
-    const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner)
+SBSurfaceFluidCouplingManager::SBSurfaceFluidCouplingManager(std::string object_name,
+                                                             const Pointer<Database>& input_db,
+                                                             FEToHierarchyMapping* fe_hierarchy_mapping)
     : d_object_name(std::move(object_name)),
-      d_fe_mesh_partitioners({ fe_mesh_partitioner }),
+      d_fe_hierarchy_mappings({ fe_hierarchy_mapping }),
       d_J_sys_name("Jacobian"),
       d_scr_var(new CellVariable<NDIM, double>(d_object_name + "::SCR"))
 {
@@ -183,8 +182,8 @@ SBSurfaceFluidCouplingManager::initializeFEData()
     const bool from_restart = RestartManager::getManager()->isFromRestart();
     for (unsigned int part = 0; part < getNumParts(); ++part)
     {
-        const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner = d_fe_mesh_partitioners[part];
-        EquationSystems* eq_sys = fe_mesh_partitioner->getEquationSystems();
+        FEToHierarchyMapping* fe_hierarchy_mapping = d_fe_hierarchy_mappings[part];
+        EquationSystems* eq_sys = fe_hierarchy_mapping->getFESystemManager().getEquationSystems();
 
         if (from_restart)
         {
@@ -246,11 +245,12 @@ SBSurfaceFluidCouplingManager::interpolateToBoundary(Pointer<CellVariable<NDIM, 
     hier_ghost_cell.initializeOperatorState(ghost_cell_comp, d_hierarchy);
     hier_ghost_cell.fillData(time);
 
-    EquationSystems* eq_sys = d_fe_mesh_partitioners[part]->getEquationSystems();
+    const FESystemManager& fe_sys_manager = d_fe_hierarchy_mappings[part]->getFESystemManager();
+    EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
     System& fl_system = eq_sys->get_system(fl_name);
     const unsigned int n_vars = fl_system.n_vars();
     const DofMap& fl_dof_map = fl_system.get_dof_map();
-    System& X_system = eq_sys->get_system(d_fe_mesh_partitioners[part]->COORDINATES_SYSTEM_NAME);
+    System& X_system = eq_sys->get_system(fe_sys_manager.getCoordsSystemName());
     const DofMap& X_dof_map = X_system.get_dof_map();
 
     NumericVector<double>* X_vec = X_system.current_local_solution.get();
@@ -266,7 +266,7 @@ SBSurfaceFluidCouplingManager::interpolateToBoundary(Pointer<CellVariable<NDIM, 
     // Assume we are only doing this on the finest level
     Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(d_hierarchy->getFinestLevelNumber());
     const std::vector<std::vector<Node*>>& active_patch_node_map =
-        d_fe_mesh_partitioners[part]->getActivePatchNodeMap();
+        d_fe_hierarchy_mappings[part]->getActivePatchNodeMap();
     for (PatchLevel<NDIM>::Iterator p(level); p; p++)
     {
         Pointer<Patch<NDIM>> patch = level->getPatch(p());
@@ -350,7 +350,7 @@ SBSurfaceFluidCouplingManager::interpolateToBoundary(Pointer<CellVariable<NDIM, 
 const std::string&
 SBSurfaceFluidCouplingManager::updateJacobian(unsigned int part)
 {
-    update_jacobian(d_J_sys_name, *d_fe_mesh_partitioners[part]);
+    update_jacobian(d_J_sys_name, d_fe_hierarchy_mappings[part]->getFESystemManager());
     return d_J_sys_name;
 }
 
@@ -359,14 +359,15 @@ SBSurfaceFluidCouplingManager::fillInitialConditions()
 {
     for (unsigned int part = 0; part < getNumParts(); ++part)
     {
+        const FESystemManager& fe_sys_manager = d_fe_hierarchy_mappings[part]->getFESystemManager();
         for (const auto& sf_fcn_pair : d_sf_init_fcn_map_vec[part])
         {
             const std::string& sf_name = sf_fcn_pair.first;
-            EquationSystems* eq_sys = d_fe_mesh_partitioners[part]->getEquationSystems();
+            EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
             const MeshBase& mesh = eq_sys->get_mesh();
             System& sf_system = eq_sys->get_system(sf_name);
             const DofMap& sf_dof_map = sf_system.get_dof_map();
-            System& X_system = eq_sys->get_system(d_fe_mesh_partitioners[part]->COORDINATES_SYSTEM_NAME);
+            System& X_system = eq_sys->get_system(fe_sys_manager.getCoordsSystemName());
             const DofMap& X_dof_map = X_system.get_dof_map();
 
             NumericVector<double>* X_vec = X_system.current_local_solution.get();

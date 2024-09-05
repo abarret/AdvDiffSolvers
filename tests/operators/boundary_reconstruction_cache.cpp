@@ -242,8 +242,8 @@ main(int argc, char* argv[])
         mesh_mapping->initializeEquationSystems();
 
         // Set up exact, approximate, and error systems
-        const std::shared_ptr<FEMeshPartitioner>& mesh_partitioner = mesh_mapping->getMeshPartitioner(0);
-        EquationSystems* eq_sys = mesh_partitioner->getEquationSystems();
+        FESystemManager& fe_sys_manager = mesh_mapping->getSystemManager(0);
+        EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
         std::string Q_sys_name = "Q", Q_exa_sys_name = "Q_exa";
         ExplicitSystem& Q_sys = eq_sys->add_system<ExplicitSystem>(Q_sys_name);
         Q_sys.add_variable(Q_sys_name, FEType());
@@ -252,17 +252,20 @@ main(int argc, char* argv[])
 
         mesh_mapping->initializeFEData();
 
-        mesh_mapping->getMeshPartitioner(0)->setPatchHierarchy(patch_hierarchy);
-        mesh_mapping->getMeshPartitioner(0)->reinitElementMappings();
+        FEToHierarchyMapping fe_hierarchy_mapping("FEToHierarchyMapping",
+                                                  &mesh_mapping->getSystemManager(),
+                                                  nullptr,
+                                                  patch_hierarchy->getNumberOfLevels(),
+                                                  IntVector<NDIM>(1) /*ghosts*/);
+        fe_hierarchy_mapping.setPatchHierarchy(patch_hierarchy);
+        fe_hierarchy_mapping.reinitElementMappings();
 
 #ifdef DRAW_DATA
         ExodusII_IO exodus_io(eq_sys->get_mesh());
 #endif
 
-        Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellVolumeMeshMapping("CutCellMapping",
-                                         app_initializer->getComponentDatabase("CutCellMapping"),
-                                         mesh_mapping->getMeshPartitioners());
+        Pointer<CutCellMeshMapping> cut_cell_mapping = new CutCellVolumeMeshMapping(
+            "CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"), &fe_hierarchy_mapping);
         Pointer<LSFromMesh> ls_fcn = new LSFromMesh("LSFromMesh", patch_hierarchy, cut_cell_mapping);
 
         LS_TYPE ls_type = string_to_enum(input_db->getString("LS_TYPE"));

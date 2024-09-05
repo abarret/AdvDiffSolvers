@@ -114,16 +114,15 @@ RBFStructureReconstructions::applyReconstructionLS(const int Q_idx, const int N_
 #endif
 
     // Grab the position and information
-    const std::vector<std::shared_ptr<FEMeshPartitioner>>& mesh_partitioners =
-        d_cut_cell_mapping->getMeshPartitioners();
+    const std::vector<FEToHierarchyMapping*>& mesh_partitioners = d_cut_cell_mapping->getMeshMappings();
     const int num_parts = d_cut_cell_mapping->getNumParts();
     std::vector<NumericVector<double>*> X_vecs(num_parts, nullptr), Q_vecs(num_parts, nullptr);
     std::vector<DofMap*> X_dof_map_vecs(num_parts, nullptr), Q_dof_map_vecs(num_parts, nullptr);
     for (int part = 0; part < num_parts; ++part)
     {
-        EquationSystems* eq_sys = mesh_partitioners[part]->getEquationSystems();
+        EquationSystems* eq_sys = mesh_partitioners[part]->getFESystemManager().getEquationSystems();
 
-        auto& X_sys = eq_sys->get_system<ExplicitSystem>(mesh_partitioners[part]->COORDINATES_SYSTEM_NAME);
+        auto& X_sys = eq_sys->get_system<ExplicitSystem>(mesh_partitioners[part]->getCoordsSystemName());
         X_vecs[part] = X_sys.current_local_solution.get();
         X_dof_map_vecs[part] = &X_sys.get_dof_map();
 

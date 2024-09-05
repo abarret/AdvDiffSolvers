@@ -220,5 +220,28 @@ reset_unphysical_values(
         reset_unphysical_values(hierarchy, ls_idx, Q_var, ctx, reset_map.at(Q_var), use_negative);
 }
 
+template <typename T>
+std::vector<T*>
+unique_ptr_vec_to_raw_ptr_vec(const std::vector<std::unique_ptr<T>>& vec)
+{
+    std::vector<T*> raw_ptr_vec;
+    std::transform(vec.begin(),
+                   vec.end(),
+                   std::back_inserter(raw_ptr_vec),
+                   [](const std::unique_ptr<T>& q) -> T* { return q.get(); });
+    return raw_ptr_vec;
+}
+
+inline std::vector<FESystemManager*>
+get_system_managers(const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings)
+{
+    std::vector<FESystemManager*> fe_sys_managers;
+    std::transform(fe_hierarchy_mappings.begin(),
+                   fe_hierarchy_mappings.end(),
+                   std::back_inserter(fe_sys_managers),
+                   [](FEToHierarchyMapping* mapping) -> FESystemManager* { return &mapping->getFESystemManager(); });
+    return fe_sys_managers;
+}
+
 } // namespace ADS
 #endif

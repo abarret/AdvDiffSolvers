@@ -1,7 +1,6 @@
 #ifndef included_ADS_VolumeBoundaryMeshMapping
 #define included_ADS_VolumeBoundaryMeshMapping
 #include "ADS/CutCellMeshMapping.h"
-#include "ADS/FEMeshPartitioner.h"
 #include "ADS/GeneralBoundaryMeshMapping.h"
 #include "ADS/ls_functions.h"
 #include "ADS/ls_utilities.h"
@@ -15,8 +14,7 @@ namespace ADS
 {
 /*!
  * VolumeBoundaryMeshMapping is a concrete implementation of GeneralBoundaryMeshMapping. It is used to efficiently match
- * an extracted boundary mesh with that of the corresponding solid mesh. It creates and uses a FEMeshPartitioner to
- * maintain a mapping between background Eulerian patches to boundary elements.
+ * an extracted boundary mesh with that of the corresponding solid mesh.
  */
 class VolumeBoundaryMeshMapping : public GeneralBoundaryMeshMapping
 {

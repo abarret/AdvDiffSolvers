@@ -58,7 +58,8 @@ SET(CXX_SRC
     solvers/PETScAugmentedLinearOperator.cpp
     solvers/SBBoundaryConditions.cpp
     
-    surfaces/FEMeshPartitioner.cpp
+    surfaces/FESystemManager.cpp
+    surfaces/FEToHierarchyMapping.cpp
     surfaces/GeneralBoundaryMeshMapping.cpp
     surfaces/SBSurfaceFluidCouplingManager.cpp
     surfaces/VolumeBoundaryMeshMapping.cpp

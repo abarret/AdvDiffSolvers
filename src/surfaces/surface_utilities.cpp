@@ -11,9 +11,9 @@ namespace ADS
 {
 
 void
-update_jacobian(const std::string& J_sys_name, FEMeshPartitioner& fe_partitioner)
+update_jacobian(const std::string& J_sys_name, FESystemManager& fe_sys_manager)
 {
-    EquationSystems* eq_sys = fe_partitioner.getEquationSystems();
+    EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
     MeshBase& mesh = eq_sys->get_mesh();
     auto& J_sys = eq_sys->get_system<ExplicitSystem>(J_sys_name);
     DofMap& J_dof_map = J_sys.get_dof_map();
@@ -22,14 +22,14 @@ update_jacobian(const std::string& J_sys_name, FEMeshPartitioner& fe_partitioner
     std::unique_ptr<NumericVector<double>> F_c_vec(J_vec->zero_clone());
     auto F_vec = dynamic_cast<libMesh::PetscVector<double>*>(F_c_vec.get());
 
-    auto& X_sys = eq_sys->get_system<System>(fe_partitioner.COORDINATES_SYSTEM_NAME);
+    auto& X_sys = eq_sys->get_system<System>(fe_sys_manager.getCoordsSystemName());
     FEType X_fe_type = X_sys.get_dof_map().variable_type(0);
     NumericVector<double>* X_vec = X_sys.solution.get();
     auto X_petsc_vec = dynamic_cast<PetscVector<double>*>(X_vec);
     TBOX_ASSERT(X_petsc_vec != nullptr);
     const double* const X_local_soln = X_petsc_vec->get_array_read();
     FEDataManager::SystemDofMapCache& X_dof_map_cache =
-        *fe_partitioner.getDofMapCache(fe_partitioner.COORDINATES_SYSTEM_NAME);
+        *fe_sys_manager.getDofMapCache(fe_sys_manager.getCoordsSystemName());
 
     std::vector<dof_id_type> J_dof_indices;
 

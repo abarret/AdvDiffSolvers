@@ -10,7 +10,6 @@ N = 64
 MeshMapping {
   alpha = ALPHA
   gamma = GAMMA
-  max_level = MAX_LEVELS
 }
 
 Main {

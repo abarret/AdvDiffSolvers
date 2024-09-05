@@ -2,7 +2,7 @@
 #define included_ADS_SBSurfaceFluidCouplingManager
 
 #include "ADS/CutCellMeshMapping.h"
-#include "ADS/FEMeshPartitioner.h"
+#include "ADS/FEToHierarchyMapping.h"
 #include "ADS/RBFReconstructCache.h"
 
 #include "ibtk/FEDataManager.h"
@@ -24,31 +24,16 @@ public:
      */
     SBSurfaceFluidCouplingManager(std::string name,
                                   const SAMRAI::tbox::Pointer<SAMRAI::tbox::Database>& input_db,
-                                  const std::vector<std::shared_ptr<FEMeshPartitioner>>& fe_mesh_partitioners);
+                                  const std::vector<FEToHierarchyMapping*>& fe_mesh_partitioners);
 
     SBSurfaceFluidCouplingManager(std::string name,
                                   const SAMRAI::tbox::Pointer<SAMRAI::tbox::Database>& input_db,
-                                  const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner);
+                                  FEToHierarchyMapping* fe_mesh_partitioner);
 
     /*!
      * \brief Deconstructor. Cleans up any allocated data objects.
      */
     ~SBSurfaceFluidCouplingManager();
-
-    /*!
-     * \brief Deleted default constructor.
-     */
-    SBSurfaceFluidCouplingManager() = delete;
-
-    /*!
-     * \brief Deleted copy constructor.
-     */
-    SBSurfaceFluidCouplingManager(const SBSurfaceFluidCouplingManager& from) = delete;
-
-    /*!
-     * \brief Deleted assignment operator.
-     */
-    SBSurfaceFluidCouplingManager& operator=(const SBSurfaceFluidCouplingManager& that) = delete;
 
     /*!
      * \brief Register ReconstructCache
@@ -173,7 +158,7 @@ public:
     const std::string& updateJacobian(unsigned int part);
     const std::string& updateJacobian()
     {
-        for (unsigned int part = 0; part < d_fe_mesh_partitioners.size(); ++part) updateJacobian(part);
+        for (unsigned int part = 0; part < d_fe_hierarchy_mappings.size(); ++part) updateJacobian(part);
         return d_J_sys_name;
     }
     /*!
@@ -189,11 +174,16 @@ public:
     }
 
     /*!
-     * \brief Returns the FEDataManager object used by this manager.
+     * \brief Returns the FEToHierarchyMapping object used by this manager.
      */
-    inline std::shared_ptr<FEMeshPartitioner>& getFEMeshPartitioner(unsigned int part = 0)
+    inline FEToHierarchyMapping& getFEToHierarchyMapping(unsigned int part = 0)
     {
-        return d_fe_mesh_partitioners[part];
+        return *d_fe_hierarchy_mappings[part];
+    }
+
+    inline std::vector<FEToHierarchyMapping*> getFEToHierarchyMappings()
+    {
+        return d_fe_hierarchy_mappings;
     }
 
     /*!
@@ -290,12 +280,13 @@ public:
 
     libMesh::BoundaryMesh* getMesh(unsigned int part = 0)
     {
-        return static_cast<libMesh::BoundaryMesh*>(&d_fe_mesh_partitioners[part]->getEquationSystems()->get_mesh());
+        return static_cast<libMesh::BoundaryMesh*>(
+            &d_fe_hierarchy_mappings[part]->getFESystemManager().getEquationSystems()->get_mesh());
     }
 
     unsigned int getNumParts()
     {
-        return d_fe_mesh_partitioners.size();
+        return d_fe_hierarchy_mappings.size();
     }
 
     using InitialConditionFcn = std::function<double(const IBTK::VectorNd& X, const libMesh::Node* const node)>;
@@ -311,7 +302,7 @@ public:
 
 protected:
     std::string d_object_name;
-    std::vector<std::shared_ptr<FEMeshPartitioner>> d_fe_mesh_partitioners;
+    std::vector<FEToHierarchyMapping*> d_fe_hierarchy_mappings;
 
     std::vector<std::vector<std::string>> d_sf_names_vec;
     std::vector<std::vector<std::string>> d_fl_names_vec;

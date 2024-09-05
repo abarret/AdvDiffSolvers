@@ -6,6 +6,7 @@
 #include "ADS/SBAdvDiffIntegrator.h"
 #include "ADS/SBBoundaryConditions.h"
 #include "ADS/SBIntegrator.h"
+#include <ADS/ads_utilities.h>
 #include <ADS/app_namespaces.h>
 
 #include <ibamr/FESurfaceDistanceEvaluator.h>
@@ -63,7 +64,7 @@ void computeFluidErrors(Pointer<CellVariable<NDIM, double>> Q_var,
                         const double time);
 
 void computeSurfaceErrors(const MeshBase& mesh,
-                          std::shared_ptr<FEMeshPartitioner> fe_data_manager,
+                          FESystemManager& fe_data_manager,
                           const std::string& sys_name,
                           const std::string& err_name,
                           double time);
@@ -217,13 +218,6 @@ main(int argc, char* argv[])
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS_In");
         adv_diff_integrator->registerLevelSetVariable(ls_var);
 
-        Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellVolumeMeshMapping("CutCellMapping",
-                                         app_initializer->getComponentDatabase("CutCellMapping"),
-                                         mesh_mapping->getMeshPartitioners());
-        Pointer<LSFromMesh> vol_fcn = new LSFromMesh("LSFromMesh", patch_hierarchy, cut_cell_mapping, true);
-        adv_diff_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
-
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_in_var = new CellVariable<NDIM, double>("Q_in");
         Pointer<CartGridFunction> Q_in_init = new QFcn("QInit", app_initializer->getComponentDatabase("QInitial"));
@@ -245,7 +239,7 @@ main(int argc, char* argv[])
         auto sb_data_manager =
             std::make_shared<SBSurfaceFluidCouplingManager>("SBDataManager",
                                                             app_initializer->getComponentDatabase("SBDataManager"),
-                                                            mesh_mapping->getMeshPartitioners());
+                                                            adv_diff_integrator->getFEHierarchyMappings());
         sb_data_manager->registerFluidConcentration(Q_in_var);
         std::string sf_name = "SurfaceConcentration";
         sb_data_manager->registerSurfaceConcentration(sf_name);
@@ -268,6 +262,26 @@ main(int argc, char* argv[])
         adv_diff_integrator->setSourceTerm(Q_in_var, F_var);
         adv_diff_integrator->setSourceTermFunction(F_var, forcing_fcn);
 
+        const std::string err_sys_name = "ERROR";
+        auto& sys = sb_data_manager->getFEToHierarchyMapping(0)
+                        .getFESystemManager()
+                        .getEquationSystems()
+                        ->add_system<ExplicitSystem>(err_sys_name);
+        sys.add_variable("Error");
+
+        mesh_mapping->initializeFEData();
+        sb_data_manager->fillInitialConditions();
+        // Initialize hierarchy configuration and data on all patches.
+        adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
+
+        // Set up the level set function. Note that this must be set up AFTER the hierarchy is created.
+        Pointer<CutCellMeshMapping> cut_cell_mapping =
+            new CutCellVolumeMeshMapping("CutCellMapping",
+                                         app_initializer->getComponentDatabase("CutCellMapping"),
+                                         adv_diff_integrator->getFEHierarchyMappings());
+        Pointer<LSFromMesh> vol_fcn = new LSFromMesh("LSFromMesh", patch_hierarchy, cut_cell_mapping, true);
+        adv_diff_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
+
         // Set up diffusion operators
         Pointer<LSCutCellLaplaceOperator> rhs_in_oper = new LSCutCellLaplaceOperator(
             "LSCutCellInRHSOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
@@ -285,16 +299,6 @@ main(int argc, char* argv[])
             "PoissonSolver", app_initializer->getComponentDatabase("PoissonSolver"), "poisson_solve_");
         Q_in_helmholtz_solver->setOperator(sol_in_oper);
         adv_diff_integrator->setHelmholtzSolver(Q_in_var, Q_in_helmholtz_solver);
-
-        const std::string err_sys_name = "ERROR";
-        auto& sys =
-            sb_data_manager->getFEMeshPartitioner()->getEquationSystems()->add_system<ExplicitSystem>(err_sys_name);
-        sys.add_variable("Error");
-
-        mesh_mapping->initializeFEData();
-        sb_data_manager->fillInitialConditions();
-        // Initialize hierarchy configuration and data on all patches.
-        adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
         // Exact and error terms
         auto var_db = VariableDatabase<NDIM>::getDatabase();
@@ -357,7 +361,7 @@ main(int argc, char* argv[])
             computeFluidErrors(
                 Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
             computeSurfaceErrors(*mesh_mapping->getBoundaryMesh(),
-                                 sb_data_manager->getFEMeshPartitioner(),
+                                 sb_data_manager->getFEToHierarchyMapping().getFESystemManager(),
                                  sb_data_manager->getSFNames()[0],
                                  err_sys_name,
                                  loop_time);
@@ -370,12 +374,12 @@ main(int argc, char* argv[])
 
 void
 computeSurfaceErrors(const MeshBase& mesh,
-                     std::shared_ptr<FEMeshPartitioner> fe_data_manager,
+                     FESystemManager& fe_sys_manager,
                      const std::string& sys_name,
                      const std::string& err_name,
                      double time)
 {
-    EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
+    EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
     TransientExplicitSystem& q_system = eq_sys->get_system<TransientExplicitSystem>(sys_name);
     ExplicitSystem& err_sys = eq_sys->get_system<ExplicitSystem>(err_name);
     NumericVector<double>* q_vec = q_system.solution.get();
