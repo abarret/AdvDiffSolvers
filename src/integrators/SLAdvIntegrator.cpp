@@ -397,15 +397,18 @@ SLAdvIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHierarchy<NDIM>
         }
 
         // Also create the FEToHierarchyMappings
-        const int num_parts = d_mesh_mapping->getNumParts();
-        for (int part = 0; part < num_parts; ++part)
+        if (d_mesh_mapping)
         {
-            d_fe_hierarchy_mappings.push_back(
-                std::make_unique<FEToHierarchyMapping>(d_object_name + "::FEToHierarchyMapping_" + std::to_string(part),
-                                                       &d_mesh_mapping->getSystemManager(part),
-                                                       nullptr,
-                                                       d_hierarchy->getNumberOfLevels(),
-                                                       IntVector<NDIM>(1)));
+            const int num_parts = d_mesh_mapping->getNumParts();
+            for (int part = 0; part < num_parts; ++part)
+            {
+                d_fe_hierarchy_mappings.push_back(std::make_unique<FEToHierarchyMapping>(
+                    d_object_name + "::FEToHierarchyMapping_" + std::to_string(part),
+                    &d_mesh_mapping->getSystemManager(part),
+                    nullptr,
+                    d_hierarchy->getNumberOfLevels(),
+                    IntVector<NDIM>(1)));
+            }
         }
     }
 }

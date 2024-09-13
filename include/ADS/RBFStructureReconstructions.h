@@ -6,7 +6,7 @@
 #include <ibamr/config.h>
 
 #include "ADS/AdvectiveReconstructionOperator.h"
-#include "ADS/CutCellVolumeMeshMapping.h"
+#include "ADS/CutCellMeshMapping.h"
 #include "ADS/ls_utilities.h"
 #include "ADS/reconstructions.h"
 
@@ -60,9 +60,10 @@ public:
     void applyReconstruction(int Q_idx, int N_idx, int path_idx) override;
 
     /*!
-     * \brief Provide information on the location of the mesh
+     * \brief Provide information on the location of the mesh as well as the cut cells.
      */
-    void setCutCellMapping(SAMRAI::tbox::Pointer<CutCellVolumeMeshMapping> mesh_partitioner);
+    void setCutCellMapping(std::vector<FESystemManager*> fe_sys_managers,
+                           SAMRAI::tbox::Pointer<CutCellMeshMapping> mesh_mapping);
 
     /*!
      * \brief Provide the structural system name for the exact solution.
@@ -85,7 +86,8 @@ private:
     int d_Q_scr_idx = IBTK::invalid_index;
 
     // Structural information
-    SAMRAI::tbox::Pointer<CutCellVolumeMeshMapping> d_cut_cell_mapping;
+    SAMRAI::tbox::Pointer<CutCellMeshMapping> d_cut_cell_mapping;
+    std::vector<FESystemManager*> d_fe_sys_managers;
 
     // Structural value information
     std::string d_Q_sys_name;

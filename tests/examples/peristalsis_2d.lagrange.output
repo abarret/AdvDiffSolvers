@@ -1,4 +1,3 @@
-Using interp type LAGRANGE
 AdvDiffIntegrator: initializing Hierarchy integrator.
 IBHierarchyIntegrator::initializePatchHierarchy(): tag_buffer = 0
 AdvDiffIntegrator: initializing level data
@@ -15,6 +14,7 @@ Total area found on level:   0 is: 0
 Total volume found on level: 0 is: 0.399997393825
 AdvDiffIntegrator: Initializing data for variable: Q
 AdvDiffIntegrator: Finished initializing composite data
+Using interp type LAGRANGE
 IBNRedundantInitializer:  Deallocating initialization data.
 Input database:
 input_db {
@@ -96,7 +96,6 @@ input_db {
    MeshMapping {
       alpha     = 1.25664                                   // input used
       gamma     = 0.25                                      // input used
-      max_level = 1                                         // input used
    }
    CutCellMapping {
       perturb_nodes = FALSE                                 // input used

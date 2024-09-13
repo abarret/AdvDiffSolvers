@@ -1,7 +1,6 @@
 #ifndef included_ADS_SBIntegrator
 #define included_ADS_SBIntegrator
 
-#include "ADS/CutCellMeshMapping.h"
 #include "ADS/RBFReconstructCache.h"
 #include "ADS/SBSurfaceFluidCouplingManager.h"
 

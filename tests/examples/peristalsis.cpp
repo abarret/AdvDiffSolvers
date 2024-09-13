@@ -1,4 +1,4 @@
-#include <ADS/CutCellVolumeMeshMapping.h>
+#include <ADS/CutCellMeshMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/LSFromMesh.h>
 #include <ADS/LagrangeStructureReconstructions.h>
@@ -357,6 +357,7 @@ main(int argc, char* argv[])
         auto mesh_mapping = std::make_shared<IBBoundaryMeshMapping>(
             "BoundaryMeshMapping", input_db->getDatabase("MeshMapping"), meshes, ib_manager, finest_ln, part_nums);
         mesh_mapping->initializeEquationSystems();
+        adv_diff_integrator->registerGeneralBoundaryMeshMapping(mesh_mapping);
 
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS");
         Pointer<CellVariable<NDIM, double>> vol_var = new CellVariable<NDIM, double>("VOL");
@@ -372,6 +373,14 @@ main(int argc, char* argv[])
         // setup the LSAdvDiffIntegrator if necessary.
         adv_diff_integrator->registerLevelSetVariable(ls_var);
         adv_diff_integrator->restrictToLevelSet(Q_var, ls_var);
+
+        Pointer<CutCellMeshMapping> cut_cell_mapping =
+            new CutCellMeshMapping("CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"));
+        Pointer<LSFromMesh> vol_fcn =
+            new LSFromMesh("LSFromMesh", patch_hierarchy, mesh_mapping->getSystemManagers(), cut_cell_mapping, true);
+        vol_fcn->registerBdryFcn(ls_bdry_fcn);
+        vol_fcn->registerNormalReverseDomainId(0, 1);
+        adv_diff_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
 
         // Setup systems.
         const std::string Q_exact_str = "Q_EXACT";
@@ -390,24 +399,14 @@ main(int argc, char* argv[])
         // Initialize hierarchy configuration and data on all patches.
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
-        adv_diff_integrator->registerGeneralBoundaryMeshMapping(mesh_mapping);
-
-        Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellVolumeMeshMapping("CutCellMapping",
-                                         app_initializer->getComponentDatabase("CutCellMapping"),
-                                         adv_diff_integrator->getFEHierarchyMappings());
-        Pointer<LSFromMesh> vol_fcn = new LSFromMesh("LSFromMesh", patch_hierarchy, cut_cell_mapping, true);
-        vol_fcn->registerBdryFcn(ls_bdry_fcn);
-        vol_fcn->registerNormalReverseDomainId(0, 1);
-        adv_diff_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
-
         std::string interp_type = input_db->getString("INTERP_TYPE");
         pout << "Using interp type " << interp_type << "\n";
         if (interp_type.compare("RBF") == 0)
         {
             auto adv_op_reconstruct =
                 std::make_shared<RBFStructureReconstructions>("RBFReconstruct", input_db->getDatabase("AdvOps"));
-            adv_op_reconstruct->setCutCellMapping(cut_cell_mapping);
+            adv_op_reconstruct->setCutCellMapping(get_system_managers(adv_diff_integrator->getFEHierarchyMappings()),
+                                                  cut_cell_mapping);
             adv_op_reconstruct->setQSystemName(Q_exact_str);
             adv_diff_integrator->registerAdvectionReconstruction(Q_var, adv_op_reconstruct);
         }
@@ -415,7 +414,8 @@ main(int argc, char* argv[])
         {
             auto adv_op_reconstruct =
                 std::make_shared<LagrangeStructureReconstructions>("RBFReconstruct", input_db->getDatabase("AdvOps"));
-            adv_op_reconstruct->setCutCellMapping(cut_cell_mapping);
+            adv_op_reconstruct->setCutCellMapping(get_system_managers(adv_diff_integrator->getFEHierarchyMappings()),
+                                                  cut_cell_mapping);
             adv_op_reconstruct->setInsideQSystemName(Q_exact_str);
             adv_op_reconstruct->setReconstructionOutside(false);
             adv_diff_integrator->registerAdvectionReconstruction(Q_var, adv_op_reconstruct);

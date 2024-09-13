@@ -381,17 +381,9 @@ main(int argc, char* argv[])
 
         mesh_mapping->initializeFEData();
 
-        FEToHierarchyMapping fe_hierarchy_mapping("FEToHierarchyMapping",
-                                                  &mesh_mapping->getSystemManager(),
-                                                  nullptr,
-                                                  patch_hierarchy->getNumberOfLevels(),
-                                                  IntVector<NDIM>(1) /*ghosts*/);
-        fe_hierarchy_mapping.setPatchHierarchy(patch_hierarchy);
-        fe_hierarchy_mapping.reinitElementMappings();
-
-        Pointer<CutCellMeshMapping> cut_cell_mapping = new CutCellVolumeMeshMapping(
-            "CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"), &fe_hierarchy_mapping);
-        LSFromMesh ls_vol_fcn("ls", patch_hierarchy, cut_cell_mapping, true);
+        Pointer<CutCellMeshMapping> cut_cell_mapping =
+            new CutCellMeshMapping("CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"));
+        LSFromMesh ls_vol_fcn("ls", patch_hierarchy, mesh_mapping->getSystemManagers(), cut_cell_mapping, true);
         ls_vol_fcn.registerNormalReverseDomainId(0, 0);
         ls_vol_fcn.updateVolumeAreaSideLS(
             vol_idx, vol_var, IBTK::invalid_index, nullptr, IBTK::invalid_index, nullptr, ls_idx, ls_var, 0.0);

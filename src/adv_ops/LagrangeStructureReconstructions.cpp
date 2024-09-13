@@ -93,8 +93,10 @@ LagrangeStructureReconstructions::deallocateOperatorState()
 }
 
 void
-LagrangeStructureReconstructions::setCutCellMapping(Pointer<CutCellVolumeMeshMapping> cut_cell_mapping)
+LagrangeStructureReconstructions::setCutCellMapping(std::vector<FESystemManager*> fe_sys_managers,
+                                                    Pointer<CutCellMeshMapping> cut_cell_mapping)
 {
+    d_fe_sys_managers = std::move(fe_sys_managers);
     d_cut_cell_mapping = std::move(cut_cell_mapping);
 }
 
@@ -127,17 +129,16 @@ LagrangeStructureReconstructions::applyReconstructionLS(const int Q_idx, const i
 #endif
 
     // Grab the position and information
-    const std::vector<FEToHierarchyMapping*>& fe_mappings = d_cut_cell_mapping->getMeshMappings();
-    const int num_parts = d_cut_cell_mapping->getNumParts();
+    const int num_parts = d_fe_sys_managers.size();
     std::vector<NumericVector<double>*> X_vecs(num_parts, nullptr), Q_in_vecs(num_parts, nullptr),
         Q_out_vecs(num_parts, nullptr);
     std::vector<DofMap*> X_dof_map_vecs(num_parts, nullptr), Q_in_dof_map_vecs(num_parts, nullptr),
         Q_out_dof_map_vecs(num_parts, nullptr);
     for (int part = 0; part < num_parts; ++part)
     {
-        EquationSystems* eq_sys = fe_mappings[part]->getFESystemManager().getEquationSystems();
+        EquationSystems* eq_sys = d_fe_sys_managers[part]->getEquationSystems();
 
-        auto& X_sys = eq_sys->get_system<ExplicitSystem>(fe_mappings[part]->getCoordsSystemName());
+        auto& X_sys = eq_sys->get_system<ExplicitSystem>(d_fe_sys_managers[part]->getCoordsSystemName());
         X_vecs[part] = X_sys.current_local_solution.get();
         X_dof_map_vecs[part] = &X_sys.get_dof_map();
 

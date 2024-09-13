@@ -1,6 +1,6 @@
 #include "ibamr/config.h"
 
-#include "ADS/CutCellVolumeMeshMapping.h"
+#include "ADS/CutCellMeshMapping.h"
 #include "ADS/LSCutCellLaplaceOperator.h"
 #include "ADS/LSFromMesh.h"
 #include "ADS/SBAdvDiffIntegrator.h"
@@ -218,6 +218,13 @@ main(int argc, char* argv[])
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS_In");
         adv_diff_integrator->registerLevelSetVariable(ls_var);
 
+        // Set up the level set function. Note that this must be set up BEFORE the hierarchy is created.
+        Pointer<CutCellMeshMapping> cut_cell_mapping =
+            new CutCellMeshMapping("CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"));
+        Pointer<LSFromMesh> vol_fcn =
+            new LSFromMesh("LSFromMesh", patch_hierarchy, mesh_mapping->getSystemManagers(), cut_cell_mapping, true);
+        adv_diff_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
+
         // Setup advected quantity
         Pointer<CellVariable<NDIM, double>> Q_in_var = new CellVariable<NDIM, double>("Q_in");
         Pointer<CartGridFunction> Q_in_init = new QFcn("QInit", app_initializer->getComponentDatabase("QInitial"));
@@ -236,10 +243,8 @@ main(int argc, char* argv[])
         adv_diff_integrator->setDiffusionCoefficient(Q_in_var, input_db->getDouble("D_COEF"));
         adv_diff_integrator->restrictToLevelSet(Q_in_var, ls_var);
 
-        auto sb_data_manager =
-            std::make_shared<SBSurfaceFluidCouplingManager>("SBDataManager",
-                                                            app_initializer->getComponentDatabase("SBDataManager"),
-                                                            adv_diff_integrator->getFEHierarchyMappings());
+        auto sb_data_manager = std::make_shared<SBSurfaceFluidCouplingManager>(
+            "SBDataManager", app_initializer->getComponentDatabase("SBDataManager"), mesh_mapping->getSystemManagers());
         sb_data_manager->registerFluidConcentration(Q_in_var);
         std::string sf_name = "SurfaceConcentration";
         sb_data_manager->registerSurfaceConcentration(sf_name);
@@ -263,42 +268,36 @@ main(int argc, char* argv[])
         adv_diff_integrator->setSourceTermFunction(F_var, forcing_fcn);
 
         const std::string err_sys_name = "ERROR";
-        auto& sys = sb_data_manager->getFEToHierarchyMapping(0)
-                        .getFESystemManager()
-                        .getEquationSystems()
-                        ->add_system<ExplicitSystem>(err_sys_name);
+        auto& sys =
+            sb_data_manager->getFESystemManager().getEquationSystems()->add_system<ExplicitSystem>(err_sys_name);
         sys.add_variable("Error");
-
-        mesh_mapping->initializeFEData();
-        sb_data_manager->fillInitialConditions();
-        // Initialize hierarchy configuration and data on all patches.
-        adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
-
-        // Set up the level set function. Note that this must be set up AFTER the hierarchy is created.
-        Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellVolumeMeshMapping("CutCellMapping",
-                                         app_initializer->getComponentDatabase("CutCellMapping"),
-                                         adv_diff_integrator->getFEHierarchyMappings());
-        Pointer<LSFromMesh> vol_fcn = new LSFromMesh("LSFromMesh", patch_hierarchy, cut_cell_mapping, true);
-        adv_diff_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
 
         // Set up diffusion operators
         Pointer<LSCutCellLaplaceOperator> rhs_in_oper = new LSCutCellLaplaceOperator(
             "LSCutCellInRHSOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         Pointer<LSCutCellLaplaceOperator> sol_in_oper = new LSCutCellLaplaceOperator(
             "LSCutCellInOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
-        // Create boundary operators
-        Pointer<SBBoundaryConditions> bdry_conditions = new SBBoundaryConditions(
-            "SBBoundaryConditions", sb_data_manager->getFLName(Q_in_var), sb_data_manager, cut_cell_mapping);
-        bdry_conditions->setFluidContext(adv_diff_integrator->getCurrentContext());
-        rhs_in_oper->setBoundaryConditionOperator(bdry_conditions);
-        sol_in_oper->setBoundaryConditionOperator(bdry_conditions);
-
         adv_diff_integrator->setHelmholtzRHSOperator(Q_in_var, rhs_in_oper);
         Pointer<PETScKrylovPoissonSolver> Q_in_helmholtz_solver = new PETScKrylovPoissonSolver(
             "PoissonSolver", app_initializer->getComponentDatabase("PoissonSolver"), "poisson_solve_");
         Q_in_helmholtz_solver->setOperator(sol_in_oper);
         adv_diff_integrator->setHelmholtzSolver(Q_in_var, Q_in_helmholtz_solver);
+
+        mesh_mapping->initializeFEData();
+        sb_data_manager->fillInitialConditions();
+        // Initialize hierarchy configuration and data on all patches.
+        adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
+
+        // Create boundary operators
+        Pointer<SBBoundaryConditions> bdry_conditions =
+            new SBBoundaryConditions("SBBoundaryConditions",
+                                     sb_data_manager->getFLName(Q_in_var),
+                                     sb_data_manager,
+                                     cut_cell_mapping,
+                                     adv_diff_integrator->getFEHierarchyMappings());
+        bdry_conditions->setFluidContext(adv_diff_integrator->getCurrentContext());
+        rhs_in_oper->setBoundaryConditionOperator(bdry_conditions);
+        sol_in_oper->setBoundaryConditionOperator(bdry_conditions);
 
         // Exact and error terms
         auto var_db = VariableDatabase<NDIM>::getDatabase();
@@ -361,7 +360,7 @@ main(int argc, char* argv[])
             computeFluidErrors(
                 Q_in_var, Q_idx, Q_error_idx, Q_exact_idx, vol_idx, ls_idx, patch_hierarchy, Q_in_init, loop_time);
             computeSurfaceErrors(*mesh_mapping->getBoundaryMesh(),
-                                 sb_data_manager->getFEToHierarchyMapping().getFESystemManager(),
+                                 sb_data_manager->getFESystemManager(),
                                  sb_data_manager->getSFNames()[0],
                                  err_sys_name,
                                  loop_time);

@@ -24,11 +24,11 @@ public:
      */
     SBSurfaceFluidCouplingManager(std::string name,
                                   const SAMRAI::tbox::Pointer<SAMRAI::tbox::Database>& input_db,
-                                  const std::vector<FEToHierarchyMapping*>& fe_mesh_partitioners);
+                                  const std::vector<FESystemManager*>& fe_sys_managers);
 
     SBSurfaceFluidCouplingManager(std::string name,
                                   const SAMRAI::tbox::Pointer<SAMRAI::tbox::Database>& input_db,
-                                  FEToHierarchyMapping* fe_mesh_partitioner);
+                                  FESystemManager* fe_sys_manager);
 
     /*!
      * \brief Deconstructor. Cleans up any allocated data objects.
@@ -113,39 +113,56 @@ public:
 
     /*!
      * \brief Interpolate the data stored in the SAMRAI variable and context pair to the surface.
+     *
+     * If the FEToHierarchyMapping object is a nullptr, a temporary one will be created.
+     *
+     * \note If the optional FEToHierarchyMapping object is provided, it must reference the same FESystemManager object
+     * that was used to construct this object. If this does not occur, an unrecoverable error will occur.
      * @{
      */
     const std::string& interpolateToBoundary(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> fl_var,
                                              const int idx,
                                              double time,
-                                             unsigned int part);
+                                             unsigned int part,
+                                             FEToHierarchyMapping* fe_hierarchy_mapping = nullptr);
     inline const std::string&
     interpolateToBoundary(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> fl_var,
                           SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> ctx,
                           double time,
-                          unsigned int part)
+                          unsigned int part,
+                          FEToHierarchyMapping* fe_hierarchy_mapping = nullptr)
     {
         auto var_db = SAMRAI::hier::VariableDatabase<NDIM>::getDatabase();
         const int idx = var_db->mapVariableAndContextToIndex(fl_var, ctx);
-        return interpolateToBoundary(fl_var, idx, time, part);
+        return interpolateToBoundary(fl_var, idx, time, part, fe_hierarchy_mapping);
     }
     inline const std::string& interpolateToBoundary(const std::string& fl_name,
                                                     SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> ctx,
                                                     double time,
-                                                    unsigned int part)
+                                                    unsigned int part,
+                                                    FEToHierarchyMapping* fe_hierarchy_mapping = nullptr)
     {
         auto fl_it = std::find(d_fl_names_vec[part].begin(), d_fl_names_vec[part].end(), fl_name);
         TBOX_ASSERT(fl_it != d_fl_names_vec[part].end());
-        return interpolateToBoundary(
-            d_fl_vars_vec[part][std::distance(d_fl_names_vec[part].begin(), fl_it)], ctx, time, part);
+        return interpolateToBoundary(d_fl_vars_vec[part][std::distance(d_fl_names_vec[part].begin(), fl_it)],
+                                     ctx,
+                                     time,
+                                     part,
+                                     fe_hierarchy_mapping);
     }
-    inline const std::string&
-    interpolateToBoundary(const std::string& fl_name, const int idx, double time, unsigned int part = 0)
+    inline const std::string& interpolateToBoundary(const std::string& fl_name,
+                                                    const int idx,
+                                                    double time,
+                                                    unsigned int part,
+                                                    FEToHierarchyMapping* fe_hierarchy_mapping = nullptr)
     {
         auto fl_it = std::find(d_fl_names_vec[part].begin(), d_fl_names_vec[part].end(), fl_name);
         TBOX_ASSERT(fl_it != d_fl_names_vec[part].end());
-        return interpolateToBoundary(
-            d_fl_vars_vec[part][std::distance(d_fl_names_vec[part].begin(), fl_it)], idx, time, part);
+        return interpolateToBoundary(d_fl_vars_vec[part][std::distance(d_fl_names_vec[part].begin(), fl_it)],
+                                     idx,
+                                     time,
+                                     part,
+                                     fe_hierarchy_mapping);
     }
     /*!
      * @}
@@ -158,7 +175,7 @@ public:
     const std::string& updateJacobian(unsigned int part);
     const std::string& updateJacobian()
     {
-        for (unsigned int part = 0; part < d_fe_hierarchy_mappings.size(); ++part) updateJacobian(part);
+        for (unsigned int part = 0; part < getNumParts(); ++part) updateJacobian(part);
         return d_J_sys_name;
     }
     /*!
@@ -176,14 +193,14 @@ public:
     /*!
      * \brief Returns the FEToHierarchyMapping object used by this manager.
      */
-    inline FEToHierarchyMapping& getFEToHierarchyMapping(unsigned int part = 0)
+    inline FESystemManager& getFESystemManager(unsigned int part = 0)
     {
-        return *d_fe_hierarchy_mappings[part];
+        return *d_fe_system_managers[part];
     }
 
-    inline std::vector<FEToHierarchyMapping*> getFEToHierarchyMappings()
+    inline std::vector<FESystemManager*> getFESystemManagers()
     {
-        return d_fe_hierarchy_mappings;
+        return d_fe_system_managers;
     }
 
     /*!
@@ -280,13 +297,12 @@ public:
 
     libMesh::BoundaryMesh* getMesh(unsigned int part = 0)
     {
-        return static_cast<libMesh::BoundaryMesh*>(
-            &d_fe_hierarchy_mappings[part]->getFESystemManager().getEquationSystems()->get_mesh());
+        return static_cast<libMesh::BoundaryMesh*>(&d_fe_system_managers[part]->getEquationSystems()->get_mesh());
     }
 
     unsigned int getNumParts()
     {
-        return d_fe_hierarchy_mappings.size();
+        return d_fe_system_managers.size();
     }
 
     using InitialConditionFcn = std::function<double(const IBTK::VectorNd& X, const libMesh::Node* const node)>;
@@ -302,7 +318,7 @@ public:
 
 protected:
     std::string d_object_name;
-    std::vector<FEToHierarchyMapping*> d_fe_hierarchy_mappings;
+    std::vector<FESystemManager*> d_fe_system_managers;
 
     std::vector<std::vector<std::string>> d_sf_names_vec;
     std::vector<std::vector<std::string>> d_fl_names_vec;

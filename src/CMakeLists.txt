@@ -30,7 +30,6 @@ SET(CXX_SRC
     adv_ops/ZSplineReconstructions.cpp
     
     cut_cell/CutCellMeshMapping.cpp
-    cut_cell/CutCellVolumeMeshMapping.cpp
 
     integrators/ExtrapolatedAdvDiffHierarchyIntegrator.cpp
     integrators/LSAdvDiffIntegrator.cpp

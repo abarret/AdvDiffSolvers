@@ -1,6 +1,6 @@
 #include <ibamr/config.h>
 
-#include "ADS/CutCellVolumeMeshMapping.h"
+#include "ADS/CutCellMeshMapping.h"
 #include "ADS/LSCartGridFunction.h"
 #include "ADS/ls_utilities.h"
 #include <ADS/BoundaryReconstructCache.h>
@@ -252,21 +252,14 @@ main(int argc, char* argv[])
 
         mesh_mapping->initializeFEData();
 
-        FEToHierarchyMapping fe_hierarchy_mapping("FEToHierarchyMapping",
-                                                  &mesh_mapping->getSystemManager(),
-                                                  nullptr,
-                                                  patch_hierarchy->getNumberOfLevels(),
-                                                  IntVector<NDIM>(1) /*ghosts*/);
-        fe_hierarchy_mapping.setPatchHierarchy(patch_hierarchy);
-        fe_hierarchy_mapping.reinitElementMappings();
-
 #ifdef DRAW_DATA
         ExodusII_IO exodus_io(eq_sys->get_mesh());
 #endif
 
-        Pointer<CutCellMeshMapping> cut_cell_mapping = new CutCellVolumeMeshMapping(
-            "CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"), &fe_hierarchy_mapping);
-        Pointer<LSFromMesh> ls_fcn = new LSFromMesh("LSFromMesh", patch_hierarchy, cut_cell_mapping);
+        Pointer<CutCellMeshMapping> cut_cell_mapping =
+            new CutCellMeshMapping("CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"));
+        Pointer<LSFromMesh> ls_fcn =
+            new LSFromMesh("LSFromMesh", patch_hierarchy, mesh_mapping->getSystemManagers(), cut_cell_mapping);
 
         LS_TYPE ls_type = string_to_enum(input_db->getString("LS_TYPE"));
 

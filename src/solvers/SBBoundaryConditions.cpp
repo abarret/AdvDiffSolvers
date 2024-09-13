@@ -23,11 +23,13 @@ namespace ADS
 SBBoundaryConditions::SBBoundaryConditions(const std::string& object_name,
                                            const std::string& fl_name,
                                            const std::shared_ptr<SBSurfaceFluidCouplingManager>& sb_data_manager,
-                                           const Pointer<CutCellMeshMapping>& cut_cell_mesh_mapping)
+                                           const Pointer<CutCellMeshMapping>& cut_cell_mesh_mapping,
+                                           const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings)
     : LSCutCellBoundaryConditions(object_name),
       d_sb_data_manager(sb_data_manager),
       d_cut_cell_mapping(cut_cell_mesh_mapping),
-      d_fl_name(fl_name)
+      d_fl_name(fl_name),
+      d_fe_hierarchy_mappings(fe_hierarchy_mappings)
 {
     IBTK_DO_ONCE(t_applyBoundaryCondition =
                      TimerManager::getManager()->getTimer("ADS::SBBoundaryConditions::applyBoundaryCondition()");
@@ -62,8 +64,7 @@ SBBoundaryConditions::allocateOperatorState(Pointer<PatchHierarchy<NDIM>> hierar
         }
     }
 
-    d_cut_cell_mapping->initializeObjectState(hierarchy);
-    d_cut_cell_mapping->generateCutCellMappings();
+    d_cut_cell_mapping->generateCutCellMappings(d_fe_hierarchy_mappings);
     ADS_TIMER_STOP(t_allocateOperatorState);
 }
 
@@ -72,7 +73,7 @@ SBBoundaryConditions::deallocateOperatorState(Pointer<PatchHierarchy<NDIM>> hier
 {
     ADS_TIMER_START(t_deallocateOperatorState);
     LSCutCellBoundaryConditions::deallocateOperatorState(hierarchy, time);
-    d_cut_cell_mapping->deinitializeObjectState();
+    d_cut_cell_mapping->clearCache();
     ADS_TIMER_STOP(t_deallocateOperatorState);
 }
 
@@ -97,10 +98,10 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
         double pre_fac = sgn * (d_ts_type == ADS::DiffusionTimeIntegrationMethod::TRAPEZOIDAL_RULE ? 0.5 : 1.0);
         if (d_D == 0.0) pre_fac = 0.0;
 
-        FEToHierarchyMapping& fe_hierarchy_mapping = d_sb_data_manager->getFEToHierarchyMapping(part);
-        EquationSystems* eq_sys = fe_hierarchy_mapping.getFESystemManager().getEquationSystems();
+        FESystemManager& fe_sys_manager = d_sb_data_manager->getFESystemManager(part);
+        EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
 
-        System& X_system = eq_sys->get_system(fe_hierarchy_mapping.getCoordsSystemName());
+        System& X_system = eq_sys->get_system(fe_sys_manager.getCoordsSystemName());
         DofMap& X_dof_map = X_system.get_dof_map();
         FEType X_fe_type = X_dof_map.variable_type(0);
         NumericVector<double>* X_vec = X_system.solution.get();
@@ -108,7 +109,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
         TBOX_ASSERT(X_petsc_vec != nullptr);
         const double* const X_local_soln = X_petsc_vec->get_array_read();
         FEDataManager::SystemDofMapCache& X_dof_map_cache =
-            *fe_hierarchy_mapping.getFESystemManager().getDofMapCache(fe_hierarchy_mapping.getCoordsSystemName());
+            *fe_sys_manager.getDofMapCache(fe_sys_manager.getCoordsSystemName());
 
         System& J_sys = eq_sys->get_system(d_sb_data_manager->getJacobianName());
         DofMap& J_dof_map = J_sys.get_dof_map();
@@ -153,7 +154,7 @@ SBBoundaryConditions::applyBoundaryCondition(Pointer<CellVariable<NDIM, double>>
         const std::vector<double>& JxW = fe->get_JxW();
 
         // Only changes are needed where the structure lives
-        const int level_num = fe_hierarchy_mapping.getFinestPatchLevelNumber();
+        const int level_num = hierarchy->getFinestLevelNumber();
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(level_num);
         const Pointer<CartesianGridGeometry<NDIM>> grid_geom = level->getGridGeometry();
         VectorValue<double> n;

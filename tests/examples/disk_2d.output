@@ -117,7 +117,6 @@ input_db {
       stencil_width = 8                                     // input used
    }
    MeshMapping {
-      max_level = 1                                         // input used
    }
    CutCellMapping {
       perturb_nodes = FALSE                                 // input used

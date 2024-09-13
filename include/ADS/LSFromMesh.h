@@ -46,6 +46,13 @@ class LSFromMesh : public LSFindCellVolume
 public:
     LSFromMesh(std::string object_name,
                SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+               std::vector<FESystemManager*> fe_sys_managers,
+               const SAMRAI::tbox::Pointer<CutCellMeshMapping>& cut_cell_mesh_mapping,
+               bool use_inside = true);
+
+    LSFromMesh(std::string object_name,
+               SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+               std::vector<IBTK::FEDataManager*> fe_data_managers,
                const SAMRAI::tbox::Pointer<CutCellMeshMapping>& cut_cell_mesh_mapping,
                bool use_inside = true);
 
@@ -84,6 +91,9 @@ public:
     }
 
 private:
+    void commonConstructor();
+    size_t getNumParts();
+
     void doUpdateVolumeAreaSideLS(int vol_idx,
                                   SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> vol_var,
                                   int area_idx,
@@ -117,6 +127,8 @@ private:
 
     bool d_use_inside = true;
 
+    std::vector<FESystemManager*> d_fe_sys_managers;
+    std::vector<FEDataManager*> d_fe_data_managers;
     SAMRAI::tbox::Pointer<CutCellMeshMapping> d_cut_cell_mesh_mapping;
 
     std::vector<std::set<unsigned int>> d_norm_reverse_domain_ids, d_norm_reverse_elem_ids;

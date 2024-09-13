@@ -1051,6 +1051,9 @@ LSAdvDiffIntegrator::initializeCompositeHierarchyDataSpecialized(const double cu
 
             plog << d_object_name << ": initializing level set for: " << ls_var->getName() << "\n";
 
+#ifndef NDEBUG
+            TBOX_ASSERT(d_ls_vol_fcn_map.at(ls_var));
+#endif
             d_ls_vol_fcn_map[ls_var]->updateVolumeAreaSideLS(
                 vol_cur_idx, vol_var, area_cur_idx, area_var, side_cur_idx, side_var, ls_cur_idx, ls_var, 0.0, false);
 

@@ -21,7 +21,8 @@ public:
     SBBoundaryConditions(const std::string& object_name,
                          const std::string& fl_name,
                          const std::shared_ptr<SBSurfaceFluidCouplingManager>& sb_data_manager,
-                         const SAMRAI::tbox::Pointer<CutCellMeshMapping>& cut_cell_mesh_mapping);
+                         const SAMRAI::tbox::Pointer<CutCellMeshMapping>& cut_cell_mesh_mapping,
+                         const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings);
 
     ~SBBoundaryConditions() = default;
 
@@ -62,6 +63,8 @@ private:
 
     std::string d_fl_name;
     SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> d_ctx;
+
+    std::vector<FEToHierarchyMapping*> d_fe_hierarchy_mappings;
 };
 
 } // namespace ADS
