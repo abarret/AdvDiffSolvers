@@ -1,6 +1,5 @@
 #include "ibamr/config.h"
 
-#include "ADS/CutCellVolumeMeshMapping.h"
 #include "ADS/GeneralBoundaryMeshMapping.h"
 #include "ADS/LSCutCellLaplaceOperator.h"
 #include "ADS/LSFromLevelSet.h"

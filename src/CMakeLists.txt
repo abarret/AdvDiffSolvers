@@ -30,7 +30,6 @@ SET(CXX_SRC
     adv_ops/ZSplineReconstructions.cpp
     
     cut_cell/CutCellMeshMapping.cpp
-    cut_cell/CutCellVolumeMeshMapping.cpp
 
     integrators/ExtrapolatedAdvDiffHierarchyIntegrator.cpp
     integrators/LSAdvDiffIntegrator.cpp
@@ -58,7 +57,8 @@ SET(CXX_SRC
     solvers/PETScAugmentedLinearOperator.cpp
     solvers/SBBoundaryConditions.cpp
     
-    surfaces/FEMeshPartitioner.cpp
+    surfaces/FESystemManager.cpp
+    surfaces/FEToHierarchyMapping.cpp
     surfaces/GeneralBoundaryMeshMapping.cpp
     surfaces/SBSurfaceFluidCouplingManager.cpp
     surfaces/VolumeBoundaryMeshMapping.cpp

@@ -123,7 +123,7 @@ public:
 };
 
 void
-compute_error(FEMeshPartitioner& mesh_mapping, const std::string& J_str, const std::string& J_exact_str, double time);
+compute_error(FESystemManager& mesh_mapping, const std::string& J_str, const std::string& J_exact_str, double time);
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -195,8 +195,8 @@ main(int argc, char* argv[])
         const std::string J_str = "Jacobian";
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
         {
-            const std::shared_ptr<FEMeshPartitioner>& mesh_partitioner = mesh_mapping->getMeshPartitioner(part);
-            EquationSystems* eq_sys = mesh_partitioner->getEquationSystems();
+            FESystemManager& fe_sys_manager = mesh_mapping->getSystemManager(part);
+            EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
             auto& J_exact_sys = eq_sys->add_system<ExplicitSystem>(J_exact_str);
             J_exact_sys.add_variable(J_exact_str);
             J_exact_sys.assemble_before_solve = false;
@@ -229,12 +229,12 @@ main(int argc, char* argv[])
             pout << "Updating boundary at time " << t << "\n";
             mesh_mapping->updateBoundaryLocation(t, 0);
             pout << "Computing Jacobian at time " << t << "\n";
-            update_jacobian(J_str, *mesh_mapping->getMeshPartitioner(0));
+            update_jacobian(J_str, mesh_mapping->getSystemManager(0));
             pout << "Computing error in Jacobian at time " << t << "\n";
-            compute_error(*mesh_mapping->getMeshPartitioner(0), J_str, J_exact_str, t);
+            compute_error(mesh_mapping->getSystemManager(0), J_str, J_exact_str, t);
 
             exodus_io->write_timestep(
-                "mesh.ex2", *mesh_mapping->getMeshPartitioner(0)->getEquationSystems(), iteration_num + 1, t);
+                "mesh.ex2", *mesh_mapping->getSystemManager(0).getEquationSystems(), iteration_num + 1, t);
             t += dt;
             ++iteration_num;
         }
@@ -243,7 +243,7 @@ main(int argc, char* argv[])
 } // main
 
 void
-compute_error(FEMeshPartitioner& mesh_mapping, const std::string& J_str, const std::string& J_exact_str, double time)
+compute_error(FESystemManager& mesh_mapping, const std::string& J_str, const std::string& J_exact_str, double time)
 {
     int num_vertices = 0;
     std::vector<IBTK::Point> vertex_posn;

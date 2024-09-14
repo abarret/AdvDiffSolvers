@@ -1,7 +1,6 @@
 #ifndef included_moveLS_IBBoundaryMeshMapping
 #define included_moveLS_IBBoundaryMeshMapping
 #include "ADS/CutCellMeshMapping.h"
-#include "ADS/FEMeshPartitioner.h"
 #include "ADS/GeneralBoundaryMeshMapping.h"
 #include "ADS/ls_functions.h"
 #include "ADS/ls_utilities.h"

@@ -41,17 +41,25 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
     ADS_TIMER_START(t_integrateHierarchy);
     for (unsigned int part = 0; part < d_sb_data_manager->getNumParts(); ++part)
     {
-        const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner = d_sb_data_manager->getFEMeshPartitioner(part);
+        FESystemManager& fe_sys_manager = d_sb_data_manager->getFESystemManager(part);
+        auto fe_hierarchy_mapping = std::make_unique<FEToHierarchyMapping>(d_object_name + "::FEToHierarchyMapping",
+                                                                           &fe_sys_manager,
+                                                                           nullptr,
+                                                                           d_hierarchy->getNumberOfLevels(),
+                                                                           2 /*ghost width*/);
+        fe_hierarchy_mapping->setPatchHierarchy(d_hierarchy);
+        fe_hierarchy_mapping->reinitElementMappings(2 /*ghost width*/);
         for (unsigned int l = 0; l < d_sb_data_manager->getFLNames(part).size(); ++l)
         {
-            d_sb_data_manager->interpolateToBoundary(d_sb_data_manager->getFLNames(part)[l], ctx, current_time, part);
+            d_sb_data_manager->interpolateToBoundary(
+                d_sb_data_manager->getFLNames(part)[l], ctx, current_time, part, fe_hierarchy_mapping.get());
         }
         for (const auto& sf_name : d_sb_data_manager->getSFNames(part))
         {
             const ReactionFcnCtx& rcn_fcn_ctx = d_sb_data_manager->getSFReactionFcnCtxPair(sf_name, part);
             const double dt = new_time - current_time;
             // Solve ODE on surface
-            EquationSystems* eq_sys = fe_mesh_partitioner->getEquationSystems();
+            EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
             auto& sf_base_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
             DofMap& sf_base_dof_map = sf_base_sys.get_dof_map();
             NumericVector<double>* sf_base_cur_vec = sf_base_sys.solution.get();
@@ -83,7 +91,8 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
 
             // Assume we are on the finest level.
             Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(d_hierarchy->getFinestLevelNumber());
-            const std::vector<std::vector<Node*>>& active_patch_node_map = fe_mesh_partitioner->getActivePatchNodeMap();
+            const std::vector<std::vector<Node*>>& active_patch_node_map =
+                fe_hierarchy_mapping->getActivePatchNodeMap();
             for (PatchLevel<NDIM>::Iterator p(level); p; p++)
             {
                 Pointer<Patch<NDIM>> patch = level->getPatch(p());
@@ -127,8 +136,8 @@ SBIntegrator::beginTimestepping(const double /*current_time*/, const double /*ne
     // Overwrite old surface concentration
     for (unsigned int part = 0; part < d_sb_data_manager->getNumParts(); ++part)
     {
-        const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner = d_sb_data_manager->getFEMeshPartitioner(part);
-        EquationSystems* eq_sys = fe_mesh_partitioner->getEquationSystems();
+        const FESystemManager& fe_sys_manager = d_sb_data_manager->getFESystemManager(part);
+        EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
         for (const auto& sf_name : d_sb_data_manager->getSFNames(part))
         {
             TransientExplicitSystem& sf_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);
@@ -147,8 +156,8 @@ SBIntegrator::endTimestepping(const double /*current_time*/, const double /*new_
 {
     for (unsigned int part = 0; part < d_sb_data_manager->getNumParts(); ++part)
     {
-        const std::shared_ptr<FEMeshPartitioner>& fe_mesh_partitioner = d_sb_data_manager->getFEMeshPartitioner(part);
-        EquationSystems* eq_sys = fe_mesh_partitioner->getEquationSystems();
+        const FESystemManager& fe_sys_manager = d_sb_data_manager->getFESystemManager(part);
+        EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
         for (const auto& sf_name : d_sb_data_manager->getSFNames(part))
         {
             TransientExplicitSystem& sf_sys = eq_sys->get_system<TransientExplicitSystem>(sf_name);

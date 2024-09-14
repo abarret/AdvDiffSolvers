@@ -5,6 +5,7 @@
 
 #include <ibamr/config.h>
 
+#include <ADS/FEToHierarchyMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/LSFindCellVolume.h>
 
@@ -66,6 +67,12 @@ public:
     void setMeshMapping(std::shared_ptr<GeneralBoundaryMeshMapping> mesh_mapping);
 
     /*!
+     * Return pointers to the FEToHierarchyMapping objects used by this class. Note that these are not set-up until the
+     * hierarchy is created, so this returns an empty vector prior to initializePatchHierarchy() is called.
+     */
+    std::vector<FEToHierarchyMapping*> getFEHierarchyMappings();
+
+    /*!
      * \brief Register an advected concentration field. Can also set the default reset value for unphysical cell
      * indices.
      */
@@ -124,6 +131,15 @@ public:
                                        bool skip_synchronize_new_state_data,
                                        int num_cycles = 1) override;
 
+protected:
+    virtual void initializeLevelDataSpecialized(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchHierarchy<NDIM>> hierarchy,
+                                                int level_number,
+                                                double init_data_time,
+                                                bool can_be_refined,
+                                                bool initial_time,
+                                                SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<NDIM>> old_level,
+                                                bool allocate_data);
+
 private:
     // List of level set variables.
     std::vector<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>> d_ls_vars;
@@ -141,6 +157,7 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, int>> d_valid_var;
     int d_valid_idx = IBTK::invalid_index;
     std::shared_ptr<GeneralBoundaryMeshMapping> d_mesh_mapping;
+    std::vector<std::unique_ptr<FEToHierarchyMapping>> d_fe_hierarchy_mapping;
 
     double d_default_reset_val = 0.0;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, double> d_Q_reset_val_map;

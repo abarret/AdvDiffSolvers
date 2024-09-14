@@ -71,6 +71,12 @@ ExtrapolatedAdvDiffHierarchyIntegrator::setMeshMapping(std::shared_ptr<GeneralBo
     d_mesh_mapping = mesh_mapping;
 }
 
+std::vector<FEToHierarchyMapping*>
+ExtrapolatedAdvDiffHierarchyIntegrator::getFEHierarchyMappings()
+{
+    return unique_ptr_vec_to_raw_ptr_vec(d_fe_hierarchy_mapping);
+}
+
 void
 ExtrapolatedAdvDiffHierarchyIntegrator::registerTransportedQuantity(Pointer<CellVariable<NDIM, double>> Q_var,
                                                                     const double reset_val,
@@ -217,10 +223,10 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
 
     // Fill in "unphysical" cells.
     // First, compute the level set
-    for (const auto& fe_mesh_mapping : d_mesh_mapping->getMeshPartitioners())
+    for (const auto& fe_hierarchy_mapping : d_fe_hierarchy_mapping)
     {
-        fe_mesh_mapping->setPatchHierarchy(d_hierarchy);
-        fe_mesh_mapping->reinitElementMappings();
+        fe_hierarchy_mapping->setPatchHierarchy(d_hierarchy);
+        fe_hierarchy_mapping->reinitElementMappings();
     }
     for (const auto& ls_var : d_ls_vars)
     {
@@ -507,6 +513,8 @@ ExtrapolatedAdvDiffHierarchyIntegrator::integrateHierarchySpecialized(const doub
     }
 
     // Clear out any unphysical values
+    // First update the mesh location. Note that this doesn't update the mapping between fe to hierarchy. If elements
+    // have moved more than one grid cell in a time step, this part will break.
     d_mesh_mapping->updateBoundaryLocation(new_time, true);
     for (const auto& ls_var : d_ls_vars)
     {
@@ -566,6 +574,40 @@ ExtrapolatedAdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(const doub
         current_time, new_time, skip_synchronize_new_state_data, num_cycles);
     return;
 } // postprocessIntegrateHierarchy
+
+void
+ExtrapolatedAdvDiffHierarchyIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHierarchy<NDIM>> hierarchy,
+                                                                       const int ln,
+                                                                       const double data_time,
+                                                                       const bool can_be_refined,
+                                                                       bool initial_time,
+                                                                       Pointer<BasePatchLevel<NDIM>> old_level,
+                                                                       bool allocate_data)
+{
+    plog << d_object_name + ": initializing level data\n";
+    AdvDiffHierarchyIntegrator::initializeLevelDataSpecialized(
+        hierarchy, ln, data_time, can_be_refined, initial_time, old_level, allocate_data);
+    // Initialize level set
+    Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
+
+    if (initial_time)
+    {
+        // Also create the FEToHierarchyMappings
+        if (d_mesh_mapping)
+        {
+            const int num_parts = d_mesh_mapping->getNumParts();
+            for (int part = 0; part < num_parts; ++part)
+            {
+                d_fe_hierarchy_mapping.push_back(std::make_unique<FEToHierarchyMapping>(
+                    d_object_name + "::FEToHierarchyMapping_" + std::to_string(part),
+                    &d_mesh_mapping->getSystemManager(part),
+                    nullptr,
+                    d_hierarchy->getNumberOfLevels(),
+                    IntVector<NDIM>(1)));
+            }
+        }
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////////
 

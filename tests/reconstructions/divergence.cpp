@@ -92,11 +92,11 @@ compute_divergence(std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping,
                    const int ls_idx,
                    Pointer<PatchHierarchy<NDIM>> hierarchy)
 {
-    const std::shared_ptr<FEMeshPartitioner>& mesh_partitioner = mesh_mapping->getMeshPartitioner();
-    EquationSystems* eq_sys = mesh_mapping->getMeshPartitioner()->getEquationSystems();
+    FESystemManager& fe_sys_manager = mesh_mapping->getSystemManager();
+    EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
 
     // Pull out relevant FE data
-    System& X_bdry_sys = eq_sys->get_system(mesh_partitioner->COORDINATES_SYSTEM_NAME);
+    System& X_bdry_sys = eq_sys->get_system(fe_sys_manager.getCoordsSystemName());
     const DofMap& X_bdry_dof_map = X_bdry_sys.get_dof_map();
     NumericVector<double>* X_bdry_vec = X_bdry_sys.current_local_solution.get();
 
@@ -163,9 +163,9 @@ compute_divergence(std::shared_ptr<GeneralBoundaryMeshMapping>& mesh_mapping,
 }
 
 void
-computeSurfaceErrors(std::shared_ptr<FEMeshPartitioner> fe_data_manager, const std::string& err_name)
+computeSurfaceErrors(FESystemManager& fe_sys_manager, const std::string& err_name)
 {
-    EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
+    EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
     const MeshBase& mesh = eq_sys->get_mesh();
     ExplicitSystem& err_sys = eq_sys->get_system<ExplicitSystem>(err_name);
     NumericVector<double>* err_vec = err_sys.solution.get();
@@ -368,7 +368,7 @@ main(int argc, char* argv[])
         // Set up boundary data
         const std::string div_sys_name = "div";
         const std::string err_sys_name = "err";
-        EquationSystems* eq_sys = mesh_mapping->getMeshPartitioner()->getEquationSystems();
+        EquationSystems* eq_sys = mesh_mapping->getSystemManager().getEquationSystems();
         auto& div_sys = eq_sys->add_system<ExplicitSystem>(div_sys_name);
         div_sys.add_variable(div_sys_name);
         div_sys.assemble_before_solve = false;
@@ -381,14 +381,9 @@ main(int argc, char* argv[])
 
         mesh_mapping->initializeFEData();
 
-        mesh_mapping->getMeshPartitioner()->setPatchHierarchy(patch_hierarchy);
-        mesh_mapping->getMeshPartitioner()->reinitElementMappings();
-
         Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellVolumeMeshMapping("CutCellMapping",
-                                         app_initializer->getComponentDatabase("CutCellMapping"),
-                                         mesh_mapping->getMeshPartitioners());
-        LSFromMesh ls_vol_fcn("ls", patch_hierarchy, cut_cell_mapping, true);
+            new CutCellMeshMapping("CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"));
+        LSFromMesh ls_vol_fcn("ls", patch_hierarchy, mesh_mapping->getSystemManagers(), cut_cell_mapping, true);
         ls_vol_fcn.registerNormalReverseDomainId(0, 0);
         ls_vol_fcn.updateVolumeAreaSideLS(
             vol_idx, vol_var, IBTK::invalid_index, nullptr, IBTK::invalid_index, nullptr, ls_idx, ls_var, 0.0);
@@ -404,7 +399,7 @@ main(int argc, char* argv[])
         compute_divergence(mesh_mapping, div_sys_name, err_sys_name, u_idx, ls_idx, patch_hierarchy);
 
         // Compute error
-        computeSurfaceErrors(mesh_mapping->getMeshPartitioner(), err_sys_name);
+        computeSurfaceErrors(mesh_mapping->getSystemManager(), err_sys_name);
 
 #ifdef DRAW_DATA
         visit_data_writer->writePlotData(patch_hierarchy, 1, 0.0);

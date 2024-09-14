@@ -1,4 +1,4 @@
-#include <ADS/CutCellVolumeMeshMapping.h>
+#include <ADS/CutCellMeshMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/LSFromMesh.h>
 #include <ADS/ReinitializeLevelSet.h>
@@ -292,10 +292,9 @@ main(int argc, char* argv[])
         mesh_mapping->initializeEquationSystems();
 
         Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellVolumeMeshMapping("CutCellMapping",
-                                         app_initializer->getComponentDatabase("CutCellMapping"),
-                                         mesh_mapping->getMeshPartitioners());
-        Pointer<LSFromMesh> vol_fcn = new LSFromMesh("LSFromMesh", patch_hierarchy, cut_cell_mapping, true);
+            new CutCellMeshMapping("CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"));
+        Pointer<LSFromMesh> vol_fcn =
+            new LSFromMesh("LSFromMesh", patch_hierarchy, mesh_mapping->getSystemManagers(), cut_cell_mapping, true);
         if (use_channel)
         {
             vol_fcn->registerBdryFcn(ls_bdry_fcn);
@@ -338,16 +337,20 @@ main(int argc, char* argv[])
             ++ln;
         }
 
-        std::for_each(mesh_mapping->getMeshPartitioners().begin(),
-                      mesh_mapping->getMeshPartitioners().end(),
-                      [&patch_hierarchy](const std::shared_ptr<FEMeshPartitioner>& fe_mesh) -> void
-                      {
-                          fe_mesh->setPatchHierarchy(patch_hierarchy);
-                          fe_mesh->reinitElementMappings();
-                      });
-
-        cut_cell_mapping->initializeObjectState(patch_hierarchy);
-        cut_cell_mapping->generateCutCellMappings();
+        // Create the FEToHierarchyMappings
+        std::vector<std::unique_ptr<FEToHierarchyMapping>> fe_hierarchy_mappings(mesh_mapping->getNumParts());
+        for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
+        {
+            fe_hierarchy_mappings[part] =
+                std::make_unique<FEToHierarchyMapping>("FEToHierarchyMapping_" + std::to_string(part),
+                                                       &mesh_mapping->getSystemManager(part),
+                                                       nullptr,
+                                                       patch_hierarchy->getNumberOfLevels(),
+                                                       2 /*gcw*/);
+            fe_hierarchy_mappings[part]->setPatchHierarchy(patch_hierarchy);
+            fe_hierarchy_mappings[part]->reinitElementMappings(2 /*gcw*/);
+        }
+        cut_cell_mapping->generateCutCellMappings(unique_ptr_vec_to_raw_ptr_vec(fe_hierarchy_mappings));
 
         // Allocate patch data
         for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
@@ -450,7 +453,7 @@ main(int argc, char* argv[])
         for (size_t i = 0; i < exodus_io.size(); ++i)
         {
             exodus_io[i]->write_timestep(
-                exodus_io_strs[i], *mesh_mapping->getMeshPartitioner(i)->getEquationSystems(), 1, 0.0);
+                exodus_io_strs[i], *mesh_mapping->getSystemManager(i).getEquationSystems(), 1, 0.0);
         }
 
         // Deallocate patch data

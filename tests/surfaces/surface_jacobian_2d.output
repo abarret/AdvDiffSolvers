@@ -5,12 +5,11 @@ input_db {
    ALPHA      = 1.25664                                     // input used
    GAMMA      = 0.25                                        // input used
    MFAC       = 1                                           // input used
-   MAX_LEVELS = 1                                           // input used
+   MAX_LEVELS = 1                                           // input not used
    N          = 64                                          // input used
    MeshMapping {
-      alpha     = 1.25664                                   // input not used
-      gamma     = 0.25                                      // input not used
-      max_level = 1                                         // input used
+      alpha = 1.25664                                       // input not used
+      gamma = 0.25                                          // input not used
    }
    Main {
       log_file_name = "output"                              // input used

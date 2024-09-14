@@ -340,9 +340,8 @@ SBAdvDiffIntegrator::integrateHierarchySpecialized(const double current_time,
         {
             for (const auto& ls_cut_cell_mapping_pair : d_ls_cut_cell_mapping_map)
             {
-                ls_cut_cell_mapping_pair.second->deinitializeObjectState();
-                ls_cut_cell_mapping_pair.second->initializeObjectState(d_hierarchy);
-                ls_cut_cell_mapping_pair.second->generateCutCellMappings();
+                ls_cut_cell_mapping_pair.second->generateCutCellMappings(
+                    unique_ptr_vec_to_raw_ptr_vec(d_fe_hierarchy_mappings));
             }
             for (auto& sb_ls_pair : d_sb_integrator_ls_map)
             {

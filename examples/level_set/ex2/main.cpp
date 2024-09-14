@@ -1,4 +1,4 @@
-#include <ADS/CutCellVolumeMeshMapping.h>
+#include <ADS/CutCellMeshMapping.h>
 #include <ADS/ExtrapolatedAdvDiffHierarchyIntegrator.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/LSFromMesh.h>
@@ -456,10 +456,9 @@ main(int argc, char* argv[])
         mesh_mapping->initializeEquationSystems();
 
         Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellVolumeMeshMapping("CutCellMapping",
-                                         app_initializer->getComponentDatabase("CutCellMapping"),
-                                         mesh_mapping->getMeshPartitioners());
-        Pointer<LSFromMesh> vol_fcn = new LSFromMesh("LSFromMesh", patch_hierarchy, cut_cell_mapping, true);
+            new CutCellMeshMapping("CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"));
+        Pointer<LSFromMesh> vol_fcn =
+            new LSFromMesh("LSFromMesh", patch_hierarchy, mesh_mapping->getSystemManagers(), cut_cell_mapping, true);
         vol_fcn->registerBdryFcn(ls_bdry_fcn);
         vol_fcn->registerNormalReverseDomainId(0, 1);
 
@@ -479,8 +478,8 @@ main(int argc, char* argv[])
         const std::string Q_exact_str = "Q_EXACT";
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
         {
-            const std::shared_ptr<FEMeshPartitioner>& mesh_partitioner = mesh_mapping->getMeshPartitioner(part);
-            EquationSystems* eq_sys = mesh_partitioner->getEquationSystems();
+            FESystemManager& fe_sys_manager = mesh_mapping->getSystemManager(part);
+            EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
             auto& Q_exact_sys = eq_sys->add_system<ExplicitSystem>(Q_exact_str);
             Q_exact_sys.add_variable(Q_exact_str);
             Q_exact_sys.assemble_before_solve = false;
@@ -493,7 +492,7 @@ main(int argc, char* argv[])
         {
             auto adv_op_reconstruct =
                 std::make_shared<RBFStructureReconstructions>("RBFReconstruct", input_db->getDatabase("AdvOps"));
-            adv_op_reconstruct->setCutCellMapping(cut_cell_mapping);
+            adv_op_reconstruct->setCutCellMapping(mesh_mapping->getSystemManagers(), cut_cell_mapping);
             adv_op_reconstruct->setQSystemName(Q_exact_str);
             sl_integrator->registerAdvectionReconstruction(Q_sl_var, adv_op_reconstruct);
         }
@@ -501,7 +500,7 @@ main(int argc, char* argv[])
         {
             auto adv_op_reconstruct =
                 std::make_shared<LagrangeStructureReconstructions>("RBFReconstruct", input_db->getDatabase("AdvOps"));
-            adv_op_reconstruct->setCutCellMapping(cut_cell_mapping);
+            adv_op_reconstruct->setCutCellMapping(mesh_mapping->getSystemManagers(), cut_cell_mapping);
             adv_op_reconstruct->setInsideQSystemName(Q_exact_str);
             adv_op_reconstruct->setReconstructionOutside(false);
             sl_integrator->registerAdvectionReconstruction(Q_sl_var, adv_op_reconstruct);
@@ -518,8 +517,8 @@ main(int argc, char* argv[])
         // Set the exact solution
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
         {
-            const std::shared_ptr<FEMeshPartitioner>& mesh_partitioner = mesh_mapping->getMeshPartitioner(part);
-            EquationSystems* eq_sys = mesh_partitioner->getEquationSystems();
+            FESystemManager& fe_sys_manager = mesh_mapping->getSystemManager(part);
+            EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
             auto& Q_exact_sys = eq_sys->get_system<ExplicitSystem>(Q_exact_str);
             NumericVector<double>* Q_vec = Q_exact_sys.solution.get();
             const DofMap& dof_map = Q_exact_sys.get_dof_map();
@@ -615,19 +614,14 @@ main(int argc, char* argv[])
             pout << "\n\nWriting visualization files...\n\n";
             time_integrator->setupPlotData();
             mesh_mapping->updateBoundaryLocation(loop_time);
-            for (auto& mesh_partitioner : mesh_mapping->getMeshPartitioners())
-            {
-                mesh_partitioner->setPatchHierarchy(patch_hierarchy);
-                mesh_partitioner->reinitElementMappings(1);
-            }
             visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
             data_writer->writePlotData(iteration_num, loop_time);
             lower_exodus_io->write_timestep("lower.ex2",
-                                            *mesh_mapping->getMeshPartitioner(0)->getEquationSystems(),
+                                            *mesh_mapping->getSystemManager(0).getEquationSystems(),
                                             iteration_num / viz_dump_interval + 1,
                                             loop_time);
             upper_exodus_io->write_timestep("upper.ex2",
-                                            *mesh_mapping->getMeshPartitioner(1)->getEquationSystems(),
+                                            *mesh_mapping->getSystemManager(1).getEquationSystems(),
                                             iteration_num / viz_dump_interval + 1,
                                             loop_time);
         }
@@ -655,11 +649,6 @@ main(int argc, char* argv[])
             loop_time += dt;
 
             mesh_mapping->updateBoundaryLocation(loop_time);
-            for (auto& mesh_partitioner : mesh_mapping->getMeshPartitioners())
-            {
-                mesh_partitioner->setPatchHierarchy(patch_hierarchy);
-                mesh_partitioner->reinitElementMappings(2);
-            }
 
             pout << "\n";
             pout << "At end       of timestep # " << iteration_num << "\n";
@@ -722,11 +711,11 @@ main(int argc, char* argv[])
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
                 data_writer->writePlotData(iteration_num, loop_time);
                 lower_exodus_io->write_timestep("lower.ex2",
-                                                *mesh_mapping->getMeshPartitioner(0)->getEquationSystems(),
+                                                *mesh_mapping->getSystemManager(0).getEquationSystems(),
                                                 iteration_num / viz_dump_interval + 1,
                                                 loop_time);
                 upper_exodus_io->write_timestep("upper.ex2",
-                                                *mesh_mapping->getMeshPartitioner(1)->getEquationSystems(),
+                                                *mesh_mapping->getSystemManager(1).getEquationSystems(),
                                                 iteration_num / viz_dump_interval + 1,
                                                 loop_time);
             }

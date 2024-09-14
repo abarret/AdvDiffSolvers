@@ -175,6 +175,12 @@ SLAdvIntegrator::registerGeneralBoundaryMeshMapping(const std::shared_ptr<Genera
     d_mesh_mapping = mesh_mapping;
 }
 
+std::vector<FEToHierarchyMapping*>
+SLAdvIntegrator::getFEHierarchyMappings()
+{
+    return unique_ptr_vec_to_raw_ptr_vec(d_fe_hierarchy_mappings);
+}
+
 void
 SLAdvIntegrator::registerTransportedQuantity(Pointer<CellVariable<NDIM, double>> Q_var, bool Q_output)
 {
@@ -389,6 +395,21 @@ SLAdvIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHierarchy<NDIM>
                 ls_data->fillAll(-1.0);
             }
         }
+
+        // Also create the FEToHierarchyMappings
+        if (d_mesh_mapping)
+        {
+            const int num_parts = d_mesh_mapping->getNumParts();
+            for (int part = 0; part < num_parts; ++part)
+            {
+                d_fe_hierarchy_mappings.push_back(std::make_unique<FEToHierarchyMapping>(
+                    d_object_name + "::FEToHierarchyMapping_" + std::to_string(part),
+                    &d_mesh_mapping->getSystemManager(part),
+                    nullptr,
+                    d_hierarchy->getNumberOfLevels(),
+                    IntVector<NDIM>(1)));
+            }
+        }
     }
 }
 
@@ -418,10 +439,10 @@ SLAdvIntegrator::preprocessIntegrateHierarchy(const double current_time, const d
     {
         // TODO: This was placed here for restarts. We should only call reinitElementMappings() when required.
         plog << d_object_name + ": Initializing fe mesh mappings\n";
-        for (const auto& fe_mesh_mapping : d_mesh_mapping->getMeshPartitioners())
+        for (const auto& fe_hierarchy_mapping : d_fe_hierarchy_mappings)
         {
-            fe_mesh_mapping->setPatchHierarchy(d_hierarchy);
-            fe_mesh_mapping->reinitElementMappings();
+            fe_hierarchy_mapping->setPatchHierarchy(d_hierarchy);
+            fe_hierarchy_mapping->reinitElementMappings();
         }
     }
 
@@ -574,10 +595,10 @@ SLAdvIntegrator::initializeCompositeHierarchyDataSpecialized(const double curren
         if (d_mesh_mapping)
         {
             plog << d_object_name + ": Initializing fe mesh mappings\n";
-            for (const auto& fe_mesh_mapping : d_mesh_mapping->getMeshPartitioners())
+            for (const auto& fe_hierarchy_mapping : d_fe_hierarchy_mappings)
             {
-                fe_mesh_mapping->setPatchHierarchy(d_hierarchy);
-                fe_mesh_mapping->reinitElementMappings();
+                fe_hierarchy_mapping->setPatchHierarchy(d_hierarchy);
+                fe_hierarchy_mapping->reinitElementMappings();
             }
         }
         for (size_t l = 0; l < d_ls_vars.size(); ++l)
@@ -643,8 +664,8 @@ SLAdvIntegrator::regridHierarchyEndSpecialized()
 {
     if (d_mesh_mapping)
     {
-        for (const auto& mesh_partitioner : d_mesh_mapping->getMeshPartitioners())
-            mesh_partitioner->reinitElementMappings();
+        for (const auto& fe_hierarchy_mappings : d_fe_hierarchy_mappings)
+            fe_hierarchy_mappings->reinitElementMappings();
     }
     AdvDiffHierarchyIntegrator::regridHierarchyEndSpecialized();
 }

@@ -1,6 +1,6 @@
 #include "ibamr/config.h"
 
-#include <ADS/CutCellVolumeMeshMapping.h>
+#include <ADS/CutCellMeshMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/LSCutCellLaplaceOperator.h>
 #include <ADS/LSFromLevelSet.h>
@@ -67,7 +67,7 @@ sf_ode(double q, const std::vector<double>& fl_vals, const std::vector<double>& 
     return k_on * (sf_max - q) * fl_vals[0] - k_off * q;
 }
 
-void checkConservation(std::shared_ptr<FEMeshPartitioner> fe_data_manager,
+void checkConservation(FESystemManager& fe_sys_manager,
                        const std::string& sys_name,
                        const int Q_idx,
                        const int vol_idx,
@@ -253,19 +253,18 @@ main(int argc, char* argv[])
         mesh_mapping->initializeEquationSystems();
 
         // Setup cut cell mapping
-        Pointer<CutCellVolumeMeshMapping> cut_cell_mapping =
-            new CutCellVolumeMeshMapping("CutCellMapping",
-                                         app_initializer->getComponentDatabase("CutCellMapping"),
-                                         mesh_mapping->getMeshPartitioners({ LOWER_MESH_ID, UPPER_MESH_ID }));
-        Pointer<CutCellVolumeMeshMapping> rcn_cut_cell_mapping =
-            new CutCellVolumeMeshMapping("CutCellMapping",
-                                         app_initializer->getComponentDatabase("CutCellMapping"),
-                                         mesh_mapping->getMeshPartitioner(REACTION_MESH_ID));
+        Pointer<CutCellMeshMapping> cut_cell_mapping =
+            new CutCellMeshMapping("CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"));
+        Pointer<CutCellMeshMapping> rcn_cut_cell_mapping =
+            new CutCellMeshMapping("CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"));
 
         // Setup the level set function
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS");
         adv_diff_integrator->registerLevelSetVariable(ls_var);
-        Pointer<LSFromMesh> vol_fcn = new LSFromMesh("LSFromMesh", patch_hierarchy, cut_cell_mapping);
+        Pointer<LSFromMesh> vol_fcn = new LSFromMesh("LSFromMesh",
+                                                     patch_hierarchy,
+                                                     mesh_mapping->getSystemManagers({ LOWER_MESH_ID, UPPER_MESH_ID }),
+                                                     cut_cell_mapping);
         vol_fcn->registerBdryFcn(bdry_fcn);
         vol_fcn->registerReverseNormal(UPPER_MESH_ID);
         adv_diff_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
@@ -292,7 +291,7 @@ main(int argc, char* argv[])
         auto sb_data_manager =
             std::make_shared<SBSurfaceFluidCouplingManager>("SBDataManager",
                                                             app_initializer->getComponentDatabase("SBDataManager"),
-                                                            mesh_mapping->getMeshPartitioner(REACTION_MESH_ID));
+                                                            &mesh_mapping->getSystemManager(REACTION_MESH_ID));
         sb_data_manager->registerFluidConcentration(Q_in_var);
         std::string sf_name = "SurfaceConcentration";
         sb_data_manager->registerSurfaceConcentration(sf_name);
@@ -310,12 +309,6 @@ main(int argc, char* argv[])
             "LSCutCellInRHSOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
         Pointer<LSCutCellLaplaceOperator> sol_in_oper = new LSCutCellLaplaceOperator(
             "LSCutCellInOperator", app_initializer->getComponentDatabase("LSCutCellOperator"), false);
-        // Create boundary operators
-        Pointer<SBBoundaryConditions> bdry_conditions = new SBBoundaryConditions(
-            "SBBoundaryConditions", sb_data_manager->getFLName(Q_in_var), sb_data_manager, rcn_cut_cell_mapping);
-        bdry_conditions->setFluidContext(adv_diff_integrator->getCurrentContext());
-        rhs_in_oper->setBoundaryConditionOperator(bdry_conditions);
-        sol_in_oper->setBoundaryConditionOperator(bdry_conditions);
         adv_diff_integrator->setHelmholtzRHSOperator(Q_in_var, rhs_in_oper);
         Pointer<PETScKrylovPoissonSolver> Q_in_helmholtz_solver = new PETScKrylovPoissonSolver(
             "PoissonSolver", app_initializer->getComponentDatabase("PoissonSolver"), "poisson_solve_");
@@ -341,6 +334,17 @@ main(int argc, char* argv[])
         // Initialize hierarchy configuration and data on all patches.
         adv_diff_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
+        // Create boundary operators. This must be done after the patch hierarchy is created.
+        Pointer<SBBoundaryConditions> bdry_conditions =
+            new SBBoundaryConditions("SBBoundaryConditions",
+                                     sb_data_manager->getFLName(Q_in_var),
+                                     sb_data_manager,
+                                     rcn_cut_cell_mapping,
+                                     { adv_diff_integrator->getFEHierarchyMappings()[REACTION_MESH_ID] });
+        bdry_conditions->setFluidContext(adv_diff_integrator->getCurrentContext());
+        rhs_in_oper->setBoundaryConditionOperator(bdry_conditions);
+        sol_in_oper->setBoundaryConditionOperator(bdry_conditions);
+
         Pointer<CellVariable<NDIM, double>> u_draw = new CellVariable<NDIM, double>("UDraw", NDIM);
         const int u_draw_idx = var_db->registerVariableAndContext(u_draw, var_db->getContext("Scratch"));
         visit_data_writer->registerPlotQuantity("velocity", "VECTOR", u_draw_idx);
@@ -357,9 +361,9 @@ main(int argc, char* argv[])
         double dt = adv_diff_integrator->getMaximumTimeStepSize();
 
         // Write out initial visualization data.
-        EquationSystems* lower_equation_systems = mesh_mapping->getMeshPartitioner(LOWER_MESH_ID)->getEquationSystems();
-        EquationSystems* upper_equation_systems = mesh_mapping->getMeshPartitioner(UPPER_MESH_ID)->getEquationSystems();
-        EquationSystems* reaction_eq_sys = mesh_mapping->getMeshPartitioner(REACTION_MESH_ID)->getEquationSystems();
+        EquationSystems* lower_equation_systems = mesh_mapping->getSystemManager(LOWER_MESH_ID).getEquationSystems();
+        EquationSystems* upper_equation_systems = mesh_mapping->getSystemManager(UPPER_MESH_ID).getEquationSystems();
+        EquationSystems* reaction_eq_sys = mesh_mapping->getSystemManager(REACTION_MESH_ID).getEquationSystems();
         int iteration_num = adv_diff_integrator->getIntegratorStep();
         double loop_time = adv_diff_integrator->getIntegratorTime();
         if (dump_viz_data && uses_visit)
@@ -381,12 +385,8 @@ main(int argc, char* argv[])
             }
             const int vol_idx = var_db->mapVariableAndContextToIndex(adv_diff_integrator->getVolumeVariable(ls_var),
                                                                      adv_diff_integrator->getCurrentContext());
-            checkConservation(mesh_mapping->getMeshPartitioner(REACTION_MESH_ID),
-                              sf_name,
-                              Q_idx,
-                              vol_idx,
-                              patch_hierarchy,
-                              loop_time);
+            checkConservation(
+                mesh_mapping->getSystemManager(REACTION_MESH_ID), sf_name, Q_idx, vol_idx, patch_hierarchy, loop_time);
         }
 
         // Main time step loop.
@@ -438,7 +438,7 @@ main(int argc, char* argv[])
                 }
                 const int vol_idx = var_db->mapVariableAndContextToIndex(adv_diff_integrator->getVolumeVariable(ls_var),
                                                                          adv_diff_integrator->getCurrentContext());
-                checkConservation(mesh_mapping->getMeshPartitioner(REACTION_MESH_ID),
+                checkConservation(mesh_mapping->getSystemManager(REACTION_MESH_ID),
                                   sf_name,
                                   Q_idx,
                                   vol_idx,
@@ -464,7 +464,7 @@ main(int argc, char* argv[])
 } // main
 
 void
-checkConservation(std::shared_ptr<FEMeshPartitioner> fe_data_manager,
+checkConservation(FESystemManager& fe_sys_manager,
                   const std::string& sys_name,
                   const int Q_idx,
                   const int vol_idx,
@@ -472,7 +472,7 @@ checkConservation(std::shared_ptr<FEMeshPartitioner> fe_data_manager,
                   const double time)
 {
     double surface_amount = 0.0, fluid_amount = 0.0;
-    EquationSystems* eq_sys = fe_data_manager->getEquationSystems();
+    EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
     System& Q_sys = eq_sys->get_system(sys_name);
     DofMap& Q_dof_map = Q_sys.get_dof_map();
     NumericVector<double>* Q_vec = Q_sys.solution.get();

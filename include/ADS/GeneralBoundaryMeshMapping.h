@@ -1,7 +1,8 @@
 #ifndef included_ADS_GeneralBoundaryMeshMapping
 #define included_ADS_GeneralBoundaryMeshMapping
 #include "ADS/CutCellMeshMapping.h"
-#include "ADS/FEMeshPartitioner.h"
+#include "ADS/FESystemManager.h"
+#include "ADS/ads_utilities.h"
 
 #include "ibtk/FEDataManager.h"
 
@@ -12,7 +13,7 @@ namespace ADS
 {
 /*!
  * GeneralBoundaryMeshMapping is a class that generalizes the notion of a boundary mesh. It maintains an EquationSystems
- * object on the mesh, handles restarts of Lagrangian data, and maintains a FEMeshPartitioner for the object.
+ * object on the mesh, handles restarts of Lagrangian data, and maintains a FESystemManager for the object.
  * Implementations for this object should define how the object moves. A default implementation of no motion is
  * included.
  */
@@ -63,25 +64,25 @@ public:
     GeneralBoundaryMeshMapping& operator=(const GeneralBoundaryMeshMapping& that) = delete;
 
     /*!
-     * \name Get the FEMeshPartitioners.
+     * \name Get the FESystemManager.
      */
     //\{
 
-    virtual inline std::shared_ptr<FEMeshPartitioner>& getMeshPartitioner(unsigned int part = 0)
+    virtual inline FESystemManager& getSystemManager(unsigned int part = 0)
     {
-        return d_bdry_mesh_partitioners[part];
+        return *d_bdry_fe_sys_managers[part];
     }
 
-    virtual inline const std::vector<std::shared_ptr<FEMeshPartitioner>>& getMeshPartitioners()
+    virtual inline std::vector<FESystemManager*> getSystemManagers()
     {
-        return d_bdry_mesh_partitioners;
+        return unique_ptr_vec_to_raw_ptr_vec(d_bdry_fe_sys_managers);
     }
 
-    virtual inline std::vector<std::shared_ptr<FEMeshPartitioner>> getMeshPartitioners(std::set<unsigned int> mesh_nums)
+    virtual inline std::vector<FESystemManager*> getSystemManagers(std::set<unsigned int> mesh_nums)
     {
-        std::vector<std::shared_ptr<FEMeshPartitioner>> mesh_partitioners;
-        for (const auto& mesh_num : mesh_nums) mesh_partitioners.push_back(d_bdry_mesh_partitioners[mesh_num]);
-        return mesh_partitioners;
+        std::vector<FESystemManager*> ptrs;
+        for (const auto& mesh_num : mesh_nums) ptrs.push_back(d_bdry_fe_sys_managers[mesh_num].get());
+        return ptrs;
     }
 
     //\}
@@ -157,8 +158,7 @@ protected:
     std::string d_object_name;
     SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> d_input_db;
 
-    std::vector<std::shared_ptr<IBTK::FEData>> d_fe_data;
-    std::vector<std::shared_ptr<FEMeshPartitioner>> d_bdry_mesh_partitioners;
+    std::vector<std::unique_ptr<FESystemManager>> d_bdry_fe_sys_managers;
     // TODO: Figure out ownership requirements for d_bdry_meshes. Meshes could be given to us, or we could create them.
     // For now, we just use a raw pointer, along with a flag to determine if we need to clean it up.
     std::vector<libMesh::MeshBase*> d_base_meshes;

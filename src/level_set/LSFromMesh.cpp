@@ -1,4 +1,5 @@
 #include "ADS/LSFromMesh.h"
+#include "ADS/ads_utilities.h"
 #include "ADS/app_namespaces.h"
 #include "ADS/ls_functions.h"
 
@@ -18,17 +19,42 @@ namespace ADS
 {
 LSFromMesh::LSFromMesh(std::string object_name,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
+                       std::vector<FESystemManager*> fe_sys_managers,
                        const Pointer<CutCellMeshMapping>& cut_cell_mesh_mapping,
                        bool use_inside /* = true*/)
     : LSFindCellVolume(std::move(object_name), hierarchy),
       d_use_inside(use_inside),
+      d_fe_sys_managers(std::move(fe_sys_managers)),
       d_cut_cell_mesh_mapping(cut_cell_mesh_mapping),
       d_sgn_nc_var(new NodeVariable<NDIM, double>(d_object_name + "::SGN_NC_VAR")),
       d_sgn_cc_var(new CellVariable<NDIM, double>(d_object_name + "::SGN_CC_VAR"))
 {
+    commonConstructor();
+    return;
+} // Constructor
+
+LSFromMesh::LSFromMesh(std::string object_name,
+                       Pointer<PatchHierarchy<NDIM>> hierarchy,
+                       std::vector<FEDataManager*> fe_data_managers,
+                       const Pointer<CutCellMeshMapping>& cut_cell_mesh_mapping,
+                       bool use_inside /* = true*/)
+    : LSFindCellVolume(std::move(object_name), hierarchy),
+      d_use_inside(use_inside),
+      d_fe_data_managers(std::move(fe_data_managers)),
+      d_cut_cell_mesh_mapping(cut_cell_mesh_mapping),
+      d_sgn_nc_var(new NodeVariable<NDIM, double>(d_object_name + "::SGN_NC_VAR")),
+      d_sgn_cc_var(new CellVariable<NDIM, double>(d_object_name + "::SGN_CC_VAR"))
+{
+    commonConstructor();
+    return;
+} // Constructor
+
+void
+LSFromMesh::commonConstructor()
+{
     IBAMR_DO_ONCE(t_updateVolumeAreaSideLS =
                       TimerManager::getManager()->getTimer("ADS::LSFromMesH::updateVolumeAreaSideLS()"););
-    const unsigned int num_parts = d_cut_cell_mesh_mapping->getNumParts();
+    const unsigned int num_parts = getNumParts();
     d_norm_reverse_domain_ids.resize(num_parts);
     d_norm_reverse_elem_ids.resize(num_parts);
     d_reverse_normal.resize(num_parts, 0);
@@ -36,8 +62,13 @@ LSFromMesh::LSFromMesh(std::string object_name,
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_sgn_nc_idx = var_db->registerVariableAndContext(d_sgn_nc_var, var_db->getContext(d_object_name + "::Context"), 1);
     d_sgn_cc_idx = var_db->registerVariableAndContext(d_sgn_cc_var, var_db->getContext(d_object_name + "::Context"), 1);
-    return;
-} // Constructor
+}
+
+size_t
+LSFromMesh::getNumParts()
+{
+    return std::max(d_fe_sys_managers.size(), d_fe_data_managers.size());
+}
 
 void
 LSFromMesh::doUpdateVolumeAreaSideLS(int vol_idx,
@@ -93,8 +124,27 @@ LSFromMesh::doUpdateVolumeAreaSideLSNode(int vol_idx,
     HierarchySideDataOpsReal<NDIM, double> hier_sc_data_ops(d_hierarchy, 0, finest_ln);
     if (side_idx != IBTK::invalid_index) hier_sc_data_ops.setToScalar(side_idx, 0.0, false);
 
-    d_cut_cell_mesh_mapping->initializeObjectState(d_hierarchy);
-    d_cut_cell_mesh_mapping->generateCutCellMappings();
+    if (d_fe_sys_managers.size() > 0)
+    {
+        std::vector<std::unique_ptr<FEToHierarchyMapping>> fe_hier_mappings(getNumParts());
+        for (size_t part = 0; part < getNumParts(); ++part)
+        {
+            static IntVector<NDIM> gcw = 1;
+            fe_hier_mappings[part] =
+                std::make_unique<FEToHierarchyMapping>(d_object_name + "::FEMapping_" + std::to_string(part),
+                                                       d_fe_sys_managers[part],
+                                                       nullptr,
+                                                       d_hierarchy->getNumberOfLevels(),
+                                                       gcw);
+            fe_hier_mappings[part]->setPatchHierarchy(d_hierarchy);
+            fe_hier_mappings[part]->reinitElementMappings(gcw);
+        }
+        d_cut_cell_mesh_mapping->generateCutCellMappings(unique_ptr_vec_to_raw_ptr_vec(fe_hier_mappings));
+    }
+    else
+    {
+        d_cut_cell_mesh_mapping->generateCutCellMappings(d_fe_data_managers);
+    }
     for (int ln = 0; ln <= finest_ln; ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
@@ -387,8 +437,27 @@ LSFromMesh::doUpdateLSCell(const int phi_idx,
         }
     }
 
-    d_cut_cell_mesh_mapping->initializeObjectState(d_hierarchy);
-    d_cut_cell_mesh_mapping->generateCutCellMappings();
+    if (d_fe_sys_managers.size() > 0)
+    {
+        std::vector<std::unique_ptr<FEToHierarchyMapping>> fe_hier_mappings(getNumParts());
+        for (size_t part = 0; part < getNumParts(); ++part)
+        {
+            static IntVector<NDIM> gcw = 1;
+            fe_hier_mappings[part] =
+                std::make_unique<FEToHierarchyMapping>(d_object_name + "::FEMapping_" + std::to_string(part),
+                                                       d_fe_sys_managers[part],
+                                                       nullptr,
+                                                       d_hierarchy->getNumberOfLevels(),
+                                                       gcw);
+            fe_hier_mappings[part]->setPatchHierarchy(d_hierarchy);
+            fe_hier_mappings[part]->reinitElementMappings(gcw);
+        }
+        d_cut_cell_mesh_mapping->generateCutCellMappings(unique_ptr_vec_to_raw_ptr_vec(fe_hier_mappings));
+    }
+    else
+    {
+        d_cut_cell_mesh_mapping->generateCutCellMappings(d_fe_data_managers);
+    }
     for (int ln = 0; ln <= finest_ln; ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);

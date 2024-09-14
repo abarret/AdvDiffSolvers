@@ -1,6 +1,6 @@
 #include <ibamr/config.h>
 
-#include "ADS/CutCellVolumeMeshMapping.h"
+#include "ADS/CutCellMeshMapping.h"
 #include "ADS/LSCartGridFunction.h"
 #include "ADS/LSCutCellLaplaceOperator.h"
 #include "ADS/LSFromLevelSet.h"
@@ -343,9 +343,10 @@ main(int argc, char* argv[])
             level->allocatePatchData(Q_der_err_idx);
         }
 
-        Pointer<CutCellMeshMapping> cut_cell_mesh_mapping = new CutCellVolumeMeshMapping(
-            "CutCellMeshMapping", app_initializer->getComponentDatabase("CutCellMeshMapping"), fe_data_manager);
-        Pointer<LSFromMesh> mesh_vol_fcn = new LSFromMesh("MeshVolFcn", patch_hierarchy, cut_cell_mesh_mapping);
+        Pointer<CutCellMeshMapping> cut_cell_mesh_mapping =
+            new CutCellMeshMapping("CutCellMeshMapping", app_initializer->getComponentDatabase("CutCellMeshMapping"));
+        Pointer<LSFromMesh> mesh_vol_fcn =
+            new LSFromMesh("MeshVolFcn", patch_hierarchy, { fe_data_manager }, cut_cell_mesh_mapping);
         Pointer<LSFromLevelSet> ls_vol_fcn = new LSFromLevelSet("LSVolFcn", patch_hierarchy);
         Pointer<InsideLSFcn> ls_fcn = new InsideLSFcn("LSFcn", R);
 
@@ -359,8 +360,6 @@ main(int argc, char* argv[])
                 vol_idx, vol_var, area_idx, area_var, side_idx, side_var, ls_idx, ls_var, 0.0);
             break;
         case LS_TYPE::MESH:
-            cut_cell_mesh_mapping->initializeObjectState(patch_hierarchy);
-            cut_cell_mesh_mapping->generateCutCellMappings();
             mesh_vol_fcn->updateVolumeAreaSideLS(
                 vol_idx, vol_var, area_idx, area_var, side_idx, side_var, ls_idx, ls_var, 0.0);
             break;

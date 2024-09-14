@@ -6,7 +6,6 @@
 #include <ibamr/config.h>
 
 #include "ADS/AdvectiveReconstructionOperator.h"
-#include "ADS/CutCellVolumeMeshMapping.h"
 #include "ADS/ls_utilities.h"
 #include "ADS/reconstructions.h"
 

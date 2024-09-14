@@ -3,6 +3,7 @@
 
 /////////////////////////////// INCLUDES /////////////////////////////////////
 
+#include "ADS/FEToHierarchyMapping.h"
 #include "ADS/GeneralBoundaryMeshMapping.h"
 #include "ADS/ls_utilities.h"
 
@@ -203,6 +204,8 @@ private:
     unsigned int d_stencil_size = 8;
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
     std::shared_ptr<GeneralBoundaryMeshMapping> d_mesh_mapping;
+    std::vector<std::unique_ptr<FEToHierarchyMapping>> d_fe_hierarchy_mappings;
+
     /*!
      * Key for map is <part, node_id>.
      */

@@ -1,4 +1,4 @@
-#include <ADS/CutCellVolumeMeshMapping.h>
+#include <ADS/CutCellMeshMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/LSFromMesh.h>
 #include <ADS/LagrangeStructureReconstructions.h>
@@ -357,14 +357,7 @@ main(int argc, char* argv[])
         auto mesh_mapping = std::make_shared<IBBoundaryMeshMapping>(
             "BoundaryMeshMapping", input_db->getDatabase("MeshMapping"), meshes, ib_manager, finest_ln, part_nums);
         mesh_mapping->initializeEquationSystems();
-
-        Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellVolumeMeshMapping("CutCellMapping",
-                                         app_initializer->getComponentDatabase("CutCellMapping"),
-                                         mesh_mapping->getMeshPartitioners());
-        Pointer<LSFromMesh> vol_fcn = new LSFromMesh("LSFromMesh", patch_hierarchy, cut_cell_mapping, true);
-        vol_fcn->registerBdryFcn(ls_bdry_fcn);
-        vol_fcn->registerNormalReverseDomainId(0, 1);
+        adv_diff_integrator->registerGeneralBoundaryMeshMapping(mesh_mapping);
 
         Pointer<NodeVariable<NDIM, double>> ls_var = new NodeVariable<NDIM, double>("LS");
         Pointer<CellVariable<NDIM, double>> vol_var = new CellVariable<NDIM, double>("VOL");
@@ -379,21 +372,32 @@ main(int argc, char* argv[])
 
         // setup the LSAdvDiffIntegrator if necessary.
         adv_diff_integrator->registerLevelSetVariable(ls_var);
-        adv_diff_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
         adv_diff_integrator->restrictToLevelSet(Q_var, ls_var);
-        adv_diff_integrator->registerGeneralBoundaryMeshMapping(mesh_mapping);
+
+        Pointer<CutCellMeshMapping> cut_cell_mapping =
+            new CutCellMeshMapping("CutCellMapping", app_initializer->getComponentDatabase("CutCellMapping"));
+        Pointer<LSFromMesh> vol_fcn =
+            new LSFromMesh("LSFromMesh", patch_hierarchy, mesh_mapping->getSystemManagers(), cut_cell_mapping, true);
+        vol_fcn->registerBdryFcn(ls_bdry_fcn);
+        vol_fcn->registerNormalReverseDomainId(0, 1);
+        adv_diff_integrator->registerLevelSetVolFunction(ls_var, vol_fcn);
 
         // Setup systems.
         const std::string Q_exact_str = "Q_EXACT";
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
         {
-            const std::shared_ptr<FEMeshPartitioner>& mesh_partitioner = mesh_mapping->getMeshPartitioner(part);
-            EquationSystems* eq_sys = mesh_partitioner->getEquationSystems();
+            FESystemManager& fe_sys_manager = mesh_mapping->getSystemManager(part);
+            EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
             auto& Q_exact_sys = eq_sys->add_system<ExplicitSystem>(Q_exact_str);
             Q_exact_sys.add_variable(Q_exact_str);
             Q_exact_sys.assemble_before_solve = false;
             Q_exact_sys.assemble();
         }
+
+        mesh_mapping->initializeFEData();
+
+        // Initialize hierarchy configuration and data on all patches.
+        time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
         std::string interp_type = input_db->getString("INTERP_TYPE");
         pout << "Using interp type " << interp_type << "\n";
@@ -401,7 +405,8 @@ main(int argc, char* argv[])
         {
             auto adv_op_reconstruct =
                 std::make_shared<RBFStructureReconstructions>("RBFReconstruct", input_db->getDatabase("AdvOps"));
-            adv_op_reconstruct->setCutCellMapping(cut_cell_mapping);
+            adv_op_reconstruct->setCutCellMapping(get_system_managers(adv_diff_integrator->getFEHierarchyMappings()),
+                                                  cut_cell_mapping);
             adv_op_reconstruct->setQSystemName(Q_exact_str);
             adv_diff_integrator->registerAdvectionReconstruction(Q_var, adv_op_reconstruct);
         }
@@ -409,16 +414,12 @@ main(int argc, char* argv[])
         {
             auto adv_op_reconstruct =
                 std::make_shared<LagrangeStructureReconstructions>("RBFReconstruct", input_db->getDatabase("AdvOps"));
-            adv_op_reconstruct->setCutCellMapping(cut_cell_mapping);
+            adv_op_reconstruct->setCutCellMapping(get_system_managers(adv_diff_integrator->getFEHierarchyMappings()),
+                                                  cut_cell_mapping);
             adv_op_reconstruct->setInsideQSystemName(Q_exact_str);
             adv_op_reconstruct->setReconstructionOutside(false);
             adv_diff_integrator->registerAdvectionReconstruction(Q_var, adv_op_reconstruct);
         }
-
-        mesh_mapping->initializeFEData();
-
-        // Initialize hierarchy configuration and data on all patches.
-        time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
         auto limit_fcn = [](double /*current_time*/,
                             double /*new_time*/,
@@ -455,8 +456,8 @@ main(int argc, char* argv[])
         // Set the exact solution
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
         {
-            const std::shared_ptr<FEMeshPartitioner>& mesh_partitioner = mesh_mapping->getMeshPartitioner(part);
-            EquationSystems* eq_sys = mesh_partitioner->getEquationSystems();
+            FESystemManager& fe_sys_manager = mesh_mapping->getSystemManager(part);
+            EquationSystems* eq_sys = fe_sys_manager.getEquationSystems();
             auto& Q_exact_sys = eq_sys->get_system<ExplicitSystem>(Q_exact_str);
             NumericVector<double>* Q_vec = Q_exact_sys.solution.get();
             const DofMap& dof_map = Q_exact_sys.get_dof_map();
@@ -514,11 +515,6 @@ main(int argc, char* argv[])
             loop_time += dt;
 
             mesh_mapping->updateBoundaryLocation(loop_time);
-            for (auto& mesh_partitioner : mesh_mapping->getMeshPartitioners())
-            {
-                mesh_partitioner->setPatchHierarchy(patch_hierarchy);
-                mesh_partitioner->reinitElementMappings(2);
-            }
 
             pout << "\n";
             pout << "At end       of timestep # " << iteration_num << "\n";
