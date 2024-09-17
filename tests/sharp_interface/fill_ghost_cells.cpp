@@ -1,6 +1,6 @@
 #include <ibamr/config.h>
 
-#include <ADS/CutCellVolumeMeshMapping.h>
+#include <ADS/CutCellMeshMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/PointwiseFunction.h>
 #include <ADS/ads_utilities.h>
@@ -279,13 +279,21 @@ main(int argc, char* argv[])
             "mesh_mapping", input_db->getDatabase("MeshMapping"), mesh_ptrs);
         mesh_mapping->initializeEquationSystems();
         mesh_mapping->initializeFEData();
-        for (const auto& fe_mesh_mapping : mesh_mapping->getMeshPartitioners())
+        Pointer<CutCellMeshMapping> cut_cell_mapping =
+            new CutCellMeshMapping("cut_cell_mapping", input_db->getDatabase("CutCellMapping"));
+
+        std::vector<std::unique_ptr<FEToHierarchyMapping>> fe_hierarchy_mappings;
+        for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
         {
-            fe_mesh_mapping->setPatchHierarchy(patch_hierarchy);
-            fe_mesh_mapping->reinitElementMappings();
+            fe_hierarchy_mappings.push_back(
+                std::make_unique<FEToHierarchyMapping>("FEToHierarchyMapping_" + std::to_string(part),
+                                                       &mesh_mapping->getSystemManager(part),
+                                                       nullptr,
+                                                       patch_hierarchy->getNumberOfLevels(),
+                                                       1 /*ghost_width*/));
+            fe_hierarchy_mappings[part]->setPatchHierarchy(patch_hierarchy);
+            fe_hierarchy_mappings[part]->reinitElementMappings(1);
         }
-        Pointer<CutCellVolumeMeshMapping> cut_cell_mapping = new CutCellVolumeMeshMapping(
-            "cut_cell_mapping", input_db->getDatabase("CutCellMapping"), mesh_mapping->getMeshPartitioners());
 
         // Uncomment to draw data.
 #define DRAW_DATA 1
@@ -301,12 +309,20 @@ main(int argc, char* argv[])
         if (interface == InterfaceType::CHANNEL)
         {
             std::vector<int> reverse_norms = { 0, 1 };
-            sharp_interface::classify_points_struct(
-                pt_type_idx, patch_hierarchy, cut_cell_mapping, reverse_norms, false);
+            sharp_interface::classify_points_struct(pt_type_idx,
+                                                    patch_hierarchy,
+                                                    unique_ptr_vec_to_raw_ptr_vec(fe_hierarchy_mappings),
+                                                    cut_cell_mapping,
+                                                    reverse_norms,
+                                                    false);
         }
         else
         {
-            sharp_interface::classify_points_struct(pt_type_idx, patch_hierarchy, cut_cell_mapping, true);
+            sharp_interface::classify_points_struct(pt_type_idx,
+                                                    patch_hierarchy,
+                                                    unique_ptr_vec_to_raw_ptr_vec(fe_hierarchy_mappings),
+                                                    cut_cell_mapping,
+                                                    true);
         }
 
         PointwiseFunction<PointwiseFunctions::ScalarFcn> Q_fcn("Q_fcn", q_fcn);
@@ -317,7 +333,7 @@ main(int argc, char* argv[])
         {
             std::vector<std::vector<sharp_interface::ImagePointData>> ip_data_vec_vec =
                 sharp_interface::find_image_points(
-                    pt_type_idx, patch_hierarchy, ln, mesh_mapping->getMeshPartitioners());
+                    pt_type_idx, patch_hierarchy, ln, unique_ptr_vec_to_raw_ptr_vec(fe_hierarchy_mappings));
             std::vector<sharp_interface::ImagePointWeightsMap> ip_wghts_vec =
                 sharp_interface::find_image_point_weights(pt_type_idx, patch_hierarchy, ip_data_vec_vec, ln);
 
@@ -345,7 +361,7 @@ main(int argc, char* argv[])
         visit_data_writer->writePlotData(patch_hierarchy, 0, 0.0);
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
             struct_writers[part]->write_timestep("exodus" + std::to_string(part) + ".ex",
-                                                 *mesh_mapping->getMeshPartitioner(part)->getEquationSystems(),
+                                                 *mesh_mapping->getSystemManager(part).getEquationSystems(),
                                                  1,
                                                  0.0);
 #endif
