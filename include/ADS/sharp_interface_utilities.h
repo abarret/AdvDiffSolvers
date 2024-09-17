@@ -2,7 +2,7 @@
 #define included_ads_sharp_interface_utilities
 
 #include <ADS/CutCellMeshMapping.h>
-#include <ADS/FEMeshPartitioner.h>
+#include <ADS/FEToHierarchyMapping.h>
 
 #include <ibtk/ibtk_utilities.h>
 
@@ -131,6 +131,7 @@ void classify_points(int i_idx,
 ///\{
 void classify_points_struct(const int i_idx,
                             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                            std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
                             SAMRAI::tbox::Pointer<CutCellMeshMapping> cut_cell_mapping,
                             const std::vector<int>& reverse_normal,
                             const std::vector<std::set<int>>& norm_reverse_domain_ids,
@@ -139,12 +140,14 @@ void classify_points_struct(const int i_idx,
                             int finest_ln = IBTK::invalid_level_number);
 void classify_points_struct(const int i_idx,
                             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                            std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
                             SAMRAI::tbox::Pointer<CutCellMeshMapping> cut_cell_mapping,
                             bool use_inside = true,
                             int coarsest_ln = IBTK::invalid_level_number,
                             int finest_ln = IBTK::invalid_level_number);
 void classify_points_struct(const int i_idx,
                             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                            std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
                             SAMRAI::tbox::Pointer<CutCellMeshMapping> cut_cell_mapping,
                             const std::vector<int>& reverse_normal,
                             bool use_inside = true,
@@ -152,6 +155,7 @@ void classify_points_struct(const int i_idx,
                             int finest_ln = IBTK::invalid_level_number);
 void classify_points_struct(const int i_idx,
                             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                            std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
                             SAMRAI::tbox::Pointer<CutCellMeshMapping> cut_cell_mapping,
                             const std::vector<std::set<int>>& norm_reverse_domain_ids,
                             bool use_inside = true,
@@ -184,11 +188,19 @@ void trim_classified_points(int i_idx,
  * Returns the locations of all the image points in a vector of vectors. The outer vector consists of the local patch
  * numbers, the inner vector consists of the image point data for all points on the patch.
  */
+///\{
 std::vector<std::vector<ImagePointData>>
 find_image_points(int i_idx,
                   SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                   int ln,
-                  const std::vector<std::shared_ptr<FEMeshPartitioner>>& mesh_partitioners);
+                  const std::vector<std::unique_ptr<FEToHierarchyMapping>>& mesh_mapping);
+
+std::vector<std::vector<ImagePointData>>
+find_image_points(int i_idx,
+                  SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                  int ln,
+                  const std::vector<FEToHierarchyMapping*>& mesh_mapping);
+///\}
 
 /*!
  * Compute the weights for interpolation at each image point on a given level number. Returns a vector of maps where

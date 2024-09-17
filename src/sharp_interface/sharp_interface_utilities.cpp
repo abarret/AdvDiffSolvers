@@ -115,6 +115,7 @@ classify_points(const int i_idx,
 void
 classify_points_struct(const int i_idx,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
+                       std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
                        Pointer<CutCellMeshMapping> cut_cell_mapping,
                        const std::vector<int>& reverse_normal,
                        const std::vector<std::set<int>>& norm_reverse_domain_ids,
@@ -125,8 +126,7 @@ classify_points_struct(const int i_idx,
     coarsest_ln = coarsest_ln == IBTK::invalid_level_number ? 0 : coarsest_ln;
     finest_ln = finest_ln == IBTK::invalid_level_number ? hierarchy->getFinestLevelNumber() : finest_ln;
 
-    cut_cell_mapping->initializeObjectState(hierarchy);
-    cut_cell_mapping->generateCutCellMappings();
+    cut_cell_mapping->generateCutCellMappings(fe_hierarchy_mappings);
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
@@ -242,16 +242,18 @@ classify_points_struct(const int i_idx,
 void
 classify_points_struct(const int i_idx,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
+                       std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
                        Pointer<CutCellMeshMapping> cut_cell_mapping,
                        bool use_inside,
                        int coarsest_ln,
                        int finest_ln)
 {
-    unsigned int num_parts = cut_cell_mapping->getNumParts();
+    unsigned int num_parts = fe_hierarchy_mappings.size();
     std::vector<int> reverse_normal(num_parts, 0);
     std::vector<std::set<int>> norm_reverse_domain_ids(num_parts);
     classify_points_struct(i_idx,
                            hierarchy,
+                           fe_hierarchy_mappings,
                            cut_cell_mapping,
                            reverse_normal,
                            norm_reverse_domain_ids,
@@ -262,16 +264,18 @@ classify_points_struct(const int i_idx,
 void
 classify_points_struct(const int i_idx,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
+                       std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
                        Pointer<CutCellMeshMapping> cut_cell_mapping,
                        const std::vector<int>& reverse_normal,
                        bool use_inside,
                        int coarsest_ln,
                        int finest_ln)
 {
-    unsigned int num_parts = cut_cell_mapping->getNumParts();
+    unsigned int num_parts = fe_hierarchy_mappings.size();
     std::vector<std::set<int>> norm_reverse_domain_ids(num_parts);
     classify_points_struct(i_idx,
                            hierarchy,
+                           fe_hierarchy_mappings,
                            cut_cell_mapping,
                            reverse_normal,
                            norm_reverse_domain_ids,
@@ -282,16 +286,18 @@ classify_points_struct(const int i_idx,
 void
 classify_points_struct(const int i_idx,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
+                       std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
                        Pointer<CutCellMeshMapping> cut_cell_mapping,
                        const std::vector<std::set<int>>& norm_reverse_domain_ids,
                        bool use_inside,
                        int coarsest_ln,
                        int finest_ln)
 {
-    unsigned int num_parts = cut_cell_mapping->getNumParts();
+    unsigned int num_parts = fe_hierarchy_mappings.size();
     std::vector<int> reverse_normal(num_parts, 0);
     classify_points_struct(i_idx,
                            hierarchy,
+                           fe_hierarchy_mappings,
                            cut_cell_mapping,
                            reverse_normal,
                            norm_reverse_domain_ids,
@@ -459,7 +465,16 @@ std::vector<std::vector<ImagePointData>>
 find_image_points(const int i_idx,
                   Pointer<PatchHierarchy<NDIM>> hierarchy,
                   const int ln,
-                  const std::vector<std::shared_ptr<FEMeshPartitioner>>& mesh_partitioners)
+                  const std::vector<std::unique_ptr<FEToHierarchyMapping>>& fe_hierarchy_mappings)
+{
+    return find_image_points(i_idx, hierarchy, ln, unique_ptr_vec_to_raw_ptr_vec(fe_hierarchy_mappings));
+}
+
+std::vector<std::vector<ImagePointData>>
+find_image_points(const int i_idx,
+                  Pointer<PatchHierarchy<NDIM>> hierarchy,
+                  const int ln,
+                  const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings)
 {
     Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
     std::vector<std::vector<ImagePointData>> ip_data_vec_vec;
@@ -493,14 +508,15 @@ find_image_points(const int i_idx,
             // intercept points.
             unsigned int min_part, min_node_id;
             double min_dist = std::numeric_limits<double>::max();
-            for (unsigned int part = 0; part < mesh_partitioners.size(); ++part)
+            for (unsigned int part = 0; part < fe_hierarchy_mappings.size(); ++part)
             {
-                const auto& mesh_partitioner = mesh_partitioners[part];
-                const DofMap& dof_map = mesh_partitioner->getEquationSystems()
-                                            ->get_system(mesh_partitioner->COORDINATES_SYSTEM_NAME)
+                const auto& hierarchy_mapping = fe_hierarchy_mappings[part];
+                const DofMap& dof_map = hierarchy_mapping->getFESystemManager()
+                                            .getEquationSystems()
+                                            ->get_system(hierarchy_mapping->getCoordsSystemName())
                                             .get_dof_map();
-                NumericVector<double>* X_vec = mesh_partitioner->getCoordsVector();
-                const std::vector<Node*>& patch_nodes = mesh_partitioner->getActivePatchNodeMap(ln)[local_patch_num];
+                NumericVector<double>* X_vec = hierarchy_mapping->getCoordsVector();
+                const std::vector<Node*>& patch_nodes = hierarchy_mapping->getActivePatchNodeMap(ln)[local_patch_num];
                 for (const auto& node : patch_nodes)
                 {
                     libMesh::Point X;
@@ -520,10 +536,12 @@ find_image_points(const int i_idx,
             }
 
             // We know which NODE is closest. Now find all elements that have that node.
-            const auto& mesh_partitioner = mesh_partitioners[min_part];
+            const auto& hierarchy_mapping = fe_hierarchy_mappings[min_part];
             std::vector<Elem*> elems;
-            auto elem_it = mesh_partitioner->getEquationSystems()->get_mesh().local_elements_begin();
-            const auto elem_it_end = mesh_partitioner->getEquationSystems()->get_mesh().local_elements_end();
+            auto elem_it =
+                hierarchy_mapping->getFESystemManager().getEquationSystems()->get_mesh().local_elements_begin();
+            const auto elem_it_end =
+                hierarchy_mapping->getFESystemManager().getEquationSystems()->get_mesh().local_elements_end();
             for (; elem_it != elem_it_end; ++elem_it)
             {
                 Elem* elem = *elem_it;
@@ -534,8 +552,8 @@ find_image_points(const int i_idx,
             }
 
             FEDataManager::SystemDofMapCache* X_dof_map_cache =
-                mesh_partitioner->getDofMapCache(mesh_partitioner->COORDINATES_SYSTEM_NAME);
-            NumericVector<double>* X_vec = mesh_partitioner->getCoordsVector();
+                hierarchy_mapping->getFESystemManager().getDofMapCache(hierarchy_mapping->getCoordsSystemName());
+            NumericVector<double>* X_vec = hierarchy_mapping->getCoordsVector();
             auto X_petsc_vec = dynamic_cast<PetscVector<double>*>(X_vec);
 #ifndef NDEBUG
             TBOX_ASSERT(X_petsc_vec != nullptr);

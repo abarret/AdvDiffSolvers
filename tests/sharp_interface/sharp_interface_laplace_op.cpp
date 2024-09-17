@@ -1,7 +1,7 @@
 #include <ibamr/config.h>
 
 #include <ADS/CCSharpInterfaceLaplaceOperator.h>
-#include <ADS/CutCellVolumeMeshMapping.h>
+#include <ADS/CutCellMeshMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/PointwiseFunction.h>
 #include <ADS/SharpInterfaceGhostFill.h>
@@ -301,13 +301,23 @@ main(int argc, char* argv[])
             "mesh_mapping", input_db->getDatabase("MeshMapping"), mesh_ptrs);
         mesh_mapping->initializeEquationSystems();
         mesh_mapping->initializeFEData();
-        for (const auto& fe_mesh_mapping : mesh_mapping->getMeshPartitioners())
+
+        std::vector<std::unique_ptr<FEToHierarchyMapping>> fe_hier_mappings;
+        for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
         {
-            fe_mesh_mapping->setPatchHierarchy(patch_hierarchy);
-            fe_mesh_mapping->reinitElementMappings();
+            static const IntVector<NDIM> gcw(1);
+            fe_hier_mappings.push_back(
+                std::make_unique<FEToHierarchyMapping>("FEToHierarchyMapping_" + std::to_string(part),
+                                                       &mesh_mapping->getSystemManager(part),
+                                                       nullptr,
+                                                       patch_hierarchy->getNumberOfLevels(),
+                                                       gcw));
+            fe_hier_mappings[part]->setPatchHierarchy(patch_hierarchy);
+            fe_hier_mappings[part]->reinitElementMappings(gcw);
         }
-        Pointer<CutCellVolumeMeshMapping> cut_cell_mapping = new CutCellVolumeMeshMapping(
-            "cut_cell_mapping", input_db->getDatabase("CutCellMapping"), mesh_mapping->getMeshPartitioners());
+
+        Pointer<CutCellMeshMapping> cut_cell_mapping =
+            new CutCellMeshMapping("cut_cell_mapping", input_db->getDatabase("CutCellMapping"));
 
         // Uncomment to draw data.
 #define DRAW_DATA 1
@@ -327,7 +337,8 @@ main(int argc, char* argv[])
         PointwiseFunction<PointwiseFunctions::ScalarFcn> Y_fcn("Y_fcn", lap_fcn);
         Y_fcn.setDataOnPatchHierarchy(err_idx, err_var, patch_hierarchy, 0.0);
 
-        sharp_interface::SharpInterfaceGhostFill ghost_fill("GhostFill", patch_hierarchy, cut_cell_mapping);
+        sharp_interface::SharpInterfaceGhostFill ghost_fill(
+            "GhostFill", unique_ptr_vec_to_raw_ptr_vec(fe_hier_mappings), cut_cell_mapping);
         sharp_interface::CCSharpInterfaceLaplaceOperator laplace_op("LaplaceOp", nullptr, ghost_fill, bdry_fcn, false);
 
         for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
@@ -383,7 +394,7 @@ main(int argc, char* argv[])
         visit_data_writer->writePlotData(patch_hierarchy, 0, 0.0);
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
             struct_writers[part]->write_timestep("exodus" + std::to_string(part) + ".ex",
-                                                 *mesh_mapping->getMeshPartitioner(part)->getEquationSystems(),
+                                                 *mesh_mapping->getSystemManager(part).getEquationSystems(),
                                                  1,
                                                  0.0);
 #endif

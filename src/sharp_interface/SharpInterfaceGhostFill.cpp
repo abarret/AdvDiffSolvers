@@ -9,15 +9,19 @@ namespace ADS
 namespace sharp_interface
 {
 SharpInterfaceGhostFill::SharpInterfaceGhostFill(std::string object_name,
-                                                 Pointer<PatchHierarchy<NDIM>> hierarchy,
-                                                 Pointer<CutCellVolumeMeshMapping> cut_cell_mapping,
+                                                 std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
+                                                 Pointer<CutCellMeshMapping> cut_cell_mapping,
                                                  int coarsest_ln,
                                                  int finest_ln)
-    : d_object_name(std::move(object_name)), d_hierarchy(hierarchy), d_cut_cell_mapping(cut_cell_mapping)
+    : d_object_name(std::move(object_name)),
+      d_fe_hierarchy_mappings(std::move(fe_hierarchy_mappings)),
+      d_cut_cell_mapping(cut_cell_mapping)
 {
+    // Grab the patch hierarchy
+    Pointer<PatchHierarchy<NDIM>> hierarchy = d_fe_hierarchy_mappings[0]->getPatchHierarchy();
     // Set level numbers
     d_coarsest_ln = coarsest_ln < 0 ? 0 : coarsest_ln;
-    d_finest_ln = finest_ln < 0 ? d_hierarchy->getFinestLevelNumber() : finest_ln;
+    d_finest_ln = finest_ln < 0 ? hierarchy->getFinestLevelNumber() : finest_ln;
 
     // Reserve space for data structures.
     size_t num_levels = d_finest_ln - d_coarsest_ln + 1;
@@ -26,7 +30,7 @@ SharpInterfaceGhostFill::SharpInterfaceGhostFill(std::string object_name,
     d_generate_image_points.resize(num_levels, true);
     d_generate_image_point_weights.resize(num_levels, true);
 
-    const unsigned int num_parts = cut_cell_mapping->getNumParts();
+    const unsigned int num_parts = d_fe_hierarchy_mappings.size();
     d_norm_reverse_domain_ids.resize(num_parts);
     d_reverse_normal.resize(num_parts);
 
@@ -116,9 +120,11 @@ SharpInterfaceGhostFill::isValidLevelNumber(const int ln)
 void
 SharpInterfaceGhostFill::classifyPoints()
 {
-    allocate_patch_data(d_i_idx, d_hierarchy, 0.0, d_coarsest_ln, d_finest_ln);
+    Pointer<PatchHierarchy<NDIM>> hierarchy = d_fe_hierarchy_mappings[0]->getPatchHierarchy();
+    allocate_patch_data(d_i_idx, hierarchy, 0.0, d_coarsest_ln, d_finest_ln);
     classify_points_struct(d_i_idx,
-                           d_hierarchy,
+                           hierarchy,
+                           d_fe_hierarchy_mappings,
                            d_cut_cell_mapping,
                            d_reverse_normal,
                            d_norm_reverse_domain_ids,
@@ -132,8 +138,8 @@ void
 SharpInterfaceGhostFill::generateImagePoints(const int ln)
 {
     if (d_classify_points) classifyPoints();
-    d_img_pt_data_level_vec[ln] =
-        find_image_points(d_i_idx, d_hierarchy, ln, d_cut_cell_mapping->getMeshPartitioners());
+    Pointer<PatchHierarchy<NDIM>> hierarchy = d_fe_hierarchy_mappings[0]->getPatchHierarchy();
+    d_img_pt_data_level_vec[ln] = find_image_points(d_i_idx, hierarchy, ln, d_fe_hierarchy_mappings);
     d_generate_image_points[ln] = false;
 }
 
@@ -141,7 +147,8 @@ void
 SharpInterfaceGhostFill::generateImagePointWeights(const int ln)
 {
     if (d_generate_image_points[ln]) generateImagePoints(ln);
-    d_img_pt_wgts_level_vec[ln] = find_image_point_weights(d_i_idx, d_hierarchy, getImagePointData(ln), ln);
+    Pointer<PatchHierarchy<NDIM>> hierarchy = d_fe_hierarchy_mappings[0]->getPatchHierarchy();
+    d_img_pt_wgts_level_vec[ln] = find_image_point_weights(d_i_idx, hierarchy, getImagePointData(ln), ln);
     d_generate_image_point_weights[ln] = false;
 }
 } // namespace sharp_interface
