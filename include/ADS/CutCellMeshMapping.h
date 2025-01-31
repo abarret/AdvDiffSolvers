@@ -34,18 +34,35 @@ public:
     ~CutCellMeshMapping() = default;
 
     /*!
-     * Generate and cache the mappings between indices and partial elements. The mesh in each FEDataManager or
-     * FEToHierarchyMapping should correspond to a surface mesh. Note that these objects should be set and
-     * reinitElementMappings() should already be called.
+     * Generate and cache the mappings between indices and partial elements on all levels of the patch hierarchy. Note
+     * that all managers are assumed to have the same number of levels in the patch hierarchy. The mesh in each
+     * FEDataManager or FEToHierarchyMapping should correspond to a surface mesh. Note that these objects should be set
+     * and reinitElementMappings() should already be called.
      */
-    void generateCutCellMappings(const std::vector<IBTK::FEDataManager*>& fe_data_managers);
+    ///{
+    void generateCutCellMappingsOnHierarchy(const std::vector<IBTK::FEDataManager*>& fe_data_managers);
+    void generateCutCellMappingsOnHierarchy(const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings);
+    ///}
 
-    void generateCutCellMappings(const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings);
+    /*!
+     * Generate and cache the mappings between indices and partial elements on a specified level. The mesh in each
+     * FEDataManager or FEToHierarchyMapping should correspond to a surface mesh. Note that these objects should be set
+     * and reinitElementMappings() should already be called.
+     *
+     * If level_num is an invalid level number, then the finest level number in the patch hierarchy is used.
+     */
+    ///{
+    void generateCutCellMappings(const std::vector<IBTK::FEDataManager*>& fe_data_managers,
+                                 int level_num = IBTK::invalid_level_number);
+
+    void generateCutCellMappings(const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings,
+                                 int level_num = IBTK::invalid_level_number);
+    ///}
 
     /*!
      * Clear the cached cut cells. This is called automatically in each call to generateCutCellMappings()
      */
-    void clearCache();
+    void clearCache(int ln = IBTK::invalid_level_number);
 
     /*!
      * Return the vector of indices and cut cell maps for the given patch level number. Note the index in the vector is
@@ -58,9 +75,10 @@ public:
 
 private:
     /*!
-     * Set up the data structures and reserve space.
+     * Set up the data structures and reserve space on a specified level. If the level number is invalid, sets up data
+     * structures on the finest level.
      */
-    void initializeObject(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
+    void initializeObjectOnLevel(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy, int ln);
 
     void generateCutCellMappings(libMesh::System& X_sys,
                                  IBTK::FEDataManager::SystemDofMapCache* X_dof_map_cache,
@@ -73,7 +91,7 @@ private:
 
     std::string d_object_name;
     bool d_perturb_nodes = false;
-    bool d_elems_cached = false;
+    std::vector<bool> d_elems_cached_per_level;
 
     std::vector<std::vector<std::map<IndexList, std::vector<CutCellElems>>>> d_idx_cut_cell_elems_map_vec;
 };
