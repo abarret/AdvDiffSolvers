@@ -126,7 +126,7 @@ classify_points_struct(const int i_idx,
     coarsest_ln = coarsest_ln == IBTK::invalid_level_number ? 0 : coarsest_ln;
     finest_ln = finest_ln == IBTK::invalid_level_number ? hierarchy->getFinestLevelNumber() : finest_ln;
 
-    cut_cell_mapping->generateCutCellMappings(fe_hierarchy_mappings);
+    cut_cell_mapping->generateCutCellMappingsOnHierarchy(fe_hierarchy_mappings);
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
@@ -134,7 +134,7 @@ classify_points_struct(const int i_idx,
             cut_cell_mapping->getIdxCutCellElemsMap(ln);
 
         unsigned int local_patch_num = 0;
-        for (PatchLevel<NDIM>::Iterator p(level); p; p++)
+        for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
         {
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
             if (idx_cut_cell_map_vec.size() > local_patch_num)
@@ -611,7 +611,7 @@ find_image_point_weights(int i_idx,
                          const std::vector<std::vector<ImagePointData>>& img_data_vec_vec,
                          int ln)
 {
-    std::vector<ImagePointWeightsMap> ip_weights_vec(img_data_vec_vec[ln].size());
+    std::vector<ImagePointWeightsMap> ip_weights_vec(img_data_vec_vec.size());
     Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
     int local_patch_num = 0;
     for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
@@ -746,6 +746,39 @@ fill_ghost_cells(int i_idx,
             // Now we fill in the ghost cell using the boundary condition
             for (unsigned int d = 0; d < depth; ++d)
                 (*Q_data)(gp_idx, d) = 2.0 * bdry_fcn(img_data.d_bp_location) - (*Q_data)(gp_idx, d);
+        }
+    }
+}
+
+void
+apply_laplacian_on_patch(Pointer<Patch<NDIM>> patch,
+                         const ImagePointWeightsMap& img_wgts,
+                         CellData<NDIM, double>& Q_data,
+                         CellData<NDIM, double>& R_data,
+                         CellData<NDIM, int>& i_data)
+{
+    Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+    const double* const dx = pgeom->getDx();
+    R_data.fillAll(0.0);
+
+    for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+    {
+        const CellIndex<NDIM>& idx = ci();
+        const int idx_val = i_data(idx);
+        if (idx_val == FLUID)
+        {
+            for (int d = 0; d < NDIM; ++d)
+            {
+                IntVector<NDIM> one(0);
+                one(d) = 1;
+                R_data(idx) += (Q_data(idx + one) - 2.0 * Q_data(idx) + Q_data(idx - one)) / (dx[d] * dx[d]);
+            }
+        }
+        else if (idx_val == GHOST)
+        {
+            R_data(idx) = Q_data(idx);
+            const ImagePointWeights& wgts = img_wgts.at(std::make_pair(idx, patch));
+            for (int i = 0; i < wgts.s_num_pts; ++i) R_data(idx) += wgts.d_weights[i] * Q_data(wgts.d_idxs[i]);
         }
     }
 }

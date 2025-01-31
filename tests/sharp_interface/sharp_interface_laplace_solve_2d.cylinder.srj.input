@@ -1,7 +1,7 @@
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 32                                    // coarsest grid spacing
+N = 16                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = 3.0/NFINEST
 INTERFACE_TYPE = "DISK"
@@ -9,14 +9,14 @@ FUNCTION_TYPE = "TRIG"
 R = 1.0
 MFAC = 0.75
 ELEM_TYPE = "TRI3"
-PRECOND_TYPE = "NONE"
+PRECOND_TYPE = "SRJ"
 
-PRECOND {
-
-}
-
-PRECOND_PRECOND {
-
+SRJ_Solver {
+  num_iterations = 1
+  num_levels = 4
+  omega = 80.154,17.217,2.6201,0.6223
+  Q = 1,2,8,20
+  n = N
 }
 
 MeshMapping {
@@ -47,6 +47,7 @@ Main {
    data_dump_dirname           = "hier_data_IB2d"
 
    timer_dump_interval = 0
+   timer_enabled = TRUE
 }
 
 CartesianGeometry {
@@ -79,4 +80,11 @@ StandardTagAndInitialize {
 LoadBalancer {
    bin_pack_method     = "SPATIAL"
    max_workload_factor = 1
+}
+
+TimerManager {
+   print_exclusive = FALSE
+   print_total = TRUE
+   print_threshold = 0.01
+   timer_list = "*::*::*","IBTK::*::*","ADS::*::*"
 }

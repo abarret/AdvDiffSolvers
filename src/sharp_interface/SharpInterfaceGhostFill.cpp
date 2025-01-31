@@ -6,6 +6,13 @@
 
 namespace ADS
 {
+
+namespace
+{
+static Timer* t_classify_points;
+static Timer* t_generate_image_points;
+static Timer* t_generate_image_point_weights;
+} // namespace
 namespace sharp_interface
 {
 SharpInterfaceGhostFill::SharpInterfaceGhostFill(std::string object_name,
@@ -43,6 +50,13 @@ SharpInterfaceGhostFill::SharpInterfaceGhostFill(std::string object_name,
         d_i_var = new CellVariable<NDIM, int>(d_object_name + "::IndexVar");
     d_i_idx =
         var_db->registerVariableAndContext(d_i_var, var_db->getContext(d_object_name + "::CTX"), IntVector<NDIM>(1));
+
+    IBTK_DO_ONCE(
+        t_classify_points = TimerManager::getManager()->getTimer("ADS::SharpInterfaceGhostFill::classifyPoints()");
+        t_generate_image_points =
+            TimerManager::getManager()->getTimer("ADS::SharpInterfaceGhostFill::generateImagePoints()");
+        t_generate_image_point_weights =
+            TimerManager::getManager()->getTimer("ADS::SharpInterfaceGhostFill::generateImagePointWeights()"););
 }
 
 void
@@ -120,6 +134,7 @@ SharpInterfaceGhostFill::isValidLevelNumber(const int ln)
 void
 SharpInterfaceGhostFill::classifyPoints()
 {
+    ADS_TIMER_START(t_classify_points);
     Pointer<PatchHierarchy<NDIM>> hierarchy = d_fe_hierarchy_mappings[0]->getPatchHierarchy();
     allocate_patch_data(d_i_idx, hierarchy, 0.0, d_coarsest_ln, d_finest_ln);
     classify_points_struct(d_i_idx,
@@ -132,24 +147,29 @@ SharpInterfaceGhostFill::classifyPoints()
                            d_coarsest_ln,
                            d_finest_ln);
     d_classify_points = false;
+    ADS_TIMER_STOP(t_classify_points);
 }
 
 void
 SharpInterfaceGhostFill::generateImagePoints(const int ln)
 {
+    ADS_TIMER_START(t_generate_image_points);
     if (d_classify_points) classifyPoints();
     Pointer<PatchHierarchy<NDIM>> hierarchy = d_fe_hierarchy_mappings[0]->getPatchHierarchy();
     d_img_pt_data_level_vec[ln] = find_image_points(d_i_idx, hierarchy, ln, d_fe_hierarchy_mappings);
     d_generate_image_points[ln] = false;
+    ADS_TIMER_STOP(t_generate_image_points);
 }
 
 void
 SharpInterfaceGhostFill::generateImagePointWeights(const int ln)
 {
+    ADS_TIMER_START(t_generate_image_point_weights);
     if (d_generate_image_points[ln]) generateImagePoints(ln);
     Pointer<PatchHierarchy<NDIM>> hierarchy = d_fe_hierarchy_mappings[0]->getPatchHierarchy();
     d_img_pt_wgts_level_vec[ln] = find_image_point_weights(d_i_idx, hierarchy, getImagePointData(ln), ln);
     d_generate_image_point_weights[ln] = false;
+    ADS_TIMER_STOP(t_generate_image_point_weights);
 }
 } // namespace sharp_interface
 } // namespace ADS
