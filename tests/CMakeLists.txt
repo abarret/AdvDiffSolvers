@@ -18,7 +18,7 @@ ADD_CUSTOM_TARGET(tests)
 #    only compiles the IBFE tests.
 # 2. all input and output files in these source directories are symlinked into
 #    their corresponding build directories.
-SET(TEST_DIRECTORIES adv_ops examples operators level_set reconstructions sharp_interface solvers surfaces utilities)
+SET(TEST_DIRECTORIES adv_ops examples operators level_set reconstructions sharp_interface solvers surfaces utilities SRJ)
 
 FOREACH(_dir ${TEST_DIRECTORIES})
   ADD_CUSTOM_TARGET("tests-${_dir}")
@@ -112,6 +112,7 @@ SETUP_2D(sharp_interface find_image_points.cpp)
 SETUP_2D(sharp_interface find_image_point_weights.cpp)
 SETUP_2D(sharp_interface sharp_interface_laplace_op.cpp)
 SETUP_2D(sharp_interface sharp_interface_laplace_solve.cpp)
+SETUP_2D(sharp_interface sharp_interface_laplace_solve_scheduled.cpp)
 
 SETUP_2D(solvers full_fac_preconditioner.cpp)
 
@@ -120,6 +121,8 @@ SETUP_2D(surfaces surface_jacobian.cpp)
 SETUP_2D(utilities pointwise_function.cpp)
 
 SETUP_3D(utilities pointwise_function.cpp)
+
+SETUP_2D(SRJ srj_solve.cpp)
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD

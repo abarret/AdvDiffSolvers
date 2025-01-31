@@ -228,6 +228,15 @@ void fill_ghost_cells(int i_idx,
                       const std::vector<ImagePointWeightsMap>& img_wgts_vec,
                       int ln,
                       std::function<double(const IBTK::VectorNd& x)> bdry_fcn);
+
+/*!
+ * Apply the sharp interface Laplacian and boundary condition operator on a given patch
+ */
+void apply_laplacian_on_patch(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> patch,
+                              const ImagePointWeightsMap& img_wgts,
+                              SAMRAI::pdat::CellData<NDIM, double>& Q_data,
+                              SAMRAI::pdat::CellData<NDIM, double>& R_data,
+                              SAMRAI::pdat::CellData<NDIM, int>& i_data);
 } // namespace sharp_interface
 } // namespace ADS
 #endif
