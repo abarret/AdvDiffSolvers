@@ -54,6 +54,8 @@ SET(CXX_SRC
     reconstructions/reconstructions.cpp
 
     sharp_interface/CCSharpInterfaceLaplaceOperator.cpp
+    sharp_interface/CCSharpInterfaceFACPreconditionerStrategy.cpp
+    sharp_interface/CCSharpInterfaceScheduledJacobiSolver.cpp
     sharp_interface/SharpInterfaceGhostFill.cpp
     sharp_interface/sharp_interface_utilities.cpp
 

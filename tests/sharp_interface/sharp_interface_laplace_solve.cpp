@@ -1,7 +1,10 @@
 #include <ibamr/config.h>
 
+#include <ADS/CCSharpInterfaceFACPreconditionerStrategy.h>
 #include <ADS/CCSharpInterfaceLaplaceOperator.h>
+#include <ADS/CCSharpInterfaceScheduledJacobiSolver.h>
 #include <ADS/CutCellMeshMapping.h>
+#include <ADS/FullFACPreconditioner.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
 #include <ADS/PointwiseFunction.h>
 #include <ADS/SharpInterfaceGhostFill.h>
@@ -430,6 +433,34 @@ main(int argc, char* argv[])
         solver.setOperator(laplace_op);
         solver.setHomogeneousBc(false);
         solver.setSolutionTime(0.0);
+        PoissonSpecifications poisson_spec("poisson_spec");
+        poisson_spec.setCConstant(0.0);
+        poisson_spec.setDConstant(1.0);
+        laplace_op->setPoissonSpecifications(poisson_spec);
+
+        std::string precond_type = input_db->getString("PRECOND_TYPE");
+        if (strcasecmp(precond_type.c_str(), "FAC") == 0)
+        {
+            Pointer<sharp_interface::CCSharpInterfaceFACPreconditionerStrategy> fac_strategy =
+                new sharp_interface::CCSharpInterfaceFACPreconditionerStrategy(
+                    "FACStrategy", mesh_mapping->getSystemManagers(), input_db->getDatabase("PreconditionerOp"));
+            Pointer<FullFACPreconditioner> fac_precond = new FullFACPreconditioner(
+                "FACPreconditioner", fac_strategy, input_db->getDatabase("FACPreconditioner"), "");
+
+            solver.setPreconditioner(fac_precond);
+        }
+        else if (strcasecmp(precond_type.c_str(), "SRJ") == 0)
+        {
+            Pointer<sharp_interface::CCSharpInterfaceScheduledJacobiSolver> srj_solver =
+                new sharp_interface::CCSharpInterfaceScheduledJacobiSolver(
+                    "SharpInterfaceSolver", app_initializer->getComponentDatabase("SRJ_Solver"), ghost_fill, bdry_fcn);
+            solver.setPreconditioner(srj_solver);
+        }
+        else
+        {
+            // intentionally blank
+        }
+
         solver.initializeSolverState(x_vec, y_vec);
 
         solver.solveSystem(x_vec, y_vec);
@@ -479,6 +510,7 @@ main(int argc, char* argv[])
 
         // Deallocate data
         deallocate_patch_data(idxs, patch_hierarchy, coarsest_ln, finest_ln);
+
     } // cleanup dynamically allocated objects prior to shutdown
     return 0;
 } // main
