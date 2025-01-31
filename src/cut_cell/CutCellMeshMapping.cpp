@@ -21,11 +21,35 @@ CutCellMeshMapping::CutCellMeshMapping(std::string object_name, const bool pertu
 }
 
 void
-CutCellMeshMapping::generateCutCellMappings(const std::vector<FEDataManager*>& fe_data_managers)
+CutCellMeshMapping::generateCutCellMappingsOnHierarchy(const std::vector<FEDataManager*>& fe_data_managers)
 {
-    if (d_elems_cached) clearCache();
+    Pointer<PatchHierarchy<NDIM>> hierarchy = fe_data_managers.front()->getPatchHierarchy();
+    int coarsest_ln = 0;
+    int finest_ln = hierarchy->getFinestLevelNumber();
+    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+    {
+        generateCutCellMappings(fe_data_managers, ln);
+    }
+}
 
-    initializeObject(fe_data_managers[0]->getPatchHierarchy());
+void
+CutCellMeshMapping::generateCutCellMappingsOnHierarchy(const std::vector<FEToHierarchyMapping*>& fe_hier_managers)
+{
+    Pointer<PatchHierarchy<NDIM>> hierarchy = fe_hier_managers.front()->getPatchHierarchy();
+    int coarsest_ln = 0;
+    int finest_ln = hierarchy->getFinestLevelNumber();
+    for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+    {
+        generateCutCellMappings(fe_hier_managers, ln);
+    }
+}
+
+void
+CutCellMeshMapping::generateCutCellMappings(const std::vector<FEDataManager*>& fe_data_managers, int ln)
+{
+    ln = ln == IBTK::invalid_level_number ? fe_data_managers.front()->getFinestPatchLevelNumber() : ln;
+    if (d_elems_cached_per_level.size() > 0 && d_elems_cached_per_level[ln]) clearCache(ln);
+    initializeObjectOnLevel(fe_data_managers[0]->getPatchHierarchy(), ln);
     for (size_t part = 0; part < fe_data_managers.size(); ++part)
     {
         FEDataManager* fe_data_manager = fe_data_managers[part];
@@ -34,19 +58,20 @@ CutCellMeshMapping::generateCutCellMappings(const std::vector<FEDataManager*>& f
         FEDataManager::SystemDofMapCache* X_dof_map_cache =
             fe_data_manager->getDofMapCache(fe_data_manager->getCurrentCoordinatesSystemName());
         const std::vector<std::vector<Elem*>>& active_patch_elem_map = fe_data_manager->getActivePatchElementMap();
-        const int level_num = fe_data_manager->getFinestPatchLevelNumber();
         generateCutCellMappings(
-            X_sys, X_dof_map_cache, active_patch_elem_map, fe_data_manager->getPatchHierarchy(), level_num, part);
+            X_sys, X_dof_map_cache, active_patch_elem_map, fe_data_manager->getPatchHierarchy(), ln, part);
     }
-    d_elems_cached = true;
+    d_elems_cached_per_level[ln] = true;
 }
 
 void
-CutCellMeshMapping::generateCutCellMappings(const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings)
+CutCellMeshMapping::generateCutCellMappings(const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings, int ln)
 {
-    if (d_elems_cached) clearCache();
+    ln = ln == IBTK::invalid_level_number ? fe_hierarchy_mappings.front()->getPatchHierarchy()->getFinestLevelNumber() :
+                                            ln;
+    if (d_elems_cached_per_level.size() > 0 && d_elems_cached_per_level[ln]) clearCache(ln);
 
-    initializeObject(fe_hierarchy_mappings[0]->getPatchHierarchy());
+    initializeObjectOnLevel(fe_hierarchy_mappings[0]->getPatchHierarchy(), ln);
     for (size_t part = 0; part < fe_hierarchy_mappings.size(); ++part)
     {
         FEToHierarchyMapping* fe_hierarchy_mapping = fe_hierarchy_mappings[part];
@@ -56,30 +81,38 @@ CutCellMeshMapping::generateCutCellMappings(const std::vector<FEToHierarchyMappi
         FEDataManager::SystemDofMapCache* X_dof_map_cache =
             fe_sys_manager.getDofMapCache(fe_hierarchy_mapping->getCoordsSystemName());
         const std::vector<std::vector<Elem*>>& active_patch_elem_map = fe_hierarchy_mapping->getActivePatchElementMap();
-        const int level_num = fe_hierarchy_mapping->getFinestPatchLevelNumber();
         generateCutCellMappings(
-            X_sys, X_dof_map_cache, active_patch_elem_map, fe_hierarchy_mapping->getPatchHierarchy(), level_num, part);
+            X_sys, X_dof_map_cache, active_patch_elem_map, fe_hierarchy_mapping->getPatchHierarchy(), ln, part);
     }
-    d_elems_cached = true;
+    d_elems_cached_per_level[ln] = true;
 }
 
 void
-CutCellMeshMapping::clearCache()
+CutCellMeshMapping::clearCache(int ln)
 {
-    d_idx_cut_cell_elems_map_vec.clear();
-    d_elems_cached = false;
+    if (ln == IBTK::invalid_level_number)
+    {
+        d_idx_cut_cell_elems_map_vec.clear();
+        d_elems_cached_per_level.clear();
+    }
+    else
+    {
+        d_idx_cut_cell_elems_map_vec[ln].clear();
+        d_elems_cached_per_level[ln] = false;
+    }
 }
 
 void
-CutCellMeshMapping::initializeObject(Pointer<PatchHierarchy<NDIM>> hierarchy)
+CutCellMeshMapping::initializeObjectOnLevel(Pointer<PatchHierarchy<NDIM>> hierarchy, int ln)
 {
     const int finest_ln = hierarchy->getFinestLevelNumber();
+    ln = ln == IBTK::invalid_level_number ? finest_ln : ln;
     d_idx_cut_cell_elems_map_vec.resize(finest_ln + 1);
-    for (int ln = 0; ln <= finest_ln; ++ln)
-    {
-        Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        d_idx_cut_cell_elems_map_vec[ln].resize(level->getProcessorMapping().getNumberOfLocalIndices());
-    }
+    d_elems_cached_per_level.resize(finest_ln + 1);
+
+    Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
+    d_idx_cut_cell_elems_map_vec[ln].resize(level->getProcessorMapping().getNumberOfLocalIndices());
+    d_elems_cached_per_level[ln] = false;
 }
 
 void
