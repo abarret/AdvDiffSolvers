@@ -151,15 +151,17 @@ main(int argc, char* argv[])
         visit_data_writer->registerPlotQuantity("phi", "SCALAR", phi_idx);
 #endif
 
+        bool use_outside = input_db->getBool("USE_OUTSIDE");
+
         // Allocate data
         const int coarsest_ln = 0;
         const int finest_ln = patch_hierarchy->getFinestLevelNumber();
         allocate_patch_data(idxs, patch_hierarchy, 0.0, coarsest_ln, finest_ln);
 
         // Fill level set data.
-        if (interface == InterfaceType::DISK)
+        if (interface == InterfaceType::DISK || interface == InterfaceType::SPHERE)
         {
-            auto ls_ghost_box_fcn = [](Pointer<Patch<NDIM>> patch, const int phi_idx)
+            auto ls_ghost_box_fcn = [&use_outside](Pointer<Patch<NDIM>> patch, const int phi_idx)
             {
                 Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
                 const double* const dx = pgeom->getDx();
@@ -175,6 +177,7 @@ main(int argc, char* argv[])
                     const double r = x.norm();
                     static const double R = 1.0;
                     (*phi_data)(idx) = r - R;
+                    if (use_outside) (*phi_data)(idx) *= -1.0;
                 }
             };
             perform_on_patch_hierarchy(patch_hierarchy, ls_ghost_box_fcn, phi_idx);
@@ -184,7 +187,7 @@ main(int argc, char* argv[])
             double theta = input_db->getDouble("THETA");
             double ylow = input_db->getDouble("YLOW");
             double yup = input_db->getDouble("YUP");
-            auto ls_ghost_box_fcn = [&theta, &ylow, &yup](Pointer<Patch<NDIM>> patch, const int phi_idx)
+            auto ls_ghost_box_fcn = [&use_outside, &theta, &ylow, &yup](Pointer<Patch<NDIM>> patch, const int phi_idx)
             {
                 MatrixNd Q;
                 Q(0, 0) = Q(1, 1) = std::cos(theta);
@@ -203,6 +206,7 @@ main(int argc, char* argv[])
                     for (int d = 0; d < NDIM; ++d) x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)));
                     x = Q * x;
                     (*phi_data)(idx) = std::max(x[1] - yup, ylow - x[1]);
+                    if (use_outside) (*phi_data)(idx) *= -1.0;
                 }
             };
             perform_on_patch_hierarchy(patch_hierarchy, ls_ghost_box_fcn, phi_idx);
