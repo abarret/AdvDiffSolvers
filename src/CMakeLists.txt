@@ -58,6 +58,7 @@ SET(CXX_SRC
     sharp_interface/CCSharpInterfaceScheduledJacobiSolver.cpp
     sharp_interface/SharpInterfaceGhostFill.cpp
     sharp_interface/sharp_interface_utilities.cpp
+    sharp_interface/SIData.cpp
 
     solvers/FullFACPreconditioner.cpp
     solvers/LSCutCellBoundaryConditions.cpp
