@@ -1,7 +1,7 @@
 #ifndef included_ads_sharp_interface_utilities
 #define included_ads_sharp_interface_utilities
 
-#include <ADS/CutCellMeshMapping.h>
+#include <ADS/IndexElemMapping.h>
 #include <ADS/FEToHierarchyMapping.h>
 
 #include <ibtk/ibtk_utilities.h>
@@ -132,7 +132,7 @@ void classify_points(int i_idx,
 void classify_points_struct(const int i_idx,
                             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                             std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
-                            SAMRAI::tbox::Pointer<CutCellMeshMapping> cut_cell_mapping,
+                            SAMRAI::tbox::Pointer<IndexElemMapping> cell_elem_mapping,
                             const std::vector<int>& reverse_normal,
                             const std::vector<std::set<int>>& norm_reverse_domain_ids,
                             bool use_inside = true,
@@ -141,14 +141,14 @@ void classify_points_struct(const int i_idx,
 void classify_points_struct(const int i_idx,
                             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                             std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
-                            SAMRAI::tbox::Pointer<CutCellMeshMapping> cut_cell_mapping,
+							SAMRAI::tbox::Pointer<IndexElemMapping> cell_elem_mapping,
                             bool use_inside = true,
                             int coarsest_ln = IBTK::invalid_level_number,
                             int finest_ln = IBTK::invalid_level_number);
 void classify_points_struct(const int i_idx,
                             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                             std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
-                            SAMRAI::tbox::Pointer<CutCellMeshMapping> cut_cell_mapping,
+							SAMRAI::tbox::Pointer<IndexElemMapping> cell_elem_mapping,
                             const std::vector<int>& reverse_normal,
                             bool use_inside = true,
                             int coarsest_ln = IBTK::invalid_level_number,
@@ -156,7 +156,7 @@ void classify_points_struct(const int i_idx,
 void classify_points_struct(const int i_idx,
                             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
                             std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
-                            SAMRAI::tbox::Pointer<CutCellMeshMapping> cut_cell_mapping,
+							SAMRAI::tbox::Pointer<IndexElemMapping> cell_elem_mapping,
                             const std::vector<std::set<int>>& norm_reverse_domain_ids,
                             bool use_inside = true,
                             int coarsest_ln = IBTK::invalid_level_number,
