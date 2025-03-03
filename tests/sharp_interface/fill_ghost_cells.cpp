@@ -1,7 +1,7 @@
 #include <ibamr/config.h>
 
-#include <ADS/CutCellMeshMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
+#include <ADS/IndexElemMapping.h>
 #include <ADS/PointwiseFunction.h>
 #include <ADS/ads_utilities.h>
 #include <ADS/app_namespaces.h>
@@ -279,8 +279,8 @@ main(int argc, char* argv[])
             "mesh_mapping", input_db->getDatabase("MeshMapping"), mesh_ptrs);
         mesh_mapping->initializeEquationSystems();
         mesh_mapping->initializeFEData();
-        Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellMeshMapping("cut_cell_mapping", input_db->getDatabase("CutCellMapping"));
+        Pointer<IndexElemMapping> idx_elem_mapping =
+            new IndexElemMapping("idx_elem_mapping", input_db->getDatabase("IndexElemMapping"));
 
         std::vector<std::unique_ptr<FEToHierarchyMapping>> fe_hierarchy_mappings;
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)
@@ -312,7 +312,7 @@ main(int argc, char* argv[])
             sharp_interface::classify_points_struct(pt_type_idx,
                                                     patch_hierarchy,
                                                     unique_ptr_vec_to_raw_ptr_vec(fe_hierarchy_mappings),
-                                                    cut_cell_mapping,
+                                                    idx_elem_mapping,
                                                     reverse_norms,
                                                     false);
         }
@@ -321,7 +321,7 @@ main(int argc, char* argv[])
             sharp_interface::classify_points_struct(pt_type_idx,
                                                     patch_hierarchy,
                                                     unique_ptr_vec_to_raw_ptr_vec(fe_hierarchy_mappings),
-                                                    cut_cell_mapping,
+                                                    idx_elem_mapping,
                                                     true);
         }
 

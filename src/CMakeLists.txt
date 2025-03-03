@@ -56,6 +56,7 @@ SET(CXX_SRC
     sharp_interface/CCSharpInterfaceLaplaceOperator.cpp
     sharp_interface/CCSharpInterfaceFACPreconditionerStrategy.cpp
     sharp_interface/CCSharpInterfaceScheduledJacobiSolver.cpp
+    sharp_interface/IndexElemMapping.cpp
     sharp_interface/SharpInterfaceGhostFill.cpp
     sharp_interface/sharp_interface_utilities.cpp
     sharp_interface/SIData.cpp

@@ -125,11 +125,9 @@ SETUP_2D(utilities pointwise_function.cpp)
 
 SETUP_3D(utilities pointwise_function.cpp)
 
-<<<<<<< HEAD
 SETUP_2D(integrators implicit_integrator.cpp)
-=======
+
 SETUP_2D(SRJ srj_solve.cpp)
->>>>>>> 730df30... Add the SRJ solver for sharp interface. Needs optimization but is effective as a preconditioner.
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
