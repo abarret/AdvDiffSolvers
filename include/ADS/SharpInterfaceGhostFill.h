@@ -1,7 +1,7 @@
 #ifndef included_ADS_SharpInterfaceGhostFill
 #define included_ADS_SharpInterfaceGhostFill
 
-#include <ADS/CutCellMeshMapping.h>
+#include <ADS/IndexElemMapping.h>
 #include <ADS/sharp_interface_utilities.h>
 
 namespace ADS
@@ -29,7 +29,7 @@ public:
      */
     SharpInterfaceGhostFill(std::string object_name,
                             std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
-                            SAMRAI::tbox::Pointer<CutCellMeshMapping> cut_cell_mapping,
+                            SAMRAI::tbox::Pointer<IndexElemMapping> idx_elem_mapping,
                             int coarsest_ln = IBTK::invalid_index,
                             int finest_ln = IBTK::invalid_index);
 
@@ -123,7 +123,7 @@ private:
 
     // Structure information
     std::vector<FEToHierarchyMapping*> d_fe_hierarchy_mappings;
-    SAMRAI::tbox::Pointer<CutCellMeshMapping> d_cut_cell_mapping;
+    SAMRAI::tbox::Pointer<IndexElemMapping> d_idx_elem_mapping;
     bool d_use_inside = true;
     std::vector<int> d_reverse_normal;
     std::vector<std::set<int>> d_norm_reverse_domain_ids;

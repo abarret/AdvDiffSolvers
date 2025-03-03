@@ -1,8 +1,8 @@
 #include <ibamr/config.h>
 
 #include <ADS/CCSharpInterfaceLaplaceOperator.h>
-#include <ADS/CutCellMeshMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
+#include <ADS/IndexElemMapping.h>
 #include <ADS/PointwiseFunction.h>
 #include <ADS/SharpInterfaceGhostFill.h>
 #include <ADS/ads_utilities.h>
@@ -316,8 +316,8 @@ main(int argc, char* argv[])
             fe_hier_mappings[part]->reinitElementMappings(gcw);
         }
 
-        Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellMeshMapping("cut_cell_mapping", input_db->getDatabase("CutCellMapping"));
+        Pointer<IndexElemMapping> idx_elem_mapping =
+            new IndexElemMapping("idx_elem_mapping", input_db->getDatabase("IndexElemMapping"));
 
         // Uncomment to draw data.
 #define DRAW_DATA 1
@@ -338,7 +338,7 @@ main(int argc, char* argv[])
         Y_fcn.setDataOnPatchHierarchy(err_idx, err_var, patch_hierarchy, 0.0);
 
         sharp_interface::SharpInterfaceGhostFill ghost_fill(
-            "GhostFill", unique_ptr_vec_to_raw_ptr_vec(fe_hier_mappings), cut_cell_mapping);
+            "GhostFill", unique_ptr_vec_to_raw_ptr_vec(fe_hier_mappings), idx_elem_mapping);
         sharp_interface::CCSharpInterfaceLaplaceOperator laplace_op("LaplaceOp", nullptr, ghost_fill, bdry_fcn, false);
 
         for (int ln = coarsest_ln; ln <= finest_ln; ++ln)

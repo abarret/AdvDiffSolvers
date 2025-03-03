@@ -352,7 +352,7 @@ private:
     std::unique_ptr<SharpInterfaceGhostFill> d_si_ghost_fill;
     std::vector<FESystemManager*> d_fe_sys_managers;
     std::vector<std::unique_ptr<FEToHierarchyMapping>> d_fe_hierarchy_mapping;
-    SAMRAI::tbox::Pointer<CutCellMeshMapping> d_cut_cell_mapping;
+    SAMRAI::tbox::Pointer<IndexElemMapping> d_idx_elem_mapping;
 
     // Boundary conditions for operator.
     // TODO: This needs to be more general

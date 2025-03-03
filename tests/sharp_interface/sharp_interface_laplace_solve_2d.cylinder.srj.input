@@ -23,7 +23,7 @@ MeshMapping {
   max_level = MAX_LEVELS
 }
 
-CutCellMapping {
+IndexElemMapping {
   perturb_nodes = TRUE
 }
 

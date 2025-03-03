@@ -1,5 +1,6 @@
-#include "ADS/CutCellMeshMapping.h"
+#include "ADS/IndexElemMapping.h"
 #include "ADS/app_namespaces.h"
+#include "ADS/ls_functions.h"
 
 #include "ibtk/IBTK_MPI.h"
 #include "ibtk/IndexUtilities.h"
@@ -8,44 +9,64 @@
 
 namespace ADS
 {
-CutCellMeshMapping::CutCellMeshMapping(std::string object_name, Pointer<Database> input_db)
+namespace
+{
+template <typename T>
+std::pair<CellIndex<NDIM>, T>&
+get_elem(std::vector<std::pair<CellIndex<NDIM>, T>>& vec, const CellIndex<NDIM>& idx)
+{
+    auto it =
+        std::find_if(vec.begin(), vec.end(), [&idx](const std::pair<CellIndex<NDIM>, T>& i) { return i.first == idx; });
+    if (it == vec.end())
+    {
+        vec.emplace_back(idx, T());
+        return vec.back();
+    }
+    else
+    {
+        return *it;
+    }
+}
+} // namespace
+
+IndexElemMapping::IndexElemMapping(std::string object_name, Pointer<Database> input_db)
     : d_object_name(std::move(object_name))
 {
     d_perturb_nodes = input_db->getBool("perturb_nodes");
 }
 
-CutCellMeshMapping::CutCellMeshMapping(std::string object_name, const bool perturb_nodes)
+IndexElemMapping::IndexElemMapping(std::string object_name, const bool perturb_nodes)
     : d_object_name(std::move(object_name)), d_perturb_nodes(perturb_nodes)
 {
     // intentionally blank
 }
 
 void
-CutCellMeshMapping::generateCutCellMappingsOnHierarchy(const std::vector<FEDataManager*>& fe_data_managers)
+IndexElemMapping::generateCellElemMappingOnHierarchy(const std::vector<FEDataManager*>& fe_data_managers)
 {
     Pointer<PatchHierarchy<NDIM>> hierarchy = fe_data_managers.front()->getPatchHierarchy();
     int coarsest_ln = 0;
     int finest_ln = hierarchy->getFinestLevelNumber();
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
-        generateCutCellMappings(fe_data_managers, ln);
+        generateCellElemMapping(fe_data_managers, ln);
     }
 }
 
 void
-CutCellMeshMapping::generateCutCellMappingsOnHierarchy(const std::vector<FEToHierarchyMapping*>& fe_hier_managers)
+IndexElemMapping::generateCellElemMappingOnHierarchy(const std::vector<FEToHierarchyMapping*>& fe_hier_managers)
 {
     Pointer<PatchHierarchy<NDIM>> hierarchy = fe_hier_managers.front()->getPatchHierarchy();
     int coarsest_ln = 0;
     int finest_ln = hierarchy->getFinestLevelNumber();
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
-        generateCutCellMappings(fe_hier_managers, ln);
+        generateCellElemMapping(fe_hier_managers, ln);
     }
 }
 
 void
-CutCellMeshMapping::generateCutCellMappings(const std::vector<FEDataManager*>& fe_data_managers, int ln)
+IndexElemMapping::generateCellElemMapping(const std::vector<FEDataManager*>& fe_data_managers, int ln)
 {
     ln = ln == IBTK::invalid_level_number ? fe_data_managers.front()->getFinestPatchLevelNumber() : ln;
     if (d_elems_cached_per_level.size() > 0 && d_elems_cached_per_level[ln]) clearCache(ln);
@@ -58,14 +79,14 @@ CutCellMeshMapping::generateCutCellMappings(const std::vector<FEDataManager*>& f
         FEDataManager::SystemDofMapCache* X_dof_map_cache =
             fe_data_manager->getDofMapCache(fe_data_manager->getCurrentCoordinatesSystemName());
         const std::vector<std::vector<Elem*>>& active_patch_elem_map = fe_data_manager->getActivePatchElementMap();
-        generateCutCellMappings(
+        generateCellElemMapping(
             X_sys, X_dof_map_cache, active_patch_elem_map, fe_data_manager->getPatchHierarchy(), ln, part);
     }
     d_elems_cached_per_level[ln] = true;
 }
 
 void
-CutCellMeshMapping::generateCutCellMappings(const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings, int ln)
+IndexElemMapping::generateCellElemMapping(const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings, int ln)
 {
     ln = ln == IBTK::invalid_level_number ? fe_hierarchy_mappings.front()->getPatchHierarchy()->getFinestLevelNumber() :
                                             ln;
@@ -81,47 +102,47 @@ CutCellMeshMapping::generateCutCellMappings(const std::vector<FEToHierarchyMappi
         FEDataManager::SystemDofMapCache* X_dof_map_cache =
             fe_sys_manager.getDofMapCache(fe_hierarchy_mapping->getCoordsSystemName());
         const std::vector<std::vector<Elem*>>& active_patch_elem_map = fe_hierarchy_mapping->getActivePatchElementMap();
-        generateCutCellMappings(
+        generateCellElemMapping(
             X_sys, X_dof_map_cache, active_patch_elem_map, fe_hierarchy_mapping->getPatchHierarchy(), ln, part);
     }
     d_elems_cached_per_level[ln] = true;
 }
 
 void
-CutCellMeshMapping::clearCache(int ln)
+IndexElemMapping::clearCache(int ln)
 {
     if (ln == IBTK::invalid_level_number)
     {
-        d_idx_cut_cell_elems_map_vec.clear();
+        d_idx_cell_elem_vec_vec.clear();
         d_elems_cached_per_level.clear();
     }
     else
     {
-        d_idx_cut_cell_elems_map_vec[ln].clear();
+        d_idx_cell_elem_vec_vec[ln].clear();
         d_elems_cached_per_level[ln] = false;
     }
 }
 
 void
-CutCellMeshMapping::initializeObjectOnLevel(Pointer<PatchHierarchy<NDIM>> hierarchy, int ln)
+IndexElemMapping::initializeObjectOnLevel(Pointer<PatchHierarchy<NDIM>> hierarchy, int ln)
 {
     const int finest_ln = hierarchy->getFinestLevelNumber();
     ln = ln == IBTK::invalid_level_number ? finest_ln : ln;
-    d_idx_cut_cell_elems_map_vec.resize(finest_ln + 1);
+    d_idx_cell_elem_vec_vec.resize(finest_ln + 1);
     d_elems_cached_per_level.resize(finest_ln + 1);
 
     Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-    d_idx_cut_cell_elems_map_vec[ln].resize(level->getProcessorMapping().getNumberOfLocalIndices());
+    d_idx_cell_elem_vec_vec[ln].resize(level->getProcessorMapping().getNumberOfLocalIndices());
     d_elems_cached_per_level[ln] = false;
 }
 
 void
-CutCellMeshMapping::generateCutCellMappings(System& X_sys,
-                                            FEDataManager::SystemDofMapCache* X_dof_map_cache,
-                                            const std::vector<std::vector<Elem*>>& active_patch_elem_map,
-                                            Pointer<PatchHierarchy<NDIM>> hierarchy,
-                                            const int level_num,
-                                            const int part)
+IndexElemMapping::generateCellElemMapping(System& X_sys,
+                                          FEDataManager::SystemDofMapCache* X_dof_map_cache,
+                                          const std::vector<std::vector<Elem*>>& active_patch_elem_map,
+                                          Pointer<PatchHierarchy<NDIM>> hierarchy,
+                                          const int level_num,
+                                          const int part)
 {
     NumericVector<double>* X_vec = X_sys.solution.get();
     auto X_petsc_vec = dynamic_cast<PetscVector<double>*>(X_vec);
@@ -134,9 +155,9 @@ CutCellMeshMapping::generateCutCellMappings(System& X_sys,
     VectorValue<double> n;
     IBTK::Point x_min, x_max;
 
-    std::vector<std::map<IndexList, std::vector<CutCellElems>>>& idx_cut_cell_map_vec =
-        d_idx_cut_cell_elems_map_vec[level_num];
-    idx_cut_cell_map_vec.resize(level->getProcessorMapping().getNumberOfLocalIndices());
+    std::vector<std::vector<std::pair<CellIndex<NDIM>, std::vector<ElemData>>>>& idx_cell_elem_vec_vec =
+        d_idx_cell_elem_vec_vec[level_num];
+    idx_cell_elem_vec_vec.resize(level->getProcessorMapping().getNumberOfLocalIndices());
 
     unsigned int local_patch_num = 0;
     for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
@@ -207,10 +228,11 @@ CutCellMeshMapping::generateCutCellMappings(System& X_sys,
             {
                 // Element is entirely contained in cell.
                 // Store element and continue to next element
-                IndexList p_idx(patch, CellIndex<NDIM>(elem_idx_nodes[0]));
                 // Create copy of element
-                idx_cut_cell_map_vec[local_patch_num][p_idx].push_back(CutCellElems(
-                    elem, { std::make_pair(elem->point(0), -1), std::make_pair(elem->point(1), -1) }, part));
+                std::pair<CellIndex<NDIM>, std::vector<ElemData>>& cell_elem_vec =
+                    get_elem(idx_cell_elem_vec_vec[local_patch_num], elem_idx_nodes[0]);
+                std::vector<libMesh::Point> pts = { elem->point(0), elem->point(1) };
+                cell_elem_vec.second.emplace_back(pts, elem, part);
                 // Reset element
                 // Restore element's original positions
                 for (unsigned int k = 0; k < n_node; ++k) elem->point(k) = X_node_cache[k];
@@ -227,7 +249,7 @@ CutCellMeshMapping::generateCutCellMappings(System& X_sys,
             {
                 const hier::Index<NDIM>& i_c = b();
                 // We have the index of the box. Each box should have zero or two intersections
-                std::vector<std::pair<libMesh::Point, int>> intersection_side_vec(0);
+                std::vector<libMesh::Point> intersection_vec(0);
                 for (int upper_lower = 0; upper_lower < 2; ++upper_lower)
                 {
                     for (int axis = 0; axis < NDIM; ++axis)
@@ -243,16 +265,17 @@ CutCellMeshMapping::generateCutCellMappings(System& X_sys,
 
                         libMesh::Point p;
                         // An element may intersect zero or one times with a cell edge.
-                        if (findIntersection(p, elem, r, q))
-                            intersection_side_vec.push_back(std::make_pair(p, upper_lower + axis * NDIM));
+                        if (find_intersection(p, elem, r, q)) intersection_vec.push_back(p);
                     }
                 }
 
                 // An element may have zero, one, or two intersections with a cell.
                 // Note we've already accounted for when an element is contained within a cell.
-                if (intersection_side_vec.size() == 0) continue;
-                TBOX_ASSERT(intersection_side_vec.size() <= 2);
-                if (intersection_side_vec.size() == 1)
+                if (intersection_vec.size() == 0) continue;
+#ifndef NDEBUG
+                TBOX_ASSERT(intersection_vec.size() <= 2);
+#endif
+                if (intersection_vec.size() == 1)
                 {
                     for (unsigned int k = 0; k < n_node; ++k)
                     {
@@ -264,19 +287,21 @@ CutCellMeshMapping::generateCutCellMappings(System& X_sys,
                         {
                             // Check if we already have this point accounted for. Note this can happen when a node
                             // is EXACTLY on a cell face or node.
-                            if (intersection_side_vec[0].first == xn) continue;
-                            intersection_side_vec.push_back(std::make_pair(xn, -1));
+                            if (intersection_vec[0] == xn) continue;
+                            intersection_vec.push_back(xn);
                             break;
                         }
                     }
                 }
                 // At this point, if we still only have one intersection point, our node is on a face, and we can
                 // skip this index.
-                if (intersection_side_vec.size() == 1) continue;
-                TBOX_ASSERT(intersection_side_vec.size() == 2);
-                IndexList p_idx(patch, CellIndex<NDIM>(i_c));
+                if (intersection_vec.size() == 1) continue;
+                TBOX_ASSERT(intersection_vec.size() == 2);
                 // Create a new element
-                idx_cut_cell_map_vec[local_patch_num][p_idx].push_back(CutCellElems(elem, intersection_side_vec, part));
+                std::pair<CellIndex<NDIM>, std::vector<ElemData>>& cell_elem_vec =
+                    get_elem(idx_cell_elem_vec_vec[local_patch_num], i_c);
+                std::vector<libMesh::Point> pts = { elem->point(0), elem->point(1) };
+                cell_elem_vec.second.emplace_back(pts, elem, part);
             }
             // Restore element's original positions
             for (unsigned int k = 0; k < n_node; ++k) elem->point(k) = X_node_cache[k];

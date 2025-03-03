@@ -1,7 +1,7 @@
 #include <ibamr/config.h>
 
-#include <ADS/CutCellMeshMapping.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
+#include <ADS/IndexElemMapping.h>
 #include <ADS/PointwiseFunction.h>
 #include <ADS/ads_utilities.h>
 #include <ADS/app_namespaces.h>
@@ -302,8 +302,8 @@ main(int argc, char* argv[])
             fe_hier_mappings[part]->setPatchHierarchy(patch_hierarchy);
             fe_hier_mappings[part]->reinitElementMappings(gcw);
         }
-        Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellMeshMapping("cut_cell_mapping", input_db->getDatabase("CutCellMapping"));
+        Pointer<IndexElemMapping> idx_elem_mapping =
+            new IndexElemMapping("idx_elem_mapping", input_db->getDatabase("IndexElemMapping"));
 
         // Uncomment to draw data.
 #define DRAW_DATA 1
@@ -321,14 +321,14 @@ main(int argc, char* argv[])
             sharp_interface::classify_points_struct(pt_type_idx,
                                                     patch_hierarchy,
                                                     unique_ptr_vec_to_raw_ptr_vec(fe_hier_mappings),
-                                                    cut_cell_mapping,
+                                                    idx_elem_mapping,
                                                     reverse_norms,
                                                     false);
         }
         else
         {
             sharp_interface::classify_points_struct(
-                pt_type_idx, patch_hierarchy, unique_ptr_vec_to_raw_ptr_vec(fe_hier_mappings), cut_cell_mapping, false);
+                pt_type_idx, patch_hierarchy, unique_ptr_vec_to_raw_ptr_vec(fe_hier_mappings), idx_elem_mapping, false);
         }
 
         // Now find the image points
