@@ -116,7 +116,7 @@ void
 classify_points_struct(const int i_idx,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
                        std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
-                       Pointer<CutCellMeshMapping> cut_cell_mapping,
+                       SAMRAI::tbox::Pointer<IndexElemMapping> idx_elem_mapping,
                        const std::vector<int>& reverse_normal,
                        const std::vector<std::set<int>>& norm_reverse_domain_ids,
                        bool use_inside,
@@ -126,21 +126,21 @@ classify_points_struct(const int i_idx,
     coarsest_ln = coarsest_ln == IBTK::invalid_level_number ? 0 : coarsest_ln;
     finest_ln = finest_ln == IBTK::invalid_level_number ? hierarchy->getFinestLevelNumber() : finest_ln;
 
-    cut_cell_mapping->generateCutCellMappingsOnHierarchy(fe_hierarchy_mappings);
+    idx_elem_mapping->generateCellElemMappingOnHierarchy(fe_hierarchy_mappings);
     for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
     {
         Pointer<PatchLevel<NDIM>> level = hierarchy->getPatchLevel(ln);
-        const std::vector<std::map<IndexList, std::vector<CutCellElems>>>& idx_cut_cell_map_vec =
-            cut_cell_mapping->getIdxCutCellElemsMap(ln);
+        const std::vector<std::vector<std::pair<CellIndex<NDIM>, std::vector<IndexElemMapping::ElemData>>>>&
+            idx_elem_vec_vec = idx_elem_mapping->getIdxElemMap(ln);
 
         unsigned int local_patch_num = 0;
         for (PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
         {
             Pointer<Patch<NDIM>> patch = level->getPatch(p());
-            if (idx_cut_cell_map_vec.size() > local_patch_num)
+            if (idx_elem_vec_vec.size() > local_patch_num)
             {
-                const std::map<IndexList, std::vector<CutCellElems>>& idx_cut_cell_map =
-                    idx_cut_cell_map_vec[local_patch_num];
+                const std::vector<std::pair<CellIndex<NDIM>, std::vector<IndexElemMapping::ElemData>>>& idx_elem_vec =
+                    idx_elem_vec_vec[local_patch_num];
                 Pointer<CellData<NDIM, int>> i_data = patch->getPatchData(i_idx);
                 i_data->fillAll(INVALID);
 
@@ -150,27 +150,30 @@ classify_points_struct(const int i_idx,
                 const hier::Index<NDIM>& idx_low = patch->getBox().lower();
 
                 // Loop through all cut cells in map
-                for (const auto& idx_elem_vec_pair : idx_cut_cell_map)
+                for (const auto& idx_elem_pair : idx_elem_vec)
                 {
-                    const CellIndex<NDIM>& idx = idx_elem_vec_pair.first.d_idx;
-                    const std::vector<CutCellElems>& cut_cell_elem_vec = idx_elem_vec_pair.second;
+                    const CellIndex<NDIM>& idx = idx_elem_pair.first;
+                    const std::vector<IndexElemMapping::ElemData>& elem_data_vec = idx_elem_pair.second;
 
                     // Determine whether the cell center is on the "inside" or the "outside." Label it as either "FLUID"
-                    // or "GHOST" First determine the normal for the element. Warning: we need the normal to be
-                    // consistent between parent and child elements.
+                    // or "GHOST" First determine the normal for the element. Warning: we need the normal to point in a
+                    // consistent direction. There are some tools to reverse specific normals if needed.
                     std::vector<IBTK::Vector3d> elem_normals;
-                    for (const auto& cut_cell_elem : cut_cell_elem_vec)
+                    for (const auto& elem_data : elem_data_vec)
                     {
                         // TODO: Works for 2d. For 3d, we need a consistent way to traverse nodes to get 2 "consistently
                         // pointing" tangential vectors.
 #if (NDIM == 2)
                         // Note we use the parent element to calculate normals to preserve directions.
                         Vector3d v, w;
-                        const std::array<libMesh::Point, 2>& parent_pts = cut_cell_elem.d_parent_cur_pts;
-                        const unsigned int part = cut_cell_elem.d_part;
-                        const unsigned int domain_id = cut_cell_elem.d_parent_elem->subdomain_id();
-                        v << parent_pts[0](0), parent_pts[0](1), parent_pts[0](2);
-                        w << parent_pts[1](0), parent_pts[1](1), parent_pts[1](2);
+                        const std::vector<libMesh::Point>& elem_pts = elem_data.elem_pts;
+                        const unsigned int part = elem_data.part;
+                        const unsigned int domain_id = elem_data.elem->subdomain_id();
+#ifndef NDEBUG
+                        TBOX_ASSERT(elem_pts.size() == 2);
+#endif
+                        v << elem_pts[0](0), elem_pts[0](1), elem_pts[0](2);
+                        w << elem_pts[1](0), elem_pts[1](1), elem_pts[1](2);
 
                         Vector3d e3 = Vector3d::UnitZ();
                         if (!use_inside) e3 *= -1.0;
@@ -202,12 +205,15 @@ classify_points_struct(const int i_idx,
                         int num_min = 0;
                         for (unsigned int i = 0; i < elem_normals.size(); ++i)
                         {
-                            const std::unique_ptr<Elem>& elem = cut_cell_elem_vec[i].d_elem;
+                            const std::vector<libMesh::Point>& elem_pts = elem_data_vec[i].elem_pts;
+#ifndef NDEBUG
+                            TBOX_ASSERT(elem_pts.size() == 2);
+#endif
                             const Vector3d& n = elem_normals[i];
                             Vector3d v, w;
                             // Put these points in "index space"
-                            v << (elem->point(0)(0) - xlow[0]) / dx[0], (elem->point(0)(1) - xlow[1]) / dx[1], 0.0;
-                            w << (elem->point(1)(0) - xlow[0]) / dx[0], (elem->point(1)(1) - xlow[1]) / dx[1], 0.0;
+                            v << (elem_pts[0](0) - xlow[0]) / dx[0], (elem_pts[0](1) - xlow[1]) / dx[1], 0.0;
+                            w << (elem_pts[1](0) - xlow[0]) / dx[0], (elem_pts[1](1) - xlow[1]) / dx[1], 0.0;
                             const double t = std::max(0.0, std::min(1.0, (P - v).dot(w - v) / (v - w).squaredNorm()));
                             const Vector3d proj = v + t * (w - v);
                             const double dist = (proj - P).norm();
@@ -243,7 +249,7 @@ void
 classify_points_struct(const int i_idx,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
                        std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
-                       Pointer<CutCellMeshMapping> cut_cell_mapping,
+                       Pointer<IndexElemMapping> idx_elem_mapping,
                        bool use_inside,
                        int coarsest_ln,
                        int finest_ln)
@@ -254,7 +260,7 @@ classify_points_struct(const int i_idx,
     classify_points_struct(i_idx,
                            hierarchy,
                            fe_hierarchy_mappings,
-                           cut_cell_mapping,
+                           idx_elem_mapping,
                            reverse_normal,
                            norm_reverse_domain_ids,
                            use_inside,
@@ -265,7 +271,7 @@ void
 classify_points_struct(const int i_idx,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
                        std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
-                       Pointer<CutCellMeshMapping> cut_cell_mapping,
+                       Pointer<IndexElemMapping> idx_elem_mapping,
                        const std::vector<int>& reverse_normal,
                        bool use_inside,
                        int coarsest_ln,
@@ -276,7 +282,7 @@ classify_points_struct(const int i_idx,
     classify_points_struct(i_idx,
                            hierarchy,
                            fe_hierarchy_mappings,
-                           cut_cell_mapping,
+                           idx_elem_mapping,
                            reverse_normal,
                            norm_reverse_domain_ids,
                            use_inside,
@@ -287,7 +293,7 @@ void
 classify_points_struct(const int i_idx,
                        Pointer<PatchHierarchy<NDIM>> hierarchy,
                        std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
-                       Pointer<CutCellMeshMapping> cut_cell_mapping,
+                       Pointer<IndexElemMapping> idx_elem_mapping,
                        const std::vector<std::set<int>>& norm_reverse_domain_ids,
                        bool use_inside,
                        int coarsest_ln,
@@ -298,7 +304,7 @@ classify_points_struct(const int i_idx,
     classify_points_struct(i_idx,
                            hierarchy,
                            fe_hierarchy_mappings,
-                           cut_cell_mapping,
+                           idx_elem_mapping,
                            reverse_normal,
                            norm_reverse_domain_ids,
                            use_inside,

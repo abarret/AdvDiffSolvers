@@ -17,12 +17,12 @@ namespace sharp_interface
 {
 SharpInterfaceGhostFill::SharpInterfaceGhostFill(std::string object_name,
                                                  std::vector<FEToHierarchyMapping*> fe_hierarchy_mappings,
-                                                 Pointer<CutCellMeshMapping> cut_cell_mapping,
+                                                 Pointer<IndexElemMapping> idx_elem_mapping,
                                                  int coarsest_ln,
                                                  int finest_ln)
     : d_object_name(std::move(object_name)),
       d_fe_hierarchy_mappings(std::move(fe_hierarchy_mappings)),
-      d_cut_cell_mapping(cut_cell_mapping)
+      d_idx_elem_mapping(idx_elem_mapping)
 {
     // Grab the patch hierarchy
     Pointer<PatchHierarchy<NDIM>> hierarchy = d_fe_hierarchy_mappings[0]->getPatchHierarchy();
@@ -140,7 +140,7 @@ SharpInterfaceGhostFill::classifyPoints()
     classify_points_struct(d_i_idx,
                            hierarchy,
                            d_fe_hierarchy_mappings,
-                           d_cut_cell_mapping,
+                           d_idx_elem_mapping,
                            d_reverse_normal,
                            d_norm_reverse_domain_ids,
                            d_use_inside,

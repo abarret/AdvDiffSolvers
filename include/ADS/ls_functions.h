@@ -55,11 +55,6 @@ void copy_face_to_side(const int u_s_idx,
                        const int u_f_idx,
                        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy);
 
-bool find_intersection(libMesh::Point& p,
-                       libMesh::Elem* elem,
-                       const libMesh::Point& r,
-                       const libMesh::VectorValue<double>& q);
-
 std::string get_libmesh_restart_file_name(const std::string& restart_dump_dirname,
                                           const std::string& base_filename,
                                           unsigned int time_step_number,
@@ -119,6 +114,8 @@ void flood_fill_for_LS(int sgn_idx,
                        SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> sgn_var,
                        double eps,
                        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> level);
+
+bool find_intersection(libMesh::Point& p, libMesh::Elem* elem, libMesh::Point r, libMesh::VectorValue<double> q);
 } // namespace ADS
 
 #include <ADS/private/ls_functions_inc.h>

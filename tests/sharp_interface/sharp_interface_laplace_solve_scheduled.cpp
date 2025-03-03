@@ -2,9 +2,9 @@
 
 #include <ADS/CCSharpInterfaceLaplaceOperator.h>
 #include <ADS/CCSharpInterfaceScheduledJacobiSolver.h>
-#include <ADS/CutCellMeshMapping.h>
 #include <ADS/FullFACPreconditioner.h>
 #include <ADS/GeneralBoundaryMeshMapping.h>
+#include <ADS/IndexElemMapping.h>
 #include <ADS/PointwiseFunction.h>
 #include <ADS/SharpInterfaceGhostFill.h>
 #include <ADS/ads_utilities.h>
@@ -363,8 +363,8 @@ main(int argc, char* argv[])
             fe_hier_mappings[part]->setPatchHierarchy(patch_hierarchy);
             fe_hier_mappings[part]->reinitElementMappings(1);
         }
-        Pointer<CutCellMeshMapping> cut_cell_mapping =
-            new CutCellMeshMapping("cut_cell_mapping", input_db->getDatabase("CutCellMapping"));
+        Pointer<IndexElemMapping> idx_elem_mapping =
+            new IndexElemMapping("idx_elem_mapping", input_db->getDatabase("IndexElemMapping"));
 
         // Uncomment to draw data.
 #define DRAW_DATA 1
@@ -394,7 +394,7 @@ main(int argc, char* argv[])
         y_vec.addComponent(Y_var, Y_idx, wgt_cc_idx);
 
         sharp_interface::SharpInterfaceGhostFill ghost_fill(
-            "GhostFill", unique_ptr_vec_to_raw_ptr_vec(fe_hier_mappings), cut_cell_mapping);
+            "GhostFill", unique_ptr_vec_to_raw_ptr_vec(fe_hier_mappings), idx_elem_mapping);
         Pointer<sharp_interface::CCSharpInterfaceLaplaceOperator> laplace_op =
             new sharp_interface::CCSharpInterfaceLaplaceOperator("LaplaceOp", nullptr, ghost_fill, bdry_fcn, false);
 

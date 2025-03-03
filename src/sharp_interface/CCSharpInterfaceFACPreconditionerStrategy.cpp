@@ -82,7 +82,7 @@ CCSharpInterfaceFACPreconditionerStrategy::CCSharpInterfaceFACPreconditionerStra
       d_bc_coefs(1, d_default_bc_coef.get()),
       d_gcw(1),
       d_fe_sys_managers(std::move(fe_sys_managers)),
-      d_cut_cell_mapping(new CutCellMeshMapping(d_object_name + "::CutCellMapping", true)),
+      d_idx_elem_mapping(new IndexElemMapping(d_object_name + "::IndexElemMapping", true)),
       d_scratch_var(new CellVariable<NDIM, double>(d_object_name + "::ScratchVar"))
 {
     // Setup a default boundary condition object that specifies homogeneous
@@ -302,7 +302,7 @@ CCSharpInterfaceFACPreconditionerStrategy::initializeOperatorState(const SAMRAIV
 
     d_si_ghost_fill = std::make_unique<SharpInterfaceGhostFill>(d_object_name + "::SIGhostFill",
                                                                 unique_ptr_vec_to_raw_ptr_vec(d_fe_hierarchy_mapping),
-                                                                d_cut_cell_mapping,
+                                                                d_idx_elem_mapping,
                                                                 d_coarsest_ln,
                                                                 d_finest_ln);
 
