@@ -258,8 +258,5 @@ main(int argc, char* argv[])
 
         if (!periodic_domain) delete Q_bcs[0];
     } // cleanup dynamically allocated objects prior to shutdown
-
-    SAMRAIManager::shutdown();
-    PetscFinalize();
     return 0;
 } // main
