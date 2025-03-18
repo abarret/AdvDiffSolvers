@@ -188,53 +188,56 @@ classify_points_struct(const int i_idx,
 #endif
                     }
 
-                    // Loop through indices in small area around the element.
-                    Box<NDIM> new_box(idx, idx);
-                    new_box.grow(1);
-                    for (CellIterator<NDIM> ci_2(new_box); ci_2; ci_2++)
+                    // Project this point onto each element. Find the minimum distance
+                    Vector3d P = Vector3d::Zero();
+                    for (int d = 0; d < NDIM; ++d) P(d) = static_cast<double>(idx(d) - idx_low(d)) + 0.5;
+                    Vector3d avg_proj = Vector3d::Zero(), avg_unit_normal = Vector3d::Zero();
+                    double min_dist = std::numeric_limits<double>::max();
+                    int num_min = 0;
+                    for (unsigned int i = 0; i < elem_normals.size(); ++i)
                     {
-                        const CellIndex<NDIM>& idx_2 = ci_2();
-
-                        // Project this point onto each element. Find the minimum distance
-                        Vector3d P;
-                        for (int d = 0; d < NDIM; ++d) P(d) = static_cast<double>(idx_2(d) - idx_low(d)) + 0.5;
-                        Vector3d avg_proj, avg_unit_normal;
-                        avg_proj.setZero();
-                        avg_unit_normal.setZero();
-                        double min_dist = std::numeric_limits<double>::max();
-                        int num_min = 0;
-                        for (unsigned int i = 0; i < elem_normals.size(); ++i)
-                        {
-                            const std::vector<libMesh::Point>& elem_pts = elem_data_vec[i].elem_pts;
+                        const std::vector<libMesh::Point>& elem_pts = elem_data_vec[i].elem_pts;
 #ifndef NDEBUG
-                            TBOX_ASSERT(elem_pts.size() == 2);
+                        TBOX_ASSERT(elem_pts.size() == 2);
 #endif
-                            const Vector3d& n = elem_normals[i];
-                            Vector3d v, w;
-                            // Put these points in "index space"
-                            v << (elem_pts[0](0) - xlow[0]) / dx[0], (elem_pts[0](1) - xlow[1]) / dx[1], 0.0;
-                            w << (elem_pts[1](0) - xlow[0]) / dx[0], (elem_pts[1](1) - xlow[1]) / dx[1], 0.0;
-                            const double t = std::max(0.0, std::min(1.0, (P - v).dot(w - v) / (v - w).squaredNorm()));
-                            const Vector3d proj = v + t * (w - v);
-                            const double dist = (proj - P).norm();
-                            if (dist < min_dist)
-                            {
-                                min_dist = dist;
-                                avg_proj = proj;
-                                avg_unit_normal = n;
-                                num_min = 1;
-                            }
-                            else if (IBTK::rel_equal_eps(dist, min_dist))
-                            {
-                                avg_proj += proj;
-                                avg_unit_normal += n;
-                                ++num_min;
-                            }
+                        const Vector3d& n = elem_normals[i];
+                        Vector3d v, w;
+                        // Put these points in "index space"
+                        v << (elem_pts[0](0) - xlow[0]) / dx[0], (elem_pts[0](1) - xlow[1]) / dx[1], 0.0;
+                        w << (elem_pts[1](0) - xlow[0]) / dx[0], (elem_pts[1](1) - xlow[1]) / dx[1], 0.0;
+                        double t = (P - v).dot(w - v) / (v - w).squaredNorm();
+                        t = std::max(0.0, std::min(1.0, t));
+                        const Vector3d proj = v + t * (w - v);
+                        const double dist = (proj - P).norm();
+                        if (dist < min_dist)
+                        {
+                            min_dist = dist;
+                            avg_proj = proj;
+                            avg_unit_normal = n;
+                            num_min = 1;
                         }
-                        avg_proj /= static_cast<double>(num_min);
-                        avg_unit_normal /= static_cast<double>(num_min);
-                        avg_unit_normal.normalize();
-                        (*i_data)(idx_2) = (avg_unit_normal.dot(P - avg_proj) <= 0.0) ? FLUID : GHOST;
+                        else if (IBTK::rel_equal_eps(dist, min_dist))
+                        {
+                            avg_proj += proj;
+                            avg_unit_normal += n;
+                            ++num_min;
+                        }
+                    }
+                    avg_proj /= static_cast<double>(num_min);
+                    avg_unit_normal /= static_cast<double>(num_min);
+                    avg_unit_normal.normalize();
+                    (*i_data)(idx) = (avg_unit_normal.dot(P - avg_proj) <= 0.0) ? FLUID : GHOST;
+                    // If we have found a fluid point, then move in the reverse normal direction and set a ghost point.
+                    // But only do this if we haven't already set those point types
+                    if ((*i_data)(idx) == FLUID)
+                    {
+                        for (int d = 0; d < NDIM; ++d)
+                        {
+                            IntVector<NDIM> dir = 0;
+                            // Grab the sign of the normal.
+                            dir(d) = (0 < avg_unit_normal[d]) - (avg_unit_normal[d] < 0);
+                            if ((*i_data)(idx + dir) == INVALID) (*i_data)(idx + dir) = GHOST;
+                        }
                     }
                 }
             }
