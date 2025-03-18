@@ -115,7 +115,6 @@ SETUP_2D(sharp_interface find_image_points.cpp)
 SETUP_2D(sharp_interface find_image_point_weights.cpp)
 SETUP_2D(sharp_interface sharp_interface_laplace_op.cpp)
 SETUP_2D(sharp_interface sharp_interface_laplace_solve.cpp)
-SETUP_2D(sharp_interface sharp_interface_laplace_solve_scheduled.cpp)
 
 SETUP_2D(solvers full_fac_preconditioner.cpp)
 
