@@ -243,7 +243,7 @@ CutCellMeshMapping::generateCutCellMappings(System& X_sys,
 
                         libMesh::Point p;
                         // An element may intersect zero or one times with a cell edge.
-                        if (findIntersection(p, elem, r, q))
+                        if (find_intersection(p, elem, r, q))
                             intersection_side_vec.push_back(std::make_pair(p, upper_lower + axis * NDIM));
                     }
                 }
