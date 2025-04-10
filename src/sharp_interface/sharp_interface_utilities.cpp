@@ -184,7 +184,23 @@ classify_points_struct(const int i_idx,
                         elem_normals.push_back(n);
 #endif
 #if (NDIM == 3)
-                        TBOX_ERROR("classify_points(): NOT SETUP FOR 3D!\n");
+                        Vector3d u, v, w;
+                        const std::vector<libMesh::Point>& elem_pts = elem_data.elem_pts;
+                        const unsigned int part = elem_data.part;
+                        const unsigned int domain_id = elem_data.elem->subdomain_id();
+#ifndef NDEBUG
+                        TBOX_ASSERT(elem_pts.size() == 3);
+#endif
+                        u << elem_pts[0](0), elem_pts[0](1), elem_pts[0](2);
+                        v << elem_pts[1](0), elem_pts[1](1), elem_pts[1](2);
+                        w << elem_pts[2](0), elem_pts[2](1), elem_pts[2](2);
+
+                        Vector3d n = (w - u).cross(v - u);
+                        if (!use_inside) n *= -1.0;
+                        if (norm_reverse_domain_ids[part].find(domain_id) != norm_reverse_domain_ids[part].end() ||
+                            reverse_normal[part])
+                            n *= -1.0;
+                        elem_normals.push_back(n);
 #endif
                     }
 
@@ -197,6 +213,7 @@ classify_points_struct(const int i_idx,
                     for (unsigned int i = 0; i < elem_normals.size(); ++i)
                     {
                         const std::vector<libMesh::Point>& elem_pts = elem_data_vec[i].elem_pts;
+#if NDIM == 2
 #ifndef NDEBUG
                         TBOX_ASSERT(elem_pts.size() == 2);
 #endif
@@ -208,6 +225,18 @@ classify_points_struct(const int i_idx,
                         double t = (P - v).dot(w - v) / (v - w).squaredNorm();
                         t = std::max(0.0, std::min(1.0, t));
                         const Vector3d proj = v + t * (w - v);
+#endif
+#if NDIM == 3
+#ifndef NDEBUG
+                        TBOX_ASSERT(elem_pts.size() == 3);
+#endif
+                        const Vector3d& n = elem_normals[i];
+                        // Grab one point on the element
+                        Vector3d pt;
+                        pt << (elem_pts[0](0) - xlow[0]) / dx[0], (elem_pts[0](1) - xlow[1]) / dx[1],
+                            (elem_pts[0](2) - xlow[2]) / dx[2];
+                        const Vector3d proj = P - (n.dot(P - pt)) * n;
+#endif
                         const double dist = (proj - P).norm();
                         if (dist < min_dist)
                         {
@@ -231,13 +260,19 @@ classify_points_struct(const int i_idx,
                     // But only do this if we haven't already set those point types
                     if ((*i_data)(idx) == FLUID)
                     {
+                        int dir = 0;
+                        double max = 0.0;
                         for (int d = 0; d < NDIM; ++d)
                         {
-                            IntVector<NDIM> dir = 0;
-                            // Grab the sign of the normal.
-                            dir(d) = (0 < avg_unit_normal[d]) - (avg_unit_normal[d] < 0);
-                            if ((*i_data)(idx + dir) == INVALID) (*i_data)(idx + dir) = GHOST;
+                            if (std::abs(avg_unit_normal[d]) > max)
+                            {
+                                dir = d;
+                                max = std::abs(avg_unit_normal[d]);
+                            }
                         }
+                        IntVector<NDIM> shft = 0;
+                        shft(dir) = (0 < avg_unit_normal[dir]) - (avg_unit_normal[dir] < 0);
+                        if ((*i_data)(idx + shft) == INVALID) (*i_data)(idx + shft) = GHOST;
                     }
                 }
             }

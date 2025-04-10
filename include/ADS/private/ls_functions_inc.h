@@ -460,6 +460,177 @@ find_intersection(libMesh::Point& p, libMesh::Elem* elem, libMesh::Point r, libM
     }
     return found_intersection;
 }
+
+inline bool
+find_intersection(const libMesh::Point& p, const double* const h, libMesh::Elem* elem)
+{
+#ifndef NDEBUG
+    TBOX_ASSERT(elem->type() == libMesh::TRI3);
+#endif
+    // If all the tests pass, there is an intersection. If one test fails, there is no overlap.
+    // Pull out triangle's points and shift so that box is at origin
+    const libMesh::VectorValue<double> v0 = elem->point(0) - p;
+    const libMesh::VectorValue<double> v1 = elem->point(1) - p;
+    const libMesh::VectorValue<double> v2 = elem->point(2) - p;
+
+    libMesh::VectorValue<double> e0 = v1 - v0;
+    libMesh::VectorValue<double> e1 = v2 - v1;
+    libMesh::VectorValue<double> e2 = v0 - v2;
+
+    libMesh::VectorValue<double> n = e0.cross(e1);
+
+    double fex = std::abs(e0(0));
+    double fey = std::abs(e0(1));
+    double fez = std::abs(e0(2));
+    if (!axis_test_x(e0(2), e0(1), fez, fey, v0, v2, h)) return false;
+    if (!axis_test_y(e0(2), e0(0), fez, fex, v0, v2, h)) return false;
+    if (!axis_test_z(e0(1), e0(0), fey, fex, v1, v2, h)) return false;
+
+    fex = std::abs(e1(0));
+    fey = std::abs(e1(1));
+    fez = std::abs(e1(2));
+    if (!axis_test_x(e1(2), e1(1), fez, fey, v0, v2, h)) return false;
+    if (!axis_test_y(e1(2), e1(0), fez, fex, v0, v2, h)) return false;
+    if (!axis_test_z(e1(1), e1(0), fey, fex, v0, v1, h)) return false;
+
+    fex = std::abs(e2(0));
+    fey = std::abs(e2(1));
+    fez = std::abs(e2(2));
+    if (!axis_test_x(e2(2), e2(1), fez, fey, v0, v1, h)) return false;
+    if (!axis_test_y(e2(2), e2(0), fez, fex, v0, v1, h)) return false;
+    if (!axis_test_z(e2(1), e2(0), fey, fex, v1, v2, h)) return false;
+
+    double max, min;
+    find_min_max(v0(0), v1(0), v2(0), min, max);
+    if (min > h[0] || max < -h[0]) return false;
+    find_min_max(v0(1), v1(1), v2(1), min, max);
+    if (min > h[1] || max < -h[1]) return false;
+    find_min_max(v0(2), v1(2), v2(2), min, max);
+    if (min > h[2] || max < -h[2]) return false;
+
+    if (!plane_box_overlap(n, v0, h)) return false;
+    return true;
+}
+
+inline bool
+axis_test_x(const double a,
+            const double b,
+            const double fa,
+            const double fb,
+            const libMesh::VectorValue<double>& u,
+            const libMesh::VectorValue<double>& v,
+            const double* const dx)
+{
+    double p0 = a * u(1) - b * u(2);
+    double p1 = a * v(1) - b * v(2);
+    double min, max;
+    if (p0 < p1)
+    {
+        min = p0;
+        max = p1;
+    }
+    else
+    {
+        min = p1;
+        max = p0;
+    }
+    double rad = fa * dx[1] + fb * dx[2];
+    if (min > rad || max < -rad) return false;
+    return true;
+}
+
+inline bool
+axis_test_y(const double a,
+            const double b,
+            const double fa,
+            const double fb,
+            const libMesh::VectorValue<double>& u,
+            const libMesh::VectorValue<double>& v,
+            const double* const dx)
+{
+    double p0 = a * u(0) - b * u(2);
+    double p1 = a * v(0) - b * v(2);
+    double min, max;
+    if (p0 < p1)
+    {
+        min = p0;
+        max = p1;
+    }
+    else
+    {
+        min = p1;
+        max = p0;
+    }
+    double rad = fa * dx[0] + fb * dx[2];
+    if (min > rad || max < -rad) return false;
+    return true;
+}
+
+inline bool
+axis_test_z(const double a,
+            const double b,
+            const double fa,
+            const double fb,
+            const libMesh::VectorValue<double>& u,
+            const libMesh::VectorValue<double>& v,
+            const double* const dx)
+{
+    double p0 = a * u(0) - b * u(1);
+    double p1 = a * v(0) - b * v(1);
+    double min, max;
+    if (p0 < p1)
+    {
+        min = p0;
+        max = p1;
+    }
+    else
+    {
+        min = p1;
+        max = p0;
+    }
+    double rad = fa * dx[0] + fb * dx[1];
+    if (min > rad || max < -rad) return false;
+    return true;
+}
+
+inline void
+find_min_max(const double a, const double b, const double c, double& min, double& max)
+{
+    min = a;
+    max = a;
+    if (b < min) min = b;
+    if (b > max) max = b;
+    if (c < min) min = c;
+    if (c > max) max = c;
+}
+
+inline bool
+plane_box_overlap(const libMesh::VectorValue<double>& n, const libMesh::VectorValue<double>& v, const double* const h)
+{
+    libMesh::VectorValue<double> vmin, vmax;
+    for (int axis = 0; axis < NDIM; ++axis)
+    {
+        if (n(axis) > 0.0)
+        {
+            vmin(axis) = -h[axis] - v(axis);
+            vmax(axis) = h[axis] - v(axis);
+        }
+        else
+        {
+            vmin(axis) = h[axis] - v(axis);
+            vmax(axis) = -h[axis] - v(axis);
+        }
+    }
+    if ((n * vmin) > 0.0)
+    {
+        return false;
+    }
+    else if ((n * vmax) >= 0.0)
+    {
+        return true;
+    }
+    return false;
+}
 } // namespace ADS
 
 #endif

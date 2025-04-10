@@ -194,7 +194,9 @@ IndexElemMapping::generateCellElemMapping(System& X_sys,
                 {
                     for (unsigned int d = 0; d < NDIM; ++d)
                     {
-                        const int i_s = std::floor((x(d) - x_lower[d]) / dx[d]) + patch_lower[d];
+                        const int i_s =
+                            static_cast<int>(std::round(((x(d) - x_lower[d]) / dx[d]) - 0.5)) + patch_lower[d];
+
                         for (int shift = 0; shift <= 2; ++shift)
                         {
                             const double x_s =
@@ -231,7 +233,8 @@ IndexElemMapping::generateCellElemMapping(System& X_sys,
                 // Create copy of element
                 std::pair<CellIndex<NDIM>, std::vector<ElemData>>& cell_elem_vec =
                     get_elem(idx_cell_elem_vec_vec[local_patch_num], elem_idx_nodes[0]);
-                std::vector<libMesh::Point> pts = { elem->point(0), elem->point(1) };
+                std::vector<libMesh::Point> pts;
+                for (int n = 0; n < elem->n_nodes(); ++n) pts.push_back(elem->point(n));
                 cell_elem_vec.second.emplace_back(pts, elem, part);
                 // Reset element
                 // Restore element's original positions
@@ -248,60 +251,48 @@ IndexElemMapping::generateCellElemMapping(System& X_sys,
             for (BoxIterator<NDIM> b(box); b; b++)
             {
                 const hier::Index<NDIM>& i_c = b();
-                // We have the index of the box. Each box should have zero or two intersections
-                std::vector<libMesh::Point> intersection_vec(0);
+                // We have the index of the box. Search for intersections with the cell. Note we've taken care of the
+                // case in which an element is completely contained within a cell.
+#if (NDIM == 2)
                 for (int upper_lower = 0; upper_lower < 2; ++upper_lower)
                 {
                     for (int axis = 0; axis < NDIM; ++axis)
                     {
                         VectorValue<double> q;
-#if (NDIM == 2)
                         q((axis + 1) % NDIM) = dx[(axis + 1) % NDIM];
-#endif
                         libMesh::Point r;
                         for (int d = 0; d < NDIM; ++d)
                             r(d) = x_lower[d] + dx[d] * (static_cast<double>(i_c(d) - patch_lower[d]) +
                                                          (d == axis ? (upper_lower == 1 ? 1.0 : 0.0) : 0.5));
 
                         libMesh::Point p;
-                        // An element may intersect zero or one times with a cell edge.
-                        if (find_intersection(p, elem, r, q)) intersection_vec.push_back(p);
-                    }
-                }
-
-                // An element may have zero, one, or two intersections with a cell.
-                // Note we've already accounted for when an element is contained within a cell.
-                if (intersection_vec.size() == 0) continue;
-#ifndef NDEBUG
-                TBOX_ASSERT(intersection_vec.size() <= 2);
-#endif
-                if (intersection_vec.size() == 1)
-                {
-                    for (unsigned int k = 0; k < n_node; ++k)
-                    {
-                        libMesh::Point xn;
-                        for (int d = 0; d < NDIM; ++d) xn(d) = elem->point(k)(d);
-                        const hier::Index<NDIM>& n_idx =
-                            IndexUtilities::getCellIndex(&xn(0), grid_geom, level->getRatio());
-                        if (n_idx == i_c)
+                        if (find_intersection(p, elem, r, q))
                         {
-                            // Check if we already have this point accounted for. Note this can happen when a node
-                            // is EXACTLY on a cell face or node.
-                            if (intersection_vec[0] == xn) continue;
-                            intersection_vec.push_back(xn);
-                            break;
+                            // We found an intersection, store it in the vector.
+                            std::pair<CellIndex<NDIM>, std::vector<ElemData>>& cell_elem_vec =
+                                get_elem(idx_cell_elem_vec_vec[local_patch_num], i_c);
+                            std::vector<libMesh::Point> pts;
+                            for (unsigned int n = 0; n < elem->n_nodes(); ++n) pts.push_back(elem->point(n));
+                            cell_elem_vec.second.emplace_back(pts, elem, part);
                         }
                     }
                 }
-                // At this point, if we still only have one intersection point, our node is on a face, and we can
-                // skip this index.
-                if (intersection_vec.size() == 1) continue;
-                TBOX_ASSERT(intersection_vec.size() == 2);
-                // Create a new element
-                std::pair<CellIndex<NDIM>, std::vector<ElemData>>& cell_elem_vec =
-                    get_elem(idx_cell_elem_vec_vec[local_patch_num], i_c);
-                std::vector<libMesh::Point> pts = { elem->point(0), elem->point(1) };
-                cell_elem_vec.second.emplace_back(pts, elem, part);
+#endif
+#if (NDIM == 3)
+                libMesh::Point r;
+                for (int d = 0; d < NDIM; ++d)
+                    r(d) = x_lower[d] + dx[d] * (static_cast<double>(i_c(d) - patch_lower(d)) + 0.5);
+                std::vector<double> h = { dx[0] * 0.5, dx[1] * 0.5, dx[2] * 0.5 };
+                if (find_intersection(r, h.data(), elem))
+                {
+                    // We found an intersection, store it in the vector.
+                    std::pair<CellIndex<NDIM>, std::vector<ElemData>>& cell_elem_vec =
+                        get_elem(idx_cell_elem_vec_vec[local_patch_num], i_c);
+                    std::vector<libMesh::Point> pts;
+                    for (unsigned int n = 0; n < elem->n_nodes(); ++n) pts.push_back(elem->point(n));
+                    cell_elem_vec.second.emplace_back(pts, elem, part);
+                }
+#endif
             }
             // Restore element's original positions
             for (unsigned int k = 0; k < n_node; ++k) elem->point(k) = X_node_cache[k];
