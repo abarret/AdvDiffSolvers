@@ -116,6 +116,36 @@ void flood_fill_for_LS(int sgn_idx,
                        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> level);
 
 bool find_intersection(libMesh::Point& p, libMesh::Elem* elem, libMesh::Point r, libMesh::VectorValue<double> q);
+
+/*!
+ * Returns true if the element elem intersects the cube defined by the center point p and the half edge length dx. Uses
+ * the separating axis theorem to compute whether the intersection exists
+ */
+bool find_intersection(const libMesh::Point& p, const double* const dx, libMesh::Elem* elem);
+bool axis_test_x(const double a,
+                 const double b,
+                 const double fa,
+                 const double fb,
+                 const libMesh::VectorValue<double>& u,
+                 const libMesh::VectorValue<double>& v,
+                 const double* const dx);
+bool axis_test_y(const double a,
+                 const double b,
+                 const double fa,
+                 const double fb,
+                 const libMesh::VectorValue<double>& u,
+                 const libMesh::VectorValue<double>& v,
+                 const double* const dx);
+bool axis_test_z(const double a,
+                 const double b,
+                 const double fa,
+                 const double fb,
+                 const libMesh::VectorValue<double>& u,
+                 const libMesh::VectorValue<double>& v,
+                 const double* const dx);
+void find_min_max(const double a, const double b, const double c, double& min, double& max);
+bool
+plane_box_overlap(const libMesh::VectorValue<double>& n, const libMesh::VectorValue<double>& v, const double* const h);
 } // namespace ADS
 
 #include <ADS/private/ls_functions_inc.h>
