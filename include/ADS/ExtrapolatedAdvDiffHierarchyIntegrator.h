@@ -132,13 +132,7 @@ public:
                                        int num_cycles = 1) override;
 
 protected:
-    virtual void initializeLevelDataSpecialized(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchHierarchy<NDIM>> hierarchy,
-                                                int level_number,
-                                                double init_data_time,
-                                                bool can_be_refined,
-                                                bool initial_time,
-                                                SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<NDIM>> old_level,
-                                                bool allocate_data);
+    void initializeCompositeHierarchyDataSpecialized(double current_time, bool initial_time) override;
 
 private:
     // List of level set variables.
