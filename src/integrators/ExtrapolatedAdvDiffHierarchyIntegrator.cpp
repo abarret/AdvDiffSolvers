@@ -576,24 +576,10 @@ ExtrapolatedAdvDiffHierarchyIntegrator::postprocessIntegrateHierarchy(const doub
 } // postprocessIntegrateHierarchy
 
 void
-ExtrapolatedAdvDiffHierarchyIntegrator::initializeLevelDataSpecialized(Pointer<BasePatchHierarchy<NDIM>> hierarchy,
-                                                                       const int ln,
-                                                                       const double data_time,
-                                                                       const bool can_be_refined,
-                                                                       bool initial_time,
-                                                                       Pointer<BasePatchLevel<NDIM>> old_level,
-                                                                       bool allocate_data)
+ExtrapolatedAdvDiffHierarchyIntegrator::initializeCompositeHierarchyDataSpecialized(double time, bool initial_time)
 {
-    plog << d_object_name + ": initializing level data\n";
-    AdvDiffHierarchyIntegrator::initializeLevelDataSpecialized(
-        hierarchy, ln, data_time, can_be_refined, initial_time, old_level, allocate_data);
-    // Initialize level set
-    Pointer<PatchLevel<NDIM>> level = d_hierarchy->getPatchLevel(ln);
-
-    if (initial_time)
-    {
         // Also create the FEToHierarchyMappings
-        if (d_mesh_mapping)
+        if (initial_time && d_mesh_mapping)
         {
             const int num_parts = d_mesh_mapping->getNumParts();
             for (int part = 0; part < num_parts; ++part)
@@ -606,7 +592,6 @@ ExtrapolatedAdvDiffHierarchyIntegrator::initializeLevelDataSpecialized(Pointer<B
                     IntVector<NDIM>(1)));
             }
         }
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////////
