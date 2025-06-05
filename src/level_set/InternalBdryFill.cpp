@@ -24,6 +24,54 @@ extern "C"
 #endif
 }
 
+void
+upwind_on_patch(Pointer<Patch<NDIM>> patch,
+                const int Q_scr_idx,
+                const int Q_idx,
+                const int sc_idx,
+                const int phi_idx,
+                const double negative_fac,
+                const int max_gcw,
+                const double dt)
+{
+    Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
+    const double* const dx = pgeom->getDx();
+    const double min_ls = negative_fac * -1.0e-3 * (*std::min_element(dx, dx + NDIM));
+    const double max_ls = negative_fac * max_gcw * (*std::min_element(dx, dx + NDIM));
+
+    Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(Q_scr_idx);
+    Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
+    Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(sc_idx);
+    Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
+
+    for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+    {
+        const CellIndex<NDIM>& idx = ci();
+        const double ls = ADS::node_to_cell(idx, *phi_data);
+        if ((negative_fac > 0.0 && ls > min_ls && ls < max_ls) || (negative_fac < 0.0 && ls < min_ls && ls > max_ls))
+        {
+            // Upwinding
+            SideIndex<NDIM> idx_l(idx, 0, 0), idx_r(idx, 0, 1);
+            SideIndex<NDIM> idx_b(idx, 1, 0), idx_u(idx, 1, 1);
+            IntVector<NDIM> x(1, 0), y(0, 1);
+            const double u_r = negative_fac * (*u_data)(idx_r);
+            const double u_l = negative_fac * (*u_data)(idx_l);
+            const double u_u = negative_fac * (*u_data)(idx_u);
+            const double u_b = negative_fac * (*u_data)(idx_b);
+            for (int d = 0; d < Q_data->getDepth(); ++d)
+            {
+                double diff = (std::max(u_r, 0.0) * ((*Q_scr_data)(idx, d) - (*Q_scr_data)(idx - x, d)) +
+                               std::min(u_l, 0.0) * ((*Q_scr_data)(idx + x, d) - (*Q_scr_data)(idx, d))) /
+                                  dx[0] +
+                              (std::max(u_u, 0.0) * ((*Q_scr_data)(idx, d) - (*Q_scr_data)(idx - y, d)) +
+                               std::min(u_b, 0.0) * ((*Q_scr_data)(idx + y, d) - (*Q_scr_data)(idx, d))) /
+                                  dx[1];
+                (*Q_data)(idx, d) = (*Q_scr_data)(idx, d) - dt * diff;
+            }
+        }
+    }
+}
+
 namespace ADS
 {
 InternalBdryFill::InternalBdryFill(std::string object_name, Pointer<Database> input_db)
@@ -34,6 +82,7 @@ InternalBdryFill::InternalBdryFill(std::string object_name, Pointer<Database> in
         d_tol = input_db->getDoubleWithDefault("tolerance", d_tol);
         d_max_iters = input_db->getIntegerWithDefault("max_iterations", d_max_iters);
         d_enable_logging = input_db->getBoolWithDefault("enable_logging", d_enable_logging);
+        d_max_gcw = input_db->getIntegerWithDefault("max_gcw", d_max_gcw);
     }
 
     auto var_db = VariableDatabase<NDIM>::getDatabase();
@@ -52,7 +101,7 @@ InternalBdryFill::~InternalBdryFill()
 }
 
 void
-InternalBdryFill::advectInNormal(const std::vector<std::pair<int, Pointer<CellVariable<NDIM, double>>>>& Q_vars,
+InternalBdryFill::advectInNormal(const std::vector<Parameters>& Q_params,
                                  const int phi_idx,
                                  Pointer<NodeVariable<NDIM, double>> phi_var,
                                  Pointer<PatchHierarchy<NDIM>> hierarchy,
@@ -66,15 +115,14 @@ InternalBdryFill::advectInNormal(const std::vector<std::pair<int, Pointer<CellVa
     fillNormal(phi_idx, hierarchy, time);
     // Now fill in normal cells for each index
     bool converged = true;
-    for (const auto& Q_idx_var_pair : Q_vars)
+    for (const auto& Q_param : Q_params)
     {
-        converged = converged &&
-                    doAdvectInNormal(Q_idx_var_pair.first, Q_idx_var_pair.second, phi_idx, phi_var, hierarchy, time);
+        converged = converged && doAdvectInNormal(Q_param, phi_idx, phi_var, hierarchy, time);
     }
 
     if (!converged)
     {
-        writeVizFiles(Q_vars, phi_idx, hierarchy, time, 0);
+        writeVizFiles(Q_params, phi_idx, hierarchy, time, 0);
         if (d_error_on_non_convergence) TBOX_ERROR(d_object_name + "::advectInNormal(): Failed to converge!\n");
     }
 
@@ -83,14 +131,14 @@ InternalBdryFill::advectInNormal(const std::vector<std::pair<int, Pointer<CellVa
 }
 
 void
-InternalBdryFill::advectInNormal(const int Q_idx,
-                                 Pointer<CellVariable<NDIM, double>> Q_var,
+InternalBdryFill::advectInNormal(const Parameters& Q_param,
                                  const int phi_idx,
                                  Pointer<NodeVariable<NDIM, double>> phi_var,
                                  Pointer<PatchHierarchy<NDIM>> hierarchy,
                                  const double time)
 {
-    advectInNormal({ std::make_pair(Q_idx, Q_var) }, phi_idx, phi_var, hierarchy, time);
+    std::vector<Parameters> Q_param_vec = { Q_param };
+    advectInNormal(Q_param_vec, phi_idx, phi_var, hierarchy, time);
 }
 
 void
@@ -156,13 +204,15 @@ InternalBdryFill::fillNormal(const int phi_idx, Pointer<PatchHierarchy<NDIM>> hi
 }
 
 bool
-InternalBdryFill::doAdvectInNormal(const int Q_idx,
-                                   Pointer<CellVariable<NDIM, double>> Q_var,
+InternalBdryFill::doAdvectInNormal(const Parameters& Q_param,
                                    const int phi_idx,
                                    Pointer<NodeVariable<NDIM, double>> /*phi_var*/,
                                    Pointer<PatchHierarchy<NDIM>> hierarchy,
                                    const double time)
 {
+    const int Q_idx = Q_param.Q_idx;
+    const Pointer<CellVariable<NDIM, double>>& Q_var = Q_param.Q_var;
+    const bool negative_inside = Q_param.negative_inside;
     HierarchyMathOps hier_math_ops("hier_math_ops", hierarchy);
     const int wgt_cc_idx = hier_math_ops.getCellWeightPatchDescriptorIndex();
     const int coarsest_ln = 0;
@@ -187,6 +237,8 @@ InternalBdryFill::doAdvectInNormal(const int Q_idx,
     int iter_num = 0;
     bool not_converged = true;
     double max_diff = std::numeric_limits<double>::max();
+
+    const double negative_fac = negative_inside ? 1.0 : -1.0;
     // Iterate until we've hit a final time or we converged
     while (iter_num < d_max_iters && not_converged)
     {
@@ -200,47 +252,8 @@ InternalBdryFill::doAdvectInNormal(const int Q_idx,
         hier_ghost_fill.initializeOperatorState(ghost_cell_comp, hierarchy);
         hier_ghost_fill.fillData(time);
 
-        auto fcn = [](Pointer<Patch<NDIM>> patch,
-                      const int Q_scr_idx,
-                      const int Q_idx,
-                      const int sc_idx,
-                      const int phi_idx,
-                      const double dt)
-        {
-            Pointer<CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
-            const double* const dx = pgeom->getDx();
-            const double min_ls = -1.0e-3 * (*std::min_element(dx, dx + NDIM));
-
-            Pointer<CellData<NDIM, double>> Q_scr_data = patch->getPatchData(Q_scr_idx);
-            Pointer<CellData<NDIM, double>> Q_data = patch->getPatchData(Q_idx);
-            Pointer<SideData<NDIM, double>> u_data = patch->getPatchData(sc_idx);
-            Pointer<NodeData<NDIM, double>> phi_data = patch->getPatchData(phi_idx);
-
-            for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
-            {
-                const CellIndex<NDIM>& idx = ci();
-                if (ADS::node_to_cell(idx, *phi_data) > min_ls)
-                {
-                    // Upwinding
-                    SideIndex<NDIM> idx_l(idx, 0, 0), idx_r(idx, 0, 1);
-                    SideIndex<NDIM> idx_b(idx, 1, 0), idx_u(idx, 1, 1);
-                    IntVector<NDIM> x(1, 0), y(0, 1);
-                    for (int d = 0; d < Q_data->getDepth(); ++d)
-                    {
-                        double diff =
-                            (std::max((*u_data)(idx_r), 0.0) * ((*Q_scr_data)(idx, d) - (*Q_scr_data)(idx - x, d)) +
-                             std::min((*u_data)(idx_l), 0.0) * ((*Q_scr_data)(idx + x, d) - (*Q_scr_data)(idx, d))) /
-                                dx[0] +
-                            (std::max((*u_data)(idx_u), 0.0) * ((*Q_scr_data)(idx, d) - (*Q_scr_data)(idx - y, d)) +
-                             std::min((*u_data)(idx_b), 0.0) * ((*Q_scr_data)(idx + y, d) - (*Q_scr_data)(idx, d))) /
-                                dx[1];
-                        (*Q_data)(idx, d) = (*Q_scr_data)(idx, d) - dt * diff;
-                    }
-                }
-            }
-        };
-
-        perform_on_patch_hierarchy(hierarchy, fcn, Q_scr_idx, Q_idx, d_sc_idx, phi_idx, dt);
+        perform_on_patch_hierarchy(
+            hierarchy, upwind_on_patch, Q_scr_idx, Q_idx, d_sc_idx, phi_idx, negative_fac, d_max_gcw, dt);
 
         // Determine if we need another iteration
         hier_cc_data_ops.subtract(Q_scr_idx, Q_idx, Q_scr_idx);
@@ -272,7 +285,7 @@ InternalBdryFill::doAdvectInNormal(const int Q_idx,
 }
 
 void
-InternalBdryFill::writeVizFiles(const std::vector<std::pair<int, Pointer<CellVariable<NDIM, double>>>>& Q_vars,
+InternalBdryFill::writeVizFiles(const std::vector<Parameters>& Q_params,
                                 const int phi_idx,
                                 Pointer<PatchHierarchy<NDIM>> hierarchy,
                                 const double time,
@@ -281,32 +294,33 @@ InternalBdryFill::writeVizFiles(const std::vector<std::pair<int, Pointer<CellVar
     pout << d_object_name << ": Writing viz files to folder: interval_fill_viz\n";
     VisItDataWriter<NDIM> viz_writer(d_object_name + "::VizWriter", "internal_fill_viz");
     viz_writer.registerPlotQuantity("PHI", "SCALAR", phi_idx);
-    for (const auto& Q_idx_var_pair : Q_vars)
+    for (const auto& Q_param : Q_params)
     {
+        const Pointer<CellVariable<NDIM, double>>& Q_var = Q_param.Q_var;
+        const int Q_idx = Q_param.Q_idx;
         // Retrieve the depth. Note that this will probably fail if we are running in parallel (if a level has no
         // patches).
-        Pointer<CellDataFactory<NDIM, double>> fac = Q_idx_var_pair.second->getPatchDataFactory();
+        Pointer<CellDataFactory<NDIM, double>> fac = Q_var->getPatchDataFactory();
         const int depth = fac->getDefaultDepth();
 
         switch (depth)
         {
         case 1:
             // Scalar
-            viz_writer.registerPlotQuantity(Q_idx_var_pair.second->getName(), "SCALAR", Q_idx_var_pair.first);
+            viz_writer.registerPlotQuantity(Q_var->getName(), "SCALAR", Q_idx);
             break;
         case NDIM:
             // Vector
-            viz_writer.registerPlotQuantity(Q_idx_var_pair.second->getName(), "VECTOR", Q_idx_var_pair.first);
+            viz_writer.registerPlotQuantity(Q_var->getName(), "VECTOR", Q_idx);
             break;
         case (NDIM * NDIM):
             // Tensor
-            viz_writer.registerPlotQuantity(Q_idx_var_pair.second->getName(), "TENSOR", Q_idx_var_pair.first);
+            viz_writer.registerPlotQuantity(Q_var->getName(), "TENSOR", Q_idx);
             break;
         default:
             // Plot components separately
             for (int d = 0; d < depth; ++d)
-                viz_writer.registerPlotQuantity(
-                    Q_idx_var_pair.second->getName() + "_" + std::to_string(d), "SCALAR", Q_idx_var_pair.first, d);
+                viz_writer.registerPlotQuantity(Q_var->getName() + "_" + std::to_string(d), "SCALAR", Q_idx, d);
             break;
         }
     }

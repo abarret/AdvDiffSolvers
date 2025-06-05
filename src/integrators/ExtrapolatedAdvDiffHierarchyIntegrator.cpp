@@ -87,6 +87,16 @@ ExtrapolatedAdvDiffHierarchyIntegrator::registerTransportedQuantity(Pointer<Cell
 }
 
 void
+ExtrapolatedAdvDiffHierarchyIntegrator::setResetValue(Pointer<CellVariable<NDIM, double>> Q_var, const double reset_val)
+{
+#ifndef NDEBUG
+    if (std::find(d_Q_var.begin(), d_Q_var.end(), Q_var) == d_Q_var.end())
+        TBOX_ERROR(d_object_name + "::setResetValue(): Advected variable not registered!\n");
+#endif
+    d_Q_reset_val_map[Q_var] = reset_val;
+}
+
+void
 ExtrapolatedAdvDiffHierarchyIntegrator::registerLevelSetVariable(Pointer<NodeVariable<NDIM, double>> ls_var,
                                                                  Pointer<LSFindCellVolume> ls_fcn)
 {
@@ -283,7 +293,7 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
         ReinitializeLevelSet ls_method("LS", nullptr);
         ls_method.computeSignedDistanceFunction(ls_idx, *ls_var, d_hierarchy, current_time, d_valid_idx);
 
-        std::vector<std::pair<int, Pointer<CellVariable<NDIM, double>>>> Q_idx_var_vec;
+        std::vector<InternalBdryFill::Parameters> Q_params;
         for (const auto& Q_var : d_ls_Q_map[ls_var])
         {
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());
@@ -291,10 +301,10 @@ ExtrapolatedAdvDiffHierarchyIntegrator::preprocessIntegrateHierarchy(const doubl
             const int Q_cur_extrap_idx = var_db->mapVariableAndContextToIndex(Q_var, d_extrap_cur_ctx);
             d_hier_cc_data_ops->copyData(Q_scr_idx, Q_cur_idx);
             d_hier_cc_data_ops->copyData(Q_cur_extrap_idx, Q_cur_idx);
-            Q_idx_var_vec.push_back(std::make_pair(Q_scr_idx, Q_var));
+            Q_params.emplace_back(Q_scr_idx, Q_var, true);
         }
         InternalBdryFill advect_in_norm("InternalFill", nullptr);
-        advect_in_norm.advectInNormal(Q_idx_var_vec, ls_idx, ls_var, d_hierarchy, current_time);
+        advect_in_norm.advectInNormal(Q_params, ls_idx, ls_var, d_hierarchy, current_time);
         for (const auto& Q_var : d_ls_Q_map[ls_var])
         {
             const int Q_cur_idx = var_db->mapVariableAndContextToIndex(Q_var, getCurrentContext());

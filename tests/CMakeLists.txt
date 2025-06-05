@@ -96,6 +96,7 @@ SETUP_2D(examples radial.cpp)
 SETUP_2D(examples semi_lagrangian_01.cpp)
 
 SETUP_2D(level_set internal_bdry_fill.cpp)
+SETUP_2D(level_set internal_bdry_fill_2.cpp)
 SETUP_2D(level_set find_vol.cpp)
 SETUP_2D(level_set reinitialize_level_set.cpp)
 

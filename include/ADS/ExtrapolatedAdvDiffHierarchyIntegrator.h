@@ -82,6 +82,14 @@ public:
     using IBAMR::AdvDiffSemiImplicitHierarchyIntegrator::registerTransportedQuantity;
 
     /*!
+     * \brief Set the reset value for the specified advected variable.
+     *
+     * Note that this provides an alternative way to set the reset value after a variable has been registered for
+     * transport. An error occurs if the variable is not already registered with the integrator.
+     */
+    void setResetValue(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var, double reset_val);
+
+    /*!
      * \brief Registers a node centered level set variable with the integrator. A level set function must be supplied
      * that can compute the level set.
      *
