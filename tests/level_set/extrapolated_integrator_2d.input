@@ -63,8 +63,16 @@ QFcn {
    //function = "((X_0-xcom)*(X_0-xcom)+(X_1-ycom)*(X_1-ycom)) < 1.0 ? (cos(PI*sqrt((X_0-xcom)*(X_0-xcom)+(X_1-ycom)*(X_1-ycom))) + 1.0)^2 : 0.0"
 }
 
-ConvecOp {
-   max_gcw_fill = 5
+AdvDiffIntegrator {
+ start_time = T_START
+ end_time = T_FINAL
+ num_cycles = 1
+ convective_time_stepping_type = "ADAMS_BASHFORTH"
+ convective_op_type = "CUI"
+ convective_difference_form = "CONSERVATIVE"
+ dt_max = DT
+ enable_logging = TRUE
+ num_cells_to_extrap = 4
 }
 
 UFcn {

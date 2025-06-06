@@ -11,13 +11,11 @@ ExtrapolatedConvectiveOperator::ExtrapolatedConvectiveOperator(std::string objec
                                                                Pointer<CellVariable<NDIM, double>> Q_var,
                                                                Pointer<Database> input_db,
                                                                const ConvectiveDifferencingType difference_form,
-                                                               std::vector<RobinBcCoefStrategy<NDIM>*> bc_coefs,
-                                                               int max_gcw_fill)
-    : ConvectiveOperator(std::move(object_name), difference_form),
-      d_bc_coefs(std::move(bc_coefs)),
-      d_max_gcw_fill(max_gcw_fill)
+                                                               std::vector<RobinBcCoefStrategy<NDIM>*> bc_coefs)
+    : ConvectiveOperator(std::move(object_name), difference_form), d_bc_coefs(std::move(bc_coefs))
 {
     std::string convec_op_type = input_db->getStringWithDefault("convec_op_type", "CUI");
+    d_max_gcw_fill = input_db->getIntegerWithDefault("max_gcw_fill", d_max_gcw_fill);
     d_convec_op = AdvDiffConvectiveOperatorManager::getManager()->allocateOperator(
         convec_op_type, d_object_name + "::ConvecOp", Q_var, input_db, d_difference_form, d_bc_coefs);
     return;
@@ -28,6 +26,7 @@ ExtrapolatedConvectiveOperator::initializeOperatorState(const SAMRAIVectorReal<N
                                                         const SAMRAIVectorReal<NDIM, double>& y)
 {
     Pointer<PatchHierarchy<NDIM>> hierarchy = x.getPatchHierarchy();
+    d_hierarchy = hierarchy;
 #ifndef NDEBUG
     TBOX_ASSERT(hierarchy == y.getPatchHierarchy());
     TBOX_ASSERT(d_phi_var);
@@ -52,9 +51,6 @@ ExtrapolatedConvectiveOperator::initializeOperatorState(const SAMRAIVectorReal<N
     db->putInteger("max_gcw", d_max_gcw_fill);
     d_internal_fill = std::make_unique<InternalBdryFill>(d_object_name + "::InternalFill", db);
 
-    d_convec_op->setTimeInterval(d_current_time, d_new_time);
-    d_convec_op->setSolutionTime(d_solution_time);
-    d_convec_op->setAdvectionVelocity(d_u_idx);
     d_convec_op->initializeOperatorState(x, y);
 }
 
@@ -92,6 +88,9 @@ ExtrapolatedConvectiveOperator::deallocateOperatorState()
 void
 ExtrapolatedConvectiveOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorReal<NDIM, double>& y)
 {
+    d_convec_op->setTimeInterval(d_current_time, d_new_time);
+    d_convec_op->setSolutionTime(d_solution_time);
+    d_convec_op->setAdvectionVelocity(d_u_idx);
     Pointer<PatchHierarchy<NDIM>> hierarchy = x.getPatchHierarchy();
     d_Q_pos_vec->copyVector(Pointer<SAMRAIVectorReal<NDIM, double>>(&x, false));
     d_Q_neg_vec->copyVector(Pointer<SAMRAIVectorReal<NDIM, double>>(&x, false));
@@ -150,6 +149,15 @@ ExtrapolatedConvectiveOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIV
 void
 ExtrapolatedConvectiveOperator::applyConvectiveOperator(int Q_idx, int N_idx)
 {
+    auto var_db = VariableDatabase<NDIM>::getDatabase();
+    Pointer<hier::Variable<NDIM>> Q_var, N_var;
+    var_db->mapIndexToVariable(Q_idx, Q_var);
+    var_db->mapIndexToVariable(N_idx, N_var);
+    SAMRAIVectorReal<NDIM, double> Q_vec("Q_vec", d_hierarchy, 0, d_hierarchy->getFinestLevelNumber()),
+        N_vec("N_vec", d_hierarchy, 0, d_hierarchy->getFinestLevelNumber());
+    Q_vec.addComponent(Q_var, Q_idx);
+    N_vec.addComponent(N_var, N_idx);
+    apply(Q_vec, N_vec);
 }
 
 /////////////////////////////// PROTECTED ////////////////////////////////////

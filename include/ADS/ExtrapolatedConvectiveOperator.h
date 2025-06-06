@@ -12,13 +12,11 @@
 namespace ADS
 {
 /*!
- * \brief Class ExtrapolatedConvectiveOperator is a concrete ConvectiveOperator
- * that implements a upwind convective differencing operator based on the
- * piecewise parabolic method (PPM).
+ * \brief Class ExtrapolatedConvectiveOperator is a concrete ConvectiveOperator that will extrapolate the solution
+ * across the interface before applying the advective operator.
  *
- * Class ExtrapolatedConvectiveOperator computes the convective derivative of a
- * cell-centered velocity field using the xsPPM7 method of Rider, Greenough, and
- * Kamm.
+ * The class advects quantities in the normal direction according to the level set. It treats both sides independently
+ * of each other. A level set must be registered via the setLSData() function.
  *
  * \see AdvDiffSemiImplicitHierarchyIntegrator
  */
@@ -32,13 +30,22 @@ public:
                                    SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
                                    SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
                                    IBAMR::ConvectiveDifferencingType difference_form,
-                                   std::vector<SAMRAI::solv::RobinBcCoefStrategy<NDIM>*> bc_coefs,
-                                   int max_gcw_fill);
+                                   std::vector<SAMRAI::solv::RobinBcCoefStrategy<NDIM>*> bc_coefs);
 
     /*!
      * \brief Default destructor.
      */
     virtual ~ExtrapolatedConvectiveOperator() = default;
+
+    static SAMRAI::tbox::Pointer<IBAMR::ConvectiveOperator>
+    allocate_operator(const std::string& object_name,
+                      SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+                      SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db,
+                      IBAMR::ConvectiveDifferencingType difference_form,
+                      const std::vector<SAMRAI::solv::RobinBcCoefStrategy<NDIM>*>& bc_coefs)
+    {
+        return new ExtrapolatedConvectiveOperator(object_name, Q_var, input_db, difference_form, bc_coefs);
+    }
 
     void initializeOperatorState(const SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& x,
                                  const SAMRAI::solv::SAMRAIVectorReal<NDIM, double>& y) override;
@@ -66,6 +73,8 @@ private:
      */
     ExtrapolatedConvectiveOperator& operator=(const ExtrapolatedConvectiveOperator& that) = delete;
 
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> d_hierarchy;
+
     SAMRAI::tbox::Pointer<IBAMR::ConvectiveOperator> d_convec_op;
     std::string d_convec_op_type;
     std::vector<SAMRAI::solv::RobinBcCoefStrategy<NDIM>*> d_bc_coefs;
@@ -73,7 +82,7 @@ private:
     SAMRAI::tbox::Pointer<SAMRAI::solv::SAMRAIVectorReal<NDIM, double>> d_Q_pos_vec, d_Q_neg_vec;
     SAMRAI::tbox::Pointer<SAMRAI::solv::SAMRAIVectorReal<NDIM, double>> d_N_pos_vec, d_N_neg_vec;
 
-    int d_max_gcw_fill = 1;
+    int d_max_gcw_fill = std::numeric_limits<int>::max();
 
     std::unique_ptr<InternalBdryFill> d_internal_fill;
 

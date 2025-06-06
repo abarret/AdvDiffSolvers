@@ -1,0 +1,561 @@
+AdvDiffIntegrator::initializePatchHierarchy(): tag_buffer = 0
+Simulation time is 0
+
+
+Writing visualization files...
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0,0.00410156], dt = 0.00410156
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 0
+Setting Level set at time 0
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator: Initializing Helmholtz RHS operator for variable number 0
+AdvDiffIntegrator: Initializing Helmholtz solvers for variable number 0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.34252644814e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.86796295296e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::advanceHierarchy(): executing cycle 1 of 2
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.00410156
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::advanceHierarchy(): executing cycle 2 of 2
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.34252644814e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.86796295296e-06!
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.00410156
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.00410156
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00310661252494
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.00410156
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.0041015625,0.008203125], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 1
+Setting Level set at time 0.00410156
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.35260596373e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.86760418643e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.00820313
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.00820313
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00621270925208
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.00820313
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.008203125,0.0123046875], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 2
+Setting Level set at time 0.00820313
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.38290654133e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.86652684066e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0123047
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0123047
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.00931777446924
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0123047
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.0123046875,0.01640625], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 3
+Setting Level set at time 0.0123047
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.43377518619e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.8647251651e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0164063
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0164063
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0124212926355
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0164063
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.01640625,0.0205078125], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 4
+Setting Level set at time 0.0164063
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.50582943232e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.86218898511e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0205078
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0205078
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0155227484669
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0205078
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.0205078125,0.024609375], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 5
+Setting Level set at time 0.0205078
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.59994561676e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.85890403263e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0246094
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0246094
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0186216270216
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0246094
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.024609375,0.0287109375], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 6
+Setting Level set at time 0.0246094
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.71727107403e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.85485192199e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0287109
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0287109
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0217174137861
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0287109
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.0287109375,0.0328125], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 7
+Setting Level set at time 0.0287109
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.85923967216e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.85001011945e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0328125
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0328125
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.02480959476
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0328125
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.0328125,0.0369140625], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 8
+Setting Level set at time 0.0328125
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 48 iterations, the solver converged to a tolerance of 8.92431528727e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.84435190694e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0369141
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0369141
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0278976565414
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0369141
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.0369140625,0.041015625], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 9
+Setting Level set at time 0.0369141
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 48 iterations, the solver converged to a tolerance of 9.09946218376e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.83784634068e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0410156
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0410156
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0309810864128
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0410156
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.041015625,0.0451171875], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 10
+Setting Level set at time 0.0410156
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 48 iterations, the solver converged to a tolerance of 9.30207996173e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.8304582055e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0451172
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0451172
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0340593724252
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0451172
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.0451171875,0.04921875], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 11
+Setting Level set at time 0.0451172
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 48 iterations, the solver converged to a tolerance of 9.53465869542e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.82214796563e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0492188
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0492188
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.037132003484
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0492188
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.04921875,0.0533203125], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 12
+Setting Level set at time 0.0492188
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 48 iterations, the solver converged to a tolerance of 9.80005311724e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.81287171315e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0533203
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0533203
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0401984694334
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0533203
+
+
+Writing visualization files...
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.0533203125,0.057421875], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 13
+Setting Level set at time 0.0533203
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 49 iterations, the solver converged to a tolerance of 8.99010318269e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.80258111518e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0574219
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0574219
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0432582611413
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0574219
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.057421875,0.0615234375], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 14
+Setting Level set at time 0.0574219
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 49 iterations, the solver converged to a tolerance of 9.2937587381e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.79122336134e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0615234
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0615234
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0463108705835
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0615234
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.0615234375,0.065625], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 15
+Setting Level set at time 0.0615234
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 49 iterations, the solver converged to a tolerance of 9.63645435477e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.77874111273e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.065625
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.065625
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0493557909286
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.065625
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.065625,0.0697265625], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 16
+Setting Level set at time 0.065625
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 50 iterations, the solver converged to a tolerance of 8.91960868706e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.76507245415e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0697266
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0697266
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0523925166216
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0697266
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.0697265625,0.073828125], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 17
+Setting Level set at time 0.0697266
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 50 iterations, the solver converged to a tolerance of 9.30548450926e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.75015085149e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0738281
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0738281
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0554205434682
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0738281
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.073828125,0.0779296875], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 18
+Setting Level set at time 0.0738281
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 50 iterations, the solver converged to a tolerance of 9.73836204097e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.7339050924e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0779297
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0779297
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0584393687183
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+Simulation time is 0.0779297
+
+AdvDiffIntegrator::advanceHierarchy(): time interval = [0.0779296875,0.08203125], dt = 0.0041015625
+AdvDiffIntegrator::advanceHierarchy(): regridding prior to timestep 19
+Setting Level set at time 0.0779297
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+After iteration 0
+  Residual: -0
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 51 iterations, the solver converged to a tolerance of 9.09843535519e-06!
+AdvDiffIntegrator::Q::ConvectiveOperator::InternalFill: After 31 iterations, the solver converged to a tolerance of 6.71625928434e-06!
+AdvDiffIntegrator::advanceHierarchy(): integrating hierarchy
+AdvDiffIntegrator::integrateHierarchy(): completed solution update.
+Setting Level set at time 0.0820312
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+Setting Level set at time 0.0820312
+Minimum volume on level:     0 is: 1
+Total area found on level:   0 is: 0
+Total volume found on level: 0 is: 0
+AdvDiffIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0614484911496
+AdvDiffIntegrator::advanceHierarchy(): synchronizing updated data
+AdvDiffIntegrator::advanceHierarchy(): resetting time dependent data
+Finished time step
+
+
+Writing visualization files...
+
