@@ -28,6 +28,9 @@ public:
      * less than the tolerance. Default value is 1.0e-5.
      * -- max_iterations: The maximum number of pseudo-time integration steps. Default value is 1000.
      * -- enable_logging: If true, this class prints data about convergence to the log file. Default value is true.
+     * -- max_gcw: The maximum width of cells to fill. Default value is std::numeric_limits<int>::max(). Note that if
+     * the largest grid cell spacing is greater than one, overflow may occur which could potentially slow down
+     * computations.
      */
     InternalBdryFill(std::string object_name, SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db = nullptr);
 
@@ -42,22 +45,42 @@ public:
     ~InternalBdryFill();
 
     /*!
+     * Helper struct that contains data required for advectInNormal to work correctly.
+     *
+     * If negative_inside = true, then where the level set is negative is treated as the interior.
+     */
+    struct Parameters
+    {
+        Parameters(int Q_idx,
+                   SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+                   bool negative_inside = true)
+            : Q_idx(Q_idx), Q_var(Q_var), negative_inside(negative_inside)
+        {
+        }
+        int Q_idx;
+        SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var;
+        bool negative_inside = true;
+    };
+
+    /*!
      * Advect each concentration in the normal direction. Computes the normal direction from the signed distance
      * function in phi_idx.
+     *
+     * If negative_inside is false, advectInNormal will fill in values where the level set phi_idx is positive.
      */
-    void advectInNormal(
-        const std::vector<std::pair<int, SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>>& Q_vars,
-        int phi_idx,
-        SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> phi_var,
-        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
-        double time);
+    void advectInNormal(const std::vector<Parameters>& Q_params,
+                        int phi_idx,
+                        SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> phi_var,
+                        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                        double time);
 
     /*!
      * Advect the given concentration in the normal direction. Computes the normal direction from the signed distance
      * function in phi_idx.
+     *
+     * If negative_inside is false, advectInNormal will fill in values where the level set phi_idx is positive.
      */
-    void advectInNormal(int Q_idx,
-                        SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+    void advectInNormal(const Parameters& Q_params,
                         int phi_idx,
                         SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> phi_var,
                         SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
@@ -72,8 +95,7 @@ private:
     /*!
      * Advect the concentration field in the normal direction. This assumes the correct velocity is stored in d_sc_idx.
      */
-    bool doAdvectInNormal(int Q_idx,
-                          SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+    bool doAdvectInNormal(const Parameters& Q_param,
                           int phi_idx,
                           SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>> phi_var,
                           SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
@@ -82,12 +104,11 @@ private:
     /*!
      * Write visualization files of the advected quantities.
      */
-    void writeVizFiles(
-        const std::vector<std::pair<int, SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>>>& Q_vars,
-        int phi_idx,
-        SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
-        double time,
-        const int inter_num);
+    void writeVizFiles(const std::vector<Parameters>& Q_params,
+                       int phi_idx,
+                       SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> hierarchy,
+                       double time,
+                       const int inter_num);
 
     std::string d_object_name;
     double d_tol = 1.0e-5;
@@ -97,6 +118,8 @@ private:
 
     SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double>> d_sc_var;
     int d_sc_idx = IBTK::invalid_index;
+
+    unsigned int d_max_gcw = std::numeric_limits<int>::max();
 };
 } // namespace ADS
 #endif

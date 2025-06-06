@@ -37,6 +37,7 @@ SET(CXX_SRC
     integrators/SBIntegrator.cpp
     integrators/SLAdvIntegrator.cpp
 
+    level_set/ExtrapolatedConvectiveOperator.cpp
     level_set/InternalBdryFill.cpp    
     level_set/LSCartGridFunction.cpp
     level_set/LSFindCellVolume.cpp

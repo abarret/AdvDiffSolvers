@@ -47,10 +47,6 @@ public:
      * restart databases, and registers the integrator object with the restart
      * manager when requested.
      *
-     * The input database will be searched for the optional double parameter "reset_value." This value is the used as
-     * the default reset value in unphysical regimes. Other reset values for a transported quantity may be set when
-     * registering that variable.
-     *
      * The input database is also searched for "num_cells_to_extrap," which is the number of cells in which
      * concentrations will be extrapolated to. By default, this value is 2.
      */
@@ -75,11 +71,22 @@ public:
     /*!
      * \brief Register an advected concentration field. Can also set the default reset value for unphysical cell
      * indices.
+     *
+     * If the reset_val is a NaN, then no reset is done and the transported quantity is advected on both sides of the
+     * interface.
      */
     void registerTransportedQuantity(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
-                                     double reset_val,
+                                     double reset_val = std::numeric_limits<double>::quiet_NaN(),
                                      bool output_var = true);
     using IBAMR::AdvDiffSemiImplicitHierarchyIntegrator::registerTransportedQuantity;
+
+    /*!
+     * \brief Set the reset value for the specified advected variable.
+     *
+     * Note that this provides an alternative way to set the reset value after a variable has been registered for
+     * transport. An error occurs if the variable is not already registered with the integrator.
+     */
+    void setResetValue(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var, double reset_val);
 
     /*!
      * \brief Registers a node centered level set variable with the integrator. A level set function must be supplied
@@ -153,9 +160,8 @@ private:
     std::shared_ptr<GeneralBoundaryMeshMapping> d_mesh_mapping;
     std::vector<std::unique_ptr<FEToHierarchyMapping>> d_fe_hierarchy_mapping;
 
-    double d_default_reset_val = 0.0;
+    std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, bool> d_Q_reset_map;
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>>, double> d_Q_reset_val_map;
-    SAMRAI::tbox::Pointer<SAMRAI::hier::VariableContext> d_extrap_cur_ctx, d_extrap_new_ctx;
 
     // Number of cells to fill in level set. This controls the number of cells that concentrations are extrapolated.
     int d_num_cells_to_extrap = 2;

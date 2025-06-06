@@ -1,0 +1,162 @@
+Simulation time is 0
+
+Writing visualization files at time 0
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.34253e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.52162e-06!
+Completing forward Euler update
+Finished time step
+
+Simulation time is 0.00410156
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.34253e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.52162e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.00820313
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.37276e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.52028e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0123047
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.42353e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.51804e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0164063
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.49544e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.51488e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0205078
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.58936e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.51079e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0246094
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.70645e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.50575e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0287109
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 47 iterations, the solver converged to a tolerance of 9.84814e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.49973e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0328125
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 48 iterations, the solver converged to a tolerance of 8.91414e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.49269e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0369141
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 48 iterations, the solver converged to a tolerance of 9.08894e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.4846e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0410156
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 48 iterations, the solver converged to a tolerance of 9.29116e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.4754e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0451172
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 48 iterations, the solver converged to a tolerance of 9.52329e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.46506e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0492188
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 48 iterations, the solver converged to a tolerance of 9.78819e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.45352e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0533203
+
+Writing visualization files at time 0.0533203
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 49 iterations, the solver converged to a tolerance of 8.97904e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.44072e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0574219
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 49 iterations, the solver converged to a tolerance of 9.28214e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.42659e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0615234
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 49 iterations, the solver converged to a tolerance of 9.62423e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.41106e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.065625
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 50 iterations, the solver converged to a tolerance of 8.90812e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.39406e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0697266
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 50 iterations, the solver converged to a tolerance of 9.29334e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.3755e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0738281
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 50 iterations, the solver converged to a tolerance of 9.72549e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.35529e-06!
+Completing AB2 step
+Finished time step
+
+Simulation time is 0.0779297
+
+Time step size: 0.00410156
+ExtrapOp::InternalFill: After 51 iterations, the solver converged to a tolerance of 9.08627e-06!
+ExtrapOp::InternalFill: After 34 iterations, the solver converged to a tolerance of 8.33333e-06!
+Completing AB2 step
+Finished time step
+

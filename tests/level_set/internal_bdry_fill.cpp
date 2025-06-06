@@ -233,7 +233,8 @@ main(int argc, char* argv[])
 #endif
         // Now extend solution in normal direction
         InternalBdryFill extrapolate("InternalFill", input_db->getDatabase("InternalFill"));
-        extrapolate.advectInNormal(Q_idx, Q_var, phi_idx, phi_var, patch_hierarchy, 0.0);
+        InternalBdryFill::Parameters Q_param(Q_idx, Q_var);
+        extrapolate.advectInNormal(Q_param, phi_idx, phi_var, patch_hierarchy, 0.0);
 
 #ifdef DRAW_DATA
         visit_data_writer->writePlotData(patch_hierarchy, 1, 0.0);
