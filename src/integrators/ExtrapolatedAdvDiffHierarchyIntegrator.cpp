@@ -163,7 +163,13 @@ ExtrapolatedAdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(Pointer<Pa
         for (const auto& Q_var : Q_set)
         {
             Pointer<ExtrapolatedConvectiveOperator> adv_op = getConvectiveOperator(Q_var);
-            TBOX_ASSERT(adv_op);
+            if (!adv_op)
+            {
+                std::ostringstream err_msg;
+                err_msg << "Convective operator for variable " << Q_var->getName() << " restricted to level set "
+                        << ls_Q_pair.first->getName() << " is not of type Extrapolated\n";
+                TBOX_ERROR(err_msg.str());
+            }
             adv_op->setLSData(ls_idx, ls_Q_pair.first);
         }
     }

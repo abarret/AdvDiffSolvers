@@ -1,0 +1,380 @@
+RHO = 1.0
+START_TIME = 0.0
+//END_TIME = 85.0
+NUM_CYCLES = 1
+N = 256
+MAX_LEVELS = 1
+NFINEST = N * 4 ^ (MAX_LEVELS - 1)
+MAX_MULTIGRID_LEVELS = 6
+DX = 4.0 / (NFINEST)
+U_MAX = 5.0
+CFL = 0.3
+DT_MAX = 0.2*1.0e-3//0.5 * CFL * DX / U_MAX
+END_TIME = 20.0//500*DT_MAX
+ENABLE_LOGGING = TRUE
+W = 0.75
+USE_PRECONDITIONER = TRUE
+VIZ_DUMP_TIME_INTERVAL = 0.01
+DELTA = 0.175
+TAG_BUFFER = 1
+KERNEL_WIDTH = 10
+
+OMEGA = 1.0
+T_START = 1000.0
+START_ON_WALL = FALSE
+R = 0.2
+MFAC = 1.0
+USE_ASYMMETRIC = TRUE
+CENTER_0 = 0.25
+CENTER_1 = 0.5
+CENTER = CENTER_0, CENTER_1
+INJ_STR = 6.0
+RM = 0.4
+R_DECAY = 0.05
+PHIB_INIT = 150.0
+ZB_INIT = 1.0//64.042
+MU = 0.04
+C8 = 25.0
+BETA = 1.0e-4
+
+VISCOUS_TS_TYPE = "BDF2"
+
+ADV_DIFF_NUM_CYCLES = 1
+ADV_DIFF_CONVECTIVE_OP_TYPE = "CUI"
+ADV_DIFF_CONVECTIVE_TS_TYPE = "FORWARD_EULER"
+ADV_DIFF_CONVECTIVE_FORM = "CONSERVATIVE"
+
+// Complex Fluid parameters
+FLUID_MODEL = "USER_DEFINED"
+EVOLVE_TYPE = "STANDARD"
+LOG_DETERMINANT     = TRUE
+CONVECTIVE_OPERATOR_TYPE     = "CUI"
+OUTPUT_CONFORMATION_TENSOR = TRUE
+OUTPUT_STRESS_TENSOR = TRUE
+OUTPUT_DIVERGENCE = TRUE
+BDRY_INTERP_TYPE = "LINEAR"
+PROJECT_CONFORM_TENS = FALSE
+
+K = 0.125*2.406250*4.0*1.0e1
+K_SOLVENT = 0.125*5.781250*2.0*1.0e1
+K_CROSS = 0.125*3.3906250*2.0*1.0e1
+ETA_SOLVENT = 0.125*3.6718750*1.0e-3
+ETA = 0.125*2.33593750*1.0e-3
+ETA_CROSS = 0.125*2.19531250*1.0e-3
+
+PHIU_INIT = 1.0
+
+phib_bc {
+  dt = DT_MAX
+  acoef_function_0 = "1.0"
+  acoef_function_1 = "0.0"
+  acoef_function_2 = "0.0"
+  acoef_function_3 = "0.0"
+
+  bcoef_function_0 = "0.0"
+  bcoef_function_1 = "1.0"
+  bcoef_function_2 = "1.0"
+  bcoef_function_3 = "1.0"
+
+  gcoef_function_0 = "20 * tanh(t / (500 * dt))"
+  gcoef_function_1 = "0.0"
+  gcoef_function_2 = "0.0"
+  gcoef_function_3 = "0.0"
+
+}
+
+MeshMapping {
+  center = CENTER_0, CENTER_1
+  r = R
+  max_level = MAX_LEVELS
+}
+
+CutCellMapping {
+  perturb_nodes = TRUE
+}
+
+FN {
+   function_0 = "0.0"//"6.4"
+   function_1 = "0.0"
+}
+
+u_init {
+   function_0 = "0.0"
+   function_1 = "0.0"
+}
+
+p {
+   function = "-80*0.04*X_0"
+} // pressure has mean 0
+
+u_bcs_0 {
+  acoef_function_0 = "0.0"
+  acoef_function_1 = "0.0"
+  acoef_function_2 = "1.0"
+  acoef_function_3 = "1.0"
+
+  bcoef_function_0 = "1.0"
+  bcoef_function_1 = "1.0"
+  bcoef_function_2 = "0.0"
+  bcoef_function_3 = "0.0"
+
+  gcoef_function_0 = "16*0.04*X_0"
+  gcoef_function_1 = "16*0.04*X_0"
+  gcoef_function_2 = "0.0"
+  gcoef_function_3 = "0.0"
+}
+
+u_bcs_1 {
+  acoef_function_0 = "1.0"
+  acoef_function_1 = "1.0"
+  acoef_function_2 = "1.0"
+  acoef_function_3 = "1.0"
+
+  bcoef_function_0 = "0.0"
+  bcoef_function_1 = "0.0"
+  bcoef_function_2 = "0.0"
+  bcoef_function_3 = "0.0"
+
+  gcoef_function_0 = "0.0"
+  gcoef_function_1 = "0.0"
+  gcoef_function_2 = "0.0"
+  gcoef_function_3 = "0.0"
+}
+
+default_bc {
+  acoef_function_0 = "1.0"
+  acoef_function_1 = "0.0"
+  acoef_function_2 = "0.0"
+  acoef_function_3 = "0.0"
+
+  bcoef_function_0 = "0.0"
+  bcoef_function_1 = "1.0"
+  bcoef_function_2 = "1.0"
+  bcoef_function_3 = "1.0"
+
+  gcoef_function_0 = "0.0"
+  gcoef_function_1 = "0.0"
+  gcoef_function_2 = "0.0"
+  gcoef_function_3 = "0.0"
+}
+
+p_bc {
+  acoef_function_0 = "1.0"
+  acoef_function_1 = "1.0"
+  acoef_function_2 = "0.0"
+  acoef_function_3 = "0.0"
+
+  bcoef_function_0 = "0.0"
+  bcoef_function_1 = "0.0"
+  bcoef_function_2 = "1.0"
+  bcoef_function_3 = "1.0"
+
+  gcoef_function_0 = "-16*0.04*X_0"
+  gcoef_function_1 = "-16*0.04*X_0"
+  gcoef_function_2 = "0.0"
+  gcoef_function_3 = "0.0"
+}
+
+phiu_bc {
+  phiu_init = PHIU_INIT
+  acoef_function_0 = "1.0"
+  acoef_function_1 = "0.0"
+  acoef_function_2 = "0.0"
+  acoef_function_3 = "0.0"
+
+  bcoef_function_0 = "0.0"
+  bcoef_function_1 = "1.0"
+  bcoef_function_2 = "1.0"
+  bcoef_function_3 = "1.0"
+
+  gcoef_function_0 = "phiu_init"
+  gcoef_function_1 = "0.0"
+  gcoef_function_2 = "0.0"
+  gcoef_function_3 = "0.0"
+}
+
+CFForcing {
+   InitialConditions{
+      zb = ZB_INIT
+      rmat = RM
+      rd = R_DECAY
+      c0 = CENTER_0
+      c1 = CENTER_1
+      function_0 = "0.0"//25.0*zb * (sqrt((X_0-c0)*(X_0-c0)+(X_1-c1)*(X_1-c1)) < rmat ? tanh((rmat - sqrt((X_0-c0)*(X_0-c0)+(X_1-c1)*(X_1-c1)))/rd) : 0.0)"
+      function_1 = "0.0"//25.0*zb * (sqrt((X_0-c0)*(X_0-c0)+(X_1-c1)*(X_1-c1)) < rmat ? tanh((rmat - sqrt((X_0-c0)*(X_0-c0)+(X_1-c1)*(X_1-c1)))/rd) : 0.0)"
+      function_2 = "0.0"
+   }
+   fluid_model         = FLUID_MODEL
+   evolution_type = EVOLVE_TYPE
+   log_determinant     = LOG_DETERMINANT
+   convective_operator_type     = CONVECTIVE_OPERATOR_TYPE
+   output_stress_tensor = OUTPUT_STRESS_TENSOR
+   output_conformation_tensor = OUTPUT_CONFORMATION_TENSOR
+   output_divergence = OUTPUT_DIVERGENCE
+   interp_type = BDRY_INTERP_TYPE
+   project_conformation_tensor = PROJECT_CONFORM_TENS
+   ExtraStressBoundaryConditions_0 {
+      acoef_function_0 = "0.0"
+      acoef_function_1 = "0.0"
+      acoef_function_2 = "0.0"
+      acoef_function_3 = "0.0"
+
+      bcoef_function_0 = "1.0"
+      bcoef_function_1 = "1.0"
+      bcoef_function_2 = "1.0"
+      bcoef_function_3 = "1.0"
+
+      gcoef_function_0 = "0.0"
+      gcoef_function_1 = "0.0"
+      gcoef_function_2 = "0.0"
+      gcoef_function_3 = "0.0"
+   }
+   ExtraStressBoundaryConditions_1 {
+      acoef_function_0 = "0.0"
+      acoef_function_1 = "0.0"
+      acoef_function_2 = "0.0"
+      acoef_function_3 = "0.0"
+
+      bcoef_function_0 = "1.0"
+      bcoef_function_1 = "1.0"
+      bcoef_function_2 = "1.0"
+      bcoef_function_3 = "1.0"
+
+      gcoef_function_0 = "0.0"
+      gcoef_function_1 = "0.0"
+      gcoef_function_2 = "0.0"
+      gcoef_function_3 = "0.0"
+   }
+   ExtraStressBoundaryConditions_2 {
+      acoef_function_0 = "0.0"
+      acoef_function_1 = "0.0"
+      acoef_function_2 = "0.0"
+      acoef_function_3 = "0.0"
+
+      bcoef_function_0 = "1.0"
+      bcoef_function_1 = "1.0"
+      bcoef_function_2 = "1.0"
+      bcoef_function_3 = "1.0"
+
+      gcoef_function_0 = "0.0"
+      gcoef_function_1 = "0.0"
+      gcoef_function_2 = "0.0"
+      gcoef_function_3 = "0.0"
+   }
+}
+
+INSHierarchyIntegrator {
+   rho                           = RHO
+   start_time                    = START_TIME
+   end_time                      = END_TIME
+   num_cycles                    = NUM_CYCLES
+   dt_max                        = DT_MAX
+   enable_logging                = ENABLE_LOGGING
+   viscous_time_stepping_type = VISCOUS_TS_TYPE
+   convective_time_stepping_type = "ADAMS_BASHFORTH"
+   init_convective_time_stepping_type = "FORWARD_EULER"
+   tag_buffer = TAG_BUFFER
+   mu = MU
+}
+
+AdvDiffIntegrator {
+ start_time = START_TIME
+ end_time = END_TIME
+ num_cycles = ADV_DIFF_NUM_CYCLES
+ convective_time_stepping_type = ADV_DIFF_CONVECTIVE_TS_TYPE
+ convective_op_type = ADV_DIFF_CONVECTIVE_OP_TYPE
+ convective_difference_form = ADV_DIFF_CONVECTIVE_FORM
+   init_convective_time_stepping_type = "FORWARD_EULER"
+ dt_max = DT_MAX
+ enable_logging = ENABLE_LOGGING
+ reset_value = 150.0
+}
+
+IBHierarchyIntegrator {
+   start_time          = START_TIME
+   end_time            = END_TIME
+   num_cycles          = NUM_CYCLES
+   regrid_cfl_interval = 0.5
+   dt_max              = DT_MAX
+   error_on_dt_change  = FALSE
+   tag_buffer          = TAG_BUFFER
+   enable_logging      = ENABLE_LOGGING
+}
+
+IBMethod {
+   delta_fcn      = "BSPLINE_3"
+   enable_logging = ENABLE_LOGGING
+}
+
+IBRedundantInitializer {
+   max_levels      = MAX_LEVELS
+}
+
+Main {
+// log file parameters
+   log_file_name = "output"
+   log_all_nodes = FALSE
+
+// visualization dump parameters
+   viz_writer = "VisIt"
+   viz_dump_dirname = "viz2d"
+   visit_number_procs_per_file = 1
+
+// timer dump parameters
+   timer_enabled = FALSE
+   timer_dump_interval = 0
+}
+
+CartesianGeometry {
+   domain_boxes       = [(0,0), (N - 1,N/4 - 1)]
+   x_lo               = -1.0, 0.0      // lower end of computational domain.
+   x_up               = 3.0, 1.0      // upper end of computational domain.
+   periodic_dimension = 0, 0
+}
+
+GriddingAlgorithm {
+   max_levels = MAX_LEVELS                 // Maximum number of levels in hierarchy.
+
+   ratio_to_coarser {
+      level_1 = 4, 4              // vector ratio to next coarser level
+      level_2 = 2, 2
+   }
+
+   largest_patch_size {
+      level_0 = 512, 512          // largest patch allowed in hierarchy
+                                  // all finer levels will use same values as level_0...
+   }
+
+   smallest_patch_size {
+      level_0 =   4,   4          // smallest patch allowed in hierarchy
+                                  // all finer levels will use same values as level_0...
+   }
+
+   efficiency_tolerance = 0.70e0  // min % of tag cells in new patch level
+   combine_efficiency   = 0.85e0  // chop box if sum of volumes of smaller
+                                  // boxes < efficiency * vol of large box
+}
+
+StandardTagAndInitialize {
+   tagging_method = "GRADIENT_DETECTOR"
+   RefineBoxes {
+    level_0 = [( 16,0 ),(48,15) ]
+    // level_0 = [( N/4 , N/4 ),( 3*N/4 - 1 , N/2 - 1 )],[( N/4,N/2 ),( N/2 - 1, 3*N/4 - 2)]
+    // level_0 = [( N/4,N/4 ),( 3*N/4 - 1,N/2 - 1 )],[( N/4,N/2 ),( N/2 - 1,3*N/4 - 1 )] // L-shaped refinement
+    // level_0 = [( N/4 , N/8 ),( 3*N/4 - 1 , 3*N/4 - 1 )] 
+    // level_0 = [(N/4 + 5 , N/4 + 5),( N/4 + 10, N/4 + 10)] 
+    // level_0 = [(1,1), (30,30)] 
+   }
+}
+
+LoadBalancer {
+   bin_pack_method = "SPATIAL"
+   max_workload_factor = 1
+}
+
+TimerManager{
+   print_exclusive = FALSE
+   print_total = TRUE
+   print_threshold = 0.1
+   timer_list = "*::*::*","IBTK::*::*","IBAMR::*::*","multiphase::*::*","ADS::*::*"
+}
