@@ -160,13 +160,13 @@ PETScAugmentedKrylovLinearSolver::setPreconditioner(Pointer<LinearSolver> pc_sol
 } // setPreconditioner
 
 void
-PETScAugmentedKrylovLinearSolver::setNullSpace(
+PETScAugmentedKrylovLinearSolver::setNullspace(
     const bool /*contains_constant_vec*/,
     const std::vector<Pointer<SAMRAIVectorReal<NDIM, double>>>& /*nullspace_basis_vecs*/)
 {
-    TBOX_WARNING(d_object_name + "::setNullSpace: nullspace not set up for augmented systems.\n");
+    TBOX_WARNING(d_object_name + "::setNullspace: nullspace not set up for augmented systems.\n");
     return;
-} // setNullSpace
+} // setNullspace
 
 bool
 PETScAugmentedKrylovLinearSolver::solveSystem(SAMRAIVectorReal<NDIM, double>& x, SAMRAIVectorReal<NDIM, double>& b)
