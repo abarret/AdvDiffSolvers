@@ -243,5 +243,11 @@ get_system_managers(const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappi
     return fe_sys_managers;
 }
 
+inline void
+set_valid_level_numbers(int& coarsest_ln, int& finest_ln, SAMRAI::hier::PatchHierarchy<NDIM>& hierarchy)
+{
+    coarsest_ln = (coarsest_ln < 0 ? 0 : coarsest_ln);
+    finest_ln = (finest_ln < 0 ? hierarchy.getFinestLevelNumber() : finest_ln);
+}
 } // namespace ADS
 #endif

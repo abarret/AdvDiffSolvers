@@ -2,12 +2,12 @@ PI = 3.1415926535
 // grid spacing parameters
 MAX_LEVELS = 1                            // maximum number of levels in locally refined grid
 REF_RATIO  = 4                            // refinement ratio between levels
-N = 32                                    // coarsest grid spacing
+N = 256                                    // coarsest grid spacing
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = 3.0/NFINEST
 INTERFACE_TYPE = "CHANNEL"
 
-THETA = 0.0//PI/18.0
+THETA = PI/18.0
 YLOW = 0.0
 YUP = 0.5
 

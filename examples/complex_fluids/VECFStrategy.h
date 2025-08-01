@@ -33,6 +33,28 @@
 
 namespace ADS
 {
+struct Parameters
+{
+public:
+    Parameters(Pointer<Database> input_db)
+    {
+        gamma = input_db->getDouble("gamma");
+        R0 = input_db->getDouble("R0");
+        C3 = input_db->getDouble("C3");
+        lambda = input_db->getDouble("lambda");
+        zb_crit_val = input_db->getDouble("zb_crit_val");
+        Kbb = input_db->getDouble("Kbb");
+        C8 = input_db->getDouble("C8");
+    }
+
+    double gamma = std::numeric_limits<double>::quiet_NaN();
+    double R0 = std::numeric_limits<double>::quiet_NaN();
+    double C3 = std::numeric_limits<double>::quiet_NaN();
+    double C8 = std::numeric_limits<double>::quiet_NaN();
+    double lambda = std::numeric_limits<double>::quiet_NaN();
+    double zb_crit_val = std::numeric_limits<double>::quiet_NaN();
+    double Kbb = std::numeric_limits<double>::quiet_NaN();
+};
 /*!
  * \brief Class VECFStrategy is a concrete CFStrategy
  */
@@ -48,8 +70,7 @@ public:
                  SAMRAI::tbox::Pointer<IBAMR::INSStaggeredHierarchyIntegrator> ins_integrator,
                  SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> zb_var,
                  SAMRAI::tbox::Pointer<IBAMR::AdvDiffHierarchyIntegrator> zb_integrator,
-                 double C8,
-                 double beta);
+                 const Parameters& params);
 
     /*!
      * \brief Empty destructor.
@@ -91,8 +112,7 @@ private:
 
     SAMRAI::tbox::Pointer<IBAMR::INSStaggeredHierarchyIntegrator> d_ins_integrator;
 
-    double d_C8 = std::numeric_limits<double>::quiet_NaN();
-    double d_beta = std::numeric_limits<double>::quiet_NaN();
+    const Parameters& d_params;
 };
 } // namespace ADS
 #endif
