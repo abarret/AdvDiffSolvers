@@ -219,10 +219,15 @@ main(int argc, char* argv[])
                     for (int d = 0; d < NDIM; ++d)
                         x[d] = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
                     x = Q * x;
-                    if (x[1] < yup && x[1] > ylow)
-                        (*Q_data)(idx) = 1.0;
+                    VectorNd cent;
+                    cent(0) = 1.0;
+                    cent(1) = 0.01;
+                    const double r = (x - cent).norm();
+                    const double R = 0.25;
+                    if (x[1] < yup && x[1] > ylow && r < 0.5)
+                        (*Q_data)(idx) = std::max(0.8 * std::cos(M_PI * r / (2.0 * R)) + 0.0, 0.0);
                     else
-                        (*Q_data)(idx) = -1.0;
+                        (*Q_data)(idx) = 0.0;
                 }
             };
             perform_on_patch_hierarchy(patch_hierarchy, ls_ghost_box_fcn, Q_idx, phi_idx);

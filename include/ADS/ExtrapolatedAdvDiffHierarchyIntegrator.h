@@ -76,9 +76,10 @@ public:
      * interface.
      */
     void registerTransportedQuantity(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
-                                     double reset_val = std::numeric_limits<double>::quiet_NaN(),
+                                     double reset_val,
                                      bool output_var = true);
-    using IBAMR::AdvDiffSemiImplicitHierarchyIntegrator::registerTransportedQuantity;
+    void registerTransportedQuantity(SAMRAI::tbox::Pointer<SAMRAI::pdat::CellVariable<NDIM, double>> Q_var,
+                                     bool output_var = true) override;
 
     /*!
      * \brief Set the reset value for the specified advected variable.

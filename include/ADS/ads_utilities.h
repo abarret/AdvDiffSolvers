@@ -108,6 +108,8 @@ std::vector<T*> unique_ptr_vec_to_raw_ptr_vec(const std::vector<std::unique_ptr<
 
 std::vector<FESystemManager*> get_system_managers(const std::vector<FEToHierarchyMapping*>& fe_hierarchy_mappings);
 
+void set_valid_level_numbers(int& coarsest_ln, int& finest_ln, SAMRAI::hier::PatchHierarchy<NDIM>& hierarchy);
+
 } // namespace ADS
 
 #include <ADS/private/ads_utilities_inc.h>

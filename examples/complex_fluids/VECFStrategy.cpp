@@ -18,16 +18,14 @@ VECFStrategy::VECFStrategy(const std::string& object_name,
                            Pointer<INSStaggeredHierarchyIntegrator> ins_integrator,
                            Pointer<CellVariable<NDIM, double>> zb_var,
                            Pointer<AdvDiffHierarchyIntegrator> zb_integrator,
-                           const double C8,
-                           const double beta)
+                           const Parameters& params)
     : CFStrategy(object_name),
       d_object_name(object_name),
       d_zb_var(zb_var),
       d_zb_integrator(zb_integrator),
       d_EE_var(new CellVariable<NDIM, double>(d_object_name + "::E_var", NDIM * (NDIM + 1) / 2)),
       d_ins_integrator(ins_integrator),
-      d_C8(C8),
-      d_beta(beta)
+      d_params(params)
 {
     auto var_db = VariableDatabase<NDIM>::getDatabase();
     d_EE_idx = var_db->registerVariableAndContext(d_EE_var, var_db->getContext("CTX"), 0);
@@ -77,8 +75,9 @@ VECFStrategy::computeStress(int stress_idx,
             {
                 const CellIndex<NDIM>& idx = ci();
                 const double zb = (*bond_data)(idx);
-                (*stress_data)(idx, 0) = (*stress_data)(idx, 0) + d_C8 * zb;
-                (*stress_data)(idx, 1) = (*stress_data)(idx, 1) + d_C8 * zb;
+                for (int d = 0; d < NDIM; ++d) (*stress_data)(idx, d) = (*stress_data)(idx, d) + d_params.C8 * zb;
+                (*stress_data)(idx, 0) = (*stress_data)(idx, 0);
+                (*stress_data)(idx, 1) = (*stress_data)(idx, 1);
             }
         }
     }
@@ -142,13 +141,25 @@ VECFStrategy::computeRelaxation(const int R_idx,
             Pointer<CellData<NDIM, double>> zb_data = patch->getPatchData(zb_idx);
             Pointer<CellData<NDIM, double>> E_data = patch->getPatchData(d_EE_idx);
 
+            const double gamma = d_params.gamma;
+            const double R0 = d_params.R0;
+            const double C3 = d_params.C3;
+            const double lambda = d_params.lambda;
+            const double zb_crit_val = d_params.zb_crit_val;
+            const double C8 = d_params.C8;
+
             for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
             {
                 const CellIndex<NDIM>& idx = ci();
                 const double zb = (*zb_data)(idx);
-                (*R_data)(idx, 0) = d_C8 * zb * (*E_data)(idx, 0) - d_beta * ((*C_data)(idx, 0) + d_C8 * zb);
-                (*R_data)(idx, 1) = d_C8 * zb * (*E_data)(idx, 1) - d_beta * ((*C_data)(idx, 1) + d_C8 * zb);
-                (*R_data)(idx, 2) = d_C8 * zb * (*E_data)(idx, 2) - d_beta * ((*C_data)(idx, 2));
+                // Bond breaking.
+                double yavg = R0;
+                if (zb > zb_crit_val) yavg = std::sqrt(gamma * ((*C_data)(idx, 0) + (*C_data)(idx, 1)) / zb + R0 * R0);
+                const double beta = C3 * (yavg > R0 ? std::exp(lambda * (yavg - R0)) : 1.0);
+
+                (*R_data)(idx, 0) = 2.0 * C8 * zb * (*E_data)(idx, 0) - beta * ((*C_data)(idx, 0));
+                (*R_data)(idx, 1) = 2.0 * C8 * zb * (*E_data)(idx, 1) - beta * ((*C_data)(idx, 1));
+                (*R_data)(idx, 2) = 2.0 * C8 * zb * (*E_data)(idx, 2) - beta * ((*C_data)(idx, 2));
             }
         }
     }

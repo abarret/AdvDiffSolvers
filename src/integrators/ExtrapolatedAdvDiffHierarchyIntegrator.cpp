@@ -9,6 +9,7 @@
 #include "ibamr/ibamr_utilities.h"
 #include "ibamr/namespaces.h" // IWYU pragma: keep
 #include <ibamr/AdvDiffConvectiveOperatorManager.h>
+#include <ibamr/CFUpperConvectiveOperator.h>
 
 #include "ibtk/IBTK_MPI.h"
 #include <ibtk/LaplaceOperator.h>
@@ -85,8 +86,16 @@ ExtrapolatedAdvDiffHierarchyIntegrator::registerTransportedQuantity(Pointer<Cell
 {
     AdvDiffSemiImplicitHierarchyIntegrator::registerTransportedQuantity(Q_var, output_var);
     d_Q_reset_map[Q_var] = !std::isnan(reset_val);
+    pout << "Resetting Q_var " << Q_var->getName() << " = " << d_Q_reset_map[Q_var] << "\n";
     d_Q_reset_val_map[Q_var] = reset_val;
     d_Q_convective_op_input_db[Q_var]->putInteger("max_gcw_fill", d_num_cells_to_extrap);
+}
+
+void
+ExtrapolatedAdvDiffHierarchyIntegrator::registerTransportedQuantity(Pointer<CellVariable<NDIM, double>> Q_var,
+                                                                    const bool output_var)
+{
+    registerTransportedQuantity(Q_var, std::numeric_limits<double>::quiet_NaN(), output_var);
 }
 
 void
@@ -129,11 +138,14 @@ ExtrapolatedAdvDiffHierarchyIntegrator::restrictToLevelSet(Pointer<CellVariable<
 {
 #ifndef NDEBUG
     if (!ls_var) TBOX_ERROR(d_object_name + "::restrictToLevelSet(): Not a valid node centered variable!\n");
-    if (!Q_var) TBOX_ERROR(d_object_name + "::restrictToLevelSet(): Not a valid cell centered variable!\n");
+    if (!Q_var)
+        TBOX_ERROR(d_object_name + "::restrictToLevelSet(): " + Q_var->getName() +
+                   "Not a valid cell centered variable!\n");
     if (std::find(d_ls_vars.begin(), d_ls_vars.end(), ls_var) == d_ls_vars.end())
         TBOX_ERROR(d_object_name + "::restrictToLevelSet(): Level set not registered!\n");
     if (std::find(d_Q_var.begin(), d_Q_var.end(), Q_var) == d_Q_var.end())
-        TBOX_ERROR(d_object_name + "::restrictToLevelSet(): Advected variable not registered!\n");
+        TBOX_ERROR(d_object_name + "::restrictToLevelSet(): Advected variable " + Q_var->getName() +
+                   " not registered!\n");
 #endif
 
     d_ls_Q_map[ls_var].insert(Q_var);
@@ -162,7 +174,11 @@ ExtrapolatedAdvDiffHierarchyIntegrator::initializeHierarchyIntegrator(Pointer<Pa
         const int ls_idx = var_db->mapVariableAndContextToIndex(ls_Q_pair.first, getCurrentContext());
         for (const auto& Q_var : Q_set)
         {
+            // If our variable is a stress tensor advected with the CFUpperConvectiveOperator, then we need to grab the
+            // underlying convective operator.
             Pointer<ExtrapolatedConvectiveOperator> adv_op = getConvectiveOperator(Q_var);
+            Pointer<CFUpperConvectiveOperator> upper_conv_op = getConvectiveOperator(Q_var);
+            if (upper_conv_op) adv_op = upper_conv_op->getConvectiveOperator();
             if (!adv_op)
             {
                 std::ostringstream err_msg;

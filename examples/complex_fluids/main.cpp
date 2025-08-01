@@ -74,8 +74,12 @@ public:
               Pointer<CellVariable<NDIM, double>> zb_var,
               Pointer<HierarchyIntegrator> zb_integrator,
               std::vector<VarIntPair> proj_vec,
-              const double C8)
-        : d_cf_forcing(cf_forcing), d_zb_var(zb_var), d_zb_integrator(zb_integrator), d_proj_vec(proj_vec), d_C8(C8)
+              const ADS::Parameters& params)
+        : d_cf_forcing(cf_forcing),
+          d_zb_var(zb_var),
+          d_zb_integrator(zb_integrator),
+          d_proj_vec(proj_vec),
+          d_params(params)
     {
     }
 
@@ -92,6 +96,7 @@ public:
         auto var_db = VariableDatabase<NDIM>::getDatabase();
         const int stress_new_idx = var_db->mapVariableAndContextToIndex(cf_var, integrator->getNewContext());
         const int zb_new_idx = var_db->mapVariableAndContextToIndex(d_zb_var, d_zb_integrator->getNewContext());
+        const double C8 = d_params.C8;
 
         Pointer<PatchHierarchy<NDIM>> hierarchy = integrator->getPatchHierarchy();
         for (int ln = 0; ln <= hierarchy->getFinestLevelNumber(); ++ln)
@@ -108,8 +113,8 @@ public:
                     const CellIndex<NDIM>& idx = ci();
                     const double zb = (*zb_data)(idx);
                     MatrixNd sig;
-                    sig(0, 0) = (*stress_data)(idx, 0) + d_C8 * zb;
-                    sig(1, 1) = (*stress_data)(idx, 1) + d_C8 * zb;
+                    sig(0, 0) = (*stress_data)(idx, 0) + C8 * zb;
+                    sig(1, 1) = (*stress_data)(idx, 1) + C8 * zb;
                     sig(0, 1) = sig(1, 0) = (*stress_data)(idx, 2);
                     Eigen::SelfAdjointEigenSolver<MatrixNd> eigs;
                     eigs.computeDirect(sig);
@@ -123,8 +128,8 @@ public:
                         }
                         MatrixNd eig_vecs = eigs.eigenvectors();
                         sig = eig_vecs * eig_vals * eig_vecs.transpose();
-                        (*stress_data)(idx, 0) = sig(0, 0) - d_C8 * zb;
-                        (*stress_data)(idx, 1) = sig(1, 1) - d_C8 * zb;
+                        (*stress_data)(idx, 0) = sig(0, 0) - C8 * zb;
+                        (*stress_data)(idx, 1) = sig(1, 1) - C8 * zb;
                         (*stress_data)(idx, 2) = sig(0, 1);
                     }
 
@@ -175,7 +180,7 @@ private:
     Pointer<CellVariable<NDIM, double>> d_zb_var;
     Pointer<HierarchyIntegrator> d_zb_integrator;
     std::vector<VarIntPair> d_proj_vec;
-    double d_C8 = std::numeric_limits<double>::quiet_NaN();
+    const ADS::Parameters& d_params;
 };
 
 VectorNd
@@ -353,6 +358,86 @@ ls_bdry_fcn(const VectorNd&, const double)
     return -10.0;
 }
 
+namespace ADS
+{
+class BondSource : public CartGridFunction
+{
+public:
+    BondSource(std::string object_name,
+               Pointer<CellVariable<NDIM, double>> zb_var,
+               Pointer<CellVariable<NDIM, double>> phib_var,
+               Pointer<CellVariable<NDIM, double>> stress_var,
+               Pointer<HierarchyIntegrator> zb_integrator,
+               Pointer<HierarchyIntegrator> phib_integrator,
+               Pointer<HierarchyIntegrator> stress_integrator,
+               const Parameters& params)
+        : CartGridFunction(std::move(object_name)),
+          d_zb_integrator(zb_integrator),
+          d_phib_integrator(phib_integrator),
+          d_stress_integrator(stress_integrator),
+          d_zb_var(zb_var),
+          d_phib_var(phib_var),
+          d_stress_var(stress_var),
+          d_params(params)
+    {
+        // intentionally blank
+    } // BondSource
+
+    bool isTimeDependent() const override
+    {
+        return true;
+    }
+
+    void setDataOnPatch(const int data_idx,
+                        Pointer<hier::Variable<NDIM>> /*var*/,
+                        Pointer<Patch<NDIM>> patch,
+                        const double data_time,
+                        const bool initial_time,
+                        Pointer<PatchLevel<NDIM>> /*patch_level*/) override
+    {
+        Pointer<CellData<NDIM, double>> ret_data = patch->getPatchData(data_idx);
+        ret_data->fillAll(0.0);
+        if (initial_time) return;
+
+        Pointer<CellData<NDIM, double>> zb_data = patch->getPatchData(d_zb_var, d_zb_integrator->getCurrentContext());
+        Pointer<CellData<NDIM, double>> phib_data =
+            patch->getPatchData(d_phib_var, d_phib_integrator->getCurrentContext());
+        Pointer<CellData<NDIM, double>> stress_data =
+            patch->getPatchData(d_stress_var, d_stress_integrator->getCurrentContext());
+
+        const double gamma = d_params.gamma;
+        const double R0 = d_params.R0;
+        const double C3 = d_params.C3;
+        const double lambda = d_params.lambda;
+        const double zb_crit_val = d_params.zb_crit_val;
+        const double Kbb = d_params.Kbb;
+
+        for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
+        {
+            const CellIndex<NDIM>& idx = ci();
+            const double zb = (*zb_data)(idx);
+            const double phib = (*phib_data)(idx);
+
+            // Bond breaking.
+            double yavg = R0;
+            if (zb > zb_crit_val)
+                yavg = std::sqrt(gamma * ((*stress_data)(idx, 0) + (*stress_data)(idx, 1)) / zb + R0 * R0);
+            const double beta = C3 * (yavg > R0 ? std::exp(lambda * (yavg - R0)) : 1.0);
+
+            // Bond formation
+            double alpha = Kbb * (phib - 2.0 * zb) * (phib - 2.0 * zb);
+
+            (*ret_data)(idx) = alpha - beta * zb;
+        }
+    }
+
+private:
+    Pointer<HierarchyIntegrator> d_zb_integrator, d_phib_integrator, d_stress_integrator;
+    Pointer<CellVariable<NDIM, double>> d_zb_var, d_phib_var, d_stress_var;
+
+    const Parameters& d_params;
+}; // setDataOnPatch
+} // namespace ADS
 /*******************************************************************************
  * For each run, the input filename must be given on the command line.  In all *
  * cases, the command line is:                                                 *
@@ -391,9 +476,6 @@ main(int argc, char* argv[])
         Pointer<ExtrapolatedAdvDiffHierarchyIntegrator> adv_diff_EX_integrator =
             new ExtrapolatedAdvDiffHierarchyIntegrator(
                 "ExtrapolatedIntegrator", app_initializer->getComponentDatabase("AdvDiffIntegrator"), true);
-        Pointer<AdvDiffSemiImplicitHierarchyIntegrator> adv_diff_SI_integrator =
-            new AdvDiffSemiImplicitHierarchyIntegrator(
-                "SemiImplicitIntegrator", app_initializer->getComponentDatabase("AdvDiffIntegrator"), true);
         Pointer<PatchHierarchy<NDIM>> patch_hierarchy = new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
         Pointer<StandardTagAndInitialize<NDIM>> error_detector =
             new StandardTagAndInitialize<NDIM>("StandardTagAndInitialize",
@@ -409,7 +491,6 @@ main(int argc, char* argv[])
                                         box_generator,
                                         load_balancer);
         ins_integrator->registerAdvDiffHierarchyIntegrator(adv_diff_EX_integrator);
-        ins_integrator->registerAdvDiffHierarchyIntegrator(adv_diff_SI_integrator);
 
         // Configure the IB solver.
         Pointer<IBRedundantInitializer> ib_initializer = new IBRedundantInitializer(
@@ -443,7 +524,9 @@ main(int argc, char* argv[])
         ib_initializer->registerLSiloDataWriter(data_writer);
         ib_ops->registerLSiloDataWriter(data_writer);
         adv_diff_EX_integrator->registerVisItDataWriter(visit_data_writer);
-        adv_diff_SI_integrator->registerVisItDataWriter(visit_data_writer);
+
+        // Clot parameters
+        ADS::Parameters params(input_db->getDatabase("Parameters"));
 
         /*
          * Boundary Condition Objects
@@ -505,23 +588,31 @@ main(int argc, char* argv[])
         adv_diff_EX_integrator->setInitialConditions(zb_var, zb_init_fcn);
 
         // Stress
-        Pointer<CellVariable<NDIM, double>> stress_var =
-            new CellVariable<NDIM, double>("Stress", NDIM * (NDIM + 1) / 2);
-        Pointer<CFStrategy> cf_strategy = new VECFStrategy("CFStrategy",
-                                                           ins_integrator,
-                                                           zb_var,
-                                                           adv_diff_EX_integrator,
-                                                           input_db->getDouble("C8"),
-                                                           input_db->getDouble("BETA"));
+        Pointer<CFStrategy> cf_strategy =
+            new VECFStrategy("CFStrategy", ins_integrator, zb_var, adv_diff_EX_integrator, params);
         Pointer<INSHierarchyIntegrator> cf_ins_integrator = ins_integrator;
         Pointer<CFINSForcing> cf_forcing = new CFINSForcing("CFForcing",
                                                             input_db->getDatabase("CFForcing"),
                                                             cf_ins_integrator,
                                                             grid_geometry,
-                                                            adv_diff_SI_integrator,
+                                                            adv_diff_EX_integrator,
                                                             visit_data_writer);
+        Pointer<CellVariable<NDIM, double>> stress_var = cf_forcing->getVariable();
         cf_forcing->registerCFStrategy(cf_strategy);
         ins_integrator->registerBodyForceFunction(cf_forcing);
+
+        Pointer<CellVariable<NDIM, double>> zb_src_var = new CellVariable<NDIM, double>("zb_src");
+        Pointer<CartGridFunction> zb_src_fcn = new BondSource("BondSource",
+                                                              zb_var,
+                                                              phib_var,
+                                                              stress_var,
+                                                              adv_diff_EX_integrator,
+                                                              adv_diff_EX_integrator,
+                                                              adv_diff_EX_integrator,
+                                                              params);
+        adv_diff_EX_integrator->registerSourceTerm(zb_src_var);
+        adv_diff_EX_integrator->setSourceTermFunction(zb_src_var, zb_src_fcn);
+        adv_diff_EX_integrator->setSourceTerm(zb_var, zb_src_var);
 
         // Setup velocity and pressure initial conditions.
         Pointer<CartGridFunction> u_fcn =
@@ -533,13 +624,13 @@ main(int argc, char* argv[])
 
         std::vector<VarIntPair> proj_vec{ std::make_pair(zb_var, adv_diff_EX_integrator),
                                           std::make_pair(phib_var, adv_diff_EX_integrator) };
-        Projector projector(cf_forcing, zb_var, adv_diff_EX_integrator, proj_vec, input_db->getDouble("C8"));
+        Projector projector(cf_forcing, zb_var, adv_diff_EX_integrator, proj_vec, params);
         auto reset_fcn = [](double current_time, double new_time, int cycle_num, void* ctx) -> void
         {
             auto projection = static_cast<Projector*>(ctx);
             projection->project();
         };
-        adv_diff_SI_integrator->registerIntegrateHierarchyCallback(reset_fcn, static_cast<void*>(&projector));
+        adv_diff_EX_integrator->registerIntegrateHierarchyCallback(reset_fcn, static_cast<void*>(&projector));
 
         /***********************************
          * Level set for immersed boundary *
@@ -607,6 +698,7 @@ main(int argc, char* argv[])
          ****************************************/
         adv_diff_EX_integrator->restrictToLevelSet(phib_var, ls_var);
         adv_diff_EX_integrator->restrictToLevelSet(zb_var, ls_var);
+        adv_diff_EX_integrator->restrictToLevelSet(stress_var, ls_var);
 
         // Initialize all data
         mesh_mapping->initializeFEData();
