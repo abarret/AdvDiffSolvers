@@ -94,12 +94,6 @@ InternalBdryFill::InternalBdryFill(std::string object_name, Pointer<Database> in
     d_sc_idx = var_db->registerVariableAndContext(d_sc_var, var_db->getContext(d_object_name + "::CTX"));
 }
 
-InternalBdryFill::~InternalBdryFill()
-{
-    auto var_db = VariableDatabase<NDIM>::getDatabase();
-    var_db->removePatchDataIndex(d_sc_idx);
-}
-
 void
 InternalBdryFill::advectInNormal(const std::vector<Parameters>& Q_params,
                                  const int phi_idx,

@@ -42,7 +42,7 @@ public:
     /*!
      * Destructor removes scratch patch indices from the VariableDatabase.
      */
-    ~InternalBdryFill();
+    ~InternalBdryFill() = default;
 
     /*!
      * Helper struct that contains data required for advectInNormal to work correctly.
