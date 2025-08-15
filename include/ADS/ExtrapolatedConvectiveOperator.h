@@ -35,7 +35,7 @@ public:
     /*!
      * \brief Default destructor.
      */
-    virtual ~ExtrapolatedConvectiveOperator() = default;
+    virtual ~ExtrapolatedConvectiveOperator();
 
     static SAMRAI::tbox::Pointer<IBAMR::ConvectiveOperator>
     allocate_operator(const std::string& object_name,
