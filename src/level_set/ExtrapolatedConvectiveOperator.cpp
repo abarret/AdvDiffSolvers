@@ -21,10 +21,17 @@ ExtrapolatedConvectiveOperator::ExtrapolatedConvectiveOperator(std::string objec
     return;
 } // ExtrapolatedConvectiveOperator
 
+ExtrapolatedConvectiveOperator::~ExtrapolatedConvectiveOperator()
+{
+    deallocateOperatorState();
+}
+
 void
 ExtrapolatedConvectiveOperator::initializeOperatorState(const SAMRAIVectorReal<NDIM, double>& x,
                                                         const SAMRAIVectorReal<NDIM, double>& y)
 {
+    if (d_is_initialized) deallocateOperatorState();
+    ConvectiveOperator::initializeOperatorState(x, y);
     Pointer<PatchHierarchy<NDIM>> hierarchy = x.getPatchHierarchy();
     d_hierarchy = hierarchy;
 #ifndef NDEBUG
@@ -64,25 +71,28 @@ ExtrapolatedConvectiveOperator::setLSData(const int ls_idx, Pointer<NodeVariable
 void
 ExtrapolatedConvectiveOperator::deallocateOperatorState()
 {
+    if (!d_is_initialized) return;
     d_Q_pos_vec->deallocateVectorData();
     d_Q_pos_vec->freeVectorComponents();
-    d_Q_pos_vec = nullptr;
+    d_Q_pos_vec.setNull();
 
     d_Q_neg_vec->deallocateVectorData();
     d_Q_neg_vec->freeVectorComponents();
-    d_Q_neg_vec = nullptr;
+    d_Q_neg_vec.setNull();
 
     d_N_pos_vec->deallocateVectorData();
     d_N_pos_vec->freeVectorComponents();
-    d_N_pos_vec = nullptr;
+    d_N_pos_vec.setNull();
 
     d_N_neg_vec->deallocateVectorData();
     d_N_neg_vec->freeVectorComponents();
-    d_N_neg_vec = nullptr;
+    d_N_neg_vec.setNull();
 
     d_internal_fill.reset(nullptr);
 
     d_convec_op->deallocateOperatorState();
+
+    ConvectiveOperator::deallocateOperatorState();
 }
 
 void
