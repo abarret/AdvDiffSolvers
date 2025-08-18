@@ -142,14 +142,19 @@ ExtrapolatedConvectiveOperator::apply(SAMRAIVectorReal<NDIM, double>& x, SAMRAIV
                     patch->getPatchData(d_N_neg_vec->getComponentDescriptorIndex(comp));
                 Pointer<CellData<NDIM, double>> N_data = patch->getPatchData(y.getComponentDescriptorIndex(comp));
 
+                const int depth = N_data->getDepth();
                 for (CellIterator<NDIM> ci(patch->getBox()); ci; ci++)
                 {
                     const CellIndex<NDIM>& idx = ci();
                     const double ls = ADS::node_to_cell(idx, *phi_data);
                     if (ls > 0.0)
-                        (*N_data)(idx) = (*N_pos_data)(idx);
+                    {
+                        for (int d = 0; d < depth; ++d) (*N_data)(idx, d) = (*N_pos_data)(idx, d);
+                    }
                     else
-                        (*N_data)(idx) = (*N_neg_data)(idx);
+                    {
+                        for (int d = 0; d < depth; ++d) (*N_data)(idx, d) = (*N_neg_data)(idx, d);
+                    }
                 }
             }
         }
