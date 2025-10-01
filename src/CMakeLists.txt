@@ -31,6 +31,7 @@ SET(CXX_SRC
     
     cut_cell/CutCellMeshMapping.cpp
 
+    integrators/AdvDiffImplicitIntegrator.cpp
     integrators/ExtrapolatedAdvDiffHierarchyIntegrator.cpp
     integrators/LSAdvDiffIntegrator.cpp
     integrators/SBAdvDiffIntegrator.cpp
