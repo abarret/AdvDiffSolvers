@@ -18,7 +18,7 @@ ADD_CUSTOM_TARGET(tests)
 #    only compiles the IBFE tests.
 # 2. all input and output files in these source directories are symlinked into
 #    their corresponding build directories.
-SET(TEST_DIRECTORIES adv_ops examples operators level_set reconstructions surfaces utilities)
+SET(TEST_DIRECTORIES adv_ops examples integrators operators level_set reconstructions surfaces utilities)
 
 FOREACH(_dir ${TEST_DIRECTORIES})
   ADD_CUSTOM_TARGET("tests-${_dir}")
@@ -112,6 +112,8 @@ SETUP_2D(surfaces surface_jacobian.cpp)
 SETUP_2D(utilities pointwise_function.cpp)
 
 SETUP_3D(utilities pointwise_function.cpp)
+
+SETUP_2D(integrators implicit_integrator.cpp)
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
