@@ -311,7 +311,7 @@ SBSurfaceFluidCouplingManager::interpolateToBoundary(Pointer<CellVariable<NDIM, 
             bool inside_patch = true;
             for (unsigned int d = 0; d < NDIM; ++d)
             {
-                IBTK::get_nodal_dof_indices(X_dof_map, n, d, X_idxs);
+                X_dof_map.dof_indices(n, X_idxs, d);
                 X[d] = X_local_soln[X_petsc_vec->map_global_to_local_index(X_idxs[0])];
                 inside_patch = inside_patch && (X[d] >= patch_x_low[d]) &&
                                ((X[d] < patch_x_up[d]) || (touches_upper_regular_bdry[d] && X[d] <= patch_x_up[d]));
@@ -322,7 +322,7 @@ SBSurfaceFluidCouplingManager::interpolateToBoundary(Pointer<CellVariable<NDIM, 
                 X_node.insert(X_node.end(), &X[0], &X[0] + NDIM);
                 for (unsigned int i = 0; i < n_vars; ++i)
                 {
-                    IBTK::get_nodal_dof_indices(fl_dof_map, n, i, fl_idxs);
+                    fl_dof_map.dof_indices(n, fl_idxs, i);
                     fl_node_idxs.insert(fl_node_idxs.end(), fl_idxs.begin(), fl_idxs.end());
                 }
             }
@@ -343,7 +343,6 @@ SBSurfaceFluidCouplingManager::interpolateToBoundary(Pointer<CellVariable<NDIM, 
             // Use a MLS linear approximation to evaluate data on structure
             const CellIndex<NDIM> cell_idx =
                 IBTK::IndexUtilities::getCellIndex(&X_node[NDIM * i], pgeom, patch->getBox());
-            const CellIndex<NDIM>& idx_low = patch->getBox().lower();
             VectorNd x_loc = {
                 X_node[NDIM * i],
                 X_node[NDIM * i + 1]
