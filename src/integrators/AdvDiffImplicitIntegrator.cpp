@@ -134,7 +134,7 @@ AdvDiffImplicitIntegrator::initializeHierarchyIntegrator(Pointer<PatchHierarchy<
     // Do some error checking.
     for (const auto& Q_var : d_Q_implicit_vars)
     {
-        if (d_Q_F_map.count(Q_var) > 0)
+        if (d_Q_F_map.count(Q_var) > 0 && d_Q_F_map.at(Q_var))
         {
             TBOX_WARNING("Variable " << Q_var->getName()
                                      << " had a source variable associated with it but is listed as an implicit "

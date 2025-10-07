@@ -108,16 +108,16 @@ SBIntegrator::integrateHierarchy(Pointer<VariableContext> ctx, const double curr
                     std::vector<double> sf_base_cur_vals, sf_base_new_vals;
                     for (unsigned int l = 0; l < sf_names.size(); ++l)
                     {
-                        IBTK::get_nodal_dof_indices(*sf_dof_maps[l], node, 0, sf_dofs);
+                        sf_dof_maps[l]->dof_indices(node, sf_dofs, 0);
                         sf_cur_vals.push_back((*sf_cur_vecs[l])(sf_dofs[0]));
                         sf_old_vals.push_back((*sf_old_vecs[l])(sf_dofs[0]));
                     }
                     for (unsigned int l = 0; l < fl_names.size(); ++l)
                     {
-                        IBTK::get_nodal_dof_indices(*fl_dof_maps[l], node, 0, fl_dofs);
+                        fl_dof_maps[l]->dof_indices(node, fl_dofs, 0);
                         fl_vals.push_back((*fl_vecs[l])(fl_dofs[0]));
                     }
-                    IBTK::get_nodal_dof_indices(sf_base_dof_map, node, 0, sf_base_dofs);
+                    sf_base_dof_map.dof_indices(node, sf_base_dofs, 0);
                     double sf_cur_val = (*sf_base_cur_vec)(sf_base_dofs[0]);
                     sf_cur_val +=
                         dt * rcn_fcn_ctx.first(sf_cur_val, fl_vals, sf_cur_vals, current_time, rcn_fcn_ctx.second);

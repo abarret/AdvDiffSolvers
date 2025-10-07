@@ -32,7 +32,6 @@ main(int argc, char* argv[])
 {
     // Initialize PETSc, MPI, and SAMRAI.
     IBTKInit ibtk_init(argc, argv, MPI_COMM_WORLD);
-    const LibMeshInit& init = ibtk_init.getLibMeshInit();
 
     // Suppress a warning
     SAMRAI::tbox::Logger::getInstance()->setWarning(false);

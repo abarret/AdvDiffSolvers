@@ -207,7 +207,6 @@ main(int argc, char* argv[])
         const int timer_dump_interval = app_initializer->getTimerDumpInterval();
 
         const bool dump_postproc_data = app_initializer->dumpPostProcessingData();
-        const int dump_postproc_interval = app_initializer->getPostProcessingDataDumpInterval();
         const std::string postproc_data_dump_dirname = app_initializer->getPostProcessingDataDumpDirectory();
         if (dump_postproc_data && !postproc_data_dump_dirname.empty())
         {

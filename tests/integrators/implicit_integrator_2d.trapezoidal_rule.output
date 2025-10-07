@@ -1,11 +1,3 @@
-Warning in file ``/home/abarret/work/ADS/AdvDiffSolvers/src/integrators/AdvDiffImplicitIntegrator.cpp'' at line 138
-WARNING MESSAGE: 
-Variable Z had a source variable associated with it but is listed as an implicit variable. Removing the source variable!
-
-Warning in file ``/home/abarret/work/ADS/AdvDiffSolvers/src/integrators/AdvDiffImplicitIntegrator.cpp'' at line 138
-WARNING MESSAGE: 
-Variable g had a source variable associated with it but is listed as an implicit variable. Removing the source variable!
-
 AdvDiffIntegrator::initializePatchHierarchy(): tag_buffer = 0
 input_db {
    RHO                         = 1                          // input not used

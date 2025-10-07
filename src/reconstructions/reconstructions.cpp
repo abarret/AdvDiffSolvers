@@ -203,8 +203,6 @@ least_squares_reconstruction(IBTK::VectorNd x_loc,
     TBOX_ASSERT(vol_data.getGhostBox().contains(box));
 #endif
 
-    const CellIndex<NDIM>& idx_low = patch->getBox().lower();
-
     std::vector<double> Q_vals;
     std::vector<VectorNd> X_vals;
 

@@ -89,11 +89,9 @@ collectActivePatchElements(std::vector<std::vector<libMesh::Elem*>>& active_patc
     // be a bit paranoid by computing bounding boxes for elements as the union
     // of the bounding box of the nodes and the bounding box of the quadrature
     // points:
-    const std::vector<IBTK::libMeshWrappers::BoundingBox> local_bboxes =
-        IBTK::get_local_element_bounding_boxes(mesh, X_system);
+    const std::vector<libMesh::BoundingBox> local_bboxes = IBTK::get_local_element_bounding_boxes(mesh, X_system);
 
-    const std::vector<IBTK::libMeshWrappers::BoundingBox> global_bboxes =
-        IBTK::get_global_element_bounding_boxes(mesh, local_bboxes);
+    const std::vector<libMesh::BoundingBox> global_bboxes = IBTK::get_global_element_bounding_boxes(mesh, local_bboxes);
 
     int local_patch_num = 0;
     for (SAMRAI::hier::PatchLevel<NDIM>::Iterator p(level); p; p++, ++local_patch_num)
@@ -103,7 +101,7 @@ collectActivePatchElements(std::vector<std::vector<libMesh::Elem*>>& active_patc
         const SAMRAI::tbox::Pointer<SAMRAI::geom::CartesianPatchGeometry<NDIM>> pgeom = patch->getPatchGeometry();
         const double* const dx = pgeom->getDx();
         // TODO: reimplement this with an rtree description of SAMRAI's patches
-        IBTK::libMeshWrappers::BoundingBox patch_bbox;
+        libMesh::BoundingBox patch_bbox;
         for (unsigned int d = 0; d < NDIM; ++d)
         {
             patch_bbox.first(d) = pgeom->getXLower()[d] - dx[d] * ghost_width[d];
@@ -116,7 +114,7 @@ collectActivePatchElements(std::vector<std::vector<libMesh::Elem*>>& active_patc
         }
 
         auto el_it = mesh.active_elements_begin();
-        for (const IBTK::libMeshWrappers::BoundingBox& bbox : global_bboxes)
+        for (const libMesh::BoundingBox& bbox : global_bboxes)
         {
 #if LIBMESH_VERSION_LESS_THAN(1, 2, 0)
             if (bbox.intersect(patch_bbox)) elems.insert(*el_it);

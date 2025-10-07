@@ -382,7 +382,7 @@ FEToHierarchyMapping::reinitElementMappings(const IntVector<NDIM>& ghost_width)
                     bool inside_patch = true;
                     for (unsigned int d = 0; d < NDIM; ++d)
                     {
-                        IBTK::get_nodal_dof_indices(X_dof_map, n, d, X_idxs);
+                        X_dof_map.dof_indices(n, X_idxs, d);
                         X[d] = X_local_soln[X_petsc_vec->map_global_to_local_index(X_idxs[0])];
                         // Due to how SAMRAI computes patch boundaries, even if the
                         // patch's domain is [0, 1]^2 the patches on the boundary

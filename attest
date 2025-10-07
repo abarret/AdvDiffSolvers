@@ -307,7 +307,7 @@ class Test:
                     #   - [space][tab][newline]=,:;<>[](){}^ as separators
                     #     between numbers
                     numdiff_flags = ["-r", "1e-6", "-a", "1e-10", "-s",
-                                     "' \\t\\n=,:;<>[](){}^'"]
+                                     "' \\t\\n=,:;<>[](){}^'!"]
                     diff_result = subprocess.run(
                         [self._parameters.numdiff] + numdiff_flags +
                         [self.output_file, temporary_directory + os.sep
