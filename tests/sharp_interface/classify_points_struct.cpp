@@ -313,7 +313,6 @@ main(int argc, char* argv[])
             R = input_db->getDouble("R");
             r = std::log2(0.25 * 2.0 * M_PI * R / ds);
             meshes.push_back(std::move(build_sphere(ibtk_init)));
-            // meshes.push_back(std::move(build_element(ibtk_init)));
         }
 
         for (const auto& mesh : meshes) mesh_ptrs.push_back(mesh.get());

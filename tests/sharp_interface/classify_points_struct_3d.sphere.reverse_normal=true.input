@@ -6,15 +6,16 @@ NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N  // finest   grid spacing
 DX = 3.0/NFINEST
 INTERFACE_TYPE = "SPHERE"
 R = 1.0
-MFAC = 1.5
+MFAC = 0.5
 ELEM_TYPE = "TET4"
+REVERSE_NORMAL = TRUE
 
 MeshMapping {
   max_level = MAX_LEVELS
 }
 
 IndexElemMapping {
-  perturb_nodes = FALSE
+  perturb_nodes = TRUE
 }
 
 Main {
