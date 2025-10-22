@@ -64,6 +64,28 @@ project_onto_element(libMesh::Point& n, libMesh::Point& P, const Elem* elem, con
         return t;
     }
     break;
+    case libMesh::TRI3:
+    {
+        // Compute barycentric coordinates for the projection of the point onto the triangle's plane
+        libMesh::VectorValue<double> u = elem->point(1) - elem->point(0);
+        libMesh::VectorValue<double> v = elem->point(2) - elem->point(0);
+        n = u.cross(v);
+        libMesh::VectorValue<double> w = X - elem->point(0);
+        // Barycentric coordinates
+        double gamma = (u.cross(w)).contract(n) / n.norm_sq();
+        double beta = (w.cross(v)).contract(n) / n.norm_sq();
+        double alpha = 1.0 - gamma - beta;
+
+        // Projected point
+        P = alpha * elem->point(0) + beta * elem->point(1) + gamma * elem->point(2);
+
+        // The projected point is *interior* to the triangle if
+        if ((0 <= alpha && alpha <= 1.0) && (0 <= beta && beta <= 1.0) && (0 <= gamma && gamma <= 1.0))
+        {
+            n = P - X;
+            return;
+        }
+    }
     default:
         TBOX_ERROR("Unsupported element type\n");
     }
