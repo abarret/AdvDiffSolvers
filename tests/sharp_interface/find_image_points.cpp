@@ -40,6 +40,7 @@ enum class InterfaceType
     PERISTALSIS,
     CHANNEL,
     SPHERE,
+    ELEMENT,
     UNKNOWN
 };
 
@@ -60,6 +61,9 @@ enum_to_string(InterfaceType e)
     case InterfaceType::SPHERE:
         return "SPHERE";
         break;
+    case InterfaceType::ELEMENT:
+        return "ELEMENT";
+        break;
     default:
         return "UNKNOWN";
         break;
@@ -73,6 +77,7 @@ string_to_enum(const std::string& str)
     if (strcasecmp(str.c_str(), "PERISTALSIS") == 0) return InterfaceType::PERISTALSIS;
     if (strcasecmp(str.c_str(), "CHANNEL") == 0) return InterfaceType::CHANNEL;
     if (strcasecmp(str.c_str(), "SPHERE") == 0) return InterfaceType::SPHERE;
+    if (strcasecmp(str.c_str(), "ELEMENT") == 0) return InterfaceType::ELEMENT;
     return InterfaceType::UNKNOWN;
 }
 
@@ -151,6 +156,56 @@ build_channel(IBTKInit& init, std::vector<std::unique_ptr<Mesh>>& meshes)
 
     meshes.push_back(std::make_unique<Mesh>(lower_mesh));
     meshes.push_back(std::make_unique<Mesh>(upper_mesh));
+}
+
+std::unique_ptr<Mesh>
+build_sphere(IBTKInit& init)
+{
+    Mesh solid_mesh(init.getLibMeshInit().comm(), NDIM);
+    MeshTools::Generation::build_sphere(solid_mesh, R, r, Utility::string_to_enum<ElemType>(elem_type));
+    for (MeshBase::element_iterator it = solid_mesh.elements_begin(); it != solid_mesh.elements_end(); ++it)
+    {
+        Elem* const elem = *it;
+        for (unsigned int side = 0; side < elem->n_sides(); ++side)
+        {
+            const bool at_mesh_bdry = !elem->neighbor_ptr(side);
+            if (!at_mesh_bdry) continue;
+            for (unsigned int k = 0; k < elem->n_nodes(); ++k)
+            {
+                if (!elem->is_node_on_side(k, side)) continue;
+                Node& n = *elem->node_ptr(k);
+                n = R * n.unit();
+            }
+        }
+    }
+
+    MeshTools::Modification::translate(solid_mesh, cent(0), cent(1), cent(2));
+
+    solid_mesh.prepare_for_use();
+    BoundaryMesh bdry_mesh(solid_mesh.comm(), solid_mesh.mesh_dimension() - 1);
+    solid_mesh.boundary_info->sync(bdry_mesh);
+    bdry_mesh.set_spatial_dimension(NDIM);
+    bdry_mesh.prepare_for_use();
+    return std::make_unique<Mesh>(bdry_mesh);
+}
+
+std::unique_ptr<Mesh>
+build_element(IBTKInit& init)
+{
+    auto mesh = std::make_unique<libMesh::Mesh>(init.getLibMeshInit().comm(), NDIM - 1);
+    mesh->reserve_nodes(3);
+    mesh->reserve_elem(1);
+    unsigned int node_id = 0;
+    mesh->add_point(libMesh::Point(-1.2, 1.6, 0.3), node_id++, 0);
+    mesh->add_point(libMesh::Point(0.45, -1.1, -0.4), node_id++, 0);
+    mesh->add_point(libMesh::Point(1.7, 1.1, -1.2), node_id++, 0);
+    Elem* elem = mesh->add_elem(Elem::build_with_id(libMesh::TRI3, 0));
+    elem->set_node(0) = mesh->node_ptr(0);
+    elem->set_node(1) = mesh->node_ptr(1);
+    elem->set_node(2) = mesh->node_ptr(2);
+    mesh->prepare_for_use(false);
+    mesh->print_info(pout);
+    return mesh;
 }
 
 /*******************************************************************************
@@ -258,6 +313,16 @@ main(int argc, char* argv[])
             y_up = input_db->getDouble("Y_UP");
             build_channel(ibtk_init, meshes);
         }
+        else if (interface == InterfaceType::SPHERE)
+        {
+            R = input_db->getDouble("R");
+            r = std::log2(0.25 * 2.0 * M_PI * R / ds);
+            meshes.push_back(std::move(build_sphere(ibtk_init)));
+        }
+        else if (interface == InterfaceType::ELEMENT)
+        {
+            meshes.push_back(std::move(build_element(ibtk_init)));
+        }
 
         for (const auto& mesh : meshes) mesh_ptrs.push_back(mesh.get());
         auto mesh_mapping = std::make_shared<GeneralBoundaryMeshMapping>(
@@ -282,7 +347,7 @@ main(int argc, char* argv[])
             new IndexElemMapping("idx_elem_mapping", input_db->getDatabase("IndexElemMapping"));
 
 // Uncomment to draw data.
-// #define DRAW_DATA 1
+#define DRAW_DATA 1
 #ifdef DRAW_DATA
         std::vector<std::unique_ptr<ExodusII_IO>> struct_writers;
         for (int part = 0; part < mesh_mapping->getNumParts(); ++part)

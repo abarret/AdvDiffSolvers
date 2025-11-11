@@ -40,30 +40,92 @@ point_to_vec(const libMesh::Point& pt)
 }
 
 double
+project_onto_line(libMesh::Point& n,
+                  libMesh::Point& P,
+                  const libMesh::Point& X,
+                  const std::pair<libMesh::Point, libMesh::Point>& line_pts)
+{
+    // Project X onto the line given by elem: p(t) = elem(0) + t * (elem(1) - elem(0)).
+    // Closest point to element is:
+    //      {elem(0) if t < 0
+    //  P = {p(t)    if 0 <= t <= 1
+    //      {elem(1) if t > 1
+    // vector n is given by n = P - X. This is the normal vector if 0 <= t <= 1.
+    const libMesh::Point& p0 = line_pts.first;
+    const libMesh::Point& p1 = line_pts.second;
+    const double t = (X - p0) * (p1 - p0) / (p1 - p0).norm_sq();
+    if (t < 0)
+        P = p0;
+    else if (t > 1)
+        P = p1;
+    else
+        P = p0 + t * (p1 - p0);
+    n = P - X;
+    return t;
+}
+
+double
 project_onto_element(libMesh::Point& n, libMesh::Point& P, const Elem* elem, const libMesh::Point& X)
 {
     switch (elem->type())
     {
     case libMesh::EDGE2:
     {
-        // Project X onto the line given by elem: p(t) = elem(0) + t * (elem(1) - elem(0)).
-        // Closest point to element is:
-        //      {elem(0) if t < 0
-        //  P = {p(t)    if 0 <= t <= 1
-        //      {elem(1) if t > 1
-        // vector n is given by n = P - X. This is the normal vector if 0 <= t <= 1.
-        const double t =
-            (X - elem->point(0)) * (elem->point(1) - elem->point(0)) / (elem->point(1) - elem->point(0)).norm_sq();
-        if (t < 0)
-            P = elem->point(0);
-        else if (t > 1)
-            P = elem->point(1);
-        else
-            P = elem->point(0) + t * (elem->point(1) - elem->point(0));
-        n = P - X;
+        libMesh::Point e0 = elem->point(0), e1 = elem->point(1);
+        const double t = project_onto_line(n, P, X, std::make_pair(e0, e1));
         return t;
     }
     break;
+    case libMesh::TRI3:
+    {
+        const double t = -1.0;
+        // Compute barycentric coordinates for the projection of the point onto the triangle's plane
+        libMesh::VectorValue<double> u = elem->point(1) - elem->point(0);
+        libMesh::VectorValue<double> v = elem->point(2) - elem->point(0);
+        n = u.cross(v);
+        libMesh::VectorValue<double> w = X - elem->point(0);
+        // Barycentric coordinates
+        double gamma = (u.cross(w)).contract(n) / n.norm_sq();
+        double beta = (w.cross(v)).contract(n) / n.norm_sq();
+        double alpha = 1.0 - gamma - beta;
+
+        // Projected point
+        P = alpha * elem->point(0) + beta * elem->point(1) + gamma * elem->point(2);
+
+        // The projected point is *interior* to the triangle if
+        if ((0 <= alpha && alpha <= 1.0) && (0 <= beta && beta <= 1.0) && (0 <= gamma && gamma <= 1.0))
+        {
+            n = P - X;
+            pout << "n = " << n << "\n";
+            pout << "P = " << P << "\n";
+            return t;
+        }
+        else
+        {
+            // If it's not interior, then project the projected point onto each edge. The closest point is the one with
+            // the smallest distance to the original point
+            libMesh::Point p0, p1, p2;
+            libMesh::Point n0, n1, n2;
+            project_onto_line(n0, p0, X, std::make_pair(elem->point(0), elem->point(1)));
+            project_onto_line(n1, p1, X, std::make_pair(elem->point(0), elem->point(2)));
+            project_onto_line(n2, p2, X, std::make_pair(elem->point(1), elem->point(2)));
+            double min = (X - p0).norm();
+            P = p0;
+            n = n0;
+            if ((X - p1).norm() < min)
+            {
+                min = (X - p1).norm();
+                P = p1;
+                n = n1;
+            }
+            if ((X - p2).norm() < min)
+            {
+                P = p2;
+                n = n2;
+            }
+        }
+        return t;
+    }
     default:
         TBOX_ERROR("Unsupported element type\n");
     }

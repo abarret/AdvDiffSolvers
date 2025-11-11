@@ -237,6 +237,14 @@ void apply_laplacian_on_patch(SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>> p
                               SAMRAI::pdat::CellData<NDIM, double>& Q_data,
                               SAMRAI::pdat::CellData<NDIM, double>& R_data,
                               SAMRAI::pdat::CellData<NDIM, int>& i_data);
+/*!
+ * Projects the point X to the closest point located on the element elem. The projected point is stored in P and n is
+ * the vector between X and P, n = P - X.
+ *
+ * If the element is of type Edge2, the returned value is the linear distance away from the element. This value is not
+ * valid for other elements.
+ */
+double project_onto_element(libMesh::Point& n, libMesh::Point& P, const libMesh::Elem* elem, const libMesh::Point& X);
 } // namespace sharp_interface
 } // namespace ADS
 #endif
