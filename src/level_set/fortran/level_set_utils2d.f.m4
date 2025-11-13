@@ -24,7 +24,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         integer v((ilow0-v_gcw):(iup0+v_gcw+1),
      &            (ilow1-v_gcw):(iup1+v_gcw+1))
 
-        double precision dx(0:1), skip_val
+        double precision dx(0:1)
 
 c       LOCAL VALUES
         integer i0, i1
@@ -79,11 +79,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         double precision dx(0:1)
 
         integer i0, i1
-
-c       LOCAL VALUES
-        double precision a,b,sgn
-        double precision Q,R,S
-        double precision dbar
 
 c       If this value is fixed, return without modifying
         if (v(i0,i1) .eq. 1 .or. v(i0,i1) .eq. 2) then
