@@ -39,6 +39,14 @@ point_to_vec(const libMesh::Point& pt)
     return vec;
 }
 
+Vector3d
+point_to_vec_3d(const libMesh::Point& pt)
+{
+    Vector3d vec;
+    for (int d = 0; d < NDIM; ++d) vec[d] = pt(d);
+    return vec;
+}
+
 double
 project_onto_line(libMesh::Point& n,
                   libMesh::Point& P,
@@ -96,8 +104,6 @@ project_onto_element(libMesh::Point& n, libMesh::Point& P, const Elem* elem, con
         if ((0 <= alpha && alpha <= 1.0) && (0 <= beta && beta <= 1.0) && (0 <= gamma && gamma <= 1.0))
         {
             n = P - X;
-            pout << "n = " << n << "\n";
-            pout << "P = " << P << "\n";
             return t;
         }
         else
@@ -224,7 +230,8 @@ classify_points_struct(const int i_idx,
                     for (const auto& elem_data : elem_data_vec)
                     {
                         // TODO: Works for 2d. For 3d, we need a consistent way to traverse nodes to get 2 "consistently
-                        // pointing" tangential vectors.
+                        // pointing" tangential vectors. The "best" solution here is to read the normals from a system
+                        // in the equation system for the mesh.
 #if (NDIM == 2)
                         // Note we use the parent element to calculate normals to preserve directions.
                         Vector3d v, w;
@@ -269,55 +276,38 @@ classify_points_struct(const int i_idx,
                     // Project this point onto each element. Find the minimum distance
                     Vector3d P = Vector3d::Zero();
                     for (int d = 0; d < NDIM; ++d) P(d) = static_cast<double>(idx(d) - idx_low(d)) + 0.5;
+                    libMesh::Point X;
+                    for (int d = 0; d < NDIM; ++d)
+                        X(d) = xlow[d] + dx[d] * (static_cast<double>(idx(d) - idx_low(d)) + 0.5);
                     Vector3d avg_proj = Vector3d::Zero(), avg_unit_normal = Vector3d::Zero();
                     double min_dist = std::numeric_limits<double>::max();
                     int num_min = 0;
                     for (unsigned int i = 0; i < elem_normals.size(); ++i)
                     {
-                        const std::vector<libMesh::Point>& elem_pts = elem_data_vec[i].elem_pts;
-#if NDIM == 2
-#ifndef NDEBUG
-                        TBOX_ASSERT(elem_pts.size() == 2);
-#endif
                         const Vector3d& n = elem_normals[i];
-                        Vector3d v, w;
-                        // Put these points in "index space"
-                        v << (elem_pts[0](0) - xlow[0]) / dx[0], (elem_pts[0](1) - xlow[1]) / dx[1], 0.0;
-                        w << (elem_pts[1](0) - xlow[0]) / dx[0], (elem_pts[1](1) - xlow[1]) / dx[1], 0.0;
-                        double t = (P - v).dot(w - v) / (v - w).squaredNorm();
-                        t = std::max(0.0, std::min(1.0, t));
-                        const Vector3d proj = v + t * (w - v);
-#endif
-#if NDIM == 3
-#ifndef NDEBUG
-                        TBOX_ASSERT(elem_pts.size() == 3);
-#endif
-                        const Vector3d& n = elem_normals[i];
-                        // Grab one point on the element
-                        Vector3d pt;
-                        pt << (elem_pts[0](0) - xlow[0]) / dx[0], (elem_pts[0](1) - xlow[1]) / dx[1],
-                            (elem_pts[0](2) - xlow[2]) / dx[2];
-                        const Vector3d proj = P - (n.dot(P - pt)) * n;
-#endif
-                        const double dist = (proj - P).norm();
-                        if (dist < min_dist)
+                        libMesh::Point p, n_2;
+                        // Project the point onto the element to find the closest distance.
+                        project_onto_element(n_2, p, elem_data_vec[i].elem, X);
+                        const double dist = (p - X).norm();
+                        // If we have multiple elements closest to the point, use an average normal.
+                        if (IBTK::rel_equal_eps(dist, min_dist))
                         {
-                            min_dist = dist;
-                            avg_proj = proj;
-                            avg_unit_normal = n;
-                            num_min = 1;
-                        }
-                        else if (IBTK::rel_equal_eps(dist, min_dist))
-                        {
-                            avg_proj += proj;
+                            avg_proj += point_to_vec_3d(p);
                             avg_unit_normal += n;
                             ++num_min;
+                        }
+                        else if (dist < min_dist)
+                        {
+                            min_dist = dist;
+                            avg_proj = point_to_vec_3d(p);
+                            avg_unit_normal = n;
+                            num_min = 1;
                         }
                     }
                     avg_proj /= static_cast<double>(num_min);
                     avg_unit_normal /= static_cast<double>(num_min);
                     avg_unit_normal.normalize();
-                    (*i_data)(idx) = (avg_unit_normal.dot(P - avg_proj) <= 0.0) ? FLUID : GHOST;
+                    (*i_data)(idx) = ((avg_unit_normal.dot(point_to_vec_3d(X) - avg_proj) <= 0.0) ? FLUID : GHOST);
                     // If we have found a fluid point, then move in the reverse normal direction and set a ghost point.
                     // But only do this if we haven't already set those point types
                     if ((*i_data)(idx) == FLUID)

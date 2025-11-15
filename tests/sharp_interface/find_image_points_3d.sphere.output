@@ -1,0 +1,289 @@
+Writing image point data:
+Ghost point index:       (2,2,0)
+Boundary Point location: -0.109033 -0.109033 -0.909674
+Normal:                  0.140967 0.140967 0.340326
+Image point index:       (3,3,1)
+Image point location:    0.0319349 0.0319349 -0.569349
+Part:                    0
+Ghost point index:       (3,2,0)
+Boundary Point location:  0.109033 -0.109033 -0.909674
+Normal:                  -0.140967  0.140967  0.340326
+Image point index:       (2,3,1)
+Image point location:    -0.0319349  0.0319349  -0.569349
+Part:                    0
+Ghost point index:       (2,3,0)
+Boundary Point location:    -0.125     0.125 -0.908494
+Normal:                     0.125   -0.125 0.341506
+Image point index:       (3,3,1)
+Image point location:     5.55112e-17 -5.55112e-17    -0.566987
+Part:                    0
+Ghost point index:       (3,3,0)
+Boundary Point location:     0.125     0.125 -0.908494
+Normal:                    -0.125   -0.125 0.341506
+Image point index:       (3,3,1)
+Image point location:    -5.55112e-17 -5.55112e-17    -0.566987
+Part:                    0
+Ghost point index:       (2,1,1)
+Boundary Point location: -0.209551 -0.660011 -0.660011
+Normal:                   0.040449 0.0899887 0.0899887
+Image point index:       (2,1,1)
+Image point location:    -0.169102 -0.570023 -0.570023
+Part:                    0
+Ghost point index:       (3,1,1)
+Boundary Point location:  0.209551 -0.660011 -0.660011
+Normal:                  -0.040449 0.0899887 0.0899887
+Image point index:       (3,1,1)
+Image point location:     0.169102 -0.570023 -0.570023
+Part:                    0
+Ghost point index:       (1,2,1)
+Boundary Point location: -0.660011 -0.209551 -0.660011
+Normal:                  0.0899887  0.040449 0.0899887
+Image point index:       (1,2,1)
+Image point location:    -0.570023 -0.169102 -0.570023
+Part:                    0
+Ghost point index:       (4,2,1)
+Boundary Point location:  0.660011 -0.209551 -0.660011
+Normal:                  -0.0899887   0.040449  0.0899887
+Image point index:       (4,2,1)
+Image point location:     0.570023 -0.169102 -0.570023
+Part:                    0
+Ghost point index:       (1,3,1)
+Boundary Point location: -0.660011  0.209551 -0.660011
+Normal:                  0.0899887 -0.040449 0.0899887
+Image point index:       (1,3,1)
+Image point location:    -0.570023  0.169102 -0.570023
+Part:                    0
+Ghost point index:       (4,3,1)
+Boundary Point location:  0.660011  0.209551 -0.660011
+Normal:                  -0.0899887  -0.040449  0.0899887
+Image point index:       (4,3,1)
+Image point location:     0.570023  0.169102 -0.570023
+Part:                    0
+Ghost point index:       (2,4,1)
+Boundary Point location: -0.209551  0.660011 -0.660011
+Normal:                    0.040449 -0.0899887  0.0899887
+Image point index:       (2,4,1)
+Image point location:    -0.169102  0.570023 -0.570023
+Part:                    0
+Ghost point index:       (3,4,1)
+Boundary Point location:  0.209551  0.660011 -0.660011
+Normal:                   -0.040449 -0.0899887  0.0899887
+Image point index:       (3,4,1)
+Image point location:     0.169102  0.570023 -0.570023
+Part:                    0
+Ghost point index:       (2,0,2)
+Boundary Point location:    -0.125 -0.908494    -0.125
+Normal:                     0.125 0.341506    0.125
+Image point index:       (3,1,3)
+Image point location:    -5.55112e-17    -0.566987 -5.55112e-17
+Part:                    0
+Ghost point index:       (3,0,2)
+Boundary Point location:  0.109033 -0.909674 -0.109033
+Normal:                  -0.140967  0.340326  0.140967
+Image point index:       (2,1,3)
+Image point location:    -0.0319349  -0.569349  0.0319349
+Part:                    0
+Ghost point index:       (1,1,2)
+Boundary Point location: -0.660011 -0.660011 -0.209551
+Normal:                  0.0899887 0.0899887  0.040449
+Image point index:       (1,1,2)
+Image point location:    -0.570023 -0.570023 -0.169102
+Part:                    0
+Ghost point index:       (4,1,2)
+Boundary Point location:  0.660011 -0.660011 -0.209551
+Normal:                  -0.0899887  0.0899887   0.040449
+Image point index:       (4,1,2)
+Image point location:     0.570023 -0.570023 -0.169102
+Part:                    0
+Ghost point index:       (0,2,2)
+Boundary Point location: -0.908494    -0.125    -0.125
+Normal:                  0.341506    0.125    0.125
+Image point index:       (1,3,3)
+Image point location:      -0.566987 5.55112e-17 5.55112e-17
+Part:                    0
+Ghost point index:       (5,2,2)
+Boundary Point location: 0.908494   -0.125   -0.125
+Normal:                  -0.341506     0.125     0.125
+Image point index:       (4,3,3)
+Image point location:       0.566987 5.55112e-17 5.55112e-17
+Part:                    0
+Ghost point index:       (0,3,2)
+Boundary Point location: -0.908494     0.125    -0.125
+Normal:                  0.341506   -0.125    0.125
+Image point index:       (1,3,3)
+Image point location:       -0.566987  5.55112e-17 -5.55112e-17
+Part:                    0
+Ghost point index:       (5,3,2)
+Boundary Point location:  0.909674  0.109033 -0.109033
+Normal:                  -0.340326 -0.140967  0.140967
+Image point index:       (4,2,3)
+Image point location:      0.569349 -0.0319349  0.0319349
+Part:                    0
+Ghost point index:       (1,4,2)
+Boundary Point location: -0.660011  0.660011 -0.209551
+Normal:                   0.0899887 -0.0899887   0.040449
+Image point index:       (1,4,2)
+Image point location:    -0.570023  0.570023 -0.169102
+Part:                    0
+Ghost point index:       (4,4,2)
+Boundary Point location:  0.660011  0.660011 -0.209551
+Normal:                  -0.0899887 -0.0899887   0.040449
+Image point index:       (4,4,2)
+Image point location:     0.570023  0.570023 -0.169102
+Part:                    0
+Ghost point index:       (2,5,2)
+Boundary Point location: -0.109033  0.909674 -0.109033
+Normal:                   0.140967 -0.340326  0.140967
+Image point index:       (3,4,3)
+Image point location:    0.0319349  0.569349 0.0319349
+Part:                    0
+Ghost point index:       (3,5,2)
+Boundary Point location:    0.125 0.908494   -0.125
+Normal:                     -0.125 -0.341506     0.125
+Image point index:       (3,4,3)
+Image point location:     5.55112e-17     0.566987 -5.55112e-17
+Part:                    0
+Ghost point index:       (2,0,3)
+Boundary Point location: -0.109033 -0.909674  0.109033
+Normal:                   0.140967  0.340326 -0.140967
+Image point index:       (3,1,2)
+Image point location:     0.0319349  -0.569349 -0.0319349
+Part:                    0
+Ghost point index:       (3,0,3)
+Boundary Point location:     0.125 -0.908494     0.125
+Normal:                    -0.125 0.341506   -0.125
+Image point index:       (3,1,3)
+Image point location:    5.55112e-17   -0.566987 5.55112e-17
+Part:                    0
+Ghost point index:       (1,1,3)
+Boundary Point location: -0.660011 -0.660011  0.209551
+Normal:                  0.0899887 0.0899887 -0.040449
+Image point index:       (1,1,3)
+Image point location:    -0.570023 -0.570023  0.169102
+Part:                    0
+Ghost point index:       (4,1,3)
+Boundary Point location:  0.660011 -0.660011  0.209551
+Normal:                  -0.0899887  0.0899887  -0.040449
+Image point index:       (4,1,3)
+Image point location:     0.570023 -0.570023  0.169102
+Part:                    0
+Ghost point index:       (0,2,3)
+Boundary Point location: -0.909674 -0.109033  0.109033
+Normal:                   0.340326  0.140967 -0.140967
+Image point index:       (1,3,2)
+Image point location:     -0.569349  0.0319349 -0.0319349
+Part:                    0
+Ghost point index:       (5,2,3)
+Boundary Point location:  0.909674 -0.109033  0.109033
+Normal:                  -0.340326  0.140967 -0.140967
+Image point index:       (4,3,2)
+Image point location:      0.569349  0.0319349 -0.0319349
+Part:                    0
+Ghost point index:       (0,3,3)
+Boundary Point location: -0.909674  0.109033  0.109033
+Normal:                   0.340326 -0.140967 -0.140967
+Image point index:       (1,2,2)
+Image point location:     -0.569349 -0.0319349 -0.0319349
+Part:                    0
+Ghost point index:       (5,3,3)
+Boundary Point location: 0.908494    0.125    0.125
+Normal:                  -0.341506    -0.125    -0.125
+Image point index:       (4,3,3)
+Image point location:        0.566987 -5.55112e-17 -5.55112e-17
+Part:                    0
+Ghost point index:       (1,4,3)
+Boundary Point location: -0.660011  0.660011  0.209551
+Normal:                   0.0899887 -0.0899887  -0.040449
+Image point index:       (1,4,3)
+Image point location:    -0.570023  0.570023  0.169102
+Part:                    0
+Ghost point index:       (4,4,3)
+Boundary Point location: 0.660011 0.660011 0.209551
+Normal:                  -0.0899887 -0.0899887  -0.040449
+Image point index:       (4,4,3)
+Image point location:    0.570023 0.570023 0.169102
+Part:                    0
+Ghost point index:       (2,5,3)
+Boundary Point location:   -0.125 0.908494    0.125
+Normal:                      0.125 -0.341506    -0.125
+Image point index:       (3,4,3)
+Image point location:    -5.55112e-17     0.566987  5.55112e-17
+Part:                    0
+Ghost point index:       (3,5,3)
+Boundary Point location: 0.109033 0.909674 0.109033
+Normal:                  -0.140967 -0.340326 -0.140967
+Image point index:       (2,4,2)
+Image point location:    -0.0319349   0.569349 -0.0319349
+Part:                    0
+Ghost point index:       (2,1,4)
+Boundary Point location: -0.209551 -0.660011  0.660011
+Normal:                    0.040449  0.0899887 -0.0899887
+Image point index:       (2,1,4)
+Image point location:    -0.169102 -0.570023  0.570023
+Part:                    0
+Ghost point index:       (3,1,4)
+Boundary Point location:  0.209551 -0.660011  0.660011
+Normal:                   -0.040449  0.0899887 -0.0899887
+Image point index:       (3,1,4)
+Image point location:     0.169102 -0.570023  0.570023
+Part:                    0
+Ghost point index:       (1,2,4)
+Boundary Point location: -0.660011 -0.209551  0.660011
+Normal:                   0.0899887   0.040449 -0.0899887
+Image point index:       (1,2,4)
+Image point location:    -0.570023 -0.169102  0.570023
+Part:                    0
+Ghost point index:       (4,2,4)
+Boundary Point location:  0.660011 -0.209551  0.660011
+Normal:                  -0.0899887   0.040449 -0.0899887
+Image point index:       (4,2,4)
+Image point location:     0.570023 -0.169102  0.570023
+Part:                    0
+Ghost point index:       (1,3,4)
+Boundary Point location: -0.660011  0.209551  0.660011
+Normal:                   0.0899887  -0.040449 -0.0899887
+Image point index:       (1,3,4)
+Image point location:    -0.570023  0.169102  0.570023
+Part:                    0
+Ghost point index:       (4,3,4)
+Boundary Point location: 0.660011 0.209551 0.660011
+Normal:                  -0.0899887  -0.040449 -0.0899887
+Image point index:       (4,3,4)
+Image point location:    0.570023 0.169102 0.570023
+Part:                    0
+Ghost point index:       (2,4,4)
+Boundary Point location: -0.209551  0.660011  0.660011
+Normal:                    0.040449 -0.0899887 -0.0899887
+Image point index:       (2,4,4)
+Image point location:    -0.169102  0.570023  0.570023
+Part:                    0
+Ghost point index:       (3,4,4)
+Boundary Point location: 0.209551 0.660011 0.660011
+Normal:                   -0.040449 -0.0899887 -0.0899887
+Image point index:       (3,4,4)
+Image point location:    0.169102 0.570023 0.570023
+Part:                    0
+Ghost point index:       (2,2,5)
+Boundary Point location:   -0.125   -0.125 0.908494
+Normal:                      0.125     0.125 -0.341506
+Image point index:       (3,3,4)
+Image point location:    -5.55112e-17 -5.55112e-17     0.566987
+Part:                    0
+Ghost point index:       (3,2,5)
+Boundary Point location:    0.125   -0.125 0.908494
+Normal:                     -0.125     0.125 -0.341506
+Image point index:       (3,3,4)
+Image point location:     5.55112e-17 -5.55112e-17     0.566987
+Part:                    0
+Ghost point index:       (2,3,5)
+Boundary Point location:   -0.125    0.125 0.908494
+Normal:                      0.125    -0.125 -0.341506
+Image point index:       (3,3,4)
+Image point location:     5.55112e-17 -5.55112e-17     0.566987
+Part:                    0
+Ghost point index:       (3,3,5)
+Boundary Point location:    0.125    0.125 0.908494
+Normal:                     -0.125    -0.125 -0.341506
+Image point index:       (3,3,4)
+Image point location:    -5.55112e-17 -5.55112e-17     0.566987
+Part:                    0

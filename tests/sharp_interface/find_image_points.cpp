@@ -204,7 +204,6 @@ build_element(IBTKInit& init)
     elem->set_node(1) = mesh->node_ptr(1);
     elem->set_node(2) = mesh->node_ptr(2);
     mesh->prepare_for_use(false);
-    mesh->print_info(pout);
     return mesh;
 }
 
