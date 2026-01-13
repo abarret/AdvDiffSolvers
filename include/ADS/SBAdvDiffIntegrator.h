@@ -65,6 +65,12 @@ public:
      */
     void integrateHierarchySpecialized(double current_time, double new_time, int cycle_num = 0) override;
 
+    /*!
+     * Complete the semi Lagrangian update. Note this is called automatically during integrateHierarchy and should be
+     * called by the user.
+     */
+    void semiLagrangianAdvectionUpdate(double current_time, double new_time);
+
 protected:
 
     std::map<SAMRAI::tbox::Pointer<SAMRAI::pdat::NodeVariable<NDIM, double>>,
